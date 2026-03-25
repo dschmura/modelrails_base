@@ -26,3 +26,9 @@ en:
     destroy:
       success: "Workspace archived."
       confirm: "Are you sure? This workspace will be archived."
+    members:
+      index:
+        title: "Members"
+        name: "Name"
+        email: "Email"
+        role: "Role"

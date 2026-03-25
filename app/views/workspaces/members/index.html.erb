@@ -1,0 +1,31 @@
+<% content_for(:title) { t("workspaces.members.index.title") } %>
+<div class="max-w-4xl mx-auto px-4 py-16">
+  <h1 class="text-2xl font-bold text-slate-900 dark:text-gray-100">
+    <%= t("workspaces.members.index.title") %>
+  </h1>
+
+  <table class="mt-8 w-full">
+    <thead>
+      <tr class="border-b border-gray-200 dark:border-gray-700">
+        <th scope="col" class="text-left py-3 text-sm font-medium text-slate-600 dark:text-gray-400">
+          <%= t("workspaces.members.index.name") %>
+        </th>
+        <th scope="col" class="text-left py-3 text-sm font-medium text-slate-600 dark:text-gray-400">
+          <%= t("workspaces.members.index.email") %>
+        </th>
+        <th scope="col" class="text-left py-3 text-sm font-medium text-slate-600 dark:text-gray-400">
+          <%= t("workspaces.members.index.role") %>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @memberships.each do |membership| %>
+        <tr class="border-b border-gray-100 dark:border-gray-800">
+          <td class="py-3 text-slate-900 dark:text-gray-100"><%= membership.user.full_name %></td>
+          <td class="py-3 text-slate-600 dark:text-gray-400"><%= membership.user.email_address %></td>
+          <td class="py-3 text-slate-600 dark:text-gray-400"><%= membership.role.name %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
