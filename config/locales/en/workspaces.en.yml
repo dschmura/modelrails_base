@@ -1,0 +1,28 @@
+en:
+  workspaces:
+    not_found: "Workspace not found."
+    unauthorized: "You don't have permission to do that."
+    index:
+      title: "Your workspaces"
+      new_workspace: "New workspace"
+      empty: "You don't have any workspaces yet."
+    new:
+      title: "Create a workspace"
+      name_label: "Workspace name"
+      submit: "Create workspace"
+    create:
+      success: "Workspace created."
+    show:
+      title: "Dashboard"
+      settings: "Settings"
+      branding: "Branding"
+      members: "Members"
+    edit:
+      title: "Edit workspace"
+      name_label: "Workspace name"
+      submit: "Save changes"
+    update:
+      success: "Workspace updated."
+    destroy:
+      success: "Workspace archived."
+      confirm: "Are you sure? This workspace will be archived."

@@ -17,6 +17,8 @@ Rails.application.routes.draw do
     resources :connected_accounts, only: [:index, :destroy]
   end
 
+  resources :workspaces, param: :slug
+
   root "pages#home"
   get "about", to: "pages#about"
   get "privacy", to: "pages#privacy"
