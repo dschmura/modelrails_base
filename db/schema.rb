@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_25_143907) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_25_171515) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -57,6 +57,31 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_25_143907) do
     t.index ["verification_token"], name: "index_authentications_on_verification_token", unique: true
   end
 
+  create_table "memberships", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "discarded_at"
+    t.integer "role_id", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.integer "workspace_id", null: false
+    t.index ["discarded_at"], name: "index_memberships_on_discarded_at"
+    t.index ["role_id"], name: "index_memberships_on_role_id"
+    t.index ["user_id", "workspace_id"], name: "index_memberships_on_user_id_and_workspace_id", unique: true
+    t.index ["user_id"], name: "index_memberships_on_user_id"
+    t.index ["workspace_id"], name: "index_memberships_on_workspace_id"
+  end
+
+  create_table "roles", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.json "permissions", default: {}
+    t.string "slug", null: false
+    t.datetime "updated_at", null: false
+    t.integer "workspace_id"
+    t.index ["workspace_id", "slug"], name: "index_roles_on_workspace_id_and_slug", unique: true
+    t.index ["workspace_id"], name: "index_roles_on_workspace_id"
+  end
+
   create_table "sessions", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "ip_address"
@@ -92,9 +117,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_25_143907) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  create_table "workspaces", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "discarded_at"
+    t.integer "max_members", default: 5, null: false
+    t.integer "max_teams", default: 3, null: false
+    t.string "name", null: false
+    t.string "plan", default: "free", null: false
+    t.string "primary_color"
+    t.string "slug", null: false
+    t.datetime "updated_at", null: false
+    t.index ["discarded_at"], name: "index_workspaces_on_discarded_at"
+    t.index ["slug"], name: "index_workspaces_on_slug", unique: true
+  end
+
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "authentications", "users"
+  add_foreign_key "memberships", "roles"
+  add_foreign_key "memberships", "users"
+  add_foreign_key "memberships", "workspaces"
+  add_foreign_key "roles", "workspaces"
   add_foreign_key "sessions", "users"
   add_foreign_key "user_preferences", "users"
 end
