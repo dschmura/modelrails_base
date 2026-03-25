@@ -9,6 +9,18 @@ en:
         submit: "Save changes"
       update:
         success: "Profile updated."
+    passwords:
+      new:
+        title: "Set a password"
+        instructions: "Add email and password sign-in to your account."
+        password_label: "Password"
+        password_confirmation_label: "Confirm password"
+        password_hint: "Must be at least 12 characters."
+        submit: "Set password"
+        already_has_password: "You already have email and password sign-in."
+      create:
+        success: "Email and password sign-in has been added to your account."
+        already_has_password: "You already have email and password sign-in."
     avatars:
       update:
         success: "Avatar uploaded."

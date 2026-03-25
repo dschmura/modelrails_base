@@ -11,6 +11,7 @@ Rails.application.routes.draw do
 
   namespace :account do
     resource :profile, only: [:edit, :update]
+    resource :password, only: [:new, :create]
     resource :avatar, only: [:update, :destroy]
     resource :theme_preference, only: [:update]
     resources :connected_accounts, only: [:index, :destroy]
