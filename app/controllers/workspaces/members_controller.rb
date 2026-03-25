@@ -3,7 +3,8 @@ module Workspaces
     include WorkspaceScoped
 
     def index
-      @memberships = @workspace.memberships.kept.includes(:user, :role)
+      authorize Membership
+      @memberships = @workspace.memberships.includes(:user, :role)
     end
   end
 end

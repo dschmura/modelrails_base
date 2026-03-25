@@ -11,7 +11,16 @@ class ApplicationController < ActionController::Base
 
   private
 
+  def current_user
+    Current.user
+  end
+
   def user_not_authorized
-    redirect_to(request.referer || root_path, alert: t("errors.not_authorized"))
+    destination = if Current.workspace.present?
+      workspace_path(Current.workspace)
+    else
+      request.referer || root_path
+    end
+    redirect_to(destination, alert: t("errors.not_authorized"))
   end
 end
