@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_25_130354) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_25_134614) do
   create_table "authentications", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "oauth_expires_at"
@@ -44,8 +44,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_25_130354) do
     t.string "first_name"
     t.string "last_name"
     t.string "password_digest", null: false
+    t.datetime "reset_password_sent_at"
+    t.string "reset_password_token"
     t.datetime "updated_at", null: false
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
+    t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
   add_foreign_key "authentications", "users"
