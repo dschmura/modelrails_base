@@ -1,0 +1,15 @@
+en:
+  sessions:
+    new:
+      title: "Sign in"
+      email_label: "Email address"
+      password_label: "Password"
+      submit: "Sign in"
+      forgot_password: "Forgot your password?"
+      no_account: "Don't have an account?"
+      sign_up: "Sign up"
+    create:
+      success: "Signed in successfully."
+      failure: "Invalid email or password."
+    destroy:
+      success: "Signed out successfully."
