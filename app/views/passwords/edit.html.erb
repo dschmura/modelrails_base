@@ -4,8 +4,7 @@
     <%= t("passwords.edit.title") %>
   </h1>
 
-  <%= form_with model: @user, url: password_path, method: :patch, class: "mt-8 space-y-6" do |form| %>
-    <%= hidden_field_tag :token, params[:token] %>
+  <%= form_with model: @user, url: password_path(params[:token]), method: :patch, class: "mt-8 space-y-6" do |form| %>
 
     <% if @user.errors.any? %>
       <div role="alert" class="p-4 bg-red-50 dark:bg-red-900 rounded-lg">

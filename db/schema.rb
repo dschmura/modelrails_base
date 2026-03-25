@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_25_134614) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_25_135142) do
   create_table "authentications", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "oauth_expires_at"

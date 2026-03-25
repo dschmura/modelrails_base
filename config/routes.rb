@@ -2,7 +2,7 @@ Rails.application.routes.draw do
   resource :session
   resource :registration, only: [:new, :create]
   resource :email_verification, only: [:show]
-  resource :password, only: [:new, :create, :edit, :update]
+  resources :passwords, param: :token
   root "pages#home"
   get "about", to: "pages#about"
   get "privacy", to: "pages#privacy"

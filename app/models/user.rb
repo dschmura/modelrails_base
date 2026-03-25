@@ -15,25 +15,6 @@ class User < ApplicationRecord
     "#{first_name} #{last_name}"
   end
 
-  def generate_reset_password_token!
-    update!(
-      reset_password_token: SecureRandom.urlsafe_base64(32),
-      reset_password_sent_at: Time.current
-    )
-  end
-
-  def clear_reset_password_token!
-    update!(
-      reset_password_token: nil,
-      reset_password_sent_at: nil
-    )
-  end
-
-  def reset_password_token_expired?
-    return true if reset_password_sent_at.nil?
-    reset_password_sent_at < 2.hours.ago
-  end
-
   private
 
   def password_not_pwned
