@@ -1,0 +1,8 @@
+en:
+  authentication_mailer:
+    verification_email:
+      subject: "Verify your email address"
+      greeting: "Hi %{name},"
+      body: "Please verify your email address by clicking the link below."
+      action: "Verify email address"
+      expiry_note: "This link will expire in 24 hours."

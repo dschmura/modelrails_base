@@ -1,6 +1,7 @@
 Rails.application.routes.draw do
   resource :session
   resource :registration, only: [:new, :create]
+  resource :email_verification, only: [:show]
   resources :passwords, param: :token
   root "pages#home"
   get "about", to: "pages#about"

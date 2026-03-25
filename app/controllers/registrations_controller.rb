@@ -8,6 +8,12 @@ class RegistrationsController < ApplicationController
   def create
     @user = User.new(registration_params)
     if @user.save
+      authentication = @user.authentications.create!(
+        provider: "email",
+        uid: @user.email_address
+      )
+      authentication.generate_verification_token!
+      AuthenticationMailer.verification_email(authentication).deliver_later
       start_new_session_for(@user)
       redirect_to root_path, notice: t(".success")
     else
