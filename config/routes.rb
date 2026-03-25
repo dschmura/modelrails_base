@@ -20,6 +20,7 @@ Rails.application.routes.draw do
   resources :workspaces, param: :slug do
     scope module: :workspaces do
       resources :members, only: [:index]
+      resource :settings, only: [:edit, :update]
     end
   end
 
