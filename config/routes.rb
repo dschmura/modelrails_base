@@ -34,7 +34,7 @@ Rails.application.routes.draw do
       resource :branding, only: [:edit, :update]
       resources :projects, param: :slug do
         scope module: :projects do
-          resources :memberships, only: [:index, :create, :update, :destroy] do
+          resources :memberships, only: [:index, :new, :create, :update, :destroy] do
             member do
               patch :toggle_pin
             end
