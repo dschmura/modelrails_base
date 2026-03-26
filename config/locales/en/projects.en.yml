@@ -25,3 +25,23 @@ en:
       success: "Project updated."
     destroy:
       success: "Project archived."
+    memberships:
+      index:
+        title: "Project members"
+        add_member: "Add member"
+        role: "Role"
+        actions: "Actions"
+        remove: "Remove"
+      new:
+        title: "Add member"
+        user_label: "Workspace member"
+        role_label: "Role"
+        submit: "Add to project"
+      create:
+        success: "Member added."
+      update:
+        role_updated: "Role updated."
+      destroy:
+        removed: "Member removed."
+      toggle_pin:
+        toggled: "Pin updated."

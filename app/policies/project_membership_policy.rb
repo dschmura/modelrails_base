@@ -22,11 +22,15 @@ class ProjectMembershipPolicy < ApplicationPolicy
   private
 
   def project
-    record.project
+    if record.is_a?(ProjectMembership)
+      record.project
+    else
+      Current.project
+    end
   end
 
   def project_membership
-    @project_membership ||= project.project_memberships.find_by(user: user)
+    @project_membership ||= project&.project_memberships&.find_by(user: user)
   end
 
   def project_member?
