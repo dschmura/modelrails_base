@@ -19,4 +19,23 @@ RSpec.describe InvitationMailer, type: :mailer do
       expect(mail.body.encoded).to include(invitation.invitable.name)
     end
   end
+
+  describe "#invite details" do
+    let(:invitation) { create(:invitation) }
+
+    it "has a subject including workspace name" do
+      mail = described_class.invite(invitation)
+      expect(mail.subject).to include(invitation.invitable.name)
+    end
+
+    it "includes the inviter name in the body" do
+      mail = described_class.invite(invitation)
+      expect(mail.body.encoded).to include(invitation.invited_by.full_name)
+    end
+
+    it "includes the decline link" do
+      mail = described_class.invite(invitation)
+      expect(mail.body.encoded).to include("decline")
+    end
+  end
 end
