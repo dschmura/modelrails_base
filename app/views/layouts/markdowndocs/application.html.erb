@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="<%= I18n.locale %>">
   <head>
-    <title><%= content_for(:title) || "Documentation" %></title>
+    <title><%= content_for(:title) || "Documentation" %> — <%= t("application.name") %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
@@ -10,13 +10,18 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
-    <%= yield :docs_header %>
+  <body class="min-h-screen flex flex-col bg-white dark:bg-gray-900 text-slate-800 dark:text-gray-200">
+    <a href="#main-content"
+       class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-white focus:text-sky-700 focus:underline">
+      <%= t("application.skip_to_content") %>
+    </a>
 
-    <main id="main-content" role="main" class="flex-1">
+    <%= render "shared/header" %>
+
+    <main id="main-content" tabindex="-1" role="main" class="flex-1">
       <%= yield %>
     </main>
 
-    <%= yield :docs_footer %>
+    <%= render "shared/footer" %>
   </body>
 </html>
