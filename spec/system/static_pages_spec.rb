@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "Static pages", type: :system do
-  describe "home page" do
+  describe "layout" do
     it "has a skip-to-content link" do
       visit root_path
       expect(page).to have_css("a[href='#main-content']", visible: :all)
@@ -16,13 +16,109 @@ RSpec.describe "Static pages", type: :system do
       visit root_path
       expect(page).to have_css("html[lang='en']")
     end
+
+    it "has a header with navigation" do
+      visit root_path
+      expect(page).to have_css("header nav")
+    end
+
+    it "has a footer" do
+      visit root_path
+      expect(page).to have_css("footer")
+    end
+
+    it "footer contains site links" do
+      visit root_path
+      within("footer") do
+        expect(page).to have_link(I18n.t("footer.about"))
+        expect(page).to have_link(I18n.t("footer.privacy"))
+        expect(page).to have_link(I18n.t("footer.contact"))
+      end
+    end
+
+    it "navigation contains the app name as home link" do
+      visit root_path
+      within("header nav") do
+        expect(page).to have_link(I18n.t("application.name"), href: root_path)
+      end
+    end
+
+    it "has a mobile menu toggle button" do
+      visit root_path
+      expect(page).to have_css("button[aria-label='#{I18n.t("navigation.toggle_menu")}']", visible: :all)
+    end
+  end
+
+  describe "home page" do
+    before { visit root_path }
+
+    it "displays the hero title" do
+      expect(page).to have_text(I18n.t("pages.home.hero.title"))
+    end
+
+    it "displays the hero subtitle" do
+      expect(page).to have_text(I18n.t("pages.home.hero.subtitle"))
+    end
+
+    it "has call-to-action buttons" do
+      expect(page).to have_link(I18n.t("pages.home.hero.cta_primary"))
+      expect(page).to have_link(I18n.t("pages.home.hero.cta_secondary"))
+    end
+
+    it "displays feature cards" do
+      expect(page).to have_text(I18n.t("pages.home.features.auth.title"))
+      expect(page).to have_text(I18n.t("pages.home.features.workspaces.title"))
+      expect(page).to have_text(I18n.t("pages.home.features.projects.title"))
+    end
+  end
+
+  describe "about page" do
+    before { visit about_path }
+
+    it "displays the page title" do
+      expect(page).to have_text(I18n.t("pages.about.hero.title"))
+    end
+
+    it "displays the mission" do
+      expect(page).to have_text(I18n.t("pages.about.mission.title"))
+    end
+
+    it "lists key features" do
+      expect(page).to have_text(I18n.t("pages.about.features.title"))
+    end
+  end
+
+  describe "privacy page" do
+    before { visit privacy_path }
+
+    it "displays the page title" do
+      expect(page).to have_text(I18n.t("pages.privacy.title"))
+    end
+
+    it "has policy sections" do
+      expect(page).to have_text(I18n.t("pages.privacy.collection.title"))
+      expect(page).to have_text(I18n.t("pages.privacy.usage.title"))
+      expect(page).to have_text(I18n.t("pages.privacy.security.title"))
+    end
+  end
+
+  describe "contact page" do
+    before { visit contact_path }
+
+    it "displays the page title" do
+      expect(page).to have_text(I18n.t("pages.contact.hero.title"))
+    end
+
+    it "displays contact methods" do
+      expect(page).to have_text(I18n.t("pages.contact.methods.title"))
+    end
   end
 
   %w[about privacy contact].each do |page_name|
     describe "#{page_name} page" do
-      it "renders successfully" do
+      it "renders with 200 status" do
         visit send(:"#{page_name}_path")
-        expect(page).to have_text(I18n.t("pages.#{page_name}.title"))
+        expect(page).to have_text(I18n.t("pages.#{page_name}.title", default: I18n.t("pages.#{page_name}.hero.title", default: page_name.titleize)))
       end
     end
   end
