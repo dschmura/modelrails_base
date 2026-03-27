@@ -38,7 +38,7 @@ module Workspaces
     end
 
     def transfer_ownership
-      @membership = @workspace.memberships.find(params[:id])
+      @membership = @workspace.memberships.kept.find(params[:id])
       authorize @membership
       current_membership = @workspace.memberships.kept.find_by!(user: Current.user)
       current_membership.transfer_ownership_to!(@membership)

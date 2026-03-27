@@ -10,7 +10,7 @@ class Project < ApplicationRecord
   has_many :resources, dependent: :destroy
   has_one_attached :logo
 
-  validates :name, presence: true
+  validates :name, presence: true, length: { maximum: 255 }
   validates :slug, presence: true, uniqueness: { scope: :workspace_id }
   validate :workspace_has_project_capacity, on: :create
 

@@ -68,6 +68,13 @@ RSpec.describe Project, type: :model do
     end
   end
 
+  describe "name length" do
+    it "limits name to 255 characters" do
+      project = build(:project, name: "a" * 256)
+      expect(project).not_to be_valid
+    end
+  end
+
   describe "max_projects enforcement" do
     it "validates workspace has capacity" do
       workspace = create(:workspace, max_projects: 1)

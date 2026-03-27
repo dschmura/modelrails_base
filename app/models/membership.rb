@@ -7,14 +7,16 @@ class Membership < ApplicationRecord
   belongs_to :role
 
   validates :user_id, uniqueness: { scope: :workspace_id }
+  validate :workspace_has_member_capacity, on: :create
 
   def change_role!(new_role)
     update!(role: new_role)
   end
 
   def deactivate!
-    validate_not_last_owner!
     transaction do
+      workspace.lock!
+      validate_not_last_owner!
       discard!
       ProjectMembership.joins(:project)
         .where(projects: { workspace_id: workspace_id }, user_id: user_id)
@@ -37,6 +39,13 @@ class Membership < ApplicationRecord
   end
 
   private
+
+  def workspace_has_member_capacity
+    return unless workspace
+    if workspace.memberships.kept.count >= workspace.max_members
+      errors.add(:base, :workspace_member_limit, message: "workspace has reached its member limit")
+    end
+  end
 
   def validate_not_last_owner!
     if role.slug == "owner" && workspace.memberships.kept.joins(:role).where(roles: { slug: "owner" }).count <= 1

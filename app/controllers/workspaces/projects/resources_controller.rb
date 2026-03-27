@@ -64,7 +64,9 @@ module Workspaces
 
       def reposition
         authorize @resource
-        @resource.update!(position: params[:resource][:position].to_i)
+        max_position = @project.resources.kept.count - 1
+        new_position = params[:resource][:position].to_i.clamp(0, [max_position, 0].max)
+        @resource.update!(position: new_position)
         head :ok
       end
 

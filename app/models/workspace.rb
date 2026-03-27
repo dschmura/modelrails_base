@@ -11,10 +11,19 @@ class Workspace < ApplicationRecord
 
   enum :plan, { free: "free", pro: "pro", enterprise: "enterprise" }
 
-  validates :name, presence: true
+  validates :name, presence: true, length: { maximum: 255 }
   validates :slug, presence: true, uniqueness: true
+  validates :max_members, numericality: { greater_than: 0 }
+  validates :max_projects, numericality: { greater_than: 0 }
 
   before_validation :generate_slug, if: -> { name.present? && (slug.blank? || (name_changed? && !slug_changed?)) }
+
+  def discard!
+    transaction do
+      super
+      projects.kept.find_each(&:discard!)
+    end
+  end
 
   def to_param
     slug

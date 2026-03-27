@@ -84,6 +84,20 @@ RSpec.describe Membership, type: :model do
     end
   end
 
+  describe "max_members enforcement" do
+    it "prevents exceeding max_members" do
+      # Create a workspace with max_members: 2
+      # The workspace factory does not auto-create memberships,
+      # so we manually create 2 memberships then try a third.
+      workspace = create(:workspace, max_members: 2)
+      create(:membership, :owner, workspace: workspace)
+      create(:membership, workspace: workspace)
+      third = build(:membership, workspace: workspace)
+      expect(third).not_to be_valid
+      expect(third.errors[:base]).to be_present
+    end
+  end
+
   describe "ownership transfer" do
     let(:workspace) { create(:workspace) }
     let(:owner_membership) { create(:membership, :owner, workspace: workspace) }
