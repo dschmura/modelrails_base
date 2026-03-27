@@ -10,7 +10,17 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_26_221245) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_27_101643) do
+  create_table "action_text_rich_texts", force: :cascade do |t|
+    t.text "body"
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.bigint "record_id", null: false
+    t.string "record_type", null: false
+    t.datetime "updated_at", null: false
+    t.index ["record_type", "record_id", "name"], name: "index_action_text_rich_texts_uniqueness", unique: true
+  end
+
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -39,6 +49,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_26_221245) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
+  create_table "activity_logs", force: :cascade do |t|
+    t.string "action", null: false
+    t.integer "actor_id"
+    t.datetime "created_at", null: false
+    t.json "metadata", default: {}
+    t.integer "trackable_id", null: false
+    t.string "trackable_type", null: false
+    t.datetime "updated_at", null: false
+    t.string "visibility", default: "workspace", null: false
+    t.integer "workspace_id"
+    t.index ["actor_id"], name: "index_activity_logs_on_actor_id"
+    t.index ["trackable_type", "trackable_id"], name: "index_activity_logs_on_trackable"
+    t.index ["workspace_id", "created_at"], name: "index_activity_logs_on_workspace_id_and_created_at"
+    t.index ["workspace_id"], name: "index_activity_logs_on_workspace_id"
+  end
+
   create_table "authentications", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "oauth_expires_at"
@@ -55,6 +81,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_26_221245) do
     t.index ["user_id", "provider"], name: "index_authentications_on_user_id_and_provider", unique: true
     t.index ["user_id"], name: "index_authentications_on_user_id"
     t.index ["verification_token"], name: "index_authentications_on_verification_token", unique: true
+  end
+
+  create_table "documents", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "invitations", force: :cascade do |t|
@@ -124,6 +155,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_26_221245) do
     t.index ["workspace_id"], name: "index_projects_on_workspace_id"
   end
 
+  create_table "resources", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "created_by_id", null: false
+    t.datetime "discarded_at"
+    t.integer "position", default: 0, null: false
+    t.integer "project_id", null: false
+    t.integer "resourceable_id", null: false
+    t.string "resourceable_type", null: false
+    t.string "status", default: "draft", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_resources_on_created_by_id"
+    t.index ["discarded_at"], name: "index_resources_on_discarded_at"
+    t.index ["project_id", "position"], name: "index_resources_on_project_id_and_position"
+    t.index ["project_id"], name: "index_resources_on_project_id"
+    t.index ["resourceable_type", "resourceable_id"], name: "index_resources_on_resourceable_type_and_resourceable_id", unique: true
+  end
+
   create_table "roles", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "name", null: false
@@ -186,6 +235,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_26_221245) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "activity_logs", "users", column: "actor_id"
+  add_foreign_key "activity_logs", "workspaces"
   add_foreign_key "authentications", "users"
   add_foreign_key "invitations", "roles"
   add_foreign_key "invitations", "users", column: "accepted_by_id"
@@ -197,6 +248,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_26_221245) do
   add_foreign_key "project_memberships", "users"
   add_foreign_key "projects", "users", column: "created_by_id"
   add_foreign_key "projects", "workspaces"
+  add_foreign_key "resources", "projects"
+  add_foreign_key "resources", "users", column: "created_by_id"
   add_foreign_key "roles", "workspaces"
   add_foreign_key "sessions", "users"
   add_foreign_key "user_preferences", "users"

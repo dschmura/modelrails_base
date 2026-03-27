@@ -40,6 +40,11 @@ Rails.application.routes.draw do
             end
           end
           resources :invitations, only: [:new, :create]
+          resources :resources, only: [:index, :new, :create, :show, :edit, :update, :destroy] do
+            member do
+              patch :reposition
+            end
+          end
         end
       end
     end

@@ -1,11 +1,13 @@
 class Project < ApplicationRecord
   include Discardable
   include Tenanted
+  include Trackable
 
   belongs_to :created_by, class_name: "User"
   has_many :project_memberships, dependent: :destroy
   has_many :users, through: :project_memberships
   has_many :invitations, as: :invitable, dependent: :destroy
+  has_many :resources, dependent: :destroy
   has_one_attached :logo
 
   validates :name, presence: true
