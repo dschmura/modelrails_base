@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 Markdowndocs.configure do |config|
-  # Path to markdown files (default: Rails.root.join("app/docs"))
-  # config.docs_path = Rails.root.join("app", "docs")
+  # Path to markdown files
+  config.docs_path = Rails.root.join("app", "docs")
 
   # Category → slug mapping
   # Maps category names to arrays of markdown file slugs (filenames without .md)

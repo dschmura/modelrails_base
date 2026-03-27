@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="<%= I18n.locale %>">
+  <head>
+    <title><%= content_for(:title) || "Documentation" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= yield :head %>
+    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
+
+  <body class="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+    <%= yield :docs_header %>
+
+    <main id="main-content" role="main" class="flex-1">
+      <%= yield %>
+    </main>
+
+    <%= yield :docs_footer %>
+  </body>
+</html>
