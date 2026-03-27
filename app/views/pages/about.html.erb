@@ -1,9 +1,38 @@
-<% content_for(:title) { t("pages.about.title") } %>
-<div class="max-w-4xl mx-auto px-4 py-16">
-  <h1 class="text-4xl font-bold text-slate-900 dark:text-gray-100">
-    <%= t("pages.about.title") %>
-  </h1>
-  <p class="mt-4 text-lg text-slate-700 dark:text-gray-300">
-    <%= t("pages.about.description") %>
+<% content_for(:title) { t("pages.about.hero.title") } %>
+
+<%= render "shared/hero",
+      title: t("pages.about.hero.title"),
+      subtitle: t("pages.about.hero.subtitle") %>
+
+<%= render "shared/section",
+      title: t("pages.about.mission.title"),
+      bg: "bg-gray-50 dark:bg-gray-800" do %>
+  <p class="text-lg text-slate-600 dark:text-gray-400 max-w-3xl mx-auto text-center">
+    <%= t("pages.about.mission.description") %>
   </p>
-</div>
+<% end %>
+
+<%= render "shared/section",
+      title: t("pages.about.features.title"),
+      bg: "bg-white dark:bg-gray-900" do %>
+  <ul class="max-w-2xl mx-auto space-y-3">
+    <% t("pages.about.features.items").each do |item| %>
+      <li class="flex items-start gap-3">
+        <span class="mt-1 text-sky-700 dark:text-sky-400" aria-hidden="true">&#10003;</span>
+        <span class="text-slate-700 dark:text-gray-300"><%= item %></span>
+      </li>
+    <% end %>
+  </ul>
+<% end %>
+
+<%= render "shared/section",
+      title: t("pages.about.philosophy.title"),
+      bg: "bg-gray-50 dark:bg-gray-800" do %>
+  <div class="grid sm:grid-cols-2 gap-6 max-w-4xl mx-auto">
+    <% %w[conventions accessibility testing extensible].each do |principle| %>
+      <%= render "shared/feature_card",
+            title: t("pages.about.philosophy.#{principle}.title"),
+            description: t("pages.about.philosophy.#{principle}.description") %>
+    <% end %>
+  </div>
+<% end %>

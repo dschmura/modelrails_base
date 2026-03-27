@@ -14,3 +14,10 @@ en:
     connected_accounts: "Accounts"
     workspaces: "Workspaces"
     new_workspace: "New workspace"
+    toggle_menu: "Toggle navigation menu"
+  footer:
+    about: "About"
+    privacy: "Privacy"
+    contact: "Contact"
+    docs: "Docs"
+    copyright: "ModelRails. All rights reserved."

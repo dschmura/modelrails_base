@@ -10,17 +10,19 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="min-h-screen bg-white dark:bg-gray-900 text-slate-800 dark:text-gray-200">
+  <body class="min-h-screen flex flex-col bg-white dark:bg-gray-900 text-slate-800 dark:text-gray-200">
     <a href="#main-content"
        class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-white focus:text-sky-700 focus:underline">
       <%= t("application.skip_to_content") %>
     </a>
 
-    <%= render "shared/navigation" %>
+    <%= render "shared/header" %>
     <%= render "shared/flash" %>
 
-    <main id="main-content" tabindex="-1">
+    <main id="main-content" tabindex="-1" class="flex-1">
       <%= yield %>
     </main>
+
+    <%= render "shared/footer" %>
   </body>
 </html>

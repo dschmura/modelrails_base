@@ -1,0 +1,27 @@
+<footer class="bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-6">
+        <%= link_to t("footer.about"), about_path,
+              class: "text-sm text-slate-600 dark:text-gray-400
+                      hover:text-sky-700 dark:hover:text-sky-400
+                      focus:outline-none focus:ring-2 focus:ring-sky-700 rounded" %>
+        <%= link_to t("footer.privacy"), privacy_path,
+              class: "text-sm text-slate-600 dark:text-gray-400
+                      hover:text-sky-700 dark:hover:text-sky-400
+                      focus:outline-none focus:ring-2 focus:ring-sky-700 rounded" %>
+        <%= link_to t("footer.contact"), contact_path,
+              class: "text-sm text-slate-600 dark:text-gray-400
+                      hover:text-sky-700 dark:hover:text-sky-400
+                      focus:outline-none focus:ring-2 focus:ring-sky-700 rounded" %>
+        <%= link_to t("footer.docs"), "/docs",
+              class: "text-sm text-slate-600 dark:text-gray-400
+                      hover:text-sky-700 dark:hover:text-sky-400
+                      focus:outline-none focus:ring-2 focus:ring-sky-700 rounded" %>
+      </div>
+      <p class="text-sm text-slate-500 dark:text-gray-500">
+        &copy; <%= Date.current.year %> <%= t("footer.copyright") %>
+      </p>
+    </div>
+  </div>
+</footer>

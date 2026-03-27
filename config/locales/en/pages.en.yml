@@ -2,13 +2,127 @@ en:
   pages:
     home:
       title: "Welcome to ModelRails"
-      description: "A multi-tenant SaaS starter kit built on Rails."
+      hero:
+        title: "Build your SaaS faster"
+        subtitle: "A production-ready Rails 8.1 starter kit with authentication, workspaces, projects, and real-time collaboration built in."
+        cta_primary: "Get started"
+        cta_secondary: "View documentation"
+      features:
+        title: "Everything you need"
+        subtitle: "Stop rebuilding the same infrastructure. Start with a solid foundation."
+        auth:
+          title: "Authentication"
+          description: "Email/password, Google and GitHub OAuth, email verification, password reset, and account locking — all built in."
+        workspaces:
+          title: "Workspaces"
+          description: "Multi-tenant workspaces with roles, permissions, invitations, and branding. Personal workspace on sign-up."
+        projects:
+          title: "Projects"
+          description: "Lightweight collaboration spaces with creator/editor/viewer roles, pinning, and project-level invitations."
+        resources:
+          title: "Resources"
+          description: "Polymorphic resource registry with Document support via Action Text. Add your own content types."
+        realtime:
+          title: "Real-time"
+          description: "Turbo Stream broadcasts on workspace and project changes. Your app feels native without writing JavaScript."
+        security:
+          title: "Security"
+          description: "Pundit authorization, rate limiting, security headers, Pwned password checks, and sensitive data filtering."
+      cta:
+        title: "Ready to build?"
+        subtitle: "Get started in minutes with a foundation that scales."
+        button: "Create your account"
     about:
       title: "About ModelRails"
-      description: "Learn about the ModelRails platform."
+      hero:
+        title: "About ModelRails"
+        subtitle: "A multi-tenant SaaS starter kit that lets you focus on what makes your app unique."
+      mission:
+        title: "Our mission"
+        description: "ModelRails eliminates the months of boilerplate work that every SaaS application requires. Authentication, multi-tenancy, authorization, invitations, real-time updates — it's all here, tested, and ready to customize."
+      features:
+        title: "What's included"
+        items:
+          - "Email/password and OAuth authentication"
+          - "Workspace-based multi-tenancy with roles"
+          - "Project collaboration spaces"
+          - "Polymorphic resource system"
+          - "Real-time updates via Turbo Streams"
+          - "Pundit-based authorization"
+          - "Activity tracking and audit logging"
+          - "WCAG 2.2 AAA accessibility"
+          - "Full I18n internationalization"
+          - "Comprehensive test suite"
+      philosophy:
+        title: "Built on principles"
+        conventions:
+          title: "Conventions first"
+          description: "Rails generators, built-in auth, standard patterns. We deviate only after documented evaluation."
+        accessibility:
+          title: "Accessibility is not optional"
+          description: "WCAG 2.2 AAA compliance. 7:1 contrast ratios, 44px touch targets, semantic HTML, keyboard navigation."
+        testing:
+          title: "Test-driven"
+          description: "Every feature built with strict TDD. Red-Green-Refactor. Tests verify behavior, not implementation."
+        extensible:
+          title: "Forker-friendly"
+          description: "Clear seams for extension. Add your resource types, custom roles, and domain logic on a solid foundation."
     privacy:
       title: "Privacy Policy"
-      description: "How we handle your data."
+      intro: "This privacy policy describes how ModelRails handles your information. We are committed to protecting your privacy and being transparent about our practices."
+      collection:
+        title: "Information we collect"
+        items:
+          - "Account information (name, email address) when you sign up"
+          - "Authentication data (encrypted passwords, OAuth tokens)"
+          - "Usage data (workspace activity, project interactions)"
+          - "Technical data (IP address, browser type, session information)"
+      usage:
+        title: "How we use your information"
+        items:
+          - "To provide and maintain your account"
+          - "To authenticate your identity"
+          - "To send transactional emails (verification, password reset)"
+          - "To track workspace activity for your audit trail"
+      sharing:
+        title: "Data sharing"
+        description: "We do not sell your personal information. We share data only as necessary to provide our services, comply with legal obligations, or protect our rights."
+      security:
+        title: "Data security"
+        description: "We implement industry-standard security measures including encrypted passwords, secure session management, rate-limited authentication, and sensitive data filtering in activity logs."
+      rights:
+        title: "Your rights"
+        items:
+          - "Access your personal data"
+          - "Correct inaccurate information"
+          - "Request deletion of your account"
+          - "Export your data"
+      contact_text: "For privacy-related inquiries, please visit our"
+      contact_link: "contact page"
+      updated: "Last updated"
     contact:
       title: "Contact Us"
-      description: "Get in touch with the ModelRails team."
+      hero:
+        title: "Get in touch"
+        subtitle: "Have questions, feedback, or need help? We're here for you."
+      methods:
+        title: "Contact methods"
+        email:
+          title: "Email"
+          description: "For general inquiries and support."
+          address: "support@modelrails.dev"
+        bugs:
+          title: "Bug reports"
+          description: "Found a bug? Report it on GitHub."
+          link_text: "Open an issue"
+      community:
+        title: "Community"
+        github:
+          title: "GitHub"
+          description: "Browse the source code, contribute, or star the project."
+        discussions:
+          title: "Discussions"
+          description: "Ask questions and share ideas with the community."
+        docs:
+          title: "Documentation"
+          description: "Browse the technical documentation and guides."
