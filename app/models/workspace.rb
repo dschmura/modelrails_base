@@ -1,5 +1,6 @@
 class Workspace < ApplicationRecord
   include Discardable
+  include Trackable
 
   has_one_attached :logo
   has_many :memberships, dependent: :destroy

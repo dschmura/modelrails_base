@@ -4,6 +4,8 @@ class Invitation < ApplicationRecord
   belongs_to :invited_by, class_name: "User"
   belongs_to :accepted_by, class_name: "User", optional: true
 
+  include Trackable
+
   enum :status, { pending: "pending", accepted: "accepted", declined: "declined", revoked: "revoked" }, default: "pending"
 
   validates :role, presence: true

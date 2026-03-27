@@ -1,6 +1,7 @@
 class Project < ApplicationRecord
   include Discardable
   include Tenanted
+  include Trackable
 
   belongs_to :created_by, class_name: "User"
   has_many :project_memberships, dependent: :destroy

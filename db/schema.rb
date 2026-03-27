@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_27_031045) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_27_031350) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -47,6 +47,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_27_031045) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "activity_logs", force: :cascade do |t|
+    t.string "action", null: false
+    t.integer "actor_id"
+    t.datetime "created_at", null: false
+    t.json "metadata", default: {}
+    t.integer "trackable_id", null: false
+    t.string "trackable_type", null: false
+    t.datetime "updated_at", null: false
+    t.string "visibility", default: "workspace", null: false
+    t.integer "workspace_id"
+    t.index ["actor_id"], name: "index_activity_logs_on_actor_id"
+    t.index ["trackable_type", "trackable_id"], name: "index_activity_logs_on_trackable"
+    t.index ["workspace_id", "created_at"], name: "index_activity_logs_on_workspace_id_and_created_at"
+    t.index ["workspace_id"], name: "index_activity_logs_on_workspace_id"
   end
 
   create_table "authentications", force: :cascade do |t|
@@ -196,6 +212,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_27_031045) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "activity_logs", "users", column: "actor_id"
+  add_foreign_key "activity_logs", "workspaces"
   add_foreign_key "authentications", "users"
   add_foreign_key "invitations", "roles"
   add_foreign_key "invitations", "users", column: "accepted_by_id"
