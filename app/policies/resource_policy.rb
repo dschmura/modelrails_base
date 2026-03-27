@@ -26,7 +26,8 @@ class ResourcePolicy < ApplicationPolicy
   private
 
   def project_membership
-    @project_membership ||= record.project.project_memberships.find_by(user: user)
+    project = record.is_a?(Resource) ? record.project : Current.project
+    @project_membership ||= project&.project_memberships&.find_by(user: user)
   end
 
   def project_member?
