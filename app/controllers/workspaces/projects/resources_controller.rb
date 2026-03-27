@@ -23,16 +23,17 @@ module Workspaces
         @type = validated_resource_type
         return unless @type
 
-        @resourceable = @type.constantize.new(resourceable_params)
-        @resource = @project.resources.build(resource_params)
-        @resource.resourceable = @resourceable
-        @resource.created_by = Current.user
-
-        if @resourceable.save && @resource.save
-          redirect_to workspace_project_resource_path(@workspace, @project, @resource), notice: t(".success")
-        else
-          render :new, status: :unprocessable_entity
+        ActiveRecord::Base.transaction do
+          @resourceable = @type.constantize.create!(resourceable_params)
+          @resource = @project.resources.create!(
+            resource_params.merge(resourceable: @resourceable, created_by: Current.user)
+          )
         end
+        redirect_to workspace_project_resource_path(@workspace, @project, @resource), notice: t(".success")
+      rescue ActiveRecord::RecordInvalid
+        @resource ||= @project.resources.build(resource_params)
+        @resourceable ||= @type.constantize.new(resourceable_params)
+        render :new, status: :unprocessable_entity
       end
 
       def show

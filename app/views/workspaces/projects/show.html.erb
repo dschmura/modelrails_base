@@ -29,5 +29,5 @@
     <% end %>
   </nav>
 
-  <%= render "shared/activity_feed", activities: ActivityLog.visible.where(trackable: @project.resources).or(ActivityLog.visible.where(trackable: @project)).recent.includes(:actor) %>
+  <%= render "shared/activity_feed", activities: ActivityLog.visible.where(trackable: @project.resources).or(ActivityLog.visible.where(trackable: @project)).or(ActivityLog.visible.where(trackable: @project.project_memberships)).or(ActivityLog.visible.where(trackable: @project.invitations)).recent.includes(:actor) %>
 </div>
