@@ -88,6 +88,17 @@ RSpec.describe User, type: :model do
     end
   end
 
+  describe "Pwned API failure resilience" do
+    it "allows registration when Pwned API raises an error" do
+      pwned = instance_double(Pwned::Password)
+      allow(pwned).to receive(:pwned?).and_raise(Pwned::Error.new("timeout"))
+      allow(Pwned::Password).to receive(:new).and_return(pwned)
+
+      user = build(:user, password: "SecureP@ssw0rd123!")
+      expect(user).to be_valid
+    end
+  end
+
   describe "email normalization" do
     it "strips whitespace from email" do
       user = create(:user, email_address: "  test@example.com  ")

@@ -19,6 +19,18 @@ RSpec.describe "Email Verification Resends", type: :request do
       expect(authentication.reload.verification_token).not_to eq(old_token)
     end
 
+    describe "POST when user has no email authentication" do
+      before do
+        user.authentications.destroy_all
+      end
+
+      it "redirects with alert" do
+        post email_verification_resend_path
+        expect(response).to redirect_to(root_path)
+        expect(flash[:alert]).to be_present
+      end
+    end
+
     context "already verified" do
       before { authentication.verify! }
 

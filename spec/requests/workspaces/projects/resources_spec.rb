@@ -67,6 +67,16 @@ RSpec.describe "Project Resources", type: :request do
     end
   end
 
+  describe "POST create with blank title" do
+    it "returns unprocessable entity" do
+      post workspace_project_resources_path(workspace, project), params: {
+        resource: { title: "", type: "Document" },
+        document: { body: "Content" }
+      }
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+  end
+
   describe "GET show" do
     let!(:resource) { create(:resource, project: project, created_by: user) }
 
@@ -93,6 +103,17 @@ RSpec.describe "Project Resources", type: :request do
         resource: { title: "Updated Title" }
       }
       expect(resource.reload.title).to eq("Updated Title")
+    end
+  end
+
+  describe "PATCH update with blank title" do
+    let!(:resource) { create(:resource, project: project, created_by: user) }
+
+    it "returns unprocessable entity" do
+      patch workspace_project_resource_path(workspace, project, resource), params: {
+        resource: { title: "" }
+      }
+      expect(response).to have_http_status(:unprocessable_entity)
     end
   end
 
@@ -123,6 +144,22 @@ RSpec.describe "Project Resources", type: :request do
         resource: { position: -5 }
       }
       expect(resource.reload.position).to eq(0)
+    end
+  end
+
+  describe "PATCH reposition denied for viewer" do
+    let(:viewer) { create(:user) }
+    let!(:viewer_ws) { create(:membership, user: viewer, workspace: workspace) }
+    let!(:viewer_pm) { create(:project_membership, :viewer, project: project, user: viewer) }
+    let!(:resource) { create(:resource, project: project, created_by: user, position: 0) }
+
+    it "denies viewer from repositioning" do
+      sign_in(viewer)
+      patch reposition_workspace_project_resource_path(workspace, project, resource), params: {
+        resource: { position: 5 }
+      }
+      expect(resource.reload.position).to eq(0)
+      expect(response).to have_http_status(:redirect)
     end
   end
 

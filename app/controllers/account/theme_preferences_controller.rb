@@ -8,6 +8,8 @@ module Account
         format.turbo_stream
         format.html { redirect_to edit_account_profile_path, notice: t(".success") }
       end
+    rescue ArgumentError
+      redirect_to edit_account_profile_path, alert: t(".invalid_theme")
     end
 
     private

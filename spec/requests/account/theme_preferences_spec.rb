@@ -20,4 +20,11 @@ RSpec.describe "Account Theme Preferences", type: :request do
       expect(response.media_type).to eq("text/vnd.turbo-stream.html")
     end
   end
+
+  describe "PATCH with invalid theme" do
+    it "redirects with alert for invalid theme" do
+      patch account_theme_preference_path, params: { user_preferences: { theme: "neon" } }
+      expect(response).to redirect_to(edit_account_profile_path)
+    end
+  end
 end

@@ -35,6 +35,15 @@ RSpec.describe "Account Passwords", type: :request do
       }.to change(user.authentications.email, :count).by(1)
     end
 
+    describe "POST /account/password with invalid password" do
+      it "returns unprocessable entity for short password" do
+        post account_password_path, params: {
+          user: { password: "short", password_confirmation: "short" }
+        }
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+    end
+
     context "user already has email auth" do
       before { create(:authentication, user: user, provider: "email", uid: user.email_address) }
 

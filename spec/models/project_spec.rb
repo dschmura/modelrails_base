@@ -45,6 +45,17 @@ RSpec.describe Project, type: :model do
       project = create(:project, name: "My Project")
       expect(project.to_param).to eq("my-project")
     end
+
+    describe "slug generation for non-Latin names" do
+      it "generates a fallback slug" do
+        workspace = create(:workspace)
+        user = create(:user)
+        create(:membership, user: user, workspace: workspace)
+        project = create(:project, name: "日本語のプロジェクト", workspace: workspace, created_by: user)
+        expect(project.slug).to be_present
+        expect(project.slug).not_to be_blank
+      end
+    end
   end
 
   describe "Discardable" do

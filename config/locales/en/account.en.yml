@@ -30,6 +30,7 @@ en:
     theme_preferences:
       update:
         success: "Theme updated."
+        invalid_theme: "Invalid theme."
     connected_accounts:
       index:
         title: "Connected accounts"
