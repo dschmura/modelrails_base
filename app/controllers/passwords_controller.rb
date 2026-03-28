@@ -9,7 +9,12 @@ class PasswordsController < ApplicationController
 
   def create
     if (user = User.find_by(email_address: params[:email_address]))
-      AuthenticationMailer.password_reset_email(user).deliver_later
+      if user.has_password?
+        AuthenticationMailer.password_reset_email(user).deliver_later
+      else
+        user.generate_magic_link_token!
+        MagicLinkMailer.sign_in_link(user).deliver_later
+      end
     end
     redirect_to new_session_path, notice: t(".success")
   end
@@ -19,6 +24,7 @@ class PasswordsController < ApplicationController
 
   def update
     if @user.update(password_params)
+      @user.sessions.destroy_all
       redirect_to new_session_path, notice: t(".success")
     else
       render :edit, status: :unprocessable_entity

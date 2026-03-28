@@ -139,6 +139,67 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
     end
   end
 
+  describe "OAuth with existing unverified account (C1: collision rescue)" do
+    let!(:unverified_user) { create(:user, email_address: "existing@example.com") }
+
+    before do
+      unverified_user.authentications.create!(provider: "email", uid: "existing@example.com")
+      OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(
+        provider: "google",
+        uid: "collision-123",
+        info: { email: "existing@example.com", first_name: "Test", last_name: "User" },
+        credentials: { token: "token", refresh_token: nil, expires_at: nil }
+      )
+    end
+
+    it "redirects with helpful message instead of crashing" do
+      get "/auth/google_oauth2/callback"
+      expect(response).to redirect_to(new_session_path)
+    end
+
+    it "does not create a duplicate user" do
+      expect {
+        get "/auth/google_oauth2/callback"
+      }.not_to change(User, :count)
+    end
+  end
+
+  describe "OAuth creates user without a password (I1)" do
+    before do
+      OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(
+        provider: "google",
+        uid: "passwordless-oauth-123",
+        info: { email: "passwordless@example.com", first_name: "No", last_name: "Pass" },
+        credentials: { token: "token", refresh_token: nil, expires_at: nil }
+      )
+    end
+
+    it "creates a passwordless user" do
+      get "/auth/google_oauth2/callback"
+      user = User.find_by(email_address: "passwordless@example.com")
+      expect(user).to be_present
+      expect(user.password_digest).to be_nil
+    end
+  end
+
+  describe "OAuth with missing last_name falls back to 'User' (I3)" do
+    before do
+      OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(
+        provider: "google",
+        uid: "no-last-name-456",
+        info: { email: "nolastname@example.com", first_name: "Only", last_name: "", name: "" },
+        credentials: { token: "token", refresh_token: nil, expires_at: nil }
+      )
+    end
+
+    it "falls back to 'User' for blank last_name and blank name" do
+      get "/auth/google_oauth2/callback"
+      user = User.find_by(email_address: "nolastname@example.com")
+      expect(user).to be_present
+      expect(user.last_name).to eq("User")
+    end
+  end
+
   describe "OAuth with missing name fields" do
     before do
       OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(

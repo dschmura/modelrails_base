@@ -32,6 +32,8 @@ class OmniauthCallbacksController < ApplicationController
       start_new_session_for(user)
       redirect_to root_path, notice: t("sessions.create.success")
     end
+  rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid
+    redirect_to new_session_path, alert: t("sessions.create.oauth_account_exists")
   end
 
   def failure
@@ -58,9 +60,8 @@ class OmniauthCallbacksController < ApplicationController
   def create_user_from_oauth(auth_hash)
     User.create!(
       email_address: auth_hash.info.email,
-      first_name: auth_hash.info.first_name || auth_hash.info.name&.split&.first || "User",
-      last_name: auth_hash.info.last_name || auth_hash.info.name&.split&.last || "",
-      password: SecureRandom.urlsafe_base64(32)
+      first_name: auth_hash.info.first_name.presence || auth_hash.info.name&.split&.first || "User",
+      last_name: auth_hash.info.last_name.presence || auth_hash.info.name&.split&.last || "User"
     )
   end
 end

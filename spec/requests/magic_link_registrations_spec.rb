@@ -39,5 +39,16 @@ RSpec.describe "Magic Link Registrations", type: :request do
       user = User.find_by(email_address: "newuser@example.com")
       expect(user.password_digest).to be_nil
     end
+
+    it "creates a verified email authentication (C3)" do
+      token = MagicLinkToken.create_for_email("authtest@example.com")
+      post magic_link_registration_path(token: token), params: {
+        user: { first_name: "Auth", last_name: "Test" }
+      }
+      user = User.find_by(email_address: "authtest@example.com")
+      auth = user.authentications.email.first
+      expect(auth).to be_present
+      expect(auth).to be_verified
+    end
   end
 end

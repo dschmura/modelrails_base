@@ -15,6 +15,7 @@ en:
       locked: "Your account has been locked due to too many failed attempts. Please try again later."
       rate_limited: "Too many attempts. Please try again later."
       oauth_failure: "Authentication failed. Please try again."
+      oauth_account_exists: "An account with that email already exists. Please sign in first, then link your account."
     destroy:
       success: "Signed out successfully."
   registrations:

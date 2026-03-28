@@ -44,5 +44,18 @@ RSpec.describe "Magic Links", type: :request do
         }.to have_enqueued_mail(MagicLinkMailer, :sign_in_link)
       end
     end
+
+    context "rate limiting (I2)" do
+      let(:user) { create(:user) }
+
+      before { MagicLinksController::RATE_LIMIT_STORE.clear }
+      after  { MagicLinksController::RATE_LIMIT_STORE.clear }
+
+      it "redirects with rate-limited alert after too many requests" do
+        6.times { post magic_link_path, params: { email_address: user.email_address } }
+        expect(response).to redirect_to(new_session_path)
+        expect(flash[:alert]).to eq(I18n.t("magic_links.create.rate_limited"))
+      end
+    end
   end
 end

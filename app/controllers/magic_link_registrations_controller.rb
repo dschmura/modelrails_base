@@ -24,6 +24,11 @@ class MagicLinkRegistrationsController < ApplicationController
     )
 
     if @user.save
+      @user.authentications.create!(
+        provider: "email",
+        uid: @user.email_address,
+        verified_at: Time.current
+      )
       @token_record.consume!
       start_new_session_for(@user)
       redirect_to root_path, notice: t(".success")
