@@ -22,6 +22,13 @@ RSpec.describe "Static pages", type: :system do
       expect(page).to have_css("header nav")
     end
 
+    it "displays the site logo SVG in the header" do
+      visit root_path
+      within("header nav") do
+        expect(page).to have_css("svg[aria-hidden='true']")
+      end
+    end
+
     it "has a footer" do
       visit root_path
       expect(page).to have_css("footer")
@@ -33,6 +40,14 @@ RSpec.describe "Static pages", type: :system do
         expect(page).to have_link(I18n.t("footer.about"))
         expect(page).to have_link(I18n.t("footer.privacy"))
         expect(page).to have_link(I18n.t("footer.contact"))
+      end
+    end
+
+    it "displays the site logo in the footer" do
+      visit root_path
+      within("footer") do
+        expect(page).to have_css("svg[aria-hidden='true']")
+        expect(page).to have_text(I18n.t("application.name"))
       end
     end
 
