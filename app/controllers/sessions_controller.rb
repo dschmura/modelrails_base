@@ -33,11 +33,13 @@ class SessionsController < ApplicationController
     elsif user
       user.generate_magic_link_token!
       MagicLinkMailer.sign_in_link(user).deliver_later
-      redirect_to new_session_path, notice: t("magic_links.create.check_email")
+      @email_address = email
+      render :check_email
     else
       token = MagicLinkToken.create_for_email(email)
       MagicLinkMailer.registration_link(email, token).deliver_later
-      redirect_to new_session_path, notice: t("magic_links.create.check_email")
+      @email_address = email
+      render :check_email
     end
   end
 

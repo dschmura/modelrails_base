@@ -112,18 +112,18 @@ RSpec.describe "Sessions", type: :request do
 
       before { user.update_column(:password_digest, nil) }
 
-      it "sends magic link and redirects" do
+      it "sends magic link and shows check email message inline" do
         post session_lookup_path, params: { email_address: user.email_address }
-        expect(response).to redirect_to(new_session_path)
-        expect(flash[:notice]).to eq(I18n.t("magic_links.create.check_email"))
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include(I18n.t("sessions.check_email.title"))
       end
     end
 
     context "non-existent email" do
-      it "shows same message as magic link (no leak)" do
+      it "shows same check email message (no leak)" do
         post session_lookup_path, params: { email_address: "ghost@example.com" }
-        expect(response).to redirect_to(new_session_path)
-        expect(flash[:notice]).to eq(I18n.t("magic_links.create.check_email"))
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include(I18n.t("sessions.check_email.title"))
       end
     end
   end

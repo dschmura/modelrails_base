@@ -16,6 +16,11 @@ en:
       rate_limited: "Too many attempts. Please try again later."
       oauth_failure: "Authentication failed. Please try again."
       oauth_account_exists: "An account with that email already exists. Please sign in first, then link your account."
+    check_email:
+      title: "Check your email"
+      description: "We sent a sign-in link to %{email}. Click the link in your email to continue."
+      expiry: "The link expires in 15 minutes."
+      try_again: "Didn't receive it? Try again"
     destroy:
       success: "Signed out successfully."
   registrations:
