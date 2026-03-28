@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_27_115342) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_28_120518) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -112,6 +112,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_27_115342) do
     t.index ["token"], name: "index_invitations_on_token", unique: true
   end
 
+  create_table "magic_link_tokens", force: :cascade do |t|
+    t.datetime "consumed_at"
+    t.datetime "created_at", null: false
+    t.string "email", null: false
+    t.datetime "expires_at", null: false
+    t.string "token", null: false
+    t.datetime "updated_at", null: false
+    t.index ["token"], name: "index_magic_link_tokens_on_token", unique: true
+  end
+
   create_table "memberships", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "discarded_at"
@@ -210,11 +220,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_27_115342) do
     t.string "first_name"
     t.string "last_name"
     t.datetime "locked_at"
-    t.string "password_digest", null: false
+    t.datetime "magic_link_sent_at"
+    t.string "magic_link_token"
+    t.string "password_digest"
     t.datetime "reset_password_sent_at"
     t.string "reset_password_token"
     t.datetime "updated_at", null: false
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
+    t.index ["magic_link_token"], name: "index_users_on_magic_link_token", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 

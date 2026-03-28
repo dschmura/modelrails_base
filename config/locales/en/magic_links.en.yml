@@ -1,0 +1,39 @@
+en:
+  magic_links:
+    create:
+      check_email: "Check your email for a sign-in link."
+  magic_link_mailer:
+    sign_in_link:
+      subject: "Your sign-in link"
+      greeting: "Hi %{name},"
+      body: "Click the link below to sign in to your account."
+      action: "Sign in"
+      expiry: "This link expires in 15 minutes."
+    registration_link:
+      subject: "Complete your registration"
+      greeting: "Hello,"
+      body: "Click the link below to create your account."
+      action: "Create account"
+      expiry: "This link expires in 15 minutes."
+  magic_link_sessions:
+    show:
+      success: "Signed in successfully."
+      invalid_or_expired: "This sign-in link is invalid or has expired."
+  magic_link_registrations:
+    new:
+      title: "Complete your account"
+      subtitle: "Creating an account for %{email}"
+      first_name_label: "First name"
+      last_name_label: "Last name"
+      submit: "Create account"
+    show:
+      invalid_or_expired: "This registration link is invalid or has expired."
+    create:
+      success: "Welcome! Your account has been created."
+  sessions:
+    lookup:
+      password_prompt: "Enter your password to sign in."
+    password_form:
+      title: "Sign in"
+      password_label: "Password"
+      submit: "Sign in"

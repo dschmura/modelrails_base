@@ -1,5 +1,5 @@
 class User < ApplicationRecord
-  has_secure_password
+  has_secure_password validations: false
   has_many :sessions, dependent: :destroy
   has_many :authentications, dependent: :destroy
   has_one :preferences, class_name: "UserPreferences", dependent: :destroy
@@ -17,8 +17,8 @@ class User < ApplicationRecord
   validates :email_address, presence: true, uniqueness: true
   validates :first_name, presence: true, length: { maximum: 100 }
   validates :last_name, presence: true, length: { maximum: 100 }
-  validates :password, length: { minimum: 12 }, if: -> { password_digest_changed? || new_record? }
-  validate :password_not_pwned, if: -> { password_digest_changed? || new_record? }
+  validates :password, length: { minimum: 12 }, if: -> { password.present? && (password_digest_changed? || new_record?) }
+  validate :password_not_pwned, if: -> { password.present? && (password_digest_changed? || new_record?) }
 
   MAX_FAILED_ATTEMPTS = 5
   LOCK_DURATION = 1.hour
@@ -39,6 +39,25 @@ class User < ApplicationRecord
 
   def register_successful_login!
     update!(failed_login_attempts: 0, locked_at: nil)
+  end
+
+  def generate_magic_link_token!
+    update!(
+      magic_link_token: SecureRandom.urlsafe_base64(32),
+      magic_link_sent_at: Time.current
+    )
+  end
+
+  def magic_link_token_valid?
+    magic_link_token.present? && magic_link_sent_at.present? && magic_link_sent_at > 15.minutes.ago
+  end
+
+  def clear_magic_link_token!
+    update!(magic_link_token: nil, magic_link_sent_at: nil)
+  end
+
+  def has_password?
+    password_digest.present?
   end
 
   private

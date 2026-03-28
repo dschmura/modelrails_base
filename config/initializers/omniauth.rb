@@ -1,13 +1,21 @@
 Rails.application.config.middleware.use OmniAuth::Builder do
-  provider :google_oauth2,
-    Rails.application.credentials.dig(:google, :client_id),
-    Rails.application.credentials.dig(:google, :client_secret),
-    scope: "email,profile"
+  google_id = Rails.application.credentials.dig(:google, :client_id)
+  google_secret = Rails.application.credentials.dig(:google, :client_secret)
+  if google_id.present? || Rails.env.test?
+    provider :google_oauth2,
+      google_id || "test",
+      google_secret || "test",
+      scope: "email,profile"
+  end
 
-  provider :github,
-    Rails.application.credentials.dig(:github, :client_id),
-    Rails.application.credentials.dig(:github, :client_secret),
-    scope: "user:email"
+  github_id = Rails.application.credentials.dig(:github, :client_id)
+  github_secret = Rails.application.credentials.dig(:github, :client_secret)
+  if github_id.present? || Rails.env.test?
+    provider :github,
+      github_id || "test",
+      github_secret || "test",
+      scope: "user:email"
+  end
 end
 
 OmniAuth.config.allowed_request_methods = [:post]
