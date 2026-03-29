@@ -16,7 +16,7 @@ RSpec.describe "Project Memberships", type: :request do
     it "lists project members" do
       get workspace_project_memberships_path(workspace, project)
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include(user.full_name)
+      expect(response.body).to include(CGI.escapeHTML(user.full_name))
     end
   end
 

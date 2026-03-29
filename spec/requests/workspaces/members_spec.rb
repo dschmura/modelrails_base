@@ -11,7 +11,7 @@ RSpec.describe "Workspace Members", type: :request do
     it "lists workspace members" do
       get workspace_members_path(workspace)
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include(user.full_name)
+      expect(response.body).to include(CGI.escapeHTML(user.full_name))
     end
 
     it "shows member roles" do
