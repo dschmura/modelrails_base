@@ -1,0 +1,10 @@
+<script nonce="<%= content_security_policy_nonce %>">
+  (function() {
+    var preference = document.documentElement.dataset.themeThemeValue || 'system';
+    var shouldBeDark = preference === 'dark' ||
+      (preference === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    if (shouldBeDark) {
+      document.documentElement.classList.add('dark');
+    }
+  })();
+</script>

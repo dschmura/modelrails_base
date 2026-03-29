@@ -1,5 +1,7 @@
 <!DOCTYPE html>
-<html lang="<%= I18n.locale %>">
+<html lang="<%= I18n.locale %>"
+      data-controller="theme"
+      data-theme-theme-value="<%= current_user_theme %>">
   <head>
     <title><%= content_for(:title) || t("application.name") %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -8,6 +10,7 @@
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <link rel="manifest" href="/manifest.webmanifest">
+    <%= render "shared/theme_script" %>
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>

@@ -1,6 +1,3 @@
-<%= turbo_stream.replace "theme-controller" do %>
-  <div id="theme-controller"
-       data-controller="theme"
-       data-theme-theme-value="<%= Current.user.preferences&.theme || 'system' %>">
-  </div>
+<%= turbo_stream.append "flash" do %>
+  <p class="sr-only" role="status"><%= t(".success") %></p>
 <% end %>
