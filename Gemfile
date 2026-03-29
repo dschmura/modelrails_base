@@ -93,3 +93,5 @@ gem "axe-core-api", "~> 4.11", group: :test
 gem "lefthook", "~> 2.1", groups: [ :development, :test ], require: false
 
 gem "biscuit-rails", "~> 0.1.4"
+
+gem "lexxy", "~> 0.9.1.beta"
