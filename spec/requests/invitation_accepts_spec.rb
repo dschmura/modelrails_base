@@ -8,7 +8,7 @@ RSpec.describe "Invitation Accepts", type: :request do
     it "shows the accept page" do
       get accept_invitation_path(token: invitation.token)
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include(workspace.name)
+      expect(response.body).to include(CGI.escapeHTML(workspace.name))
     end
 
     it "shows error for expired invitation" do

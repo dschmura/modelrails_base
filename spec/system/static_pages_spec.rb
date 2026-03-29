@@ -17,6 +17,11 @@ RSpec.describe "Static pages", type: :system do
       expect(page).to have_css("html[lang='en']")
     end
 
+    it "has the theme controller on the html element" do
+      visit root_path
+      expect(page).to have_css("html[data-controller~='theme']")
+    end
+
     it "has a header with navigation" do
       visit root_path
       expect(page).to have_css("header nav")
@@ -55,6 +60,13 @@ RSpec.describe "Static pages", type: :system do
       visit root_path
       within("header nav") do
         expect(page).to have_link(I18n.t("application.name"), href: root_path)
+      end
+    end
+
+    it "has a theme toggle button" do
+      visit root_path
+      within("header nav") do
+        expect(page).to have_css("button[aria-label]", text: /Light|Dark|System/i, visible: :all)
       end
     end
 
