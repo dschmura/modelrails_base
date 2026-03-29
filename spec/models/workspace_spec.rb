@@ -85,11 +85,14 @@ RSpec.describe Workspace, type: :model do
 
   describe "#effective_roles" do
     it "returns system defaults and workspace-specific roles" do
-      Rails.application.load_seed
+      owner_role = Role.find_or_create_by!(slug: "owner", workspace_id: nil) do |r|
+        r.name = "Owner"
+        r.permissions = { manage_workspace: true }
+      end
       workspace = create(:workspace)
       custom_role = Role.create!(name: "Custom", slug: "custom", workspace: workspace)
       roles = workspace.effective_roles
-      expect(roles).to include(Role.find_by(slug: "owner", workspace_id: nil))
+      expect(roles).to include(owner_role)
       expect(roles).to include(custom_role)
     end
   end

@@ -16,7 +16,7 @@ RSpec.describe "Workspace Projects", type: :request do
       create(:project_membership, :creator, project: project, user: user)
       get workspace_projects_path(workspace)
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include(project.name)
+      expect(response.body).to include(CGI.escapeHTML(project.name))
     end
   end
 
