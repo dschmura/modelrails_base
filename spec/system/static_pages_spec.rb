@@ -17,6 +17,11 @@ RSpec.describe "Static pages", type: :system do
       expect(page).to have_css("html[lang='en']")
     end
 
+    it "has the theme controller on the html element" do
+      visit root_path
+      expect(page).to have_css("html[data-controller~='theme']")
+    end
+
     it "has a header with navigation" do
       visit root_path
       expect(page).to have_css("header nav")
