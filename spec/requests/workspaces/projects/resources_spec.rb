@@ -18,7 +18,7 @@ RSpec.describe "Project Resources", type: :request do
       resource = create(:resource, project: project, created_by: user)
       get workspace_project_resources_path(workspace, project)
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include(resource.title)
+      expect(response.body).to include(CGI.escapeHTML(resource.title))
     end
   end
 
@@ -83,7 +83,7 @@ RSpec.describe "Project Resources", type: :request do
     it "displays the resource" do
       get workspace_project_resource_path(workspace, project, resource)
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include(resource.title)
+      expect(response.body).to include(CGI.escapeHTML(resource.title))
     end
 
     it "denies non-project-members" do
