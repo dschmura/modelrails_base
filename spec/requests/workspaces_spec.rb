@@ -1,8 +1,6 @@
 require "rails_helper"
 
 RSpec.describe "Workspaces", type: :request do
-  before { Rails.application.load_seed }
-
   let(:user) { create(:user) }
   before { sign_in(user) }
 
@@ -12,7 +10,7 @@ RSpec.describe "Workspaces", type: :request do
       create(:membership, :owner, user: user, workspace: workspace)
       get workspaces_path
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include(workspace.name)
+      expect(response.body).to include(CGI.escapeHTML(workspace.name))
     end
 
     it "does not show other users' workspaces" do
@@ -26,7 +24,7 @@ RSpec.describe "Workspaces", type: :request do
       create(:membership, :owner, user: user, workspace: workspace)
       workspace.discard!
       get workspaces_path
-      expect(response.body).not_to include(workspace.name)
+      expect(response.body).not_to include(CGI.escapeHTML(workspace.name))
     end
   end
 
@@ -64,7 +62,7 @@ RSpec.describe "Workspaces", type: :request do
     it "shows the workspace" do
       get workspace_path(workspace)
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include(workspace.name)
+      expect(response.body).to include(CGI.escapeHTML(workspace.name))
     end
   end
 
