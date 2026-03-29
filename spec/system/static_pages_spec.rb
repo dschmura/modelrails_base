@@ -74,6 +74,11 @@ RSpec.describe "Static pages", type: :system do
       visit root_path
       expect(page).to have_css("button[aria-label='#{I18n.t("navigation.toggle_menu")}']", visible: :all)
     end
+
+    it "has a notifications container for toasts" do
+      visit root_path
+      expect(page).to have_css("#notifications[aria-label]")
+    end
   end
 
   describe "home page" do

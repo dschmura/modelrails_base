@@ -1,0 +1,4 @@
+en:
+  toasts:
+    aria_label: "Notifications"
+    close: "Close notification"
