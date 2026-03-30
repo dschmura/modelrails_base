@@ -53,6 +53,17 @@ RSpec.configure do |config|
   # In CI, automatically run axe accessibility audit after every system spec
   if ENV["CI"]
     config.after(:each, type: :system) do
+      # Wait for animations to settle before running axe
+      Capybara.current_session.driver.with_playwright_page do |playwright_page|
+        playwright_page.evaluate(<<~JS)
+          document.querySelectorAll('[data-controller="toast"]').forEach(el => {
+            el.style.transition = 'none';
+            el.style.opacity = '1';
+            el.style.transform = 'none';
+          });
+        JS
+      end
+
       options = { runOnly: { type: "tag", values: [ "wcag2aa" ] } }
       results = run_axe_audit(options)
       violations = results["violations"] || []
