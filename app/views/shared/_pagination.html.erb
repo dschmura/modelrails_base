@@ -1,0 +1,13 @@
+<%# locals: (pagy:) %>
+<% if pagy.pages > 1 %>
+  <div class="border-t border-border px-4 py-3 sm:px-6 flex items-center justify-between">
+    <p class="text-sm text-text-muted">
+      <%= t("pagination.showing",
+            from: pagy.from,
+            to: pagy.to,
+            count: pagy.count,
+            default: "Showing %{from} to %{to} of %{count} results") %>
+    </p>
+    <%== pagy.series_nav(aria_label: t("pagination.aria_label", default: "Pages")) %>
+  </div>
+<% end %>
