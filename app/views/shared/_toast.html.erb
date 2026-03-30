@@ -1,15 +1,11 @@
 <%# locals: (type:, message:) -%>
 <%# Tailwind safelist — ensure dynamic toast classes are always generated:
-  bg-sky-50 border-sky-300 dark:bg-sky-950 dark:border-sky-700
-  bg-green-50 border-green-300 dark:bg-green-950 dark:border-green-700
-  bg-amber-50 border-amber-300 dark:bg-amber-950 dark:border-amber-700
-  bg-red-50 border-red-300 dark:bg-red-950 dark:border-red-700
-  text-sky-900 dark:text-sky-100 text-green-900 dark:text-green-100
-  text-amber-900 dark:text-amber-100 text-red-900 dark:text-red-100
-  text-sky-600 dark:text-sky-400 text-green-600 dark:text-green-400
-  text-amber-600 dark:text-amber-400 text-red-600 dark:text-red-400
-  bg-sky-200 dark:bg-sky-600 bg-green-200 dark:bg-green-600
-  bg-amber-200 dark:bg-amber-600 bg-red-200 dark:bg-red-600
+  bg-info-surface border-info-border bg-success-surface border-success-border
+  bg-warning-surface border-warning-border bg-danger-surface border-danger-border
+  text-info text-success text-warning text-danger
+  text-info-icon text-success-icon text-warning-icon text-danger-icon
+  bg-info-progress bg-success-progress
+  hover:bg-info-hover hover:bg-success-hover hover:bg-warning-hover hover:bg-danger-hover
 %>
 <%
   timeout = case type
@@ -23,41 +19,37 @@
   aria_live = %w[alert error].include?(type) ? "assertive" : "polite"
 
   type_classes = case type
-                 when "notice"
-                   "bg-sky-50 border-sky-300 dark:bg-sky-950 dark:border-sky-700"
-                 when "success"
-                   "bg-green-50 border-green-300 dark:bg-green-950 dark:border-green-700"
-                 when "alert"
-                   "bg-amber-50 border-amber-300 dark:bg-amber-950 dark:border-amber-700"
-                 when "error"
-                   "bg-red-50 border-red-300 dark:bg-red-950 dark:border-red-700"
+                 when "notice"  then "bg-info-surface border-info-border"
+                 when "success" then "bg-success-surface border-success-border"
+                 when "alert"   then "bg-warning-surface border-warning-border"
+                 when "error"   then "bg-danger-surface border-danger-border"
                  end
 
   text_color = case type
-               when "notice"  then "text-sky-900 dark:text-sky-100"
-               when "success" then "text-green-900 dark:text-green-100"
-               when "alert"   then "text-amber-900 dark:text-amber-100"
-               when "error"   then "text-red-900 dark:text-red-100"
+               when "notice"  then "text-info"
+               when "success" then "text-success"
+               when "alert"   then "text-warning"
+               when "error"   then "text-danger"
                end
 
   icon_color = case type
-               when "notice"  then "text-sky-500 dark:text-sky-400"
-               when "success" then "text-green-500 dark:text-green-400"
-               when "alert"   then "text-amber-500 dark:text-amber-400"
-               when "error"   then "text-red-500 dark:text-red-400"
+               when "notice"  then "text-info-icon"
+               when "success" then "text-success-icon"
+               when "alert"   then "text-warning-icon"
+               when "error"   then "text-danger-icon"
                end
 
   progress_color = case type
-                   when "notice"  then "bg-sky-400 dark:bg-sky-500"
-                   when "success" then "bg-green-400 dark:bg-green-500"
+                   when "notice"  then "bg-info-progress"
+                   when "success" then "bg-success-progress"
                    else ""
                    end
 
   close_hover = case type
-                when "notice"  then "hover:bg-sky-100 dark:hover:bg-sky-900"
-                when "success" then "hover:bg-green-100 dark:hover:bg-green-900"
-                when "alert"   then "hover:bg-amber-100 dark:hover:bg-amber-900"
-                when "error"   then "hover:bg-red-100 dark:hover:bg-red-900"
+                when "notice"  then "hover:bg-info-hover"
+                when "success" then "hover:bg-success-hover"
+                when "alert"   then "hover:bg-warning-hover"
+                when "error"   then "hover:bg-danger-hover"
                 end
 %>
 <div data-controller="toast"
