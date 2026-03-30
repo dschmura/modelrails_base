@@ -14,9 +14,11 @@ en:
       success: "Workspace created."
     show:
       title: "Dashboard"
+      members: "Members"
+      projects: "Projects"
+      invitations: "Invitations"
       settings: "Settings"
       branding: "Branding"
-      members: "Members"
     edit:
       title: "Edit workspace"
       name_label: "Workspace name"
