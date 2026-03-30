@@ -110,6 +110,9 @@ jobs:
       - name: Prepare database
         run: bin/rails db:prepare
 
+      - name: Set up gem source symlinks for Tailwind
+        run: bundle exec rake tailwind:setup_gem_sources
+
       - name: Compile assets
         run: bin/rails assets:precompile
 
