@@ -47,6 +47,17 @@ en:
         transfer_ownership: "Transfer ownership"
         empty: "No members found."
         showing: "Showing %{from}-%{to} of %{count} members"
+        invite_member: "Invite member"
+        pending_invitations:
+          title: "Pending invitations"
+          invitee: "Invitee"
+          role: "Role"
+          status: "Status"
+          actions: "Actions"
+          pending: "Pending"
+          magic_link: "Magic link"
+          resend: "Resend"
+          revoke: "Revoke"
       edit:
         title: "Change role"
         role_label: "Role"
