@@ -1,32 +1,36 @@
 # Theming Guide
 
-This application uses a three-layer design token system built on OKLCH color space. Tokens provide accessible defaults and clear override points for customization.
+This application uses a three-layer design token system. Tokens provide accessible defaults and clear override points for customization.
 
-## Quick Start: Retheme in One Line
+## Quick Start: Retheme the Primary Color
 
-To change the primary color from sky to purple, add to your CSS after the token imports:
+To change the primary color from sky to purple, open `app/assets/tailwind/tokens/_primitives.css` and replace `sky` with `purple` in the primary section:
 
 ```css
-:root {
-  --theme-primary-hue: 300;
-}
+/* Before */
+--primary-700: var(--color-sky-700);
+
+/* After */
+--primary-700: var(--color-purple-700);
 ```
 
-The entire UI updates — buttons, links, focus rings, hover states — all from one value.
+Replace all 11 shades (50-950) and the entire UI updates — buttons, links, focus rings, hover states.
 
 ## Architecture
 
 ### Layer 1: Primitive Tokens
 
-Three hue angles generate full 11-shade palettes (50-950) using OKLCH:
+Three palettes map to Tailwind's built-in color scales:
 
-| Variable | Default | Controls |
+| Palette | Default Tailwind color | Used for |
 | --- | --- | --- |
-| `--theme-primary-hue` | 233 (sky) | Buttons, links, focus rings |
-| `--theme-secondary-hue` | 264 (indigo) | Accents, prose links |
-| `--theme-neutral-hue` | 233 (cool slate) | Text, surfaces, borders |
+| `--primary-*` | `sky` | Buttons, links, focus rings |
+| `--secondary-*` | `indigo` | Accents, prose links |
+| `--neutral-*` | `slate` | Text, surfaces, borders |
 
-Each shade combines a fixed lightness/chroma value with the hue angle. Primary and secondary palettes use higher chroma for vibrant accent colors. The neutral palette uses a separate, low-chroma array (~10% of accent chroma) that provides a subtle hue tint while keeping text contrast high for WCAG AAA compliance at any hue.
+Each palette has 11 shades (50-950) that reference Tailwind CSS custom properties directly. For example, `--primary-700` resolves to `var(--color-sky-700)`.
+
+To retheme, swap the Tailwind color family. The semantic layer doesn't change — it references the primitive aliases, not the Tailwind colors.
 
 Primitives are defined in `app/assets/tailwind/tokens/_primitives.css`.
 
@@ -67,51 +71,44 @@ Semantic tokens are registered in `@theme inline` so they work as standard Tailw
 
 No `dark:` prefixes needed. The token system handles light/dark automatically.
 
+### How tokens relate to Tailwind CSS
+
+Tailwind's built-in colors still exist and work normally. Classes like `bg-red-500` or `text-blue-700` are unchanged. The token system adds new utilities (`bg-surface`, `text-interactive`, etc.) alongside them via the `@theme inline` block in `application.css`. Views use the semantic token utilities for all themed colors.
+
 ## Common Override Scenarios
 
 ### Change the primary color
 
-```css
-:root { --theme-primary-hue: 300; } /* purple */
-```
-
-### Change both primary and secondary
+In `_primitives.css`, replace all `--color-sky-*` with another Tailwind color:
 
 ```css
-:root {
-  --theme-primary-hue: 150;  /* teal */
-  --theme-secondary-hue: 30; /* orange */
-}
+--primary-50:  var(--color-purple-50);
+--primary-100: var(--color-purple-100);
+/* ... through 950 */
 ```
 
-### Use pure gray neutrals (no tint)
+### Change the neutral tone
 
-Override the neutral chroma values to remove the hue tint:
+Replace all `--color-slate-*` with another neutral family:
 
 ```css
-:root {
-  --neutral-50:  oklch(97.78% 0 0);
-  --neutral-100: oklch(93.56% 0 0);
-  --neutral-200: oklch(88.11% 0 0);
-  --neutral-300: oklch(82.67% 0 0);
-  --neutral-400: oklch(74.22% 0 0);
-  --neutral-500: oklch(64.78% 0 0);
-  --neutral-600: oklch(57.33% 0 0);
-  --neutral-700: oklch(46.89% 0 0);
-  --neutral-800: oklch(39.44% 0 0);
-  --neutral-900: oklch(32.00% 0 0);
-  --neutral-950: oklch(23.78% 0 0);
-}
+--neutral-50:  var(--color-zinc-50);
+--neutral-100: var(--color-zinc-100);
+/* ... through 950 */
 ```
+
+Good options: `slate` (cool), `gray` (neutral), `zinc` (slightly warm), `stone` (warm), `neutral` (pure).
 
 ### Override a specific semantic token
 
+To customize how a role maps to the palette:
+
 ```css
 :root {
-  --color-surface: oklch(98% 0.01 60); /* warm cream background */
+  --color-surface: var(--neutral-100); /* slightly darker page bg */
 }
 .dark {
-  --color-surface: oklch(15% 0.01 60); /* dark warm background */
+  --color-surface: var(--neutral-950); /* deeper dark bg */
 }
 ```
 
@@ -129,19 +126,19 @@ Defined in `app/assets/tailwind/tokens/_signals.css`.
 
 ## Accessibility
 
-The lightness/chroma arrays guarantee WCAG AAA contrast ratios (7:1 normal text, 4.5:1 large text) at every hue angle. OKLCH's perceptual uniformity means:
+Tailwind's built-in color scales are designed with accessibility in mind. The semantic layer maps text and interactive tokens to shades that maintain WCAG AAA contrast ratios (7:1 for normal text, 4.5:1 for large text).
 
-- Changing the hue cannot silently break contrast
-- All 360 degrees of the hue wheel produce accessible palettes
-- Signal colors maintain universal meaning regardless of theme
+When rethemeing, stick to Tailwind's standard color families — they are all calibrated for consistent contrast. The existing axe-core test suite validates accessibility on every system spec run.
 
-The existing axe-core test suite validates accessibility on every system spec run.
+## Advanced: OKLCH Single-Hue Theming
+
+For applications that need dynamic theming (e.g., a color picker that generates palettes at runtime), the primitives file can be replaced with an OKLCH-based generator that derives all shades from a single hue angle. See the [Evil Martians OKLCH guide](https://evilmartians.com/chronicles/better-dynamic-themes-in-tailwind-with-oklch-color-magic) for this approach. The semantic layer works identically either way.
 
 ## File Reference
 
 | File | Purpose |
 | --- | --- |
-| `app/assets/tailwind/tokens/_primitives.css` | OKLCH palette generation |
+| `app/assets/tailwind/tokens/_primitives.css` | Tailwind color mappings |
 | `app/assets/tailwind/tokens/_semantic.css` | Role-based aliases + dark mode |
 | `app/assets/tailwind/tokens/_signals.css` | Fixed signal colors |
 | `app/assets/tailwind/application.css` | Tailwind config + @theme registration |
