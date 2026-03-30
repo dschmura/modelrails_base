@@ -13,6 +13,7 @@ module Workspaces
 
       @pagy, @memberships = pagy(:offset, scope)
       @roles = @workspace.effective_roles
+      @pending_invitations = @workspace.invitations.pending.includes(:role)
     end
 
     def edit
