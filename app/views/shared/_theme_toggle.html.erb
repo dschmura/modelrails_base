@@ -9,9 +9,9 @@
   data-action="click->theme-toggle#cycle"
   aria-label="<%= t("navigation.toggle_theme") %>"
   class="<%= style == :icon ? "min-h-[44px] min-w-[44px] flex items-center justify-center" : "min-h-[44px] flex items-center gap-2 px-2" %>
-         text-slate-700 dark:text-gray-300
-         hover:text-sky-700 dark:hover:text-sky-400
-         focus:outline-none focus:ring-2 focus:ring-sky-700 rounded"
+         text-text-body
+         hover:text-interactive-hover
+         focus:outline-none focus:ring-2 focus:ring-interactive-focus rounded"
 >
   <%# Sun icon (light mode) %>
   <svg data-theme-toggle-target="lightIcon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
