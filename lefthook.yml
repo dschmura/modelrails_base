@@ -19,6 +19,8 @@ pre-push:
         - rebase
     rspec:
       tags: test
+      env:
+        CI: "true"
       run: bundle exec rspec
       skip:
         - merge
