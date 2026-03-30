@@ -501,6 +501,50 @@
 }
 
 /* ==========================================================================
+   Biscuit Cookie Consent Banner — Theme Overrides
+   Override gem CSS tokens to match site's sky-700 accent and dark mode.
+   ========================================================================== */
+
+.biscuit-banner {
+  --biscuit-bg: #ffffff;
+  --biscuit-color: #334155;
+  --biscuit-muted: #64748b;
+  --biscuit-accent: #0369a1;
+  --biscuit-accent-hover: #075985;
+  --biscuit-border: rgba(0, 0, 0, 0.1);
+  --biscuit-shadow-bottom: 0 -4px 16px rgba(0, 0, 0, 0.08);
+  --biscuit-radius: 0.5rem;
+  --biscuit-padding: 1.25rem 1.5rem;
+}
+
+.dark .biscuit-banner {
+  --biscuit-bg: #1e293b;
+  --biscuit-color: #e2e8f0;
+  --biscuit-muted: #94a3b8;
+  --biscuit-accent: #0ea5e9;
+  --biscuit-accent-hover: #38bdf8;
+  --biscuit-border: rgba(255, 255, 255, 0.1);
+  --biscuit-shadow-bottom: 0 -4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.dark .biscuit-btn--secondary:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dark .biscuit-manage-link {
+  color: var(--biscuit-muted);
+}
+
+.biscuit-btn {
+  min-height: 44px;
+}
+
+.biscuit-btn:focus-visible {
+  outline: 2px solid var(--biscuit-accent);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
    Markdowndocs Dark Mode Overrides
    The gem's views use hardcoded light-mode Tailwind classes without dark:
    variants. These overrides apply dark styling when .dark is on <html>.
