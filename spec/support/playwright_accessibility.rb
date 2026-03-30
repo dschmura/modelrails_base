@@ -54,8 +54,16 @@ RSpec.configure do |config|
   if ENV["CI"]
     config.after(:each, type: :system) do
       options = { runOnly: { type: "tag", values: [ "wcag2aa" ] } }
-      expect(axe_clean?(options)).to be(true),
-        "Accessibility violations found:\n#{axe_violations(options).join("\n")}"
+      results = run_axe_audit(options)
+      violations = results["violations"] || []
+
+      formatted = violations.map do |v|
+        nodes = (v["nodes"] || []).map { |n| n["html"] }.join("\n  ")
+        "\n#{v["id"]}: #{v["help"]}\n  Impact: #{v["impact"]}\n  Affected elements:\n  #{nodes}"
+      end
+
+      expect(violations).to be_empty,
+        "Accessibility violations found:#{formatted.join("\n")}"
     end
   end
 end

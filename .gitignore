@@ -40,6 +40,9 @@
 /app/assets/builds/*
 !/app/assets/builds/.keep
 
+# Gem view symlinks for Tailwind source scanning
+/vendor/markdowndocs_views
+
 # Claude Code — development tools (not committed)
 .claude/settings.local.json
 .claude/skills/
