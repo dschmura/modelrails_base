@@ -26,7 +26,7 @@ Three hue angles generate full 11-shade palettes (50-950) using OKLCH:
 | `--theme-secondary-hue` | 264 (indigo) | Accents, prose links |
 | `--theme-neutral-hue` | 233 (cool slate) | Text, surfaces, borders |
 
-Each shade combines a fixed lightness/chroma value with the hue angle. The lightness/chroma arrays are calibrated for WCAG AAA contrast at any hue — changing the hue cannot break accessibility.
+Each shade combines a fixed lightness/chroma value with the hue angle. Primary and secondary palettes use higher chroma for vibrant accent colors. The neutral palette uses a separate, low-chroma array (~10% of accent chroma) that provides a subtle hue tint while keeping text contrast high for WCAG AAA compliance at any hue.
 
 Primitives are defined in `app/assets/tailwind/tokens/_primitives.css`.
 
