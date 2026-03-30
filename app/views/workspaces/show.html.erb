@@ -17,5 +17,42 @@
     </div>
   </div>
 
+  <nav aria-label="<%= @workspace.name %>" class="mt-8 flex flex-wrap gap-3">
+    <%= link_to t("workspaces.show.members"),
+          workspace_members_path(@workspace),
+          class: "min-h-[44px] flex items-center px-4 py-2 rounded-md
+                  border border-border text-text-body font-medium
+                  hover:bg-surface-sunken
+                  focus:outline-none focus:ring-2 focus:ring-interactive-focus" %>
+    <%= link_to t("workspaces.show.projects"),
+          workspace_projects_path(@workspace),
+          class: "min-h-[44px] flex items-center px-4 py-2 rounded-md
+                  border border-border text-text-body font-medium
+                  hover:bg-surface-sunken
+                  focus:outline-none focus:ring-2 focus:ring-interactive-focus" %>
+    <% if policy(Invitation).create? %>
+      <%= link_to t("workspaces.show.invitations"),
+            workspace_invitations_path(@workspace),
+            class: "min-h-[44px] flex items-center px-4 py-2 rounded-md
+                    border border-border text-text-body font-medium
+                    hover:bg-surface-sunken
+                    focus:outline-none focus:ring-2 focus:ring-interactive-focus" %>
+    <% end %>
+    <% if policy(@workspace).update? %>
+      <%= link_to t("workspaces.show.settings"),
+            edit_workspace_settings_path(@workspace),
+            class: "min-h-[44px] flex items-center px-4 py-2 rounded-md
+                    border border-border text-text-body font-medium
+                    hover:bg-surface-sunken
+                    focus:outline-none focus:ring-2 focus:ring-interactive-focus" %>
+      <%= link_to t("workspaces.show.branding"),
+            edit_workspace_branding_path(@workspace),
+            class: "min-h-[44px] flex items-center px-4 py-2 rounded-md
+                    border border-border text-text-body font-medium
+                    hover:bg-surface-sunken
+                    focus:outline-none focus:ring-2 focus:ring-interactive-focus" %>
+    <% end %>
+  </nav>
+
   <%= render "shared/activity_feed", activities: ActivityLog.visible.for_workspace(@workspace).recent.includes(:actor) %>
 </div>
