@@ -11,6 +11,7 @@ RSpec.describe "Members table", type: :system do
     click_button I18n.t("sessions.new.continue")
     fill_in I18n.t("sessions.password_form.password_label"), with: "SecureP@ssw0rd123!"
     click_button I18n.t("sessions.password_form.submit")
+    expect(page).to have_text(I18n.t("navigation.sign_out"))
   end
 
   describe "members index page" do
@@ -110,6 +111,58 @@ RSpec.describe "Members table", type: :system do
     it "has unique row IDs for Turbo Stream targeting" do
       visit workspace_members_path(workspace)
       expect(page).to have_css("tr[id^='membership_']")
+    end
+  end
+
+  describe "invite button" do
+    it "shows invite button for owner" do
+      visit workspace_members_path(workspace)
+      expect(page).to have_link(I18n.t("workspaces.members.index.invite_member"))
+    end
+
+    it "links to the invitation form" do
+      visit workspace_members_path(workspace)
+      expect(page).to have_link(
+        I18n.t("workspaces.members.index.invite_member"),
+        href: new_workspace_invitation_path(workspace)
+      )
+    end
+
+    it "hides invite button for regular members" do
+      regular = create(:user, first_name: "Regular", last_name: "Member", password: "SecureP@ssw0rd123!")
+      create(:membership, user: regular, workspace: workspace)
+      visit new_session_path
+      fill_in I18n.t("sessions.new.email_label"), with: regular.email_address
+      click_button I18n.t("sessions.new.continue")
+      fill_in I18n.t("sessions.password_form.password_label"), with: "SecureP@ssw0rd123!"
+      click_button I18n.t("sessions.password_form.submit")
+      expect(page).to have_text(I18n.t("navigation.sign_out"))
+      visit workspace_members_path(workspace)
+      expect(page).not_to have_link(I18n.t("workspaces.members.index.invite_member"))
+    end
+  end
+
+  describe "pending invitations section" do
+    let!(:pending_invitation) do
+      create(:invitation, invitable: workspace, email: "invited@example.com",
+             invited_by: user)
+    end
+
+    it "shows pending invitations" do
+      visit workspace_members_path(workspace)
+      expect(page).to have_text(I18n.t("workspaces.members.index.pending_invitations.title"))
+      expect(page).to have_text("invited@example.com")
+    end
+
+    it "shows pending badge" do
+      visit workspace_members_path(workspace)
+      expect(page).to have_text(I18n.t("workspaces.members.index.pending_invitations.pending"))
+    end
+
+    it "shows resend and revoke buttons for owner" do
+      visit workspace_members_path(workspace)
+      expect(page).to have_button(I18n.t("workspaces.members.index.pending_invitations.resend"))
+      expect(page).to have_button(I18n.t("workspaces.members.index.pending_invitations.revoke"))
     end
   end
 end

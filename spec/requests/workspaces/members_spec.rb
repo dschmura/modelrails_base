@@ -107,6 +107,77 @@ RSpec.describe "Workspace Members", type: :request do
         expect(response.body).to include(I18n.t("workspaces.members.index.empty"))
       end
     end
+
+    context "invite button" do
+      it "shows invite button for users with manage_members permission" do
+        get workspace_members_path(workspace)
+        expect(response.body).to include(I18n.t("workspaces.members.index.invite_member"))
+      end
+
+      it "hides invite button for regular members" do
+        regular = create(:user)
+        create(:membership, user: regular, workspace: workspace)
+        sign_in(regular)
+        get workspace_members_path(workspace)
+        expect(response.body).not_to include(I18n.t("workspaces.members.index.invite_member"))
+      end
+    end
+
+    context "pending invitations" do
+      let!(:pending_invitation) do
+        create(:invitation, invitable: workspace, email: "newperson@example.com",
+               invited_by: user)
+      end
+
+      it "shows pending invitations on members page" do
+        get workspace_members_path(workspace)
+        expect(response.body).to include("newperson@example.com")
+        expect(response.body).to include(I18n.t("workspaces.members.index.pending_invitations.title"))
+      end
+
+      it "shows magic link label for magic link invitations" do
+        create(:invitation, :magic_link, invitable: workspace, invited_by: user)
+        get workspace_members_path(workspace)
+        expect(response.body).to include(I18n.t("workspaces.members.index.pending_invitations.magic_link"))
+      end
+
+      it "shows pending badge" do
+        get workspace_members_path(workspace)
+        expect(response.body).to include(I18n.t("workspaces.members.index.pending_invitations.pending"))
+      end
+
+      it "shows resend and revoke buttons for authorized users" do
+        get workspace_members_path(workspace)
+        expect(response.body).to include(I18n.t("workspaces.members.index.pending_invitations.resend"))
+        expect(response.body).to include(I18n.t("workspaces.members.index.pending_invitations.revoke"))
+      end
+
+      it "hides resend and revoke for regular members" do
+        regular = create(:user)
+        create(:membership, user: regular, workspace: workspace)
+        sign_in(regular)
+        get workspace_members_path(workspace)
+        expect(response.body).not_to include(I18n.t("workspaces.members.index.pending_invitations.resend"))
+      end
+
+      it "excludes accepted invitations" do
+        pending_invitation.update!(status: "accepted", accepted_at: Time.current)
+        get workspace_members_path(workspace)
+        expect(response.body).not_to include("newperson@example.com")
+      end
+
+      it "excludes expired invitations" do
+        pending_invitation.update!(expires_at: 1.day.ago)
+        get workspace_members_path(workspace)
+        expect(response.body).not_to include("newperson@example.com")
+      end
+
+      it "excludes revoked invitations" do
+        pending_invitation.revoke!
+        get workspace_members_path(workspace)
+        expect(response.body).not_to include("newperson@example.com")
+      end
+    end
   end
 
   describe "GET /workspaces/:workspace_slug/members/:id/edit" do
