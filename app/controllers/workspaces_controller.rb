@@ -3,7 +3,7 @@ class WorkspacesController < ApplicationController
 
   def index
     authorize Workspace
-    @workspaces = Current.user.workspaces.kept.includes(logo_attachment: :blob)
+    @workspaces = Current.user.workspaces.kept.includes(:logo_attachment)
   end
 
   def new
