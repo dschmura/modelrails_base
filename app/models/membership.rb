@@ -11,9 +11,10 @@ class Membership < ApplicationRecord
 
   scope :search, ->(query) {
     return all if query.blank?
+    sanitized = sanitize_sql_like(query.downcase)
     joins(:user).where(
       "LOWER(users.first_name) LIKE :q OR LOWER(users.last_name) LIKE :q OR LOWER(users.email_address) LIKE :q",
-      q: "%#{query.downcase}%"
+      q: "%#{sanitized}%"
     )
   }
 
