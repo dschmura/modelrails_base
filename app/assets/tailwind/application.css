@@ -4,8 +4,9 @@
    This allows a three-way user preference (light/dark/system). */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Markdowndocs gem views — required so Tailwind scans the gem's templates */
-@source "/Users/dschmura/.local/share/mise/installs/ruby/4.0.2/lib/ruby/gems/4.0.0/gems/markdowndocs-0.4.0/app/views/**/*.erb";
+/* Markdowndocs gem views — required so Tailwind scans the gem's templates.
+   Symlink created by: ln -sf $(bundle show markdowndocs)/app/views vendor/markdowndocs_views */
+@source "../../../vendor/markdowndocs_views/**/*.erb";
 
 /* ==========================================================================
    Prose Styles (documentation pages rendered by Markdowndocs)
