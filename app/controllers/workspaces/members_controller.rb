@@ -11,7 +11,7 @@ module Workspaces
         .filter_by_status(params[:status])
         .sorted_by(params[:sort], params[:direction])
 
-      @pagy, @memberships = pagy(scope)
+      @pagy, @memberships = pagy(:offset, scope)
       @roles = @workspace.effective_roles
     end
 

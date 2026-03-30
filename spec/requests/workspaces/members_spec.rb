@@ -18,6 +18,95 @@ RSpec.describe "Workspace Members", type: :request do
       get workspace_members_path(workspace)
       expect(response.body).to include("Owner")
     end
+
+    context "with search" do
+      let!(:alice) { create(:user, first_name: "Alice", last_name: "Anderson") }
+      let!(:alice_membership) { create(:membership, user: alice, workspace: workspace) }
+
+      it "filters by search query" do
+        get workspace_members_path(workspace, q: "Alice")
+        expect(response.body).to include("Alice")
+      end
+
+      it "excludes non-matching members" do
+        get workspace_members_path(workspace, q: "Zzzzz")
+        expect(response.body).not_to include("Alice")
+      end
+    end
+
+    context "with role filter" do
+      let!(:admin_user) { create(:user, first_name: "AdminUser", last_name: "Test") }
+      let!(:admin_membership) { create(:membership, :admin, user: admin_user, workspace: workspace) }
+
+      it "filters by role" do
+        get workspace_members_path(workspace, role: "admin")
+        expect(response.body).to include("AdminUser")
+        expect(response.body).not_to include(CGI.escapeHTML(user.full_name))
+      end
+    end
+
+    context "with status filter" do
+      let!(:deactivated_user) { create(:user, first_name: "Deactivated", last_name: "User") }
+      let!(:deactivated_membership) { create(:membership, user: deactivated_user, workspace: workspace) }
+
+      before { deactivated_membership.discard! }
+
+      it "filters active members" do
+        get workspace_members_path(workspace, status: "active")
+        expect(response.body).to include(CGI.escapeHTML(user.full_name))
+        expect(response.body).not_to include(CGI.escapeHTML(deactivated_user.full_name))
+      end
+
+      it "filters deactivated members" do
+        get workspace_members_path(workspace, status: "deactivated")
+        expect(response.body).to include("Deactivated")
+      end
+    end
+
+    context "with sorting" do
+      it "sorts by name ascending" do
+        get workspace_members_path(workspace, sort: "name", direction: "asc")
+        expect(response).to have_http_status(:ok)
+      end
+
+      it "sorts by role" do
+        get workspace_members_path(workspace, sort: "role", direction: "desc")
+        expect(response).to have_http_status(:ok)
+      end
+    end
+
+    context "with pagination" do
+      before do
+        workspace.update!(max_members: 50)
+        22.times { create(:membership, workspace: workspace) }
+      end
+
+      it "paginates results" do
+        get workspace_members_path(workspace)
+        expect(response.body).to include("members_results")
+      end
+
+      it "respects page parameter" do
+        get workspace_members_path(workspace, page: 2)
+        expect(response).to have_http_status(:ok)
+      end
+    end
+
+    context "with Turbo Frame request" do
+      it "responds to Turbo Frame requests" do
+        get workspace_members_path(workspace),
+            headers: { "Turbo-Frame" => "members_results" }
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include("members_results")
+      end
+    end
+
+    context "with empty results" do
+      it "shows empty state when search matches nothing" do
+        get workspace_members_path(workspace, q: "nonexistent_person_xyz")
+        expect(response.body).to include(I18n.t("workspaces.members.index.empty"))
+      end
+    end
   end
 
   describe "GET /workspaces/:workspace_slug/members/:id/edit" do
