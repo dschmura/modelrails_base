@@ -1,4 +1,16 @@
 <%# locals: (type:, message:) -%>
+<%# Tailwind safelist — ensure dynamic toast classes are always generated:
+  bg-sky-50 border-sky-300 dark:bg-sky-950 dark:border-sky-700
+  bg-green-50 border-green-300 dark:bg-green-950 dark:border-green-700
+  bg-amber-50 border-amber-300 dark:bg-amber-950 dark:border-amber-700
+  bg-red-50 border-red-300 dark:bg-red-950 dark:border-red-700
+  text-sky-900 dark:text-sky-100 text-green-900 dark:text-green-100
+  text-amber-900 dark:text-amber-100 text-red-900 dark:text-red-100
+  text-sky-600 dark:text-sky-400 text-green-600 dark:text-green-400
+  text-amber-600 dark:text-amber-400 text-red-600 dark:text-red-400
+  bg-sky-200 dark:bg-sky-600 bg-green-200 dark:bg-green-600
+  bg-amber-200 dark:bg-amber-600 bg-red-200 dark:bg-red-600
+%>
 <%
   timeout = case type
             when "notice", "success"
@@ -12,14 +24,21 @@
 
   type_classes = case type
                  when "notice"
-                   "bg-sky-50 border-sky-300 text-sky-800 dark:bg-sky-950 dark:border-sky-700 dark:text-sky-200"
+                   "bg-sky-50 border-sky-300 dark:bg-sky-950 dark:border-sky-700"
                  when "success"
-                   "bg-green-50 border-green-300 text-green-800 dark:bg-green-950 dark:border-green-700 dark:text-green-200"
+                   "bg-green-50 border-green-300 dark:bg-green-950 dark:border-green-700"
                  when "alert"
-                   "bg-amber-50 border-amber-300 text-amber-800 dark:bg-amber-950 dark:border-amber-700 dark:text-amber-200"
+                   "bg-amber-50 border-amber-300 dark:bg-amber-950 dark:border-amber-700"
                  when "error"
-                   "bg-red-50 border-red-300 text-red-800 dark:bg-red-950 dark:border-red-700 dark:text-red-200"
+                   "bg-red-50 border-red-300 dark:bg-red-950 dark:border-red-700"
                  end
+
+  text_color = case type
+               when "notice"  then "text-sky-900 dark:text-sky-100"
+               when "success" then "text-green-900 dark:text-green-100"
+               when "alert"   then "text-amber-900 dark:text-amber-100"
+               when "error"   then "text-red-900 dark:text-red-100"
+               end
 
   icon_color = case type
                when "notice"  then "text-sky-500 dark:text-sky-400"
@@ -69,7 +88,7 @@
         </svg>
       <% end %>
     </div>
-    <p class="flex-1 text-sm leading-relaxed"><%= message %></p>
+    <p class="flex-1 text-sm leading-relaxed <%= text_color %>"><%= message %></p>
     <button type="button"
             aria-label="<%= t('toasts.close') %>"
             data-action="click->toast#dismiss"
