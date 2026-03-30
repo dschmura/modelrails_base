@@ -29,6 +29,11 @@ en:
     members:
       index:
         title: "Members"
+        search_placeholder: "Search members..."
+        filter_by_role: "All roles"
+        filter_by_status: "All statuses"
+        status_active: "Active"
+        status_deactivated: "Deactivated"
         name: "Name"
         email: "Email"
         role: "Role"
@@ -40,6 +45,8 @@ en:
         deactivate: "Deactivate"
         reactivate: "Reactivate"
         transfer_ownership: "Transfer ownership"
+        empty: "No members found."
+        showing: "Showing %{from}-%{to} of %{count} members"
       edit:
         title: "Change role"
         role_label: "Role"

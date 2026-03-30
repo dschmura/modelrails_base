@@ -4,66 +4,111 @@
     <%= t("workspaces.members.index.title") %>
   </h1>
 
-  <table class="mt-8 w-full">
-    <thead>
-      <tr class="border-b border-border">
-        <th scope="col" class="text-left py-3 text-sm font-medium text-text-muted">
-          <%= t("workspaces.members.index.name") %>
-        </th>
-        <th scope="col" class="text-left py-3 text-sm font-medium text-text-muted">
-          <%= t("workspaces.members.index.email") %>
-        </th>
-        <th scope="col" class="text-left py-3 text-sm font-medium text-text-muted">
-          <%= t("workspaces.members.index.role") %>
-        </th>
-        <th scope="col" class="text-left py-3 text-sm font-medium text-text-muted">
-          <%= t("workspaces.members.index.status") %>
-        </th>
-        <th scope="col" class="text-left py-3 text-sm font-medium text-text-muted">
-          <%= t("workspaces.members.index.actions") %>
-        </th>
-      </tr>
-    </thead>
-    <tbody>
-      <% @memberships.each do |membership| %>
-        <tr class="border-b border-border">
-          <td class="py-3 text-text-heading"><%= membership.user.full_name %></td>
-          <td class="py-3 text-text-muted"><%= membership.user.email_address %></td>
-          <td class="py-3 text-text-muted"><%= membership.role.name %></td>
-          <td class="py-3 text-text-muted">
-            <% if membership.discarded? %>
-              <span class="text-danger"><%= t("workspaces.members.index.deactivated") %></span>
-            <% else %>
-              <span class="text-success"><%= t("workspaces.members.index.active") %></span>
+  <%= turbo_frame_tag "members_results" do %>
+    <%# Filter bar — a plain GET form inside the Turbo Frame %>
+    <%= form_with url: workspace_members_path(@workspace),
+          method: :get,
+          data: { controller: "search-form", turbo_frame: "members_results" },
+          class: "mt-6 flex flex-col gap-3 sm:flex-row sm:items-end" do |form| %>
+      <div class="flex-1">
+        <%= form.label :q, t("workspaces.members.index.search_placeholder"),
+              class: "sr-only" %>
+        <%= form.search_field :q,
+              value: params[:q],
+              placeholder: t("workspaces.members.index.search_placeholder"),
+              data: { action: "input->search-form#search keydown->search-form#clear" },
+              autocomplete: "off",
+              class: "w-full min-h-[44px] rounded-md border border-border-strong
+                      bg-surface-raised px-3 py-2 text-sm
+                      text-text-heading placeholder:text-text-muted
+                      focus:outline-none focus:ring-2 focus:ring-interactive-focus focus:border-interactive-focus" %>
+      </div>
+
+      <div class="flex gap-3">
+        <%= form.select :role,
+              options_for_select(
+                [[t("workspaces.members.index.filter_by_role"), ""]] +
+                @roles.map { |r| [r.name, r.slug] },
+                params[:role]
+              ),
+              {},
+              { onchange: "this.form.requestSubmit()",
+                class: "min-h-[44px] rounded-md border border-border-strong
+                        bg-surface-raised px-3 py-2 text-sm
+                        text-text-heading
+                        focus:outline-none focus:ring-2 focus:ring-interactive-focus focus:border-interactive-focus",
+                aria: { label: t("workspaces.members.index.filter_by_role") } } %>
+
+        <%= form.select :status,
+              options_for_select(
+                [[t("workspaces.members.index.filter_by_status"), ""],
+                 [t("workspaces.members.index.status_active"), "active"],
+                 [t("workspaces.members.index.status_deactivated"), "deactivated"]],
+                params[:status]
+              ),
+              {},
+              { onchange: "this.form.requestSubmit()",
+                class: "min-h-[44px] rounded-md border border-border-strong
+                        bg-surface-raised px-3 py-2 text-sm
+                        text-text-heading
+                        focus:outline-none focus:ring-2 focus:ring-interactive-focus focus:border-interactive-focus",
+                aria: { label: t("workspaces.members.index.filter_by_status") } } %>
+      </div>
+
+      <%# Preserve sort params through filter changes %>
+      <%= hidden_field_tag :sort, params[:sort] if params[:sort].present? %>
+      <%= hidden_field_tag :direction, params[:direction] if params[:direction].present? %>
+    <% end %>
+
+    <%# Results table %>
+    <% if @memberships.any? %>
+      <div class="mt-6 bg-surface-raised rounded-lg border border-border shadow-sm overflow-hidden">
+        <table class="w-full">
+          <thead>
+            <tr class="border-b border-border bg-surface">
+              <th scope="col" class="text-left py-3 px-2">
+                <%= render "shared/sortable_header",
+                      title: t("workspaces.members.index.name"),
+                      column: "name",
+                      current_sort: params[:sort],
+                      current_direction: params[:direction],
+                      url: ->(sort_params) { workspace_members_path(@workspace, request.query_parameters.merge(sort_params)) } %>
+              </th>
+              <th scope="col" class="text-left py-3 px-2">
+                <%= render "shared/sortable_header",
+                      title: t("workspaces.members.index.email"),
+                      column: "email",
+                      current_sort: params[:sort],
+                      current_direction: params[:direction],
+                      url: ->(sort_params) { workspace_members_path(@workspace, request.query_parameters.merge(sort_params)) } %>
+              </th>
+              <th scope="col" class="text-left py-3 px-2">
+                <%= render "shared/sortable_header",
+                      title: t("workspaces.members.index.role"),
+                      column: "role",
+                      current_sort: params[:sort],
+                      current_direction: params[:direction],
+                      url: ->(sort_params) { workspace_members_path(@workspace, request.query_parameters.merge(sort_params)) } %>
+              </th>
+              <th scope="col" class="text-left py-3 px-2 text-sm font-medium text-text-muted">
+                <%= t("workspaces.members.index.status") %>
+              </th>
+              <th scope="col" class="text-left py-3 px-2 text-sm font-medium text-text-muted">
+                <%= t("workspaces.members.index.actions") %>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @memberships.each do |membership| %>
+              <%= render "workspaces/members/member_row", membership: membership, workspace: @workspace %>
             <% end %>
-          </td>
-          <td class="py-3 space-x-2">
-            <% if policy(membership).update? %>
-              <%= link_to t("workspaces.members.index.edit_role"),
-                    edit_workspace_member_path(@workspace, membership),
-                    class: "text-sm text-interactive hover:text-interactive-hover" %>
-            <% end %>
-            <% if policy(membership).destroy? && !membership.discarded? %>
-              <%= button_to t("workspaces.members.index.deactivate"),
-                    workspace_member_path(@workspace, membership),
-                    method: :delete,
-                    class: "text-sm text-danger bg-transparent border-0 cursor-pointer p-0" %>
-            <% end %>
-            <% if policy(membership).reactivate? && membership.discarded? %>
-              <%= button_to t("workspaces.members.index.reactivate"),
-                    reactivate_workspace_member_path(@workspace, membership),
-                    method: :patch,
-                    class: "text-sm text-success bg-transparent border-0 cursor-pointer p-0" %>
-            <% end %>
-            <% if policy(membership).transfer_ownership? %>
-              <%= button_to t("workspaces.members.index.transfer_ownership"),
-                    transfer_ownership_workspace_member_path(@workspace, membership),
-                    method: :patch,
-                    class: "text-sm text-text-muted bg-transparent border-0 cursor-pointer p-0" %>
-            <% end %>
-          </td>
-        </tr>
-      <% end %>
-    </tbody>
-  </table>
+          </tbody>
+        </table>
+
+        <%= render "shared/pagination", pagy: @pagy %>
+      </div>
+    <% else %>
+      <p class="mt-8 text-center text-text-muted"><%= t("workspaces.members.index.empty") %></p>
+    <% end %>
+  <% end %>
 </div>

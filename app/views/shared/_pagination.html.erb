@@ -1,0 +1,73 @@
+<%# locals: (pagy:) %>
+<% if pagy.pages > 1 %>
+  <nav aria-label="<%= t("pagination.aria_label", default: "Pagination") %>"
+       class="flex items-center justify-between border-t border-border px-4 py-3 sm:px-6">
+    <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+      <p class="text-sm text-text-muted">
+        <%= t("pagination.showing",
+              from: pagy.from,
+              to: pagy.to,
+              count: pagy.count,
+              default: "Showing %{from} to %{to} of %{count} results") %>
+      </p>
+      <div class="flex items-center gap-1" role="list">
+        <% if pagy.prev %>
+          <%= link_to pagy_url_for(pagy, pagy.prev),
+                rel: "prev",
+                aria: { label: t("pagination.previous", default: "Previous page") },
+                class: "min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-md
+                        text-text-muted hover:bg-surface-sunken
+                        focus:outline-none focus:ring-2 focus:ring-interactive-focus" do %>
+            <span aria-hidden="true">&lsaquo;</span>
+          <% end %>
+        <% end %>
+
+        <% pagy.series.each do |item| %>
+          <% if item.is_a?(Integer) %>
+            <%= link_to item, pagy_url_for(pagy, item),
+                  class: "min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-md text-sm
+                          #{item == pagy.page ? "bg-interactive text-text-on-interactive font-medium" : "text-text-muted hover:bg-surface-sunken"}
+                          focus:outline-none focus:ring-2 focus:ring-interactive-focus",
+                  aria: item == pagy.page ? { current: "page" } : {} %>
+          <% elsif item == :gap %>
+            <span class="min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-text-muted">&hellip;</span>
+          <% end %>
+        <% end %>
+
+        <% if pagy.next %>
+          <%= link_to pagy_url_for(pagy, pagy.next),
+                rel: "next",
+                aria: { label: t("pagination.next", default: "Next page") },
+                class: "min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-md
+                        text-text-muted hover:bg-surface-sunken
+                        focus:outline-none focus:ring-2 focus:ring-interactive-focus" do %>
+            <span aria-hidden="true">&rsaquo;</span>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+
+    <%# Mobile pagination %>
+    <div class="flex flex-1 justify-between sm:hidden">
+      <% if pagy.prev %>
+        <%= link_to t("pagination.previous_short", default: "Previous"),
+              pagy_url_for(pagy, pagy.prev),
+              rel: "prev",
+              class: "min-h-[44px] inline-flex items-center px-4 rounded-md
+                      text-sm text-text-muted hover:bg-surface-sunken
+                      focus:outline-none focus:ring-2 focus:ring-interactive-focus" %>
+      <% end %>
+      <span class="min-h-[44px] inline-flex items-center text-sm text-text-muted">
+        <%= pagy.page %> / <%= pagy.pages %>
+      </span>
+      <% if pagy.next %>
+        <%= link_to t("pagination.next_short", default: "Next"),
+              pagy_url_for(pagy, pagy.next),
+              rel: "next",
+              class: "min-h-[44px] inline-flex items-center px-4 rounded-md
+                      text-sm text-text-muted hover:bg-surface-sunken
+                      focus:outline-none focus:ring-2 focus:ring-interactive-focus" %>
+      <% end %>
+    </div>
+  </nav>
+<% end %>
