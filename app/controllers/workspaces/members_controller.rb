@@ -4,7 +4,15 @@ module Workspaces
 
     def index
       authorize Membership
-      @memberships = @workspace.memberships.includes(:user, :role)
+      scope = @workspace.memberships
+        .includes(:user, :role)
+        .search(params[:q])
+        .filter_by_role(params[:role])
+        .filter_by_status(params[:status])
+        .sorted_by(params[:sort], params[:direction])
+
+      @pagy, @memberships = pagy(scope)
+      @roles = @workspace.effective_roles
     end
 
     def edit
