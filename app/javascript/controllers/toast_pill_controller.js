@@ -6,7 +6,7 @@ export default class extends Controller {
 
   connect() {
     this.prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    this.remaining = this.timeoutValue
+    this.remaining = this.timeoutValue + this.staggerDelay()
     this.animateIn()
     this.startAutoClose()
     this.startProgressBar()
@@ -76,8 +76,16 @@ export default class extends Controller {
     if (!this.hasProgressTarget) return
     this.progressTarget.style.width = "100%"
     requestAnimationFrame(() => {
-      this.progressTarget.style.transition = `width ${this.timeoutValue}ms linear`
+      this.progressTarget.style.transition = `width ${this.remaining}ms linear`
       this.progressTarget.style.width = "0%"
     })
+  }
+
+  staggerDelay() {
+    const container = this.element.parentElement
+    if (!container) return 0
+    const siblings = [...container.querySelectorAll('[data-controller="toast-pill"]')]
+    const index = siblings.indexOf(this.element)
+    return index * 2000
   }
 }

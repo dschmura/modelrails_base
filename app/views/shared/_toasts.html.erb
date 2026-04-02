@@ -5,7 +5,7 @@
             flex flex-col items-center gap-2
             pointer-events-none">
   <% flash.each do |type, message| %>
-    <% if %w[notice success].include?(type) %>
+    <% if %w[notice success info].include?(type) %>
       <%= render "shared/toast_pill", type: type, message: message %>
     <% end %>
   <% end %>
