@@ -4,7 +4,6 @@ export default class extends Controller {
   static targets = ["menu", "button"]
 
   connect() {
-    this.close = this.close.bind(this)
     this.handleOutsideClick = this.handleOutsideClick.bind(this)
     this.handleKeydown = this.handleKeydown.bind(this)
   }
@@ -71,6 +70,11 @@ export default class extends Controller {
       case "Tab":
         this.closeMenu()
         break
+      case " ":
+      case "Enter":
+        event.preventDefault()
+        this.activateFocusedItem()
+        break
     }
   }
 
@@ -105,5 +109,12 @@ export default class extends Controller {
   focusLastItem() {
     const items = this.menuItems()
     items[items.length - 1]?.focus()
+  }
+
+  activateFocusedItem() {
+    const focused = document.activeElement
+    if (this.menuItems().includes(focused)) {
+      focused.click()
+    }
   }
 }
