@@ -3,8 +3,10 @@
        class="relative">
     <button data-dropdown-target="button"
             data-action="click->dropdown#toggle"
+            id="workspace-menu-button"
             aria-expanded="false"
             aria-haspopup="true"
+            aria-controls="workspace-menu"
             class="min-h-[44px] flex items-center gap-2 px-3 py-2 rounded-md
                    text-text-body
                    hover:bg-surface-sunken
@@ -16,7 +18,10 @@
     </button>
 
     <div data-dropdown-target="menu"
+         id="workspace-menu"
          role="menu"
+         aria-orientation="vertical"
+         aria-labelledby="workspace-menu-button"
          class="hidden absolute right-0 mt-2 w-56 rounded-md bg-surface-overlay
                 border border-border shadow-lg z-50">
       <% Current.user.workspaces.kept.each do |workspace| %>

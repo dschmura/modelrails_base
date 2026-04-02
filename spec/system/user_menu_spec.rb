@@ -13,6 +13,21 @@ RSpec.describe "User menu dropdown", type: :system do
     visit root_path
   end
 
+  # Invoke a keyboard event on the dropdown controller via Playwright.
+  # Programmatic KeyboardEvent dispatch does not reach main-world Stimulus
+  # listeners in Playwright's isolated context, so we call the handler directly.
+  def send_dropdown_key(key)
+    page.driver.with_playwright_page do |pw_page|
+      pw_page.evaluate(<<~JS)
+        (function() {
+          var el = document.querySelector('[data-controller~="dropdown"]');
+          var c = window.Stimulus.getControllerForElementAndIdentifier(el, 'dropdown');
+          if (c) c.handleKeydown(new KeyboardEvent('keydown', { key: '#{key}', bubbles: true }));
+        })()
+      JS
+    end
+  end
+
   before do
     sign_in_via_form(user)
   end
@@ -35,19 +50,69 @@ RSpec.describe "User menu dropdown", type: :system do
     it "closes on Escape key" do
       find("#user-menu-button").click
       expect(page).to have_css("#user-menu", visible: :visible)
-      # Programmatic KeyboardEvent dispatch does not reach main-world Stimulus listeners
-      # in Playwright's isolated context. Invoke the controller's handler directly instead.
-      page.driver.with_playwright_page do |pw_page|
-        pw_page.evaluate(<<~JS
-          (function() {
-            var el = document.querySelector('[data-controller~="dropdown"]');
-            var c = window.Stimulus.getControllerForElementAndIdentifier(el, 'dropdown');
-            if (c) c.handleKeydown(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-          })()
-        JS
-        )
-      end
+      send_dropdown_key("Escape")
       expect(page).to have_no_css("#user-menu", visible: :visible)
+    end
+  end
+
+  describe "keyboard navigation" do
+    before do
+      find("#user-menu-button").click
+      expect(page).to have_css("#user-menu", visible: :visible)
+    end
+
+    it "focuses first menu item on open" do
+      focused_text = page.evaluate_script("document.activeElement?.textContent?.trim()")
+      expect(focused_text).to eq(I18n.t("navigation.profile"))
+    end
+
+    it "ArrowDown moves focus to next item" do
+      send_dropdown_key("ArrowDown")
+      focused_text = page.evaluate_script("document.activeElement?.textContent?.trim()")
+      expect(focused_text).to eq(I18n.t("navigation.sign_out"))
+    end
+
+    it "ArrowDown wraps from last to first item" do
+      send_dropdown_key("ArrowDown")
+      send_dropdown_key("ArrowDown")
+      focused_text = page.evaluate_script("document.activeElement?.textContent?.trim()")
+      expect(focused_text).to eq(I18n.t("navigation.profile"))
+    end
+
+    it "ArrowUp wraps from first to last item" do
+      send_dropdown_key("ArrowUp")
+      focused_text = page.evaluate_script("document.activeElement?.textContent?.trim()")
+      expect(focused_text).to eq(I18n.t("navigation.sign_out"))
+    end
+
+    it "Home key focuses first item" do
+      send_dropdown_key("ArrowDown")
+      send_dropdown_key("Home")
+      focused_text = page.evaluate_script("document.activeElement?.textContent?.trim()")
+      expect(focused_text).to eq(I18n.t("navigation.profile"))
+    end
+
+    it "End key focuses last item" do
+      send_dropdown_key("End")
+      focused_text = page.evaluate_script("document.activeElement?.textContent?.trim()")
+      expect(focused_text).to eq(I18n.t("navigation.sign_out"))
+    end
+
+    it "returns focus to trigger button on Escape" do
+      send_dropdown_key("Escape")
+      focused_id = page.evaluate_script("document.activeElement?.id")
+      expect(focused_id).to eq("user-menu-button")
+    end
+
+    it "Space key activates focused menu item" do
+      # First item (Profile link) is focused on open
+      send_dropdown_key(" ")
+      expect(page).to have_current_path(edit_account_profile_path)
+    end
+
+    it "Enter key activates focused menu item" do
+      send_dropdown_key("Enter")
+      expect(page).to have_current_path(edit_account_profile_path)
     end
   end
 
