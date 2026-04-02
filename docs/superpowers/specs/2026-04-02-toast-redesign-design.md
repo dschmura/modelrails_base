@@ -187,10 +187,32 @@ end
 
 ## Visual Specifications
 
+### New Semantic Tokens
+
+Add to `_semantic.css` — the pill needs an inverted overlay that flips with dark mode:
+
+```css
+:root {
+  --color-surface-toast: oklch(20.5% 0.016 265.755 / 90%);  /* neutral-900 @ 90% */
+  --color-text-on-toast: oklch(100% 0 0);                     /* white */
+}
+.dark {
+  --color-surface-toast: oklch(96.8% 0.007 264.536 / 90%);   /* neutral-100 @ 90% */
+  --color-text-on-toast: var(--neutral-900);
+}
+```
+
+Register in `application.css` `@theme inline` block:
+
+```css
+--color-surface-toast: initial;
+--color-text-on-toast: initial;
+```
+
 ### Pill (Tier 1)
 
-- Background: `rgba(15, 23, 42, 0.9)` (slate-900 at 90% opacity) — dark mode: `rgba(248, 250, 252, 0.9)` (slate-50 at 90% opacity)
-- Text: white — dark mode: slate-900
+- Background: `bg-surface-toast` (semantic token — dark pill light mode, light pill dark mode)
+- Text: `text-text-on-toast` (semantic token — white light mode, dark dark mode)
 - Icon color: green checkmark (success) or blue info circle (notice)
 - Border radius: `rounded-full` (pill shape)
 - Padding: `px-4 py-2`
@@ -239,6 +261,8 @@ The bridge component pattern works identically with two tiers. The `bridge--toas
 | `app/javascript/controllers/toast_pill_controller.js` | Create | Auto-dismiss pill controller |
 | `app/javascript/controllers/toast_card_controller.js` | Create | Persistent card controller |
 | `app/javascript/controllers/toast_controller.js` | Delete | Replaced by pill + card controllers |
+| `app/assets/tailwind/tokens/_semantic.css` | Modify | Add `surface-toast` and `text-on-toast` tokens |
+| `app/assets/stylesheets/application.css` | Modify | Register new tokens in `@theme inline` |
 | `app/controllers/concerns/toastable.rb` | Modify | Route types to correct container/partial |
 | `config/locales/en/toasts.en.yml` | Modify | Add pill/card aria labels |
 | `spec/controllers/concerns/toastable_spec.rb` | Modify | Update for new partials/targets |
