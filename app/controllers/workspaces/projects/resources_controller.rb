@@ -84,7 +84,7 @@ module Workspaces
       def validated_resource_type
         type = params.dig(:resource, :type) || params[:type] || "Document"
         unless Resource::ALLOWED_RESOURCEABLE_TYPES.include?(type)
-          redirect_to workspace_project_resources_path(@workspace, @project), alert: t("resources.invalid_type")
+          redirect_to workspace_project_resources_path(@workspace, @project), alert: t("workspaces.projects.resources.invalid_type")
           return nil
         end
         type

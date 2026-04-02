@@ -1,7 +1,7 @@
-<% content_for(:title) { t("resources.new.title") } %>
+<% content_for(:title) { t("workspaces.projects.resources.new.title") } %>
 <div class="max-w-2xl mx-auto px-4 py-16">
   <h1 class="text-2xl font-bold text-text-heading">
-    <%= t("resources.new.title") %>
+    <%= t("workspaces.projects.resources.new.title") %>
   </h1>
 
   <%= form_with url: workspace_project_resources_path(@workspace, @project), method: :post, class: "mt-8 space-y-6" do |form| %>
@@ -19,7 +19,7 @@
 
     <div>
       <label for="resource_title" class="block text-sm font-medium text-text-body">
-        <%= t("resources.new.title_label") %>
+        <%= t("workspaces.projects.resources.new.title_label") %>
       </label>
       <%= text_field_tag "resource[title]", @resource.title,
             id: "resource_title",
@@ -32,7 +32,7 @@
 
     <%= render "workspaces/projects/resources/types/#{@type.underscore}_form", form: form %>
 
-    <%= submit_tag t("resources.new.submit"),
+    <%= submit_tag t("workspaces.projects.resources.new.submit"),
           class: "w-full min-h-[44px] rounded-md px-4 py-2
                   bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium
                   focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus

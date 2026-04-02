@@ -1,11 +1,11 @@
-<% content_for(:title) { t("projects.memberships.index.title") } %>
+<% content_for(:title) { t("workspaces.projects.memberships.index.title") } %>
 <div class="max-w-4xl mx-auto px-4 py-16">
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-bold text-text-heading">
-      <%= t("projects.memberships.index.title") %>
+      <%= t("workspaces.projects.memberships.index.title") %>
     </h1>
     <% if policy(ProjectMembership).create? %>
-      <%= link_to t("projects.memberships.index.add_member"),
+      <%= link_to t("workspaces.projects.memberships.index.add_member"),
             workspace_project_memberships_path(@workspace, @project),
             class: "min-h-[44px] flex items-center px-4 rounded-md
                     bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium
@@ -17,8 +17,8 @@
     <thead>
       <tr class="border-b border-border">
         <th scope="col" class="text-left py-3 text-sm font-medium text-text-muted">Name</th>
-        <th scope="col" class="text-left py-3 text-sm font-medium text-text-muted"><%= t("projects.memberships.index.role") %></th>
-        <th scope="col" class="text-left py-3 text-sm font-medium text-text-muted"><%= t("projects.memberships.index.actions") %></th>
+        <th scope="col" class="text-left py-3 text-sm font-medium text-text-muted"><%= t("workspaces.projects.memberships.index.role") %></th>
+        <th scope="col" class="text-left py-3 text-sm font-medium text-text-muted"><%= t("workspaces.projects.memberships.index.actions") %></th>
       </tr>
     </thead>
     <tbody>
@@ -28,7 +28,7 @@
           <td class="py-3 text-text-muted"><%= pm.role.titleize %></td>
           <td class="py-3 flex gap-2">
             <% if policy(pm).destroy? %>
-              <%= button_to t("projects.memberships.index.remove"),
+              <%= button_to t("workspaces.projects.memberships.index.remove"),
                     workspace_project_membership_path(@workspace, @project, pm),
                     method: :delete,
                     class: "text-sm text-danger underline hover:no-underline cursor-pointer" %>
