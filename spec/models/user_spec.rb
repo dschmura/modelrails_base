@@ -49,6 +49,23 @@ RSpec.describe User, type: :model do
     end
   end
 
+  describe "#initials" do
+    it "returns first letters of first and last name" do
+      user = build(:user, first_name: "Jane", last_name: "Doe")
+      expect(user.initials).to eq("JD")
+    end
+
+    it "returns single initial when only first name" do
+      user = build(:user, first_name: "Jane", last_name: "")
+      expect(user.initials).to eq("J")
+    end
+
+    it "returns fallback when name is blank" do
+      user = build(:user, first_name: "", last_name: "")
+      expect(user.initials).to eq("?")
+    end
+  end
+
   describe "name validations" do
     it "requires first_name" do
       user = build(:user, first_name: nil)
