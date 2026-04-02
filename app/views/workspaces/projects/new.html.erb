@@ -1,7 +1,7 @@
-<% content_for(:title) { t("projects.new.title") } %>
+<% content_for(:title) { t("workspaces.projects.new.title") } %>
 <div class="max-w-md mx-auto px-4 py-16">
   <h1 class="text-2xl font-bold text-text-heading">
-    <%= t("projects.new.title") %>
+    <%= t("workspaces.projects.new.title") %>
   </h1>
 
   <%= form_with model: @project, url: workspace_projects_path(@workspace), class: "mt-8 space-y-6" do |form| %>
@@ -16,7 +16,7 @@
     <% end %>
 
     <div>
-      <%= form.label :name, t("projects.new.name_label"),
+      <%= form.label :name, t("workspaces.projects.new.name_label"),
             class: "block text-sm font-medium text-text-body" %>
       <%= form.text_field :name, required: true, autofocus: true,
             class: "mt-1 block w-full rounded-md border border-border-strong
@@ -26,7 +26,7 @@
     </div>
 
     <div>
-      <%= form.label :description, t("projects.new.description_label"),
+      <%= form.label :description, t("workspaces.projects.new.description_label"),
             class: "block text-sm font-medium text-text-body" %>
       <%= form.text_area :description, rows: 3,
             class: "mt-1 block w-full rounded-md border border-border-strong
@@ -35,7 +35,7 @@
                     focus:outline-none focus:ring-2 focus:ring-interactive-focus focus:border-interactive-focus" %>
     </div>
 
-    <%= form.submit t("projects.new.submit"),
+    <%= form.submit t("workspaces.projects.new.submit"),
           class: "w-full min-h-[44px] rounded-md px-4 py-2
                   bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium
                   focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus

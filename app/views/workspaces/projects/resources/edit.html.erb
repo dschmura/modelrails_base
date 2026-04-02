@@ -1,7 +1,7 @@
-<% content_for(:title) { t("resources.edit.title") } %>
+<% content_for(:title) { t("workspaces.projects.resources.edit.title") } %>
 <div class="max-w-2xl mx-auto px-4 py-16">
   <h1 class="text-2xl font-bold text-text-heading">
-    <%= t("resources.edit.title") %>
+    <%= t("workspaces.projects.resources.edit.title") %>
   </h1>
 
   <%= form_with url: workspace_project_resource_path(@workspace, @project, @resource), method: :patch, class: "mt-8 space-y-6" do |form| %>
@@ -18,7 +18,7 @@
 
     <div>
       <label for="resource_title" class="block text-sm font-medium text-text-body">
-        <%= t("resources.edit.title_label") %>
+        <%= t("workspaces.projects.resources.edit.title_label") %>
       </label>
       <%= text_field_tag "resource[title]", @resource.title,
             id: "resource_title",
@@ -31,12 +31,12 @@
 
     <div>
       <label for="resource_status" class="block text-sm font-medium text-text-body">
-        <%= t("resources.edit.status_label") %>
+        <%= t("workspaces.projects.resources.edit.status_label") %>
       </label>
       <%= select_tag "resource[status]",
             options_for_select([
-              [t("resources.index.draft"), "draft"],
-              [t("resources.index.published"), "published"]
+              [t("workspaces.projects.resources.index.draft"), "draft"],
+              [t("workspaces.projects.resources.index.published"), "published"]
             ], @resource.status),
             id: "resource_status",
             class: "mt-1 block w-full rounded-md border border-border-strong
@@ -47,7 +47,7 @@
 
     <%= render "workspaces/projects/resources/types/#{@resource.resourceable_type.underscore}_form", form: form %>
 
-    <%= submit_tag t("resources.edit.submit"),
+    <%= submit_tag t("workspaces.projects.resources.edit.submit"),
           class: "w-full min-h-[44px] rounded-md px-4 py-2
                   bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium
                   focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus

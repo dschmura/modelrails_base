@@ -1,10 +1,10 @@
-<% content_for(:title) { t("projects.index.title") } %>
+<% content_for(:title) { t("workspaces.projects.index.title") } %>
 <div class="max-w-4xl mx-auto px-4 py-16">
   <div class="flex items-center justify-between">
     <h1 class="text-2xl font-bold text-text-heading">
-      <%= t("projects.index.title") %>
+      <%= t("workspaces.projects.index.title") %>
     </h1>
-    <%= link_to t("projects.index.new_project"), new_workspace_project_path(@workspace),
+    <%= link_to t("workspaces.projects.index.new_project"), new_workspace_project_path(@workspace),
           class: "min-h-[44px] flex items-center px-4 rounded-md
                   bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium
                   focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus" %>
@@ -34,6 +34,6 @@
       <% end %>
     </div>
   <% else %>
-    <p class="mt-8 text-text-muted"><%= t("projects.index.empty") %></p>
+    <p class="mt-8 text-text-muted"><%= t("workspaces.projects.index.empty") %></p>
   <% end %>
 </div>

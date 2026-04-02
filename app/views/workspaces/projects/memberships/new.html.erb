@@ -1,12 +1,12 @@
-<% content_for(:title) { t("projects.memberships.new.title") } %>
+<% content_for(:title) { t("workspaces.projects.memberships.new.title") } %>
 <div class="max-w-md mx-auto px-4 py-16">
   <h1 class="text-2xl font-bold text-text-heading">
-    <%= t("projects.memberships.new.title") %>
+    <%= t("workspaces.projects.memberships.new.title") %>
   </h1>
 
   <%= form_with url: workspace_project_memberships_path(@workspace, @project), method: :post, class: "mt-8 space-y-6" do |form| %>
     <div>
-      <%= form.label :user_id, t("projects.memberships.new.user_label"),
+      <%= form.label :user_id, t("workspaces.projects.memberships.new.user_label"),
             class: "block text-sm font-medium text-text-body" %>
       <%= form.select :user_id, @available_members.map { |m| [m.user.full_name, m.user.id] },
             { prompt: "Select a member" },
@@ -17,7 +17,7 @@
     </div>
 
     <div>
-      <%= form.label :role, t("projects.memberships.new.role_label"),
+      <%= form.label :role, t("workspaces.projects.memberships.new.role_label"),
             class: "block text-sm font-medium text-text-body" %>
       <%= form.select :role, [["Editor", "editor"], ["Viewer", "viewer"]],
             {},
@@ -27,7 +27,7 @@
                     focus:outline-none focus:ring-2 focus:ring-interactive-focus focus:border-interactive-focus" %>
     </div>
 
-    <%= form.submit t("projects.memberships.new.submit"),
+    <%= form.submit t("workspaces.projects.memberships.new.submit"),
           class: "w-full min-h-[44px] rounded-md px-4 py-2
                   bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium
                   focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus

@@ -54,7 +54,7 @@ module Workspaces
     def set_project
       @project = @workspace.projects.kept.find_by!(slug: params[:slug])
     rescue ActiveRecord::RecordNotFound
-      redirect_to workspace_projects_path(@workspace), alert: t("projects.not_found")
+      redirect_to workspace_projects_path(@workspace), alert: t("workspaces.projects.not_found")
     end
 
     def project_params
