@@ -1,0 +1,62 @@
+<% if authenticated? %>
+  <div data-controller="dropdown"
+       class="relative hidden md:block">
+    <button data-dropdown-target="button"
+            data-action="click->dropdown#toggle"
+            id="user-menu-button"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-controls="user-menu"
+            aria-label="<%= t("navigation.user_menu_label", name: Current.user.full_name) %>"
+            class="w-9 h-9 rounded-full flex items-center justify-center
+                   focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus
+                   cursor-pointer">
+      <% if Current.user.avatar.attached? %>
+        <%= image_tag Current.user.avatar, class: "w-9 h-9 rounded-full object-cover", alt: "" %>
+      <% else %>
+        <span class="w-9 h-9 rounded-full bg-interactive text-text-on-interactive
+                     flex items-center justify-center text-sm font-semibold"
+              aria-hidden="true">
+          <%= Current.user.initials %>
+        </span>
+      <% end %>
+    </button>
+
+    <div data-dropdown-target="menu"
+         id="user-menu"
+         role="menu"
+         aria-orientation="vertical"
+         aria-labelledby="user-menu-button"
+         class="hidden absolute right-0 mt-2 w-64 rounded-lg
+                bg-surface-raised border border-border shadow-lg z-50">
+      <div class="px-4 py-3">
+        <p class="text-sm font-semibold text-text-heading"><%= Current.user.full_name %></p>
+        <p class="text-sm text-text-muted truncate"><%= Current.user.email_address %></p>
+      </div>
+
+      <div class="border-t border-border">
+        <%= link_to t("navigation.profile"), main_app.edit_account_profile_path,
+              role: "menuitem", tabindex: "-1",
+              class: "flex items-center min-h-[44px] px-4 py-2
+                      text-sm text-text-body
+                      hover:bg-surface hover:text-interactive
+                      focus:outline-none focus:bg-surface focus:text-interactive" %>
+      </div>
+
+      <div class="border-t border-border">
+        <%= button_to t("navigation.sign_out"), main_app.session_path, method: :delete,
+              role: "menuitem", tabindex: "-1",
+              class: "w-full flex items-center min-h-[44px] px-4 py-2
+                      text-sm text-text-body
+                      hover:bg-surface hover:text-interactive
+                      focus:outline-none focus:bg-surface focus:text-interactive
+                      cursor-pointer" %>
+      </div>
+    </div>
+  </div>
+<% else %>
+  <%= link_to t("navigation.sign_in"), main_app.new_session_path,
+        class: "min-h-[44px] flex items-center text-text-body
+                hover:text-interactive-hover
+                focus:outline-none focus:ring-2 focus:ring-interactive-focus rounded px-2" %>
+<% end %>
