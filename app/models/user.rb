@@ -28,6 +28,12 @@ class User < ApplicationRecord
     "#{first_name} #{last_name}"
   end
 
+  def initials
+    parts = [ first_name, last_name ].map(&:to_s).reject(&:blank?)
+    return "?" if parts.empty?
+    parts.map { |p| p[0].upcase }.join
+  end
+
   def locked?
     return false if locked_at.nil?
     locked_at > LOCK_DURATION.ago
