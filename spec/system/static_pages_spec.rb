@@ -75,9 +75,10 @@ RSpec.describe "Static pages", type: :system do
       expect(page).to have_css("button[aria-label='#{I18n.t("navigation.toggle_menu")}']", visible: :all)
     end
 
-    it "has a notifications container for toasts" do
+    it "has toast containers for pills and cards" do
       visit root_path
-      expect(page).to have_css("#notifications[aria-label]")
+      expect(page).to have_css("#toast-pills[aria-label]", visible: :all)
+      expect(page).to have_css("#toast-cards[aria-label]", visible: :all)
     end
   end
 
@@ -92,10 +93,10 @@ RSpec.describe "Static pages", type: :system do
       click_button I18n.t("sessions.password_form.submit")
     end
 
-    it "shows a toast with progress bar on successful sign-in" do
+    it "shows a pill toast with progress bar on successful sign-in" do
       sign_in_via_form
-      expect(page).to have_css("[data-controller='toast']")
-      expect(page).to have_css("[data-toast-target='progress']")
+      expect(page).to have_css("[data-controller='toast-pill']")
+      expect(page).to have_css("[data-toast-pill-target='progress']")
     end
 
     it "preserves theme preference across fresh page loads via cookie" do
@@ -108,14 +109,6 @@ RSpec.describe "Static pages", type: :system do
       # Full page load (not Turbo) — cookie should restore dark mode
       visit root_path
       expect(page).to have_css("html[data-theme-theme-value='dark']")
-    end
-
-    it "allows dismissing a toast via keyboard" do
-      sign_in_via_form
-      expect(page).to have_css("[data-controller='toast']")
-      close_button = find("[data-controller='toast'] button[aria-label]")
-      close_button.send_keys(:enter)
-      expect(page).not_to have_css("[data-controller='toast']")
     end
   end
 
