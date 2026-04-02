@@ -33,6 +33,10 @@
   --color-border:        var(--neutral-200);
   --color-border-strong: var(--neutral-300);
   --color-border-focus:  var(--primary-700);
+
+  /* --- Toast (inverted overlay pill) --- */
+  --color-surface-toast: oklch(20.5% 0.016 265.755 / 90%);  /* neutral-900 @ 90% */
+  --color-text-on-toast: oklch(100% 0 0);                     /* white */
 }
 
 .dark {
@@ -62,4 +66,8 @@
   --color-border:        var(--neutral-700);
   --color-border-strong: var(--neutral-600);
   --color-border-focus:  var(--primary-400);
+
+  /* --- Toast --- */
+  --color-surface-toast: oklch(96.8% 0.007 264.536 / 90%);   /* neutral-100 @ 90% */
+  --color-text-on-toast: var(--neutral-900);
 }
