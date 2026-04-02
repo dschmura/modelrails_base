@@ -48,8 +48,10 @@ RSpec.describe "Workspace Members", type: :request do
 
         it "filters by role" do
           get workspace_members_path(workspace, role: "admin")
-          expect(response.body).to include("AdminUser")
-          expect(response.body).not_to include(CGI.escapeHTML(user.full_name))
+          doc = Nokogiri::HTML(response.body)
+          members_frame = doc.at_css("turbo-frame#members_results").to_s
+          expect(members_frame).to include("AdminUser")
+          expect(members_frame).not_to include(CGI.escapeHTML(user.full_name))
         end
       end
 

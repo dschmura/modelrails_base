@@ -11,7 +11,7 @@ RSpec.describe "Members table", type: :system do
     click_button I18n.t("sessions.new.continue")
     fill_in I18n.t("sessions.password_form.password_label"), with: "SecureP@ssw0rd123!"
     click_button I18n.t("sessions.password_form.submit")
-    expect(page).to have_text(I18n.t("navigation.sign_out"))
+    expect(page).to have_link(I18n.t("navigation.workspaces"))
   end
 
   describe "members index page" do
@@ -131,7 +131,8 @@ RSpec.describe "Members table", type: :system do
     it "hides invite button for regular members" do
       regular = create(:user, first_name: "Regular", last_name: "Member", password: "SecureP@ssw0rd123!")
       create(:membership, user: regular, workspace: workspace)
-      # Sign out the owner first
+      # Sign out the owner first via user menu dropdown
+      find("#user-menu-button").click
       click_button I18n.t("navigation.sign_out")
       expect(page).to have_text(I18n.t("sessions.new.title"))
       # Sign in as regular member
@@ -139,7 +140,7 @@ RSpec.describe "Members table", type: :system do
       click_button I18n.t("sessions.new.continue")
       fill_in I18n.t("sessions.password_form.password_label"), with: "SecureP@ssw0rd123!"
       click_button I18n.t("sessions.password_form.submit")
-      expect(page).to have_text(I18n.t("navigation.sign_out"))
+      expect(page).to have_link(I18n.t("navigation.workspaces"))
       visit workspace_members_path(workspace)
       expect(page).not_to have_link(I18n.t("workspaces.members.index.invite_member"))
     end
