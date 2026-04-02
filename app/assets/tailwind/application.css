@@ -70,6 +70,10 @@
   --color-info-hover: var(--color-info-hover);
   --color-info-progress: var(--color-info-progress);
   --color-info-border: var(--color-info-border);
+
+  /* Toast pill */
+  --color-surface-toast: var(--color-surface-toast);
+  --color-text-on-toast: var(--color-text-on-toast);
 }
 
 /* ==========================================================================
