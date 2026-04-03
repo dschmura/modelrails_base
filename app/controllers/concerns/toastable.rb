@@ -4,8 +4,10 @@ module Toastable
   private
 
   def toast_stream(type, message)
-    target = %w[notice success info].include?(type) ? "toast-pills" : "toast-cards"
-    partial = %w[notice success info].include?(type) ? "shared/toast_pill" : "shared/toast_card"
+    type_config = Rails.application.config.toasts[:types][type.to_sym]
+    tier = type_config&.dig(:tier) || :card
+    target = tier == :pill ? "toast-pills" : "toast-cards"
+    partial = tier == :pill ? "shared/toast_pill" : "shared/toast_card"
     turbo_stream.append(target, partial: partial, locals: { type: type, message: message })
   end
 
