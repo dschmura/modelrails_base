@@ -8,24 +8,13 @@
 
   <%= turbo_frame_tag "sign_in_form" do %>
     <%= form_with url: main_app.session_lookup_path, class: "mt-8 space-y-6" do |form| %>
-      <div>
-        <%= form.label :email_address, t("sessions.new.email_label"),
-              class: "block text-sm font-medium text-text-body" %>
-        <%= form.email_field :email_address,
-              required: true,
-              autofocus: true,
-              autocomplete: "email",
-              class: "mt-1 block w-full rounded-md border border-border-strong
-                      bg-surface-raised px-3 py-2
-                      text-text-heading
-                      focus:outline-none focus:ring-2 focus:ring-interactive-focus focus:border-interactive-focus" %>
-      </div>
+      <%= form.email_field :email_address,
+            label: t("sessions.new.email_label"),
+            required: true,
+            autofocus: true,
+            autocomplete: "email" %>
 
-      <%= form.submit t("sessions.new.continue"),
-            class: "w-full min-h-[44px] rounded-md px-4 py-2
-                    bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium
-                    focus:outline-none focus:ring-2 focus:ring-interactive-focus focus:ring-offset-2
-                    cursor-pointer" %>
+      <%= form.submit t("sessions.new.continue"), class: "w-full" %>
     <% end %>
   <% end %>
 
