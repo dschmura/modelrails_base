@@ -156,6 +156,11 @@ class TailwindFormBuilder < ActionView::Helpers::FormBuilder
     required = options.delete(:required)
     help = options.delete(:help)
 
+    # Re-inject required and help so field_options can use them for ARIA attrs.
+    # field_options will strip them before passing to the underlying Rails helper.
+    options[:required] = required if required
+    options[:help] = help if help
+
     @template.content_tag(:div, class: "space-y-2") do
       build_label(method, label_text, required: required) +
         (help ? build_help(method, help) : "".html_safe) +
@@ -190,11 +195,15 @@ class TailwindFormBuilder < ActionView::Helpers::FormBuilder
   end
 
   def field_options(method, options)
+    # Extract wrapper-only keys before building HTML attributes
+    required = options.delete(:required)
+    help = options.delete(:help)
+
     custom_class = options.delete(:class)
     base = "#{FIELD_BASE} #{has_errors?(method) ? FIELD_ERROR : FIELD_NORMAL}"
     options[:class] = merge_classes(base, custom_class)
     options[:id] ||= field_id(method)
-    options.merge!(aria_attributes(method, options))
+    options.merge!(aria_attributes(method, required: required, help: help))
     options
   end
 
