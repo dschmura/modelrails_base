@@ -49,6 +49,68 @@ RSpec.describe "Registrations", type: :request do
       end
     end
 
+    context "with duplicate email" do
+      it "rejects registration" do
+        create(:user, email_address: "taken@example.com")
+        post registration_path, params: {
+          user: {
+            email_address: "taken@example.com",
+            first_name: "Jane",
+            last_name: "Doe",
+            password: "SecureP@ssw0rd123!",
+            password_confirmation: "SecureP@ssw0rd123!"
+          }
+        }
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+    end
+
+    context "with blank fields" do
+      it "rejects blank email" do
+        post registration_path, params: {
+          user: { email_address: "", first_name: "Jane", last_name: "Doe",
+                  password: "SecureP@ssw0rd123!", password_confirmation: "SecureP@ssw0rd123!" }
+        }
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+
+      it "rejects blank first name" do
+        post registration_path, params: {
+          user: { email_address: "new@example.com", first_name: "", last_name: "Doe",
+                  password: "SecureP@ssw0rd123!", password_confirmation: "SecureP@ssw0rd123!" }
+        }
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+
+      it "rejects blank last name" do
+        post registration_path, params: {
+          user: { email_address: "new@example.com", first_name: "Jane", last_name: "",
+                  password: "SecureP@ssw0rd123!", password_confirmation: "SecureP@ssw0rd123!" }
+        }
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+    end
+
+    context "with invalid email format" do
+      it "rejects malformed email" do
+        post registration_path, params: {
+          user: { email_address: "notanemail", first_name: "Jane", last_name: "Doe",
+                  password: "SecureP@ssw0rd123!", password_confirmation: "SecureP@ssw0rd123!" }
+        }
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+    end
+
+    context "with password confirmation mismatch" do
+      it "rejects registration" do
+        post registration_path, params: {
+          user: { email_address: "new@example.com", first_name: "Jane", last_name: "Doe",
+                  password: "SecureP@ssw0rd123!", password_confirmation: "DifferentP@ss456!" }
+        }
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+    end
+
     context "with pwned password" do
       before do
         pwned = instance_double(Pwned::Password, pwned?: true)
