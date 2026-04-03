@@ -5,50 +5,23 @@
   </h1>
 
   <%= form_with model: @user, url: account_profile_path, method: :patch, class: "mt-8 space-y-6" do |form| %>
-    <% if @user.errors.any? %>
-      <div role="alert" class="p-4 bg-danger-surface rounded-lg">
-        <ul class="list-disc list-inside text-danger">
-          <% @user.errors.full_messages.each do |message| %>
-            <li><%= message %></li>
-          <% end %>
-        </ul>
-      </div>
-    <% end %>
+    <%= form.error_summary %>
 
-    <div>
-      <%= form.label :first_name, t("account.profiles.edit.first_name_label"),
-            class: "block text-sm font-medium text-text-body" %>
-      <%= form.text_field :first_name, required: true, autocomplete: "given-name",
-            class: "mt-1 block w-full rounded-md border border-border-strong
-                    bg-surface-raised px-3 py-2
-                    text-text-heading
-                    focus:outline-none focus:ring-2 focus:ring-interactive-focus focus:border-interactive-focus" %>
-    </div>
+    <%= form.text_field :first_name,
+          label: t("account.profiles.edit.first_name_label"),
+          required: true,
+          autocomplete: "given-name" %>
 
-    <div>
-      <%= form.label :last_name, t("account.profiles.edit.last_name_label"),
-            class: "block text-sm font-medium text-text-body" %>
-      <%= form.text_field :last_name, required: true, autocomplete: "family-name",
-            class: "mt-1 block w-full rounded-md border border-border-strong
-                    bg-surface-raised px-3 py-2
-                    text-text-heading
-                    focus:outline-none focus:ring-2 focus:ring-interactive-focus focus:border-interactive-focus" %>
-    </div>
+    <%= form.text_field :last_name,
+          label: t("account.profiles.edit.last_name_label"),
+          required: true,
+          autocomplete: "family-name" %>
 
-    <div>
-      <%= form.label :email_address, t("account.profiles.edit.email_label"),
-            class: "block text-sm font-medium text-text-body" %>
-      <%= form.email_field :email_address, required: true, autocomplete: "email",
-            class: "mt-1 block w-full rounded-md border border-border-strong
-                    bg-surface-raised px-3 py-2
-                    text-text-heading
-                    focus:outline-none focus:ring-2 focus:ring-interactive-focus focus:border-interactive-focus" %>
-    </div>
+    <%= form.email_field :email_address,
+          label: t("account.profiles.edit.email_label"),
+          required: true,
+          autocomplete: "email" %>
 
-    <%= form.submit t("account.profiles.edit.submit"),
-          class: "w-full min-h-[44px] rounded-md px-4 py-2
-                  bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium
-                  focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus
-                  cursor-pointer" %>
+    <%= form.submit t("account.profiles.edit.submit"), class: "w-full" %>
   <% end %>
 </div>
