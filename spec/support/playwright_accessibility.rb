@@ -56,7 +56,7 @@ RSpec.configure do |config|
       # Wait for animations to settle before running axe
       Capybara.current_session.driver.with_playwright_page do |playwright_page|
         playwright_page.evaluate(<<~JS)
-          document.querySelectorAll('[data-controller="toast"]').forEach(el => {
+          document.querySelectorAll('[data-controller="toast-pill"], [data-controller="toast-card"]').forEach(el => {
             el.style.transition = 'none';
             el.style.opacity = '1';
             el.style.transform = 'none';
