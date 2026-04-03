@@ -92,7 +92,7 @@ RSpec.describe "Members table", type: :system do
     it "members page passes automated accessibility checks" do
       visit workspace_members_path(workspace)
       # Dismiss any toast notification before running axe
-      page.execute_script("document.querySelectorAll('[data-controller=\"toast\"]').forEach(el => el.remove())")
+      page.execute_script("document.querySelectorAll('[data-controller=\"toast-pill\"], [data-controller=\"toast-card\"]').forEach(el => el.remove())")
       expect(axe_clean?(axe_options)).to be(true),
         "Accessibility violations found:\n#{axe_violations(axe_options).join("\n")}"
     end

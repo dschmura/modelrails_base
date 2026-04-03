@@ -180,7 +180,7 @@ If your project has a taller header, change `--toast-pill-top` to match.
 
 ## Accessibility
 
-The toast system targets WCAG 2.2 Level AAA compliance.
+The toast system targets WCAG 2.2 Level AAA. Automated axe-core testing verifies AA compliance on every CI run. AAA-specific criteria (contrast ratios, touch targets, reduced motion) are met by design. One documented exception exists: WCAG 2.2.3 (No Timing) — see "Timing and motion" below.
 
 ### Screen readers
 
@@ -201,7 +201,7 @@ Both containers use `aria-atomic="true"` so the full message is read, not just t
 
 - **Pause on hover:** Hovering over a pill pauses the auto-dismiss timer. The progress bar freezes. Moving the mouse away resumes from where it left off.
 - **Reduced motion:** When `prefers-reduced-motion: reduce` is set, all slide animations are skipped. Toasts appear and disappear instantly with no transitions.
-- **Auto-dismiss rationale:** Pills are supplementary confirmation — the UI already reflects the completed action. The auto-dismiss does not gate access to essential information. Cards (warnings/errors) never auto-dismiss.
+- **Auto-dismiss and WCAG 2.2.3 (No Timing):** Strictly, AAA says timing should not be essential. Pill auto-dismiss is an intentional exception because: (1) pills convey supplementary confirmation — the UI already reflects the completed action, (2) pause-on-hover lets users extend the timeout indefinitely, (3) a progress bar shows remaining time. The auto-dismiss does not gate access to essential information. Cards (warnings/errors) never auto-dismiss.
 
 ### Touch targets
 
