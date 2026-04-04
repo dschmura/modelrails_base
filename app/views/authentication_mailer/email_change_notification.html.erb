@@ -1,0 +1,5 @@
+<h1><%= t("authentication_mailer.email_change_notification.greeting", name: @user.first_name) %></h1>
+
+<p><%= t("authentication_mailer.email_change_notification.body", new_email: @new_email) %></p>
+
+<p><strong><%= t("authentication_mailer.email_change_notification.warning") %></strong></p>

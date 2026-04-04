@@ -1,0 +1,9 @@
+<h1><%= t("authentication_mailer.email_change_verification.greeting", name: @user.first_name) %></h1>
+
+<p><%= t("authentication_mailer.email_change_verification.body") %></p>
+
+<p>
+  <%= link_to t("authentication_mailer.email_change_verification.action"), @verification_url %>
+</p>
+
+<p><%= t("authentication_mailer.email_change_verification.expiry_note") %></p>

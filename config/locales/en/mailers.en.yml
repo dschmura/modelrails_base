@@ -13,3 +13,14 @@ en:
       action: "Reset password"
       expiry_note: "This link will expire in 2 hours."
       ignore_note: "If you didn't request a password reset, you can safely ignore this email."
+    email_change_verification:
+      subject: "Verify your new email address"
+      greeting: "Hi %{name},"
+      body: "You requested to change your email address. Click the link below to verify your new address."
+      action: "Verify new email"
+      expiry_note: "This link will expire in 24 hours."
+    email_change_notification:
+      subject: "Email change requested on your account"
+      greeting: "Hi %{name},"
+      body: "Someone requested to change the email address on your account to %{new_email}."
+      warning: "If this wasn't you, please change your password immediately."
