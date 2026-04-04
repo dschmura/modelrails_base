@@ -92,9 +92,17 @@ RSpec.describe "Registrations", type: :request do
     end
 
     context "with invalid email format" do
-      it "rejects malformed email" do
+      it "rejects email without any structure" do
         post registration_path, params: {
           user: { email_address: "notanemail", first_name: "Jane", last_name: "Doe",
+                  password: "SecureP@ssw0rd123!", password_confirmation: "SecureP@ssw0rd123!" }
+        }
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+
+      it "rejects email without a domain TLD" do
+        post registration_path, params: {
+          user: { email_address: "user@example", first_name: "Jane", last_name: "Doe",
                   password: "SecureP@ssw0rd123!", password_confirmation: "SecureP@ssw0rd123!" }
         }
         expect(response).to have_http_status(:unprocessable_entity)
