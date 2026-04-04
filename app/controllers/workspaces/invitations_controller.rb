@@ -55,6 +55,11 @@ module Workspaces
       emails.each do |email|
         normalized = email.downcase
 
+        unless normalized.match?(User::EMAIL_FORMAT)
+          skipped += 1
+          next
+        end
+
         if @workspace.memberships.kept.joins(:user).where(users: { email_address: normalized }).exists?
           skipped += 1
           next

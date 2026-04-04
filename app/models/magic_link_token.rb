@@ -1,6 +1,6 @@
 class MagicLinkToken < ApplicationRecord
   validates :token, presence: true, uniqueness: true
-  validates :email, presence: true
+  validates :email, presence: true, format: { with: User::EMAIL_FORMAT }
   validates :expires_at, presence: true
 
   def self.create_for_email(email)
