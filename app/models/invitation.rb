@@ -12,7 +12,7 @@ class Invitation < ApplicationRecord
   validates :invited_by, presence: true
   validates :expires_at, presence: true
   validates :project_role, inclusion: { in: %w[editor viewer] }, allow_nil: true
-  validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_nil: true
+  validates :email, format: { with: User::EMAIL_FORMAT }, allow_nil: true
 
   before_create :generate_token
 
