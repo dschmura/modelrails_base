@@ -1,0 +1,19 @@
+<%= turbo_frame_tag "sign_in_form" do %>
+  <%= form_with url: main_app.session_lookup_path, class: "mt-8 space-y-6" do |form| %>
+    <div class="space-y-2">
+      <%= form.label :email_address, t("sessions.new.email_label"),
+            class: "block text-sm font-medium text-danger" %>
+      <%= form.email_field :email_address,
+            value: @email_address,
+            required: true,
+            autofocus: true,
+            autocomplete: "email",
+            "aria-invalid": "true",
+            "aria-describedby": "email_address-error",
+            class: "block w-full rounded-md border px-3 py-2 min-h-[44px] border-danger ring-2 ring-danger bg-danger-surface text-danger focus:outline-none focus:ring-2 focus:ring-danger" %>
+      <p id="email_address-error" role="alert" class="text-sm text-danger"><%= @email_error %></p>
+    </div>
+
+    <%= form.submit t("sessions.new.continue"), class: "w-full" %>
+  <% end %>
+<% end %>
