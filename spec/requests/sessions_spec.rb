@@ -134,18 +134,20 @@ RSpec.describe "Sessions", type: :request do
     context "invalid email format" do
       it "rejects email without a domain TLD" do
         post session_lookup_path, params: { email_address: "hd@humbledaisy" }
-        expect(response).to redirect_to(new_session_path)
-        expect(flash[:alert]).to eq(I18n.t("sessions.lookup.invalid_email"))
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include(I18n.t("sessions.lookup.invalid_email"))
       end
 
       it "rejects email without any structure" do
         post session_lookup_path, params: { email_address: "notanemail" }
-        expect(response).to redirect_to(new_session_path)
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include(I18n.t("sessions.lookup.invalid_email"))
       end
 
       it "rejects blank email" do
         post session_lookup_path, params: { email_address: "" }
-        expect(response).to redirect_to(new_session_path)
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include(I18n.t("sessions.lookup.invalid_email"))
       end
     end
   end

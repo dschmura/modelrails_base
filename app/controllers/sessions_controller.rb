@@ -27,7 +27,9 @@ class SessionsController < ApplicationController
     email = params[:email_address]&.downcase&.strip
 
     unless email&.match?(User::EMAIL_FORMAT)
-      redirect_to new_session_path, alert: t(".invalid_email")
+      @email_error = t(".invalid_email")
+      @email_address = params[:email_address]
+      render :email_error
       return
     end
 
