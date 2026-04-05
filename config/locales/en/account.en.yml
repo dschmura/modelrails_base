@@ -37,11 +37,19 @@ en:
         success: "Email and password sign-in has been added to your account."
         already_has_password: "You already have email and password sign-in."
     avatars:
+      edit:
+        title: "Change avatar"
+        change: "Change avatar"
       update:
-        success: "Avatar uploaded."
-        no_file: "Please select a file to upload."
+        success: "Avatar updated."
       destroy:
-        removed: "Avatar removed."
+        success: "Avatar removed."
+      source_label: "Avatar source"
+      source_updated: "Avatar source updated."
+      sources:
+        upload: "Uploaded photo"
+        gravatar: "Gravatar"
+        initials: "Initials"
     theme_preferences:
       update:
         success: "Theme updated."
