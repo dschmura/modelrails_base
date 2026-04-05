@@ -30,7 +30,7 @@
   --color-success-border:   oklch(87.1% 0.15 154.449);   /* ~green-300 */
 
   /* --- Info (sky) --- */
-  --color-info:          oklch(58.8% 0.158 231.966);  /* ~sky-600 */
+  --color-info:          oklch(48.8% 0.153 232.652);  /* ~sky-700 (AAA 7:1 on sky-50) */
   --color-info-surface:  oklch(97.7% 0.013 236.62);   /* ~sky-50 */
   --color-info-icon:     oklch(71.4% 0.168 237.674);  /* ~sky-500 */
   --color-info-hover:    oklch(95.1% 0.026 236.824);  /* ~sky-100 */
