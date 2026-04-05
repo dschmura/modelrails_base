@@ -12,15 +12,7 @@
             class="min-h-[44px] min-w-[44px] rounded-full flex items-center justify-center
                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus
                    cursor-pointer">
-      <% if Current.user.avatar.attached? %>
-        <%= image_tag Current.user.avatar, class: "w-10 h-10 rounded-full object-cover", alt: "" %>
-      <% else %>
-        <span class="w-10 h-10 rounded-full bg-interactive text-text-on-interactive
-                     flex items-center justify-center text-sm font-semibold"
-              aria-hidden="true">
-          <%= Current.user.initials %>
-        </span>
-      <% end %>
+      <%= avatar_for(Current.user, size: :md) %>
     </button>
 
     <div data-dropdown-target="menu"
