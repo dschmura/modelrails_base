@@ -131,6 +131,45 @@ const modalController = this.application.getControllerForElementAndIdentifier(
 modalController.open()
 ```
 
+## Confirmation Dialog
+
+A pre-built partial for destructive action confirmations. Uses the modal system — no additional JavaScript.
+
+```erb
+<div data-controller="modal">
+  <button data-action="click->modal#open"
+          class="text-danger">Delete Workspace</button>
+
+  <%= render "shared/confirm_dialog",
+        title: t(".confirm_delete_title"),
+        message: t(".confirm_delete_message"),
+        confirm_text: t(".delete"),
+        confirm_url: workspace_path(@workspace),
+        confirm_method: :delete,
+        variant: :danger %>
+</div>
+```
+
+### Options
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `title` | String | required | Dialog title |
+| `message` | String | required | Explanation of what will happen |
+| `confirm_text` | String | required | Confirm button label (e.g., "Delete", "Remove") |
+| `confirm_url` | String | required | URL for the confirm action |
+| `confirm_method` | Symbol | `:delete` | HTTP method (`:delete`, `:post`, `:patch`) |
+| `variant` | Symbol | `:danger` | `:danger` (red confirm button, warning icon) or `:default` (blue confirm, info icon) |
+| `cancel_text` | String | "Cancel" (I18n) | Cancel button label |
+| `id` | String | auto-generated | DOM ID for the dialog |
+
+### Variants
+
+- **`:danger`** — Red confirm button with exclamation triangle icon. Use for destructive actions (delete, remove, revoke).
+- **`:default`** — Blue confirm button with info icon. Use for non-destructive confirmations (approve, publish, send).
+
+The Cancel button always closes the modal without submitting. The Confirm button is a `button_to` that submits a standard Rails form.
+
 ## Customization
 
 ### Changing the backdrop
