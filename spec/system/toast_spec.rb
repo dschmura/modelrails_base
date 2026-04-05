@@ -20,9 +20,9 @@ RSpec.describe "Toast notification system", type: :system do
   end
 
   def dismiss_cookie_banner
-    if page.has_css?("[data-controller='biscuit']", wait: 1)
-      find("button", text: /Accept all/i).click rescue nil
-    end
+    page.execute_script(<<~JS)
+      document.querySelectorAll('[data-controller="biscuit"]').forEach(el => el.remove());
+    JS
   end
 
   describe "pill toasts (success/info)" do
@@ -89,16 +89,16 @@ RSpec.describe "Toast notification system", type: :system do
 
     it "dismisses when close button is clicked" do
       trigger_login_failure
-      dismiss_cookie_banner
       expect(page).to have_css("[data-controller='toast-card']")
+      dismiss_cookie_banner
       find("[data-controller='toast-card'] button[aria-label]").click
       expect(page).to have_no_css("[data-controller='toast-card']")
     end
 
     it "close button is keyboard accessible" do
       trigger_login_failure
-      dismiss_cookie_banner
       expect(page).to have_css("[data-controller='toast-card']")
+      dismiss_cookie_banner
       close_button = find("[data-controller='toast-card'] button[aria-label]")
       close_button.send_keys(:enter)
       expect(page).to have_no_css("[data-controller='toast-card']")
