@@ -21,16 +21,11 @@ This spec depends on the Image Upload Modal spec being implemented first. The av
 
 ### Database Migration
 
-Add to users table:
+Single migration for the entire avatar feature:
 
 ```ruby
 add_column :users, :avatar_source, :string, default: "initials"
 add_column :users, :has_gravatar, :boolean, default: false
-```
-
-Add to authentications table:
-
-```ruby
 add_column :authentications, :avatar_url, :string
 ```
 
@@ -50,19 +45,8 @@ validates :avatar_source, inclusion: { in: %w[upload gravatar initials] }
 **Methods:**
 
 ```ruby
-def avatar_display_url(size: 128)
-  case avatar_source
-  when "upload"
-    avatar.attached? ? avatar : nil
-  when "gravatar"
-    gravatar_url(size: size)
-  else
-    nil  # caller renders initials
-  end
-end
-
 def gravatar_url(size: 128)
-  hash = Digest::MD5.hexdigest(email_address.strip.downcase)
+  hash = Digest::SHA256.hexdigest(email_address.strip.downcase)
   "https://www.gravatar.com/avatar/#{hash}?s=#{size}&d=404"
 end
 
@@ -92,7 +76,7 @@ Checks if an email has a Gravatar via HTTP HEAD request.
 ```ruby
 class GravatarService
   def self.check(email)
-    hash = Digest::MD5.hexdigest(email.strip.downcase)
+    hash = Digest::SHA256.hexdigest(email.strip.downcase)
     uri = URI("https://www.gravatar.com/avatar/#{hash}?d=404")
     response = Net::HTTP.start(uri.host, uri.port, use_ssl: true, open_timeout: 5, read_timeout: 5) do |http|
       http.head(uri.request_uri)
@@ -114,12 +98,10 @@ class CheckGravatarJob < ApplicationJob
 
   def perform(user)
     has_gravatar = GravatarService.check(user.email_address)
-    user.update_column(:has_gravatar, has_gravatar)
-
-    # Auto-set source to gravatar if user is still on initials and Gravatar exists
-    if has_gravatar && user.avatar_source == "initials"
-      user.update_column(:avatar_source, "gravatar")
-    end
+    user.update_columns(has_gravatar: has_gravatar)
+    # Note: does NOT auto-switch avatar_source to "gravatar".
+    # The user discovers Gravatar is available via the source selection UI
+    # and opts in explicitly. Respects user's current choice.
   end
 end
 ```
@@ -130,7 +112,12 @@ Replaces inline avatar rendering throughout the app.
 
 ```ruby
 def avatar_for(user, size: :md, aria_label: nil)
-  # Returns HTML for the avatar display — image tag or initials circle
+  # Single source of rendering logic for all avatar display.
+  # Checks user.avatar_source to determine what to render:
+  #   "upload"   → image_tag with Active Storage variant (resize_to_fill)
+  #   "gravatar" → image_tag with user.gravatar_url(size: pixel_size)
+  #   "initials" → colored circle div with user.initials text
+  #
   # When aria_label is nil: renders aria-hidden="true" (decorative, name provides context)
   # When aria_label is provided: renders role="img" + aria-label (standalone avatar)
 end
@@ -198,14 +185,26 @@ Added above the profile form on `account/profiles/edit.html.erb`:
 <% end %>
 ```
 
+### User Model Validation
+
+Active Storage attachment validation (server-side security boundary):
+
+```ruby
+validates :avatar,
+  content_type: %w[image/png image/jpeg image/gif image/webp],
+  size: { less_than: 5.megabytes }
+```
+
 ### Avatars Controller Updates
 
 The existing `account/avatars_controller.rb` needs:
 
+- `authorize Current.user` in each action (Pundit — project requirement)
 - `update` action handles both file upload AND `avatar_source` changes
 - On file upload: set `avatar_source` to `"upload"` automatically
 - On source change (no file): just update `avatar_source`
-- Respond with Turbo Stream to update the avatar display in the user menu header
+- Respond with redirect (Turbo handles the page update) and success toast
+- `format.html` fallback for non-Turbo requests
 
 ### OmniAuth Callback Update
 
@@ -258,8 +257,7 @@ en:
 
 | File | Action | Purpose |
 | ---- | ------ | ------- |
-| `db/migrate/*_add_avatar_source_to_users.rb` | Create | Add avatar_source, has_gravatar columns |
-| `db/migrate/*_add_avatar_url_to_authentications.rb` | Create | Add avatar_url column |
+| `db/migrate/*_add_avatar_fields.rb` | Create | Add avatar_source, has_gravatar to users; avatar_url to authentications |
 | `app/models/user.rb` | Modify | Avatar source methods, Gravatar URL, callbacks |
 | `app/services/gravatar_service.rb` | Create | HTTP HEAD check for Gravatar |
 | `app/jobs/check_gravatar_job.rb` | Create | Async Gravatar check |
@@ -280,17 +278,22 @@ en:
 
 **Unit specs:**
 - `GravatarService.check` returns true for valid Gravatar, false for missing, false on network error
-- `CheckGravatarJob` updates has_gravatar and auto-sets source
-- `User#avatar_display_url` returns correct URL for each source
-- `User#gravatar_url` generates correct MD5-based URL
+- `CheckGravatarJob` updates `has_gravatar` (does not change `avatar_source`)
+- `User#gravatar_url` generates correct SHA256-based URL
 - `User#available_avatar_sources` returns correct list based on state
-- `avatar_for` helper renders image or initials based on source and size
+- `User` validates `avatar_source` inclusion
+- `User` validates avatar content type and size (Active Storage validations)
+- `avatar_for` helper renders image for upload source, Gravatar URL for gravatar source, initials for initials source
+- `avatar_for` helper renders `aria-hidden` by default, `role="img"` + `aria-label` when label provided
 
 **Request specs:**
 - Upload avatar sets source to "upload"
+- Upload rejects invalid content type (returns 422)
+- Upload rejects oversized file (returns 422)
 - Change source via radio buttons updates user
-- Remove avatar falls back to next available source
+- Remove avatar falls back to initials source
 - Unauthenticated access redirected
+- Pundit authorization enforced
 
 **System specs:**
 - Open avatar modal from profile page

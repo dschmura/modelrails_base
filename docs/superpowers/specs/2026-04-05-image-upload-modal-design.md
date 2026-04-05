@@ -71,11 +71,16 @@ Standalone Stimulus controller. No dependency on the modal system.
 - `connect()` — Pre-loads Cropper.js module via dynamic `import("cropperjs")`. Stores reference for later use.
 - `disconnect()` — Destroys active Cropper.js instance if any.
 
-**File validation:**
+**File validation (client-side — UX only, not a security boundary):**
 
-- Allowed types: `image/png`, `image/jpeg`, `image/gif` (checked against file.type)
-- Max size: configurable via `maxFileSize` value (checked against file.size)
-- On failure: dispatches `cropper:error` with human-readable message, does not initialize cropper
+- Allowed types: `image/png`, `image/jpeg`, `image/gif`, `image/webp` (checked against file.type)
+- Max size: configurable via `maxFileSize` value in MB (checked against `file.size / 1024 / 1024`)
+- On failure: dispatches `cropper:error` with I18n error message, does not initialize cropper
+
+**Cropper.js load failure:**
+
+- If the dynamic `import("cropperjs")` fails (network error, importmap misconfiguration), the controller catches the error and dispatches `cropper:error` with the `image_upload.errors.cropper_load_failed` I18n message
+- Falls back to submitting the original file without cropping — the server-side variant handles resizing
 
 ### Image Upload Controller (`app/javascript/controllers/image_upload_controller.js`)
 
@@ -172,7 +177,7 @@ All UI text in the upload modal uses I18n keys so downstream projects can overri
 en:
   image_upload:
     drop_zone: "Click to upload or drag and drop"
-    constraints: "PNG, JPG, GIF up to %{max_size}MB"
+    constraints: "%{types} up to %{max_size}MB"
     remove: "Remove current image"
     crop_title: "Crop image"
     crop_save: "Save"
@@ -180,22 +185,47 @@ en:
     crop_instructions: "Drag to reposition. Scroll to zoom."
     errors:
       file_too_large: "File is too large. Maximum size is %{max_size}MB."
-      invalid_type: "File type not supported. Please use PNG, JPG, or GIF."
+      invalid_type: "File type not supported. Please use PNG, JPG, GIF, or WebP."
       upload_failed: "Upload failed. Please try again."
+      cropper_load_failed: "Image editor could not load. Your image will be uploaded without cropping."
 ```
 
 The partial reads these keys and passes them to the view. Downstream projects override by editing the locale file.
+
+## Server-Side Validation (Security Boundary)
+
+Client-side validation is UX only — trivially bypassed. The consuming model MUST validate attachments server-side. Example using Active Storage validations:
+
+```ruby
+validates :avatar,
+  content_type: %w[image/png image/jpeg image/gif image/webp],
+  size: { less_than: 5.megabytes }
+```
+
+The image upload modal spec does not enforce this — it is the responsibility of each consuming model. Document this requirement in the developer guide.
 
 ## Accessibility
 
 - **Upload zone:** Rendered as a `<label>` wrapping the file input, not a clickable div. The `<label>` is natively keyboard accessible (Enter/Space opens the file picker). The file input is visually hidden but accessible.
 - **File input:** Has `aria-describedby` linking to the constraints text (file types and size limit). Has `aria-label` from I18n (`image_upload.drop_zone`).
 - **Error messages:** Rendered in a `role="alert"` container so screen readers announce validation failures immediately.
-- **Crop area:** Wrapped in an `aria-live="polite"` region so screen readers announce when the crop view appears. Crop instructions ("Drag to reposition. Scroll to zoom.") rendered as visually subtle text and available to screen readers.
-- **Crop buttons:** Cancel and Save meet 44px minimum touch targets. Labels from I18n.
-- **Drag-and-drop:** Progressive enhancement only — the `<label>` + file input always works without it. Drop zone has `aria-dropeffect="copy"` for screen readers that support it.
-- **Cropper.js keyboard:** Arrow keys to move crop area, +/- to zoom (built-in). Keyboard instructions included in `crop_instructions` I18n key.
+- **Crop area:** Wrapped in an `aria-live="polite"` region so screen readers announce when the crop view appears. Crop instructions rendered as visually subtle text and available to screen readers.
+- **Focus management during view transitions:**
+  - When crop view appears: focus moves to the crop area container (`tabindex="-1"` to make it focusable)
+  - When Cancel is clicked: focus returns to the file input label
+  - When Save completes and modal closes: focus returns to the modal trigger button (handled by the modal controller)
+- **Crop area tab order:** Crop preview → Cancel button → Save button. Cropper.js supports arrow keys to move the crop area and +/- to zoom when the crop box is focused.
+- **Crop buttons:** Cancel and Save meet 44px minimum touch targets. Labels from I18n (`image_upload.crop_cancel`, `image_upload.crop_save`).
+- **Drag-and-drop:** Progressive enhancement only — the `<label>` + file input always works without drag-and-drop JavaScript.
 - **Reduced motion:** Cropper.js does not use animations, so no `prefers-reduced-motion` concern.
+
+### Progressive Enhancement (No JavaScript)
+
+The upload form uses a standard `<form>` with a `<label>` + `<input type="file">`. Without JavaScript:
+- The modal will not open (no `showModal()` call), but the form can be placed outside a modal as a standalone page
+- Cropping is unavailable — the server-side Active Storage variant handles resizing
+- Drag-and-drop is unavailable — the file input works natively
+- This is documented as an acceptable degradation. Downstream projects requiring no-JS support should provide a standalone upload page as a fallback.
 
 ## Files
 
@@ -208,6 +238,75 @@ The partial reads these keys and passes them to the view. Downstream projects ov
 | `app/javascript/controllers/image_upload_controller.js` | Create | Upload coordinator |
 | `app/views/shared/_image_upload_modal.html.erb` | Create | Reusable upload modal partial |
 | `spec/system/image_upload_modal_spec.rb` | Create | System specs |
+
+## Usage Examples
+
+### Avatar upload (with cropping)
+
+```erb
+<%= render "shared/image_upload_modal",
+      title: t("account.avatars.edit.title"),
+      form_url: account_avatar_path,
+      field_name: :avatar,
+      current_image: @user.avatar.attached? ? @user.avatar : nil,
+      placeholder: avatar_for(@user, size: :xl),
+      remove_url: @user.avatar.attached? ? account_avatar_path : nil,
+      crop: true, aspect_ratio: 1, max_width: 512, max_height: 512 %>
+```
+
+### Workspace logo (with cropping, different aspect ratio)
+
+```erb
+<%= render "shared/image_upload_modal",
+      title: t("workspaces.branding.logo_title"),
+      form_url: workspace_branding_path(@workspace),
+      field_name: :logo,
+      current_image: @workspace.logo.attached? ? @workspace.logo : nil,
+      placeholder: content_tag(:div, @workspace.name[0], class: "w-32 h-32 ..."),
+      remove_url: workspace_branding_path(@workspace),
+      crop: true, aspect_ratio: 1, max_width: 256, max_height: 256 %>
+```
+
+### Simple document thumbnail (no cropping)
+
+```erb
+<%= render "shared/image_upload_modal",
+      title: t("resources.upload_thumbnail"),
+      form_url: resource_path(@resource),
+      field_name: :thumbnail,
+      current_image: @resource.thumbnail.attached? ? @resource.thumbnail : nil,
+      crop: false %>
+```
+
+**Parameter notes:**
+- `current_image` must be an Active Storage attachment (or nil), not a URL
+- `placeholder` is raw HTML rendered when no image is attached
+- `field_name` must match the model's `has_one_attached` name and the controller's `permit` list
+- `form_url` must accept multipart form data (standard for Rails file uploads)
+
+## Turbo Integration
+
+### Form submission
+
+The upload form submits via Turbo by default. The consuming controller should respond with:
+
+```ruby
+respond_to do |format|
+  format.turbo_stream do
+    render turbo_stream: [
+      turbo_stream.replace("avatar-preview", partial: "account/avatars/preview"),
+      turbo_stream.action(:dispatch, "modal:close")
+    ]
+  end
+  format.html { redirect_to edit_account_profile_path, notice: t(".success") }
+end
+```
+
+The `format.html` fallback handles non-Turbo requests (no-JS, direct form POST).
+
+### Modal close after upload
+
+The modal closes when the Turbo response arrives — either via a Turbo Stream action that dispatches a custom event, or via a redirect that causes Turbo to navigate away. The simplest approach: the controller redirects, Turbo performs a visit, and the page re-renders without the modal open.
 
 ## Testing Strategy
 
@@ -223,6 +322,18 @@ The partial reads these keys and passes them to the view. Downstream projects ov
 - Invalid file type shows error
 - Oversized file shows error
 - Upload zone accepts drag-and-drop
+- Focus moves to crop area when crop view appears
+- Focus returns to upload zone on Cancel
+
+**Request specs (for consuming controllers):**
+
+Each controller that uses the image upload modal should have request specs verifying:
+- Server-side validation rejects invalid content types (returns 422)
+- Server-side validation rejects oversized files (returns 422)
+- CSRF protection works (missing token returns 422)
+- Unauthenticated requests are redirected
+- Successful upload attaches the file and responds correctly
+- Remove action purges the attachment
 
 ## Out of Scope
 
