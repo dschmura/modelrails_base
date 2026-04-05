@@ -164,14 +164,38 @@ curl -o vendor/assets/stylesheets/cropperjs.css https://unpkg.com/cropperjs@1.6.
 
 Referenced in the image cropper controller or loaded conditionally when the crop area is shown.
 
+## I18n Keys
+
+All UI text in the upload modal uses I18n keys so downstream projects can override labels:
+
+```yaml
+en:
+  image_upload:
+    drop_zone: "Click to upload or drag and drop"
+    constraints: "PNG, JPG, GIF up to %{max_size}MB"
+    remove: "Remove current image"
+    crop_title: "Crop image"
+    crop_save: "Save"
+    crop_cancel: "Cancel"
+    crop_instructions: "Drag to reposition. Scroll to zoom."
+    errors:
+      file_too_large: "File is too large. Maximum size is %{max_size}MB."
+      invalid_type: "File type not supported. Please use PNG, JPG, or GIF."
+      upload_failed: "Upload failed. Please try again."
+```
+
+The partial reads these keys and passes them to the view. Downstream projects override by editing the locale file.
+
 ## Accessibility
 
-- Upload zone is keyboard accessible — clicking it opens the file picker
-- File input has `aria-describedby` linking to the constraints text
-- Error messages use `role="alert"` for screen reader announcement
-- Crop area buttons (Cancel, Save) meet 44px touch targets
-- Drag-and-drop is progressive enhancement — file input always works without it
-- Cropper.js keyboard support: arrow keys to move crop area (built-in)
+- **Upload zone:** Rendered as a `<label>` wrapping the file input, not a clickable div. The `<label>` is natively keyboard accessible (Enter/Space opens the file picker). The file input is visually hidden but accessible.
+- **File input:** Has `aria-describedby` linking to the constraints text (file types and size limit). Has `aria-label` from I18n (`image_upload.drop_zone`).
+- **Error messages:** Rendered in a `role="alert"` container so screen readers announce validation failures immediately.
+- **Crop area:** Wrapped in an `aria-live="polite"` region so screen readers announce when the crop view appears. Crop instructions ("Drag to reposition. Scroll to zoom.") rendered as visually subtle text and available to screen readers.
+- **Crop buttons:** Cancel and Save meet 44px minimum touch targets. Labels from I18n.
+- **Drag-and-drop:** Progressive enhancement only — the `<label>` + file input always works without it. Drop zone has `aria-dropeffect="copy"` for screen readers that support it.
+- **Cropper.js keyboard:** Arrow keys to move crop area, +/- to zoom (built-in). Keyboard instructions included in `crop_instructions` I18n key.
+- **Reduced motion:** Cropper.js does not use animations, so no `prefers-reduced-motion` concern.
 
 ## Files
 

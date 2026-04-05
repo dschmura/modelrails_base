@@ -129,8 +129,10 @@ end
 Replaces inline avatar rendering throughout the app.
 
 ```ruby
-def avatar_for(user, size: :md)
+def avatar_for(user, size: :md, aria_label: nil)
   # Returns HTML for the avatar display — image tag or initials circle
+  # When aria_label is nil: renders aria-hidden="true" (decorative, name provides context)
+  # When aria_label is provided: renders role="img" + aria-label (standalone avatar)
 end
 ```
 
@@ -163,7 +165,7 @@ Added above the profile form on `account/profiles/edit.html.erb`:
     <h2 class="text-lg font-semibold text-text-heading"><%= @user.full_name %></h2>
     <button data-action="click->modal#open"
             class="text-sm text-interactive underline hover:no-underline mt-1">
-      Change avatar
+      <%= t("account.avatars.edit.change") %>
     </button>
   </div>
 
@@ -181,13 +183,13 @@ Added above the profile form on `account/profiles/edit.html.erb`:
 <% if @user.available_avatar_sources.size > 1 %>
   <%= form_with url: account_avatar_path, method: :patch, class: "mb-8" do |f| %>
     <fieldset class="space-y-2">
-      <legend class="text-sm font-medium text-text-body">Avatar source</legend>
+      <legend class="text-sm font-medium text-text-body"><%= t("account.avatars.source_label") %></legend>
       <% @user.available_avatar_sources.each do |source| %>
         <label class="flex items-center gap-3 min-h-[44px]">
           <%= f.radio_button :avatar_source, source,
                 checked: @user.avatar_source == source,
                 class: "size-5 text-interactive focus:ring-2 focus:ring-interactive-focus",
-                onchange: "this.form.requestSubmit()" %>
+                data: { action: "change->form#requestSubmit" } %>
           <span class="text-sm text-text-body"><%= t("account.avatars.sources.#{source}") %></span>
         </label>
       <% end %>
@@ -229,6 +231,13 @@ en:
     avatars:
       edit:
         title: "Change avatar"
+        change: "Change avatar"
+      update:
+        success: "Avatar updated."
+      destroy:
+        success: "Avatar removed."
+      source_label: "Avatar source"
+      source_updated: "Avatar source updated."
       sources:
         upload: "Uploaded photo"
         gravatar: "Gravatar"
@@ -237,11 +246,13 @@ en:
 
 ## Accessibility
 
-- Avatar images are decorative (`aria-hidden="true"`) — the user's name provides context
-- Source selection uses `<fieldset>` with `<legend>` for screen reader grouping
-- Radio buttons meet 44px touch targets
-- Image upload modal inherits all modal accessibility (focus trap, Escape, ARIA)
-- Gravatar check is async — no blocking on page load
+- **Avatar display:** Decorative by default (`aria-hidden="true"`) when the user's name provides context. For standalone use (no adjacent name), pass `aria_label: user.full_name` to `avatar_for` which renders `role="img"` + `aria-label` instead.
+- **Source selection:** Uses `<fieldset>` with `<legend>` (I18n key) for screen reader grouping. Radio buttons meet 44px touch targets. Auto-submit on change uses Stimulus action (not inline JS).
+- **Initials rendering:** Initials circle uses `aria-hidden="true"` — it's a visual representation of the user's name, not additional information.
+- **Gravatar images:** Include `alt=""` (decorative) when name is adjacent, or `alt` with user name when standalone.
+- **Image upload modal:** Inherits all modal accessibility (focus trap, Escape key, ARIA, touch targets, reduced motion).
+- **Gravatar check:** Async via background job — no blocking on page load, no user-facing delay.
+- **All UI text uses I18n keys** — no hardcoded strings in views or helpers.
 
 ## Files
 
