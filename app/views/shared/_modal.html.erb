@@ -17,9 +17,10 @@
         class="bg-transparent backdrop:bg-transparent p-4 sm:p-6">
   <div data-modal-target="panel"
        class="relative w-full <%= size_class %> mx-auto rounded-lg
-              bg-surface-raised border border-border shadow-xl
+              bg-surface-overlay border border-border shadow-xl
+              max-h-[calc(100vh-3rem)] flex flex-col
               opacity-0 scale-95">
-    <header class="flex items-center justify-between px-6 py-4 border-b border-border">
+    <header class="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
       <h2 id="<%= modal_id %>-title"
           class="text-lg font-semibold text-text-heading">
         <%= title %>
@@ -33,7 +34,7 @@
         <%= icon(:x_mark, size: :md) %>
       </button>
     </header>
-    <div class="px-6 py-4">
+    <div class="px-6 py-4 overflow-y-auto flex-1">
       <%= yield %>
     </div>
   </div>

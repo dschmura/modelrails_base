@@ -8,6 +8,7 @@ export default class extends Controller {
     this.prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
     this.handleCancel = this.handleCancel.bind(this)
     this.handleClick = this.handleClick.bind(this)
+    this.closeTimer = null
 
     this.dialogTarget.addEventListener("cancel", this.handleCancel)
     this.dialogTarget.addEventListener("click", this.handleClick)
@@ -21,6 +22,11 @@ export default class extends Controller {
     this.dialogTarget.removeEventListener("cancel", this.handleCancel)
     this.dialogTarget.removeEventListener("click", this.handleClick)
 
+    if (this.closeTimer) {
+      clearTimeout(this.closeTimer)
+      this.closeTimer = null
+    }
+
     if (this.dialogTarget.open) {
       this.dialogTarget.close()
     }
@@ -33,7 +39,9 @@ export default class extends Controller {
 
   close() {
     this.animateOut(() => {
-      this.dialogTarget.close()
+      if (this.dialogTarget.open) {
+        this.dialogTarget.close()
+      }
     })
   }
 
@@ -41,7 +49,11 @@ export default class extends Controller {
 
   handleCancel(event) {
     event.preventDefault()
-    this.close()
+    try {
+      this.close()
+    } catch {
+      this.dialogTarget.close()
+    }
   }
 
   handleClick(event) {
@@ -82,6 +94,9 @@ export default class extends Controller {
     this.panelTarget.style.transform = "scale(0.95)"
 
     const ms = parseInt(duration, 10) || 200
-    setTimeout(callback, ms)
+    this.closeTimer = setTimeout(() => {
+      this.closeTimer = null
+      callback()
+    }, ms)
   }
 }
