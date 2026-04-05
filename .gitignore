@@ -48,3 +48,6 @@
 
 # macOS metadata
 .DS_Store
+
+# Git worktrees
+/.worktrees
