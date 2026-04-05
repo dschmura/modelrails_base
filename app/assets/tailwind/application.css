@@ -92,11 +92,19 @@
 dialog::backdrop {
   background: var(--modal-backdrop);
   opacity: 0;
-  transition: opacity var(--modal-animation-duration) ease-out;
+  transition: opacity var(--modal-animation-duration) ease-out,
+              overlay var(--modal-animation-duration) ease-out allow-discrete,
+              display var(--modal-animation-duration) ease-out allow-discrete;
 }
 
 dialog[open]::backdrop {
   opacity: 1;
+}
+
+@starting-style {
+  dialog[open]::backdrop {
+    opacity: 0;
+  }
 }
 
 /* ==========================================================================
