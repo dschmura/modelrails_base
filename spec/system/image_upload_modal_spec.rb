@@ -90,10 +90,61 @@ RSpec.describe "Image upload modal", type: :system do
     end
   end
 
+  describe "client-side validation" do
+    before do
+      click_button I18n.t("account.avatars.edit.change")
+      expect(page).to have_css("dialog[open]")
+    end
+
+    it "shows error for invalid file type" do
+      page.execute_script(<<~JS)
+        const input = document.querySelector('[data-image-upload-target="fileInput"]');
+        const file = new File(['fake'], 'doc.pdf', { type: 'application/pdf' });
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        input.files = dt.files;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      JS
+      expect(page).to have_css("[data-image-upload-target='error']:not([hidden])", wait: 3)
+      expect(page).to have_text(I18n.t("image_upload.errors.invalid_type"))
+    end
+
+    it "shows error for oversized file" do
+      page.execute_script(<<~JS)
+        const input = document.querySelector('[data-image-upload-target="fileInput"]');
+        const content = new Uint8Array(6 * 1024 * 1024);
+        const file = new File([content], 'huge.png', { type: 'image/png' });
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        input.files = dt.files;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      JS
+      expect(page).to have_css("[data-image-upload-target='error']:not([hidden])", wait: 3)
+      expect(page).to have_text("too large")
+    end
+
+    it "does not show preview when validation fails" do
+      page.execute_script(<<~JS)
+        const input = document.querySelector('[data-image-upload-target="fileInput"]');
+        const file = new File(['fake'], 'doc.pdf', { type: 'application/pdf' });
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        input.files = dt.files;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      JS
+      expect(page).to have_css("[data-image-upload-target='preview'][hidden]", visible: :all, wait: 3)
+    end
+  end
+
   describe "accessibility" do
     it "upload zone is keyboard accessible with role=button" do
       click_button I18n.t("account.avatars.edit.change")
       expect(page).to have_css("[data-image-upload-target='uploadZone'][role='button'][tabindex='0']")
+    end
+
+    it "error display has role=alert" do
+      click_button I18n.t("account.avatars.edit.change")
+      expect(page).to have_css("[data-image-upload-target='error'][role='alert']", visible: :all)
     end
   end
 end
