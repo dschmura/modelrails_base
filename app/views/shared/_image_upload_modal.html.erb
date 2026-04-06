@@ -12,20 +12,22 @@
   file_input_id = "#{modal_id}-file-input"
   constraints_id = "#{modal_id}-constraints"
   error_id = "#{modal_id}-errors"
-  crop_data_attrs = if crop
-    {
+  drop_zone_data = { image_upload_target: "dropZone" }
+  if crop
+    drop_zone_data.merge!(
       controller: "image-cropper",
       image_cropper_aspect_ratio_value: aspect_ratio,
       image_cropper_max_width_value: max_width,
       image_cropper_max_height_value: max_height,
       image_cropper_max_file_size_value: max_file_size,
-      action: "cropper:complete->image-upload#handleCropComplete cropper:error->image-upload#handleCropError",
       error_message_invalid_type: t("image_upload.errors.invalid_type"),
       error_message_file_too_large: t("image_upload.errors.file_too_large", max_size: max_file_size),
       error_message_cropper_load_failed: t("image_upload.errors.cropper_load_failed")
-    }
-  else
-    {}
+    )
+  end
+  # Action descriptors containing "->" must not be HTML-escaped, so we write them manually
+  drop_zone_action = if crop
+    "cropper:complete->image-upload#handleCropComplete cropper:error->image-upload#handleCropError"
   end
 %>
 
@@ -69,8 +71,8 @@
       <% end %>
 
       <%# Upload drop zone %>
-      <div data-image-upload-target="dropZone"
-           <%= tag.attributes(crop_data_attrs) if crop %>
+      <div <%= tag.attributes(data: drop_zone_data) %>
+           <% if drop_zone_action %>data-action="<%== drop_zone_action %>"<% end %>
            class="relative">
 
         <% if crop %>
