@@ -11,7 +11,18 @@
 %>
 
 <%= render "shared/modal", title: title, id: modal_id, size: size do %>
-  <div data-controller="image-upload">
+  <div data-controller="image-upload"
+       data-image-upload-max-file-size-value="<%= max_file_size %>"
+       data-image-upload-accepted-types-value="<%= accept %>"
+       data-error-invalid-type="<%= t('image_upload.errors.invalid_type') %>"
+       data-error-file-too-large="<%= t('image_upload.errors.file_too_large', max_size: max_file_size) %>">
+
+    <%# Validation error — shown by JS before form submission %>
+    <div data-image-upload-target="error"
+         role="alert"
+         class="p-3 rounded-md bg-danger-surface text-danger text-sm border border-danger-border"
+         hidden>
+    </div>
 
     <%# Current image — hidden by JS when preview is shown %>
     <% if current_image.present? %>
