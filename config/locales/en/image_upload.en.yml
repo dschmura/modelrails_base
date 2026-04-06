@@ -2,14 +2,13 @@ en:
   image_upload:
     drop_zone: "Click to upload or drag and drop"
     constraints: "%{types} up to %{max_size}MB"
+    upload: "Upload image"
+    choose_different: "Choose a different image"
     remove: "Remove current image"
     remove_confirm: "Are you sure you want to remove this image?"
-    crop_title: "Crop image"
-    crop_save: "Save cropped image"
-    crop_cancel: "Cancel crop"
-    crop_instructions: "Drag to reposition. Scroll to zoom."
+    preview_alt: "Preview of selected image"
+    current_alt: "Current image"
     errors:
       file_too_large: "File is too large. Maximum size is %{max_size}MB."
       invalid_type: "File type not supported. Please use PNG, JPG, GIF, or WebP."
       upload_failed: "Upload failed. Please try again."
-      cropper_load_failed: "Image editor could not load. Your image will be uploaded without cropping."

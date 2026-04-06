@@ -1,167 +1,93 @@
 <%# locals: (title:, form_url:, form_method: :patch, field_name: :image,
-             current_image: nil, placeholder: nil,
-             remove_url: nil, remove_method: :delete,
-             crop: false, aspect_ratio: 1, max_width: 512, max_height: 512,
-             accept: "image/png,image/jpeg,image/gif", max_file_size: 5,
+             current_image: nil, remove_url: nil, remove_method: :delete,
+             accept: "image/png,image/jpeg,image/gif,image/webp", max_file_size: 5,
              id: nil, size: :md) -%>
 <%
   modal_id = id || "image-upload-modal-#{SecureRandom.hex(4)}"
+  file_input_id = "#{modal_id}-file-input"
   constraints_text = t("image_upload.constraints",
                        types: accept.gsub("image/", "").upcase,
                        max_size: max_file_size)
-  file_input_id = "#{modal_id}-file-input"
-  constraints_id = "#{modal_id}-constraints"
-  error_id = "#{modal_id}-errors"
-  drop_zone_data = { image_upload_target: "dropZone" }
-  if crop
-    drop_zone_data.merge!(
-      controller: "image-cropper",
-      image_cropper_aspect_ratio_value: aspect_ratio,
-      image_cropper_max_width_value: max_width,
-      image_cropper_max_height_value: max_height,
-      image_cropper_max_file_size_value: max_file_size,
-      error_message_invalid_type: t("image_upload.errors.invalid_type"),
-      error_message_file_too_large: t("image_upload.errors.file_too_large", max_size: max_file_size),
-      error_message_cropper_load_failed: t("image_upload.errors.cropper_load_failed")
-    )
-  end
-  # Action descriptors containing "->" must not be HTML-escaped, so we write them manually
-  drop_zone_action = if crop
-    "cropper:complete->image-upload#handleCropComplete cropper:error->image-upload#handleCropError cropper:cancel->image-upload#handleCropCancel"
-  end
 %>
 
 <%= render "shared/modal", title: title, id: modal_id, size: size do %>
-  <div data-controller="image-upload"
-       data-image-upload-crop-value="<%= crop %>">
+  <div data-controller="image-upload">
 
-    <%# Error display %>
-    <div id="<%= error_id %>"
-         data-image-upload-target="errorMessage"
-         role="alert"
-         class="mb-4 p-3 rounded-md bg-status-danger/10 text-status-danger text-sm"
-         hidden>
-    </div>
-
-    <%# Current image preview — hidden by JS when crop area is active %>
-    <div class="mb-4 flex justify-center" data-image-upload-target="preview">
-      <% if current_image.present? %>
+    <%# Current image %>
+    <% if current_image.present? %>
+      <div class="flex justify-center mb-4">
         <%= image_tag url_for(current_image),
               class: "w-32 h-32 rounded-full object-cover",
-              alt: title %>
-      <% elsif placeholder.present? %>
-        <%= placeholder %>
-      <% end %>
-    </div>
-
-    <%# Upload form %>
-    <%= form_with url: form_url, method: form_method, multipart: true,
-                  data: { image_upload_target: "form" },
-                  class: "space-y-4" do |f| %>
-
-      <% if crop %>
-        <%# Hidden file input for cropped blob — use file_field_tag to bypass form builder wrapper %>
-        <%= file_field_tag field_name,
-              id: "#{modal_id}-cropped-input",
-              data: { image_upload_target: "croppedInput" },
-              accept: accept,
-              class: "sr-only",
-              "aria-hidden": "true",
-              tabindex: "-1" %>
-      <% end %>
-
-      <%# Upload drop zone %>
-      <div <%= tag.attributes(data: drop_zone_data) %>
-           <% if drop_zone_action %>data-action="<%== drop_zone_action %>"<% end %>
-           class="relative">
-
-        <% if crop %>
-          <div data-image-cropper-target="uploadArea">
-        <% end %>
-
-          <%# The label wrapping the file input is the accessible click target %>
-          <label for="<%= file_input_id %>"
-                 class="flex flex-col items-center justify-center w-full py-8 px-4
-                        border-2 border-dashed border-border rounded-lg
-                        cursor-pointer
-                        hover:border-interactive-focus hover:bg-surface-sunken/50
-                        focus-within:ring-2 focus-within:ring-interactive-focus
-                        transition-colors">
-            <svg class="w-8 h-8 text-text-muted mb-2" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-            </svg>
-            <span class="text-sm font-medium text-text-body">
-              <%= t("image_upload.drop_zone") %>
-            </span>
-            <span id="<%= constraints_id %>"
-                  class="text-xs text-text-muted mt-1">
-              <%= constraints_text %>
-            </span>
-            <input type="file"
-                   id="<%= file_input_id %>"
-                   accept="<%= accept %>"
-                   class="sr-only"
-                   aria-describedby="<%= constraints_id %>"
-                   aria-label="<%= t('image_upload.drop_zone') %>"
-                   data-image-upload-target="fileInput"
-                   <% if crop %>
-                     data-image-cropper-target="fileInput"
-                     data-action="change->image-cropper#loadImage change->image-upload#hidePreview"
-                   <% else %>
-                     data-action="change->image-upload#submit"
-                   <% end %>>
-          </label>
-
-        <% if crop %>
-          </div>
-        <% end %>
-
-        <% if crop %>
-          <%# Crop area — hidden until file is selected.
-              Uses flex column so the image shrinks to fit and buttons stay visible. %>
-          <div data-image-cropper-target="cropArea"
-               style="display: none;"
-               aria-live="polite"
-               tabindex="-1"
-               class="flex flex-col gap-3">
-            <p class="text-sm text-text-muted text-center shrink-0">
-              <%= t("image_upload.crop_instructions") %>
-            </p>
-            <div class="overflow-hidden rounded-lg bg-surface-sunken h-48 sm:h-56 md:h-64">
-              <img data-image-cropper-target="preview"
-                   alt="<%= t('image_upload.crop_title') %>"
-                   class="block max-w-full">
-            </div>
-            <div class="flex flex-col gap-2 shrink-0
-                        sticky bottom-0 bg-surface-overlay pt-3 -mb-4 pb-4">
-              <button type="button"
-                      data-action="click->image-cropper#crop"
-                      class="inline-flex items-center justify-center
-                             w-full min-h-[44px] px-6 py-2
-                             rounded-md
-                             text-sm font-semibold text-white
-                             bg-interactive-primary hover:bg-interactive-primary-hover
-                             focus:outline-none focus:ring-2 focus:ring-interactive-focus">
-                <%= t("image_upload.crop_save") %>
-              </button>
-              <button type="button"
-                      data-action="click->image-cropper#cancel"
-                      class="inline-flex items-center justify-center
-                             w-full min-h-[44px] px-4 py-2
-                             rounded-md border border-border
-                             text-sm font-medium text-text-body
-                             hover:bg-surface-sunken
-                             focus:outline-none focus:ring-2 focus:ring-interactive-focus">
-                <%= t("image_upload.crop_cancel") %>
-              </button>
-            </div>
-          </div>
-        <% end %>
-
+              alt: t("image_upload.current_alt") %>
       </div>
     <% end %>
 
-    <%# Remove current image link %>
+    <%# Upload form — native multipart submission, no JS intermediary %>
+    <%= form_with url: form_url, method: form_method, multipart: true, class: "space-y-4" do |f| %>
+
+      <%# Hidden file input %>
+      <input type="file"
+             id="<%= file_input_id %>"
+             name="<%= field_name %>"
+             accept="<%= accept %>"
+             class="sr-only"
+             data-image-upload-target="fileInput"
+             data-action="change->image-upload#handleFile">
+
+      <%# Drop zone — visible until file is selected %>
+      <div data-image-upload-target="uploadZone"
+           data-action="dragover->image-upload#handleDragOver dragleave->image-upload#handleDragLeave drop->image-upload#handleDrop"
+           class="flex flex-col items-center justify-center w-full py-8 px-4
+                  border-2 border-dashed border-border rounded-lg cursor-pointer
+                  hover:border-interactive-focus hover:bg-surface-sunken/50
+                  focus-within:ring-2 focus-within:ring-interactive-focus
+                  transition-colors"
+           role="button"
+           tabindex="0"
+           aria-label="<%= t('image_upload.drop_zone') %>"
+           data-action="click->image-upload#selectFile keydown.enter->image-upload#selectFile keydown.space->image-upload#selectFile">
+        <svg class="w-8 h-8 text-text-muted mb-2" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+        </svg>
+        <span class="text-sm font-medium text-text-body">
+          <%= t("image_upload.drop_zone") %>
+        </span>
+        <span class="text-xs text-text-muted mt-1">
+          <%= constraints_text %>
+        </span>
+      </div>
+
+      <%# Preview — hidden until file is selected %>
+      <div data-image-upload-target="preview" hidden class="space-y-4">
+        <div class="flex justify-center">
+          <img data-image-upload-target="previewImage"
+               alt="<%= t('image_upload.preview_alt') %>"
+               class="w-48 h-48 rounded-full object-cover">
+        </div>
+        <div class="flex flex-col gap-2">
+          <button type="submit"
+                  class="inline-flex items-center justify-center
+                         w-full min-h-[44px] px-6 py-2 rounded-md
+                         text-sm font-semibold text-white
+                         bg-interactive-primary hover:bg-interactive-primary-hover
+                         focus:outline-none focus:ring-2 focus:ring-interactive-focus">
+            <%= t("image_upload.upload") %>
+          </button>
+          <button type="button"
+                  data-action="click->image-upload#clearFile"
+                  class="inline-flex items-center justify-center
+                         w-full min-h-[44px] px-4 py-2 rounded-md
+                         border border-border text-sm font-medium text-text-body
+                         hover:bg-surface-sunken
+                         focus:outline-none focus:ring-2 focus:ring-interactive-focus">
+            <%= t("image_upload.choose_different") %>
+          </button>
+        </div>
+      </div>
+
+    <% end %>
+
+    <%# Remove current image %>
     <% if remove_url.present? && current_image.present? %>
       <div class="text-center mt-2">
         <%= button_to t("image_upload.remove"),
