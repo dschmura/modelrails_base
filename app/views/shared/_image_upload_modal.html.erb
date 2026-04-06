@@ -13,9 +13,9 @@
 <%= render "shared/modal", title: title, id: modal_id, size: size do %>
   <div data-controller="image-upload">
 
-    <%# Current image %>
+    <%# Current image — hidden by JS when preview is shown %>
     <% if current_image.present? %>
-      <div class="flex justify-center mb-4">
+      <div data-image-upload-target="currentImage" class="flex justify-center mb-4">
         <%= image_tag url_for(current_image),
               class: "w-32 h-32 rounded-full object-cover",
               alt: t("image_upload.current_alt") %>
@@ -67,7 +67,7 @@
                 class="inline-flex items-center justify-center
                        w-full min-h-[44px] px-6 py-2 rounded-md
                        text-sm font-semibold text-white
-                       bg-interactive-primary hover:bg-interactive-primary-hover
+                       bg-interactive hover:bg-interactive-hover
                        focus:outline-none focus:ring-2 focus:ring-interactive-focus">
           <%= t("image_upload.upload") %>
         </button>
