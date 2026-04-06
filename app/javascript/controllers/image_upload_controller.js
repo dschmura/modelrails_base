@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["fileInput", "preview", "previewImage", "uploadZone", "submitButton"]
+  static targets = ["fileInput", "preview", "previewImage", "uploadZone", "currentImage"]
 
   selectFile() {
     this.fileInputTarget.click()
@@ -16,7 +16,7 @@ export default class extends Controller {
       this.previewImageTarget.src = e.target.result
       this.previewTarget.hidden = false
       this.uploadZoneTarget.hidden = true
-      if (this.hasSubmitButtonTarget) this.submitButtonTarget.hidden = false
+      if (this.hasCurrentImageTarget) this.currentImageTarget.hidden = true
     }
     reader.readAsDataURL(file)
   }
