@@ -6,7 +6,7 @@
 
   <%# Avatar preview and editor %>
   <div class="flex items-center gap-6 mt-8 mb-8" data-controller="modal">
-    <%= avatar_for(@user, size: :xl) %>
+    <span id="user_avatar_profile"><%= avatar_for(@user, size: :xl) %></span>
     <div>
       <p class="text-lg font-semibold text-text-heading"><%= @user.full_name %></p>
       <button data-action="click->modal#open"
