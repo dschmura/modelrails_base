@@ -101,6 +101,7 @@
         <%= button_to t("image_upload.remove"),
               remove_url,
               method: remove_method,
+              params: { remove_image: "1" },
               class: "text-sm text-danger hover:text-danger/80
                      underline underline-offset-2
                      focus:outline-none focus:ring-2 focus:ring-interactive-focus

@@ -65,6 +65,16 @@ RSpec.describe "Workspace Brandings", type: :request do
         expect(workspace.reload.logo).to be_attached
         expect(response).to redirect_to(edit_workspace_branding_path(workspace))
       end
+
+      it "removes the logo when remove_image is sent" do
+        workspace.logo.attach(
+          io: File.open(Rails.root.join("spec/fixtures/files/avatar.png")),
+          filename: "logo.png", content_type: "image/png"
+        )
+        patch workspace_branding_path(workspace), params: { remove_image: "1" }
+        expect(workspace.reload.logo).not_to be_attached
+        expect(response).to redirect_to(edit_workspace_branding_path(workspace))
+      end
     end
 
     describe "authorization" do
