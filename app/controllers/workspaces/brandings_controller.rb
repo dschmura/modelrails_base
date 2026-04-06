@@ -9,6 +9,13 @@ module Workspaces
     def update
       authorize @workspace, policy_class: Workspaces::BrandingPolicy
 
+      # Remove logo (modal remove button)
+      if params[:remove_image].present?
+        @workspace.logo.purge if @workspace.logo.attached?
+        redirect_to edit_workspace_branding_path(@workspace), notice: t(".success")
+        return
+      end
+
       # Logo upload from the modal (top-level param)
       logo_file = params[:logo]
 
