@@ -72,6 +72,7 @@ export default class extends Controller {
     this.#destroyCropper()
     this.#showUploadArea()
     this.fileInputTarget.value = ""
+    this.dispatch("cancel", { prefix: "cropper" })
   }
 
   // Private

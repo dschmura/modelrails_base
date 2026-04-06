@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["form", "fileInput", "croppedInput", "dropZone", "errorMessage"]
+  static targets = ["form", "fileInput", "croppedInput", "dropZone", "errorMessage", "preview"]
   static values = {
     crop: { type: Boolean, default: false }
   }
@@ -30,6 +30,14 @@ export default class extends Controller {
     if (!this.cropValue) {
       this.formTarget.requestSubmit()
     }
+  }
+
+  hidePreview() {
+    if (this.hasPreviewTarget) this.previewTarget.hidden = true
+  }
+
+  handleCropCancel() {
+    if (this.hasPreviewTarget) this.previewTarget.hidden = false
   }
 
   handleCropComplete(event) {
