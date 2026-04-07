@@ -274,7 +274,7 @@ git commit -m "refactor: use cropped_variant in avatar and workspace helpers"
 
 - Modify: `config/routes.rb`
 
-- [ ] **Step 1: Update avatar routes**
+- [x] **Step 1: Update avatar routes**
 
 In `config/routes.rb`, replace:
 
