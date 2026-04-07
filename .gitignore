@@ -51,3 +51,6 @@
 
 # Git worktrees
 /.worktrees
+
+# Superpowers brainstorm artifacts
+/.superpowers
