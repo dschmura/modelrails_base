@@ -1,7 +1,7 @@
 <%# locals: (title:, form_url:, form_method: :patch, field_name: :image,
              current_image: nil, remove_url: nil, remove_method: :delete,
              accept: "image/png,image/jpeg,image/gif,image/webp", max_file_size: 5,
-             auto_submit: false,
+             auto_submit: false, redirect_on_submit: false,
              id: nil, size: :md) -%>
 <%
   modal_id = id || "image-upload-modal-#{SecureRandom.hex(4)}"
@@ -38,7 +38,7 @@
 
     <%# Upload form %>
     <%= form_with url: form_url, method: form_method, multipart: true,
-                  data: { image_upload_target: "form" },
+                  data: { image_upload_target: "form", turbo: redirect_on_submit ? false : nil }.compact,
                   class: "space-y-4" do |f| %>
 
       <%# Hidden file input %>
