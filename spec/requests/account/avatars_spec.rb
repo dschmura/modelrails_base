@@ -176,6 +176,8 @@ RSpec.describe "Account Avatars", type: :request do
         expect(response.media_type).to eq("text/vnd.turbo-stream.html")
         expect(response.body).to include("turbo-stream")
         expect(response.body).to include("user_avatar_profile")
+        expect(response.body).to include("user_avatar_header")
+        expect(response.body).to include("modal-closer")
         metadata = user.avatar.blob.reload.metadata
         expect(metadata["crop"]).to eq("x" => 10, "y" => 20, "w" => 100, "h" => 100)
       end
