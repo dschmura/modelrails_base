@@ -221,7 +221,7 @@ git commit -m "feat: add CropHelper with cropped_variant for blob metadata crops
 - Modify: `app/helpers/avatar_helper.rb`
 - Modify: `app/helpers/workspace_helper.rb`
 
-- [ ] **Step 1: Update `render_upload_avatar` in `app/helpers/avatar_helper.rb`**
+- [x] **Step 1: Update `render_upload_avatar` in `app/helpers/avatar_helper.rb`**
 
 Replace line 30:
 
