@@ -111,5 +111,43 @@ RSpec.describe "Account Avatars", type: :request do
         expect(response).to redirect_to(edit_account_profile_path)
       end
     end
+
+    describe "GET /account/avatar/crop" do
+      it "renders the crop page when avatar is attached" do
+        user.avatar.attach(
+          io: File.open(Rails.root.join("spec/fixtures/files/avatar.png")),
+          filename: "avatar.png", content_type: "image/png"
+        )
+        get crop_account_avatar_path
+        expect(response).to have_http_status(:ok)
+      end
+
+      it "redirects when no avatar is attached" do
+        get crop_account_avatar_path
+        expect(response).to redirect_to(edit_account_profile_path)
+      end
+    end
+
+    describe "PATCH /account/avatar/save_crop" do
+      before do
+        user.avatar.attach(
+          io: File.open(Rails.root.join("spec/fixtures/files/avatar.png")),
+          filename: "avatar.png", content_type: "image/png"
+        )
+      end
+
+      it "saves crop coordinates to blob metadata" do
+        patch save_crop_account_avatar_path, params: { crop: { x: 10, y: 20, w: 100, h: 100 } }
+        metadata = user.avatar.blob.reload.metadata
+        expect(metadata["crop"]).to eq("x" => 10, "y" => 20, "w" => 100, "h" => 100)
+        expect(response).to redirect_to(edit_account_profile_path)
+      end
+
+      it "redirects when no avatar is attached" do
+        user.avatar.purge
+        patch save_crop_account_avatar_path, params: { crop: { x: 0, y: 0, w: 50, h: 50 } }
+        expect(response).to redirect_to(edit_account_profile_path)
+      end
+    end
   end
 end
