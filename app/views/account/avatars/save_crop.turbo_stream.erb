@@ -5,16 +5,17 @@
   </span>
 <% end %>
 
-<%# Close the modal via a temporary script %>
-<%= turbo_stream.append_all "body" do %>
-  <template data-turbo-temporary>
-    <script>
-      document.querySelector("dialog[open]")?.close()
-    </script>
-  </template>
+<%# Update the avatar in the navigation header %>
+<%= turbo_stream.replace "user_avatar_header" do %>
+  <span id="user_avatar_header"><%= avatar_for(Current.user, size: :md) %></span>
 <% end %>
 
-<%# Show success toast — uses the pill container from shared/toasts %>
+<%# Close the modal via Stimulus controller that fires on connect %>
+<%= turbo_stream.append "modal-body" do %>
+  <div data-controller="modal-closer"></div>
+<% end %>
+
+<%# Show success toast %>
 <%= turbo_stream.prepend "toast-pills" do %>
   <%= render "shared/toast_pill", type: "notice", message: t(".success") %>
 <% end %>

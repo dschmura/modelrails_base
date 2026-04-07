@@ -3,13 +3,9 @@
   <span id="workspace_logo_branding"><%= workspace_icon_for(@workspace, size: :lg) %></span>
 <% end %>
 
-<%# Close the modal via a temporary script %>
-<%= turbo_stream.append_all "body" do %>
-  <template data-turbo-temporary>
-    <script>
-      document.querySelector("dialog[open]")?.close()
-    </script>
-  </template>
+<%# Close the modal via Stimulus controller that fires on connect %>
+<%= turbo_stream.append "modal-body" do %>
+  <div data-controller="modal-closer"></div>
 <% end %>
 
 <%# Show success toast %>
