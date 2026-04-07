@@ -94,3 +94,8 @@ en:
         submit: "Save branding"
       update:
         success: "Branding updated."
+      crop:
+        title: "Crop logo"
+        link: "Crop"
+      save_crop:
+        success: "Logo cropped."

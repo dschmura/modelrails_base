@@ -1,0 +1,6 @@
+en:
+  image_crop:
+    instructions: "Drag to reposition. Scroll to zoom."
+    save: "Save crop"
+    cancel: "Cancel"
+    no_image: "Upload an image first."
