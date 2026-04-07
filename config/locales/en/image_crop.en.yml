@@ -7,4 +7,5 @@ en:
     skip: "Skip cropping"
     cancel: "Cancel"
     reset: "Reset"
+    upload_different: "Upload a different image"
     no_image: "Upload an image first."

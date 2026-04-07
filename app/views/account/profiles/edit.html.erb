@@ -6,32 +6,70 @@
 
   <%# Avatar preview and editor %>
   <div class="flex items-center gap-6 mt-8 mb-8" data-controller="modal">
-    <button data-action="click->modal#open"
-            type="button"
-            class="shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2
-                   focus:ring-interactive-focus cursor-pointer group"
-            aria-label="<%= t('account.avatars.edit.change') %>">
-      <span id="user_avatar_profile" class="block relative">
-        <%= avatar_for(@user, size: :xl) %>
-        <span class="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/20
-                     transition-colors flex items-center justify-center">
-          <svg class="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md"
-               fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-            <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
-          </svg>
+    <% if @user.avatar.attached? && @user.avatar_source == "upload" %>
+      <%# Has avatar — clicking goes to crop page to re-adjust %>
+      <%= link_to crop_account_avatar_path,
+            class: "shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2
+                   focus:ring-interactive-focus cursor-pointer group block",
+            "aria-label": t("account.avatars.crop.title") do %>
+        <span id="user_avatar_profile" class="block relative">
+          <%= avatar_for(@user, size: :xl) %>
+          <span class="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/20
+                       transition-colors flex items-center justify-center">
+            <svg class="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md"
+                 fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
+            </svg>
+          </span>
         </span>
-      </span>
-    </button>
-    <div>
-      <p class="text-lg font-semibold text-text-heading"><%= @user.full_name %></p>
+      <% end %>
+    <% else %>
+      <%# No avatar — clicking opens upload modal %>
       <button data-action="click->modal#open"
               type="button"
-              class="text-sm text-interactive underline hover:no-underline mt-1
-                     min-h-[44px] min-w-[44px]
-                     focus:outline-none focus:ring-2 focus:ring-interactive-focus rounded">
-        <%= t("account.avatars.edit.change") %>
+              class="shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2
+                     focus:ring-interactive-focus cursor-pointer group"
+              aria-label="<%= t('account.avatars.edit.change') %>">
+        <span id="user_avatar_profile" class="block relative">
+          <%= avatar_for(@user, size: :xl) %>
+          <span class="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/20
+                       transition-colors flex items-center justify-center">
+            <svg class="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md"
+                 fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
+            </svg>
+          </span>
+        </span>
       </button>
+    <% end %>
+    <div>
+      <p class="text-lg font-semibold text-text-heading"><%= @user.full_name %></p>
+      <% if @user.avatar.attached? && @user.avatar_source == "upload" %>
+        <div class="flex items-center gap-3 mt-1">
+          <%= link_to t("account.avatars.crop.link"), crop_account_avatar_path,
+                class: "text-sm text-interactive underline hover:no-underline
+                       min-h-[44px] inline-flex items-center
+                       focus:outline-none focus:ring-2 focus:ring-interactive-focus rounded" %>
+          <span class="text-text-muted text-sm">·</span>
+          <button data-action="click->modal#open"
+                  type="button"
+                  class="text-sm text-interactive underline hover:no-underline
+                         min-h-[44px] inline-flex items-center
+                         focus:outline-none focus:ring-2 focus:ring-interactive-focus rounded">
+            <%= t("account.avatars.edit.upload_new") %>
+          </button>
+        </div>
+      <% else %>
+        <button data-action="click->modal#open"
+                type="button"
+                class="text-sm text-interactive underline hover:no-underline mt-1
+                       min-h-[44px] min-w-[44px]
+                       focus:outline-none focus:ring-2 focus:ring-interactive-focus rounded">
+          <%= t("account.avatars.edit.change") %>
+        </button>
+      <% end %>
     </div>
 
     <%= render "shared/image_upload_modal",
