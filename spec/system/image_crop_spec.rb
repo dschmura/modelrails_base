@@ -50,11 +50,11 @@ RSpec.describe "Image cropping", type: :system do
       expect(page).to have_current_path(edit_account_profile_path)
     end
 
-    it "upload flow goes directly to crop page" do
+    it "profile page links to crop and upload when avatar exists" do
       visit edit_account_profile_path
       dismiss_banner
-      # The "Change avatar" button opens the modal, and auto-submit takes user to crop
-      expect(page).to have_button(I18n.t("account.avatars.edit.change"))
+      expect(page).to have_link(I18n.t("account.avatars.crop.link"))
+      expect(page).to have_button(I18n.t("account.avatars.edit.upload_new"))
     end
   end
 end
