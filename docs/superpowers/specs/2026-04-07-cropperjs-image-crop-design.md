@@ -6,7 +6,7 @@
 
 ## Summary
 
-Replace the custom pan/zoom image crop controller with Cropper.js v2 to provide a more intuitive, polished crop experience. The new interaction model uses a draggable, resizable selection box on top of the image (matching standard image editing UX) instead of panning the image behind a fixed viewport. Adds a real-time preview, rule-of-thirds guides, and support for cropping inside a modal (upload + crop as one seamless flow).
+Replace the custom pan/zoom image crop controller with Cropper.js v1 to provide a more intuitive, polished crop experience. The new interaction model uses a draggable, resizable selection box on top of the image (matching standard image editing UX) instead of panning the image behind a fixed viewport. Adds a real-time preview, rule-of-thirds guides, and support for cropping inside a modal (upload + crop as one seamless flow).
 
 ## Goals
 
@@ -33,11 +33,13 @@ Replace the custom pan/zoom image crop controller with Cropper.js v2 to provide 
 - **Turbo cache and Cropper.js state:** When Turbo caches a page with an active Cropper.js instance and restores it on back-navigation, the Stimulus controller's `disconnect()` → `connect()` cycle must cleanly destroy and reinitialize. Verify no ghost canvases or duplicate event listeners persist.
 - **ActiveStorage URL expiry:** ActiveStorage redirect-mode URLs are short-lived. When Turbo Stream swaps crop UI into a modal, the image URL is freshly rendered server-side, so this is not an issue. However, if the user leaves the crop page idle for an extended period and then saves, the image display may break on the next page load — the crop coordinates themselves are still valid since they reference the blob, not the URL.
 
-## Approach: Cropper.js v2 via Importmap
+## Approach: Cropper.js v1 (1.6.x) via Importmap
 
-Cropper.js v2 is a mature, actively maintained library (~30KB gzipped, no dependencies) that ships ESM modules compatible with Rails importmaps. It provides draggable selection with corner/edge resize handles, pinch-to-zoom, scroll zoom, aspect ratio locking, and a live preview API.
+Cropper.js v1 is a mature, widely-used library (~30KB gzipped, no dependencies) with a clean class-based API. It provides draggable selection with corner/edge resize handles, pinch-to-zoom, scroll zoom, aspect ratio locking, and a live preview API.
 
-A thin Stimulus controller (`image-cropper`) wraps Cropper.js and bridges it to the existing partial interface and form submission pattern.
+**Why v1, not v2:** Cropper.js v2 is a complete architectural rewrite using Web Components and Shadow DOM. Shadow DOM encapsulation prevents Tailwind classes from penetrating into cropper elements, making design token integration impractical. The v2 API (`<cropper-canvas>`, `<cropper-image>`, `<cropper-selection>` custom elements) adds complexity without benefit for our use case. v1's class-based API (`new Cropper(img, options)` → `getData()` → `destroy()`) is simpler to wrap in Stimulus and easier to style with our design tokens. v1 continues to receive bug fixes.
+
+A thin Stimulus controller (`image-cropper`) wraps Cropper.js v1 and bridges it to the existing partial interface and form submission pattern.
 
 ## Architecture
 
@@ -45,7 +47,7 @@ A thin Stimulus controller (`image-cropper`) wraps Cropper.js and bridges it to 
 
 ```
 Stimulus: image-cropper controller (~80-100 lines)
-  └── Wraps: Cropper.js v2 instance
+  └── Wraps: Cropper.js v1 instance
   └── Targets: image, container, preview, x, y, w, h, slider (optional)
   └── Values: aspectRatio (Number), shape (String), viewMode (Number),
               previewSelector (String), existingCrop (Object)
@@ -75,9 +77,9 @@ crop[w] — integer, width in original image pixels
 crop[h] — integer, height in original image pixels
 ```
 
-Cropper.js `getData(true)` returns `{ x, y, width, height }` as rounded integers. The Stimulus controller maps `width` → `w` and `height` → `h` to match the existing form field names. The backend (`AvatarsController#save_crop`, `CropHelper#cropped_variant`) is completely untouched.
+Cropper.js v1 `getData(true)` returns `{ x, y, width, height, rotate, scaleX, scaleY }` as rounded integers. The Stimulus controller maps `width` → `w` and `height` → `h` to match the existing form field names. The backend (`AvatarsController#save_crop`, `CropHelper#cropped_variant`) is completely untouched.
 
-**Restoring previous crop:** When blob metadata already contains crop coordinates, they are passed as the `existingCrop` Stimulus value. After Cropper.js initializes, `cropper.setData({ x, y, width: w, height: h })` positions the selection where the user last saved.
+**Restoring previous crop:** When blob metadata already contains crop coordinates, they are passed as the `existingCrop` Stimulus value. After Cropper.js initializes, `cropper.setData({ x, y, width: w, height: h })` positions the selection where the user last saved. The v1 `setData()` method accepts this format directly.
 
 ## UX Flows
 
@@ -194,8 +196,8 @@ new Cropper(imageElement, {
 
 | File | Purpose |
 |------|---------|
-| `app/javascript/controllers/image_cropper_controller.js` | Stimulus controller wrapping Cropper.js v2 |
-| `app/assets/stylesheets/vendor/cropper.css` | Vendored Cropper.js CSS with design token overrides |
+| `app/javascript/controllers/image_cropper_controller.js` | Stimulus controller wrapping Cropper.js v1 |
+| `app/assets/stylesheets/vendor/cropper.css` | Vendored Cropper.js v1 CSS with design token overrides |
 | `app/views/account/avatars/update.turbo_stream.erb` | Turbo Stream: replace modal content with crop UI |
 | `app/views/account/avatars/save_crop.turbo_stream.erb` | Turbo Stream: close modal, update avatar on page |
 
