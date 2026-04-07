@@ -26,12 +26,14 @@ RSpec.describe "Image cropping", type: :system do
       sign_in_via_form(user)
     end
 
-    it "shows crop page with image and buttons" do
+    it "shows crop page with Cropper.js and controls" do
       visit crop_account_avatar_path
       dismiss_banner
       expect(page).to have_text(I18n.t("account.avatars.crop.title"))
-      expect(page).to have_css("[data-controller='image-crop']")
-      expect(page).to have_css("img[data-image-crop-target='image']")
+      expect(page).to have_css("[data-controller='image-cropper']")
+      # Cropper.js hides the original img and creates .cropper-container
+      expect(page).to have_css(".cropper-container", wait: 5)
+      expect(page).to have_css("[data-image-cropper-target='preview']")
       expect(page).to have_button(I18n.t("image_crop.save"))
       expect(page).to have_link(I18n.t("image_crop.skip"))
     end
@@ -55,6 +57,21 @@ RSpec.describe "Image cropping", type: :system do
       dismiss_banner
       expect(page).to have_link(I18n.t("account.avatars.crop.link"))
       expect(page).to have_button(I18n.t("account.avatars.edit.upload_new"))
+    end
+
+    it "passes existing crop data to the controller" do
+      Bullet.enable = false
+      blob = user.avatar.blob
+      blob.update!(
+        metadata: blob.metadata.merge("crop" => { "x" => 10, "y" => 20, "w" => 100, "h" => 100 })
+      )
+      Bullet.enable = true
+      visit crop_account_avatar_path
+      dismiss_banner
+      expect(page).to have_css("[data-image-cropper-existing-crop-value]")
+      crop_json = find("[data-controller='image-cropper']")["data-image-cropper-existing-crop-value"]
+      crop_data = JSON.parse(crop_json)
+      expect(crop_data).to include("x" => 10, "y" => 20, "w" => 100, "h" => 100)
     end
   end
 end
