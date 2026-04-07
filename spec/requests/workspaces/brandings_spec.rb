@@ -59,11 +59,11 @@ RSpec.describe "Workspace Brandings", type: :request do
     end
 
     describe "PATCH /workspaces/:workspace_slug/branding via upload modal" do
-      it "uploads a logo from the modal (top-level param)" do
+      it "uploads a logo and redirects to crop page" do
         file = fixture_file_upload("avatar.png", "image/png")
         patch workspace_branding_path(workspace), params: { logo: file }
         expect(workspace.reload.logo).to be_attached
-        expect(response).to redirect_to(edit_workspace_branding_path(workspace))
+        expect(response).to redirect_to(crop_workspace_branding_path(workspace))
       end
 
       it "removes the logo when remove_image is sent" do

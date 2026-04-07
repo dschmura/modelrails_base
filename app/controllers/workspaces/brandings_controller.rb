@@ -49,7 +49,7 @@ module Workspaces
 
       if logo_file.present?
         @workspace.logo.attach(logo_file)
-        redirect_to edit_workspace_branding_path(@workspace), notice: t(".success")
+        redirect_to crop_workspace_branding_path(@workspace)
         return
       end
 

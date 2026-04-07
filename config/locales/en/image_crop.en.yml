@@ -1,6 +1,9 @@
 en:
   image_crop:
-    instructions: "Drag to reposition. Scroll to zoom."
+    instructions: "Drag to reposition. Use the slider to zoom."
+    zoom: "Zoom"
     save: "Save crop"
+    saving: "Saving..."
     cancel: "Cancel"
+    reset: "Reset"
     no_image: "Upload an image first."

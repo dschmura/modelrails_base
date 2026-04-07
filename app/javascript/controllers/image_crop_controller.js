@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["image", "container", "x", "y", "w", "h"]
+  static targets = ["image", "container", "x", "y", "w", "h", "slider"]
   static values = {
     aspectRatio: { type: Number, default: 1 }
   }
@@ -11,6 +11,7 @@ export default class extends Controller {
     this.translateX = 0
     this.translateY = 0
     this.dragging = false
+    this.pinchStartDistance = 0
 
     this.imageTarget.addEventListener("load", () => this.#initialize())
 
@@ -29,6 +30,34 @@ export default class extends Controller {
     this.#calculateCoordinates()
   }
 
+  // Zoom slider input
+  handleSlider(event) {
+    const value = parseFloat(event.target.value)
+    this.scale = this.minScale + (this.maxScale - this.minScale) * (value / 100)
+    this.#clampTranslation()
+    this.#applyTransform()
+  }
+
+  // Keyboard zoom
+  handleKeydown(event) {
+    const zoomKeys = { "+": 0.1, "=": 0.1, "-": -0.1, "ArrowUp": 0.1, "ArrowDown": -0.1 }
+    const delta = zoomKeys[event.key]
+    if (delta !== undefined) {
+      event.preventDefault()
+      this.#setScale(this.scale + delta)
+    }
+  }
+
+  reset() {
+    this.scale = this.minScale
+    this.translateX = 0
+    this.translateY = 0
+    this.#applyTransform()
+    this.#syncSlider()
+  }
+
+  // Private
+
   #initialize() {
     this.naturalWidth = this.imageTarget.naturalWidth
     this.naturalHeight = this.imageTarget.naturalHeight
@@ -41,6 +70,24 @@ export default class extends Controller {
     this.maxScale = this.minScale * 5
 
     this.#applyTransform()
+    this.#syncSlider()
+  }
+
+  #setScale(newScale) {
+    newScale = Math.min(this.maxScale, Math.max(this.minScale, newScale))
+    const ratio = newScale / this.scale
+    this.translateX *= ratio
+    this.translateY *= ratio
+    this.scale = newScale
+    this.#clampTranslation()
+    this.#applyTransform()
+    this.#syncSlider()
+  }
+
+  #syncSlider() {
+    if (!this.hasSliderTarget) return
+    const pct = ((this.scale - this.minScale) / (this.maxScale - this.minScale)) * 100
+    this.sliderTarget.value = pct
   }
 
   #bindEvents() {
@@ -48,12 +95,8 @@ export default class extends Controller {
     this._onMouseMove = (e) => this.#drag(e.clientX, e.clientY, e)
     this._onMouseUp = () => this.#endDrag()
     this._onWheel = (e) => this.#zoom(e)
-    this._onTouchStart = (e) => {
-      if (e.touches.length === 1) this.#startDrag(e.touches[0].clientX, e.touches[0].clientY, e)
-    }
-    this._onTouchMove = (e) => {
-      if (e.touches.length === 1) this.#drag(e.touches[0].clientX, e.touches[0].clientY, e)
-    }
+    this._onTouchStart = (e) => this.#handleTouchStart(e)
+    this._onTouchMove = (e) => this.#handleTouchMove(e)
     this._onTouchEnd = () => this.#endDrag()
 
     this.containerTarget.addEventListener("mousedown", this._onMouseDown)
@@ -73,6 +116,33 @@ export default class extends Controller {
     this.containerTarget.removeEventListener("touchstart", this._onTouchStart)
     document.removeEventListener("touchmove", this._onTouchMove)
     document.removeEventListener("touchend", this._onTouchEnd)
+  }
+
+  #handleTouchStart(e) {
+    if (e.touches.length === 2) {
+      e.preventDefault()
+      this.pinchStartDistance = this.#pinchDistance(e.touches)
+      this.pinchStartScale = this.scale
+    } else if (e.touches.length === 1) {
+      this.#startDrag(e.touches[0].clientX, e.touches[0].clientY, e)
+    }
+  }
+
+  #handleTouchMove(e) {
+    if (e.touches.length === 2) {
+      e.preventDefault()
+      const distance = this.#pinchDistance(e.touches)
+      const ratio = distance / this.pinchStartDistance
+      this.#setScale(this.pinchStartScale * ratio)
+    } else if (e.touches.length === 1) {
+      this.#drag(e.touches[0].clientX, e.touches[0].clientY, e)
+    }
+  }
+
+  #pinchDistance(touches) {
+    const dx = touches[0].clientX - touches[1].clientX
+    const dy = touches[0].clientY - touches[1].clientY
+    return Math.sqrt(dx * dx + dy * dy)
   }
 
   #startDrag(clientX, clientY, event) {
@@ -100,15 +170,7 @@ export default class extends Controller {
   #zoom(event) {
     event.preventDefault()
     const delta = event.deltaY > 0 ? -0.1 : 0.1
-    const newScale = Math.min(this.maxScale, Math.max(this.minScale, this.scale + delta))
-
-    const ratio = newScale / this.scale
-    this.translateX *= ratio
-    this.translateY *= ratio
-    this.scale = newScale
-
-    this.#clampTranslation()
-    this.#applyTransform()
+    this.#setScale(this.scale + delta)
   }
 
   #clampTranslation() {
