@@ -48,7 +48,7 @@
 - Modify: `config/locales/en/account.en.yml`
 - Modify: `config/locales/en/workspaces.en.yml`
 
-- [ ] **Step 1: Create `config/locales/en/image_crop.en.yml`**
+- [x] **Step 1: Create `config/locales/en/image_crop.en.yml`**
 
 ```yaml
 en:
@@ -59,7 +59,7 @@ en:
     no_image: "Upload an image first."
 ```
 
-- [ ] **Step 2: Add avatar crop keys to `config/locales/en/account.en.yml`**
+- [x] **Step 2: Add avatar crop keys to `config/locales/en/account.en.yml`**
 
 Add under the existing `avatars:` section, after the `sources:` block:
 
@@ -71,7 +71,7 @@ Add under the existing `avatars:` section, after the `sources:` block:
         success: "Avatar cropped."
 ```
 
-- [ ] **Step 3: Add branding crop keys to `config/locales/en/workspaces.en.yml`**
+- [x] **Step 3: Add branding crop keys to `config/locales/en/workspaces.en.yml`**
 
 Add under the existing `brandings:` section, after the `update:` block:
 
@@ -83,7 +83,7 @@ Add under the existing `brandings:` section, after the `update:` block:
         success: "Logo cropped."
 ```
 
-- [ ] **Step 4: Verify keys load**
+- [x] **Step 4: Verify keys load**
 
 ```bash
 bin/rails runner "puts I18n.t('image_crop.save')"
@@ -91,7 +91,7 @@ bin/rails runner "puts I18n.t('image_crop.save')"
 
 Expected output: `Save crop`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add config/locales/en/image_crop.en.yml config/locales/en/account.en.yml config/locales/en/workspaces.en.yml
@@ -170,13 +170,13 @@ RSpec.describe CropHelper, type: :helper do
 end
 ```
 
-- [ ] **Step 2: Run specs (expect red)**
+- [x] **Step 2: Run specs (expect red)**
 
 ```bash
 bundle exec rspec spec/helpers/crop_helper_spec.rb
 ```
 
-- [ ] **Step 3: Implement CropHelper**
+- [x] **Step 3: Implement CropHelper**
 
 Create `app/helpers/crop_helper.rb`:
 
@@ -197,13 +197,13 @@ module CropHelper
 end
 ```
 
-- [ ] **Step 4: Run specs (expect green)**
+- [x] **Step 4: Run specs (expect green)**
 
 ```bash
 bundle exec rspec spec/helpers/crop_helper_spec.rb
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/helpers/crop_helper.rb spec/helpers/crop_helper_spec.rb
@@ -235,7 +235,7 @@ With:
     variant = cropped_variant(user.avatar, resize_to: [ config[:px], config[:px] ])
 ```
 
-- [ ] **Step 2: Update `render_workspace_logo` in `app/helpers/workspace_helper.rb`**
+- [x] **Step 2: Update `render_workspace_logo` in `app/helpers/workspace_helper.rb`**
 
 Replace line 23:
 
@@ -249,7 +249,7 @@ With:
     variant = cropped_variant(workspace.logo, resize_to: [ config[:px], config[:px] ])
 ```
 
-- [ ] **Step 3: Run existing helper specs to verify no regressions**
+- [x] **Step 3: Run existing helper specs to verify no regressions**
 
 ```bash
 bundle exec rspec spec/helpers/avatar_helper_spec.rb spec/helpers/crop_helper_spec.rb
@@ -257,7 +257,7 @@ bundle exec rspec spec/helpers/avatar_helper_spec.rb spec/helpers/crop_helper_sp
 
 Expected: all pass (no crop metadata on test fixtures means fallback to resize-only — same behavior as before).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add app/helpers/avatar_helper.rb app/helpers/workspace_helper.rb
@@ -291,7 +291,7 @@ resource :avatar, only: [ :update, :destroy ] do
 end
 ```
 
-- [ ] **Step 2: Update branding routes**
+- [x] **Step 2: Update branding routes**
 
 Replace:
 
@@ -308,7 +308,7 @@ resource :branding, only: [ :edit, :update ] do
 end
 ```
 
-- [ ] **Step 3: Verify routes**
+- [x] **Step 3: Verify routes**
 
 ```bash
 bin/rails routes | grep crop
@@ -323,7 +323,7 @@ crop_workspace_branding GET    /workspaces/:workspace_slug/branding/crop(.:forma
 save_crop_workspace_branding PATCH /workspaces/:workspace_slug/branding/save_crop(.:format) workspaces/brandings#save_crop
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add config/routes.rb
@@ -506,7 +506,7 @@ export default class extends Controller {
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add app/javascript/controllers/image_crop_controller.js
@@ -596,13 +596,13 @@ Create `app/views/shared/_image_crop.html.erb`:
 </div>
 ```
 
-- [ ] **Step 2: Verify the partial renders**
+- [x] **Step 2: Verify the partial renders**
 
 ```bash
 bin/rails runner "puts 'Partial file exists: ' + File.exist?(Rails.root.join('app/views/shared/_image_crop.html.erb')).to_s"
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add app/views/shared/_image_crop.html.erb
@@ -665,13 +665,13 @@ Add to `spec/requests/account/avatars_spec.rb`, inside the `authenticated` conte
     end
 ```
 
-- [ ] **Step 2: Run specs (expect red)**
+- [x] **Step 2: Run specs (expect red)**
 
 ```bash
 bundle exec rspec spec/requests/account/avatars_spec.rb
 ```
 
-- [ ] **Step 3: Create the crop view**
+- [x] **Step 3: Create the crop view**
 
 Create `app/views/account/avatars/crop.html.erb`:
 
@@ -686,7 +686,7 @@ Create `app/views/account/avatars/crop.html.erb`:
       title: t("account.avatars.crop.title") %>
 ```
 
-- [ ] **Step 4: Add controller actions**
+- [x] **Step 4: Add controller actions**
 
 Add to `app/controllers/account/avatars_controller.rb`, before the `update` method:
 
@@ -711,7 +711,7 @@ Add to `app/controllers/account/avatars_controller.rb`, before the `update` meth
     end
 ```
 
-- [ ] **Step 5: Run specs (expect green)**
+- [x] **Step 5: Run specs (expect green)**
 
 ```bash
 bundle exec rspec spec/requests/account/avatars_spec.rb
@@ -774,13 +774,13 @@ Add to `spec/requests/workspaces/brandings_spec.rb`, inside the `authenticated` 
     end
 ```
 
-- [ ] **Step 2: Run specs (expect red)**
+- [x] **Step 2: Run specs (expect red)**
 
 ```bash
 bundle exec rspec spec/requests/workspaces/brandings_spec.rb
 ```
 
-- [ ] **Step 3: Create the crop view**
+- [x] **Step 3: Create the crop view**
 
 Create `app/views/workspaces/brandings/crop.html.erb`:
 
@@ -795,7 +795,7 @@ Create `app/views/workspaces/brandings/crop.html.erb`:
       title: t("workspaces.brandings.crop.title") %>
 ```
 
-- [ ] **Step 4: Add controller actions**
+- [x] **Step 4: Add controller actions**
 
 Add to `app/controllers/workspaces/brandings_controller.rb`, before the `update` method:
 
@@ -822,7 +822,7 @@ Add to `app/controllers/workspaces/brandings_controller.rb`, before the `update`
     end
 ```
 
-- [ ] **Step 5: Run specs (expect green)**
+- [x] **Step 5: Run specs (expect green)**
 
 ```bash
 bundle exec rspec spec/requests/workspaces/brandings_spec.rb
@@ -859,7 +859,7 @@ In `app/views/account/profiles/edit.html.erb`, after the "Change avatar" button 
       <% end %>
 ```
 
-- [ ] **Step 2: Add crop link to branding page**
+- [x] **Step 2: Add crop link to branding page**
 
 In `app/views/workspaces/brandings/edit.html.erb`, after the "Change logo" button, add:
 
@@ -872,7 +872,7 @@ In `app/views/workspaces/brandings/edit.html.erb`, after the "Change logo" butto
         <% end %>
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add app/views/account/profiles/edit.html.erb app/views/workspaces/brandings/edit.html.erb
@@ -955,13 +955,13 @@ RSpec.describe "Image cropping", type: :system do
 end
 ```
 
-- [ ] **Step 2: Run system specs**
+- [x] **Step 2: Run system specs**
 
 ```bash
 bundle exec rspec spec/system/image_crop_spec.rb
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add spec/system/image_crop_spec.rb
@@ -982,7 +982,7 @@ bundle exec rspec --exclude-pattern "spec/system/**/*_spec.rb" --format progress
 
 Expected: all pass with 0 failures.
 
-- [ ] **Step 2: Run all new and related system specs**
+- [x] **Step 2: Run all new and related system specs**
 
 ```bash
 bundle exec rspec spec/system/image_crop_spec.rb spec/system/image_upload_modal_spec.rb spec/system/avatar_spec.rb --format progress
@@ -990,7 +990,7 @@ bundle exec rspec spec/system/image_crop_spec.rb spec/system/image_upload_modal_
 
 Expected: all pass with 0 failures.
 
-- [ ] **Step 3: Fix any failures before proceeding**
+- [x] **Step 3: Fix any failures before proceeding**
 
 If any specs fail, investigate and fix. Common issues:
 
