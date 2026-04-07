@@ -1,0 +1,8 @@
+<% content_for(:title) { t("account.avatars.crop.title") } %>
+<%= render "shared/image_crop",
+      image: Current.user.avatar,
+      aspect_ratio: 1.0,
+      shape: :circle,
+      save_url: save_crop_account_avatar_path,
+      cancel_url: edit_account_profile_path,
+      title: t("account.avatars.crop.title") %>

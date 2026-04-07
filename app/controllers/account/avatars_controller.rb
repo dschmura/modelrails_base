@@ -1,5 +1,30 @@
 module Account
   class AvatarsController < ApplicationController
+    def crop
+      unless Current.user.avatar.attached?
+        redirect_to edit_account_profile_path, alert: t("image_crop.no_image")
+        nil
+      end
+    end
+
+    def save_crop
+      attachment = ActiveStorage::Attachment.find_by(
+        record_type: "User",
+        record_id: Current.user.id,
+        name: "avatar"
+      )
+
+      unless attachment
+        redirect_to edit_account_profile_path, alert: t("image_crop.no_image")
+        return
+      end
+
+      crop_params = params.require(:crop).permit(:x, :y, :w, :h).transform_values(&:to_i)
+      blob = ActiveStorage::Blob.find(attachment.blob_id)
+      blob.update!(metadata: blob.metadata.merge("crop" => crop_params.to_h))
+      redirect_to edit_account_profile_path, notice: t(".success")
+    end
+
     def update
       file = params[:avatar]
 
