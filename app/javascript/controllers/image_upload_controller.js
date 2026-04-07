@@ -1,10 +1,11 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["fileInput", "preview", "previewImage", "uploadZone", "currentImage", "error"]
+  static targets = ["fileInput", "preview", "previewImage", "uploadZone", "currentImage", "error", "form"]
   static values = {
     maxFileSize: { type: Number, default: 5 },
-    acceptedTypes: { type: String, default: "image/png,image/jpeg,image/gif,image/webp" }
+    acceptedTypes: { type: String, default: "image/png,image/jpeg,image/gif,image/webp" },
+    autoSubmit: { type: Boolean, default: false }
   }
 
   selectFile() {
@@ -23,6 +24,12 @@ export default class extends Controller {
     }
 
     this.#clearError()
+
+    if (this.autoSubmitValue) {
+      this.#showUploading()
+      this.formTarget.requestSubmit()
+      return
+    }
 
     const reader = new FileReader()
     reader.onload = (e) => {
@@ -67,6 +74,18 @@ export default class extends Controller {
   }
 
   // Private
+
+  #showUploading() {
+    if (this.hasCurrentImageTarget) this.currentImageTarget.hidden = true
+    this.uploadZoneTarget.innerHTML = `
+      <div class="flex flex-col items-center gap-2 py-4">
+        <svg class="w-6 h-6 text-text-muted animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-dasharray="50 20" stroke-linecap="round"/>
+        </svg>
+        <span class="text-sm text-text-muted">${this.element.dataset.uploadingText || "Uploading..."}</span>
+      </div>
+    `
+  }
 
   #validate(file) {
     const accepted = this.acceptedTypesValue.split(",").map(t => t.trim())

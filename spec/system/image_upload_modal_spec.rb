@@ -41,10 +41,15 @@ RSpec.describe "Image upload modal", type: :system do
   end
 
   describe "opening and closing" do
-    it "opens the modal from the profile page" do
+    it "opens the modal from the Change avatar link" do
       click_button I18n.t("account.avatars.edit.change")
       expect(page).to have_css("dialog[open]")
       expect(page).to have_text(I18n.t("image_upload.drop_zone"))
+    end
+
+    it "opens the modal from clicking the avatar" do
+      find("button[aria-label='#{I18n.t('account.avatars.edit.change')}']").click
+      expect(page).to have_css("dialog[open]")
     end
 
     it "closes the modal on X button click" do
@@ -55,38 +60,15 @@ RSpec.describe "Image upload modal", type: :system do
     end
   end
 
-  describe "file selection" do
-    before do
+  describe "auto-submit upload flow" do
+    it "auto-uploads and redirects to crop page on file select" do
       click_button I18n.t("account.avatars.edit.change")
       expect(page).to have_css("dialog[open]")
-    end
-
-    it "shows preview after file selection" do
-      inject_file
-      expect(page).to have_css("[data-image-upload-target='preview']:not([hidden])", wait: 3)
-    end
-
-    it "shows upload button after file selection" do
-      inject_file
-      expect(page).to have_button(I18n.t("image_upload.upload"), wait: 3)
-    end
-
-    it "shows choose different button that re-opens file picker" do
-      inject_file
-      expect(page).to have_button(I18n.t("image_upload.choose_different"), wait: 3)
-    end
-  end
-
-  describe "uploading" do
-    it "uploads the avatar and shows success message" do
-      click_button I18n.t("account.avatars.edit.change")
       inject_file(filename: "avatar.png")
-      expect(page).to have_button(I18n.t("image_upload.upload"), wait: 3)
-      click_button I18n.t("image_upload.upload")
 
-      expect(page).to have_text(I18n.t("account.avatars.update.success"), wait: 5)
+      # Should go straight to crop page (auto-submit, no preview step)
+      expect(page).to have_text(I18n.t("account.avatars.crop.title"), wait: 5)
       expect(user.reload.avatar).to be_attached
-      expect(user.avatar_source).to eq("upload")
     end
   end
 
@@ -122,18 +104,6 @@ RSpec.describe "Image upload modal", type: :system do
       expect(page).to have_css("[data-image-upload-target='error']:not([hidden])", wait: 3)
       expect(page).to have_text("too large")
     end
-
-    it "does not show preview when validation fails" do
-      page.execute_script(<<~JS)
-        const input = document.querySelector('[data-image-upload-target="fileInput"]');
-        const file = new File(['fake'], 'doc.pdf', { type: 'application/pdf' });
-        const dt = new DataTransfer();
-        dt.items.add(file);
-        input.files = dt.files;
-        input.dispatchEvent(new Event('change', { bubbles: true }));
-      JS
-      expect(page).to have_css("[data-image-upload-target='preview'][hidden]", visible: :all, wait: 3)
-    end
   end
 
   describe "accessibility" do
@@ -145,6 +115,10 @@ RSpec.describe "Image upload modal", type: :system do
     it "error display has role=alert" do
       click_button I18n.t("account.avatars.edit.change")
       expect(page).to have_css("[data-image-upload-target='error'][role='alert']", visible: :all)
+    end
+
+    it "avatar is clickable with aria-label" do
+      expect(page).to have_css("button[aria-label='#{I18n.t('account.avatars.edit.change')}']")
     end
   end
 end
