@@ -51,6 +51,11 @@ en:
         upload: "Uploaded photo"
         gravatar: "Gravatar"
         initials: "Initials"
+      crop:
+        title: "Crop avatar"
+        link: "Crop"
+      save_crop:
+        success: "Avatar cropped."
     theme_preferences:
       update:
         success: "Theme updated."
