@@ -52,11 +52,13 @@ RSpec.describe "Image cropping", type: :system do
       expect(page).to have_current_path(edit_account_profile_path)
     end
 
-    it "profile page links to crop and upload when avatar exists" do
+    it "profile page shows single change avatar button that opens modal with crop UI" do
       visit edit_account_profile_path
       dismiss_banner
-      expect(page).to have_link(I18n.t("account.avatars.crop.link"))
-      expect(page).to have_button(I18n.t("account.avatars.edit.upload_new"))
+      expect(page).to have_button(I18n.t("account.avatars.edit.change"))
+      click_button I18n.t("account.avatars.edit.change")
+      expect(page).to have_css("dialog[open]")
+      expect(page).to have_css("[data-controller='image-cropper']")
     end
 
     it "passes accessibility audit" do

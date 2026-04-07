@@ -42,7 +42,7 @@ RSpec.describe "Avatar management", type: :system do
     expect(page).to have_text(I18n.t("account.avatars.edit.title"))
   end
 
-  it "shows source selection when multiple sources are available" do
+  it "shows source selection in modal upload mode when multiple sources are available" do
     user.avatar.attach(
       io: File.open(Rails.root.join("spec/fixtures/files/avatar.png")),
       filename: "avatar.png",
@@ -53,6 +53,10 @@ RSpec.describe "Avatar management", type: :system do
     sign_in_via_form(user)
     visit edit_account_profile_path
     dismiss_cookie_banner
+    click_button I18n.t("account.avatars.edit.change")
+    expect(page).to have_css("dialog[open]")
+    # Modal opens in crop mode when avatar exists; switch to upload mode to see source selection
+    click_button I18n.t("image_crop.upload_different")
     expect(page).to have_text(I18n.t("account.avatars.source_label"))
   end
 
