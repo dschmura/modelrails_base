@@ -3,6 +3,7 @@ en:
     drop_zone: "Click to upload or drag and drop"
     constraints: "%{types} up to %{max_size}MB"
     upload: "Upload image"
+    uploading: "Uploading..."
     choose_different: "Choose a different image"
     remove: "Remove current image"
     remove_confirm: "Are you sure you want to remove this image?"

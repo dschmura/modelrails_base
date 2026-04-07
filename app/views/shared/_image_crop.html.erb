@@ -3,18 +3,22 @@
   overlay_class = shape == :circle ? "rounded-full" : "rounded-md"
 %>
 
-<div class="max-w-2xl mx-auto px-4 py-16">
+<div class="max-w-3xl mx-auto px-4 py-16">
   <h1 class="text-2xl font-bold text-text-heading mb-6">
     <%= title %>
   </h1>
 
-  <%= form_with url: save_url, method: :patch, class: "space-y-6" do |f| %>
+  <%= form_with url: save_url, method: :patch, class: "space-y-4" do |f| %>
     <div data-controller="image-crop"
          data-image-crop-aspect-ratio-value="<%= aspect_ratio %>">
 
       <%# Crop viewport — fixed aspect ratio, overflow hidden %>
       <div data-image-crop-target="container"
-           class="relative overflow-hidden bg-surface-sunken rounded-lg cursor-grab select-none"
+           tabindex="0"
+           data-action="keydown->image-crop#handleKeydown"
+           aria-label="<%= title %>"
+           class="relative overflow-hidden bg-surface-sunken rounded-lg cursor-grab select-none
+                  focus:outline-none focus:ring-2 focus:ring-interactive-focus"
            style="aspect-ratio: <%= aspect_ratio %>; max-height: 60vh;">
 
         <%# The image — positioned via CSS transforms %>
@@ -33,6 +37,24 @@
         </div>
       </div>
 
+      <%# Zoom slider %>
+      <div class="flex items-center gap-3">
+        <span class="text-text-muted text-xs" aria-hidden="true">−</span>
+        <input type="range"
+               min="0" max="100" value="0"
+               data-image-crop-target="slider"
+               data-action="input->image-crop#handleSlider"
+               aria-label="<%= t('image_crop.zoom') %>"
+               class="flex-1 h-2 rounded-full appearance-none bg-border-strong
+                      [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5
+                      [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full
+                      [&::-webkit-slider-thumb]:bg-interactive [&::-webkit-slider-thumb]:cursor-pointer
+                      [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5
+                      [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-interactive
+                      [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer">
+        <span class="text-text-muted text-xs" aria-hidden="true">+</span>
+      </div>
+
       <p class="text-sm text-text-muted text-center">
         <%= t("image_crop.instructions") %>
       </p>
@@ -47,12 +69,22 @@
       <div class="flex flex-col sm:flex-row gap-3">
         <button type="submit"
                 data-action="click->image-crop#save"
+                data-turbo-submits-with="<%= t('image_crop.saving') %>"
                 class="inline-flex items-center justify-center flex-1
                        min-h-[44px] px-6 py-2 rounded-md
                        text-sm font-semibold text-white
                        bg-interactive hover:bg-interactive-hover
                        focus:outline-none focus:ring-2 focus:ring-interactive-focus">
           <%= t("image_crop.save") %>
+        </button>
+        <button type="button"
+                data-action="click->image-crop#reset"
+                class="inline-flex items-center justify-center
+                       min-h-[44px] px-4 py-2 rounded-md
+                       border border-border text-sm font-medium text-text-body
+                       hover:bg-surface-sunken
+                       focus:outline-none focus:ring-2 focus:ring-interactive-focus">
+          <%= t("image_crop.reset") %>
         </button>
         <%= link_to t("image_crop.cancel"), cancel_url,
               class: "inline-flex items-center justify-center flex-1

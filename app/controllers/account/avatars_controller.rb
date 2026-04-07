@@ -33,7 +33,7 @@ module Account
         Current.user.avatar_source = "upload"
 
         if Current.user.save
-          redirect_to edit_account_profile_path, notice: t(".success")
+          redirect_to crop_account_avatar_path
         else
           Current.user.avatar.purge
           redirect_to edit_account_profile_path, alert: Current.user.errors.full_messages.to_sentence

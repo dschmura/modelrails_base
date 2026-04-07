@@ -18,13 +18,13 @@ RSpec.describe "Account Avatars", type: :request do
     before { sign_in(user) }
 
     describe "PATCH /account/avatar" do
-      it "uploads an avatar and sets source to upload" do
+      it "uploads an avatar and redirects to crop page" do
         file = fixture_file_upload("avatar.png", "image/png")
         patch account_avatar_path, params: { avatar: file }
         user.reload
         expect(user.avatar).to be_attached
         expect(user.avatar_source).to eq("upload")
-        expect(response).to redirect_to(edit_account_profile_path)
+        expect(response).to redirect_to(crop_account_avatar_path)
       end
 
       it "rejects invalid content type" do
