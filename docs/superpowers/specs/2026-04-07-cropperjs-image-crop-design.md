@@ -25,6 +25,14 @@ Replace the custom pan/zoom image crop controller with Cropper.js v2 to provide 
 - Client-side image processing/compression before upload
 - Changing the upload flow itself (file selection, validation, drag-and-drop — all unchanged)
 
+## Edge Cases
+
+- **Large images (10+ MP):** Phone cameras routinely produce 12-20MP images. Cropper.js renders via canvas internally and handles downscaling, but very large images can cause jank on low-end mobile devices. The Stimulus controller should log a warning if `naturalWidth` or `naturalHeight` exceeds 4096px. No blocking behavior — just awareness for future optimization (e.g., client-side downscale before crop) if it becomes a real problem.
+- **EXIF orientation:** Photos from mobile devices often include EXIF rotation metadata (portrait stored as landscape + rotation flag). Cropper.js v2 reads EXIF orientation automatically and corrects the display. This must be explicitly tested — upload a portrait phone photo and verify the crop UI shows it upright.
+- **Cropper.js CSS vs Tailwind 4 preflight:** Tailwind 4's CSS reset (`img { display: block; max-width: 100% }`, universal box-sizing) can interfere with Cropper.js's internal layout. The vendored CSS must be tested against Tailwind's preflight, and may need scoped specificity overrides (e.g., `.cropper-container img { max-width: none }`).
+- **Turbo cache and Cropper.js state:** When Turbo caches a page with an active Cropper.js instance and restores it on back-navigation, the Stimulus controller's `disconnect()` → `connect()` cycle must cleanly destroy and reinitialize. Verify no ghost canvases or duplicate event listeners persist.
+- **ActiveStorage URL expiry:** ActiveStorage redirect-mode URLs are short-lived. When Turbo Stream swaps crop UI into a modal, the image URL is freshly rendered server-side, so this is not an issue. However, if the user leaves the crop page idle for an extended period and then saves, the image display may break on the next page load — the crop coordinates themselves are still valid since they reference the blob, not the URL.
+
 ## Approach: Cropper.js v2 via Importmap
 
 Cropper.js v2 is a mature, actively maintained library (~30KB gzipped, no dependencies) that ships ESM modules compatible with Rails importmaps. It provides draggable selection with corner/edge resize handles, pinch-to-zoom, scroll zoom, aspect ratio locking, and a live preview API.
