@@ -70,6 +70,36 @@ en:
       destroy:
         success: "%{provider} has been disconnected."
         last_method: "You cannot disconnect your only sign-in method."
+  identity_picker:
+    preview: "Preview"
+    choose_source: "Choose how you're represented"
+    source_label: "Identity source"
+    select_file: "Select image file"
+    save: "Save & apply"
+    save_crop: "Save crop"
+    crop_title: "Crop your photo"
+    crop_area_label: "Crop area — use arrow keys to move selection, plus and minus to zoom"
+    zoom_label: "Zoom level"
+    color_label: "Circle color"
+    color_aria_label: "Circle color hue"
+    result_label: "Result"
+    result_description: "Circular preview"
+    upload_new: "Upload new"
+    remove_photo: "Remove photo"
+    back: "Back"
+    back_to_hub: "Back to identity switcher"
+    edit_profile_picture: "Edit profile picture"
+    edit_workspace_logo: "Edit workspace logo"
+    sources:
+      upload:
+        title: "Photo"
+        description: "Upload or take a custom picture"
+      gravatar:
+        title: "Gravatar"
+        description: "Sync with your gravatar.com profile"
+      initials:
+        title: "Initials"
+        description: "A simple, colored circle with your initials"
   omniauth_callbacks:
     create:
       linked: "%{provider} has been connected to your account."
