@@ -439,7 +439,7 @@ handles and overlay."
 
 This is the Cropper.js v2 wrapper. Pure crop concern — knows nothing about identity picker, sources, or forms.
 
-- [ ] **Step 1: Create the controller**
+- [x] **Step 1: Create the controller**
 
 Create `app/javascript/controllers/image_cropper_controller.js`:
 
@@ -749,7 +749,7 @@ crop:changed custom event for live preview updates."
 
 Recreated from Phase 1 deletion, now dispatches through modal controller's close method to fix focus restoration.
 
-- [ ] **Step 1: Create the controller**
+- [x] **Step 1: Create the controller**
 
 Create `app/javascript/controllers/modal_closer_controller.js`:
 
@@ -780,7 +780,7 @@ export default class extends Controller {
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add app/javascript/controllers/modal_closer_controller.js
@@ -800,7 +800,7 @@ trigger element that opened the modal."
 
 Hub orchestration — manages source selection, color picker, file picker, crop flow.
 
-- [ ] **Step 1: Create the controller**
+- [x] **Step 1: Create the controller**
 
 Create `app/javascript/controllers/identity_picker_controller.js`:
 
@@ -1049,7 +1049,7 @@ export default class extends Controller {
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add app/javascript/controllers/identity_picker_controller.js
