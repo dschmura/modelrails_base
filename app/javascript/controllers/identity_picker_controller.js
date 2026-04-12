@@ -1,0 +1,243 @@
+import { Controller } from "@hotwired/stimulus"
+
+export default class extends Controller {
+  static targets = [
+    "preview",          // large preview circle
+    "sourceField",      // hidden input for avatar_source
+    "colorField",       // hidden input for primary_color
+    "colorSlider",      // range input for hue
+    "colorPanel",       // color picker panel (shown/hidden)
+    "colorHex",         // hex display span
+    "fileInput",        // hidden file input
+    "initialsPreview",  // initials circle in preview
+    "photoPreview",     // photo img in preview
+    "gravPreview",      // gravatar img in preview
+    "cropPreview",      // small circular preview in crop view
+    "form"              // the hub form
+  ]
+
+  static values = {
+    formUrl: String,
+    currentSource: String,
+    hasImage: Boolean
+  }
+
+  connect() {
+    this._pendingFile = null
+  }
+
+  // Source card selection
+  selectSource(event) {
+    const source = event.currentTarget.querySelector("input[type='radio']")?.value
+      || event.params.source
+    if (!source) return
+
+    this.currentSourceValue = source
+    this.sourceFieldTarget.value = source
+    this._updatePreview()
+    this._updateContextualControls()
+
+    // Photo + no image → open file picker immediately
+    if (source === "upload" && !this.hasImageValue) {
+      this.openFilePicker()
+    }
+  }
+
+  // Click on photo preview → open crop view
+  openCrop() {
+    if (this.currentSourceValue !== "upload" || !this.hasImageValue) return
+    this._switchMode("crop")
+  }
+
+  // Open native file picker
+  openFilePicker() {
+    this.fileInputTarget.click()
+  }
+
+  // File selected from native picker
+  handleFileSelected(event) {
+    const file = event.target.files[0]
+    if (!file) return
+
+    // Client-side validation
+    const validTypes = ["image/png", "image/jpeg", "image/gif", "image/webp"]
+    if (!validTypes.includes(file.type)) {
+      this._announce("Invalid file type. Please select a PNG, JPEG, GIF, or WebP image.")
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      this._announce("File is too large. Maximum size is 5 MB.")
+      return
+    }
+
+    this._pendingFile = file
+    const objectUrl = URL.createObjectURL(file)
+
+    // Load the image into the cropper
+    const cropperEl = this.element.querySelector("[data-controller='image-cropper']")
+    if (cropperEl) {
+      const cropper = this.application.getControllerForElementAndIdentifier(cropperEl, "image-cropper")
+      if (cropper) {
+        cropper.loadImage(objectUrl)
+      }
+    }
+
+    this._switchMode("crop")
+
+    // Reset file input so same file can be re-selected
+    event.target.value = ""
+  }
+
+  // "Save crop" button clicked
+  async saveCrop() {
+    const cropperEl = this.element.querySelector("[data-controller='image-cropper']")
+    if (!cropperEl) return
+
+    const cropper = this.application.getControllerForElementAndIdentifier(cropperEl, "image-cropper")
+    if (!cropper) return
+
+    const result = await cropper.exportCrop()
+    if (!result) return
+
+    const { blob, coordinates } = result
+
+    const formData = new FormData()
+    formData.append("avatar", blob, "cropped-avatar.png")
+
+    if (this._pendingFile) {
+      formData.append("avatar_original", this._pendingFile)
+      this._pendingFile = null
+    }
+
+    formData.append("avatar_source", "upload")
+    formData.append("crop_coordinates", JSON.stringify(coordinates))
+
+    // Add CSRF token
+    const csrfToken = document.querySelector("meta[name='csrf-token']")?.content
+    if (csrfToken) {
+      formData.append("authenticity_token", csrfToken)
+    }
+
+    const response = await fetch(this.formUrlValue, {
+      method: "PATCH",
+      headers: { "Accept": "text/vnd.turbo-stream.html" },
+      body: formData
+    })
+
+    if (response.ok) {
+      const html = await response.text()
+      Turbo.renderStreamMessage(html)
+      this.hasImageValue = true
+    }
+
+    this._switchMode("hub")
+    this._updatePreview()
+  }
+
+  // "Remove photo" from crop view
+  removePhoto() {
+    this.hasImageValue = false
+    this.currentSourceValue = "initials"
+    this.sourceFieldTarget.value = "initials"
+    this._switchMode("hub")
+    this._updatePreview()
+    this._updateContextualControls()
+  }
+
+  // "Back to hub" from crop view
+  backToHub() {
+    this._pendingFile = null
+    this._switchMode("hub")
+  }
+
+  // Color slider changed
+  handleColorChange() {
+    const hue = parseInt(this.colorSliderTarget.value, 10)
+    this.colorFieldTarget.value = hue
+
+    // Update preview
+    if (this.hasInitialsPreviewTarget) {
+      this.initialsPreviewTarget.style.backgroundColor = `oklch(0.45 0.2 ${hue})`
+    }
+
+    // Update hex display
+    if (this.hasColorHexTarget) {
+      this.colorHexTarget.textContent = this._hueToColorName(hue)
+    }
+
+    this._announceColor(hue)
+  }
+
+  // Crop view dispatches this when crop changes (for live preview)
+  updateCropPreview(event) {
+    if (!this.hasCropPreviewTarget) return
+
+    const cropperEl = this.element.querySelector("[data-controller='image-cropper']")
+    if (!cropperEl) return
+
+    const cropper = this.application.getControllerForElementAndIdentifier(cropperEl, "image-cropper")
+    if (!cropper?._cropper) return
+
+    const selection = cropper._cropper.getCropperSelection()
+    if (!selection) return
+
+    selection.$toCanvas({ width: 48, height: 48 }).then((canvas) => {
+      this.cropPreviewTarget.src = canvas.toDataURL()
+    }).catch(() => {})
+  }
+
+  // Private
+
+  _switchMode(mode) {
+    const modeSwitch = this.element.querySelector("[data-controller~='mode-switch']")
+      || this.element.closest("[data-controller~='mode-switch']")
+    if (modeSwitch) {
+      const ctrl = this.application.getControllerForElementAndIdentifier(modeSwitch, "mode-switch")
+      if (ctrl) ctrl.modeValue = mode
+    }
+  }
+
+  _updatePreview() {
+    // Show/hide the correct preview element based on source
+    if (this.hasInitialsPreviewTarget) {
+      this.initialsPreviewTarget.hidden = this.currentSourceValue !== "initials"
+    }
+    if (this.hasPhotoPreviewTarget) {
+      this.photoPreviewTarget.hidden = this.currentSourceValue !== "upload"
+    }
+    if (this.hasGravPreviewTarget) {
+      this.gravPreviewTarget.hidden = this.currentSourceValue !== "gravatar"
+    }
+  }
+
+  _updateContextualControls() {
+    if (this.hasColorPanelTarget) {
+      this.colorPanelTarget.hidden = this.currentSourceValue !== "initials"
+    }
+  }
+
+  _hueToColorName(hue) {
+    if (hue < 30) return "Red"
+    if (hue < 60) return "Orange"
+    if (hue < 90) return "Yellow"
+    if (hue < 150) return "Green"
+    if (hue < 210) return "Cyan"
+    if (hue < 270) return "Blue"
+    if (hue < 330) return "Purple"
+    return "Pink"
+  }
+
+  _announceColor(hue) {
+    const liveRegion = this.element.querySelector("[aria-live='polite']")
+    if (liveRegion) {
+      liveRegion.textContent = `Color: ${this._hueToColorName(hue)}`
+    }
+  }
+
+  _announce(message) {
+    const liveRegion = this.element.querySelector("[aria-live='polite']")
+    if (liveRegion) {
+      liveRegion.textContent = message
+    }
+  }
+}
