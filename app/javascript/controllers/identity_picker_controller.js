@@ -73,7 +73,10 @@ export default class extends Controller {
     this._pendingFile = file
     const objectUrl = URL.createObjectURL(file)
 
-    // Load the image into the cropper
+    // Switch to crop view FIRST so the container is visible,
+    // THEN load the image (Cropper.js v2 needs a visible container)
+    this._switchMode("crop")
+
     const cropperEl = this.element.querySelector("[data-controller='image-cropper']")
     if (cropperEl) {
       const cropper = this.application.getControllerForElementAndIdentifier(cropperEl, "image-cropper")
@@ -81,8 +84,6 @@ export default class extends Controller {
         cropper.loadImage(objectUrl)
       }
     }
-
-    this._switchMode("crop")
 
     // Reset file input so same file can be re-selected
     event.target.value = ""
