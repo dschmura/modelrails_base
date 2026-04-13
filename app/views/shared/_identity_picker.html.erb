@@ -239,107 +239,159 @@
       </h3>
     </div>
 
-    <%# Crop area %>
-    <div data-controller="image-cropper"
+    <%# Two-column grid: crop viewport (left) + controls (right) %>
+    <%# image-cropper controller scoped to the grid so targets in both columns are reachable %>
+    <div class="crop-view-grid"
+         data-controller="image-cropper"
          data-image-cropper-aspect-ratio-value="1"
          data-action="keydown->image-cropper#handleKeydown image-cropper:cropChanged->identity-picker#updateCropPreview"
          tabindex="0"
          aria-label="<%= t('identity_picker.crop_area_label') %>">
-      <div class="cropper-container rounded-lg"
-           data-image-cropper-target="container">
-        <% if has_image %>
-          <%= image_tag image_url, class: "max-w-full", alt: "" %>
-        <% else %>
-          <img src="" class="max-w-full" alt="">
-        <% end %>
-      </div>
 
-      <%# Zoom slider %>
-      <div class="mt-3 px-2">
-        <input type="range" min="0" max="100" value="0"
-               data-image-cropper-target="slider"
-               data-action="input->image-cropper#handleSlider"
-               aria-label="<%= t('identity_picker.zoom_label') %>"
-               class="w-full h-2 rounded-full appearance-none cursor-pointer
-                      bg-border
-                      [&::-webkit-slider-thumb]:appearance-none
-                      [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
-                      [&::-webkit-slider-thumb]:rounded-full
-                      [&::-webkit-slider-thumb]:bg-white
-                      [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-border-strong
-                      [&::-webkit-slider-thumb]:shadow">
-      </div>
-
-      <%# ARIA live region %>
-      <div data-image-cropper-target="liveRegion"
-           aria-live="polite" class="sr-only"></div>
-    </div>
-
-    <%# Result row %>
-    <div class="flex items-center justify-between mt-4">
-      <div class="flex items-center gap-3">
-        <div class="w-12 h-12 rounded-full bg-surface-sunken overflow-hidden shrink-0"
-             aria-hidden="true">
-          <img src="" alt=""
-               class="w-full h-full object-cover"
-               data-identity-picker-target="cropPreview">
+      <%# ── Left column: Crop viewport ── %>
+      <div>
+        <div class="cropper-container rounded-lg"
+             data-image-cropper-target="container">
+          <% if has_image %>
+            <%= image_tag image_url, class: "max-w-full", alt: "" %>
+          <% else %>
+            <img src="" class="max-w-full" alt="">
+          <% end %>
+          <%# Dimension badge %>
+          <div class="crop-dimension-badge"
+               data-image-cropper-target="dimensionBadge"
+               aria-hidden="true">
+            &mdash;
+          </div>
         </div>
+
+        <%# ARIA live region %>
+        <div data-image-cropper-target="liveRegion"
+             aria-live="polite" class="sr-only"></div>
+
+        <%# Hint text below crop area %>
+        <p class="text-sm text-text-muted text-center mt-2">
+          <%= t("identity_picker.crop_hint") %>
+        </p>
+      </div>
+
+      <%# ── Right column: Controls ── %>
+      <div class="space-y-5">
+        <%# Preview section %>
         <div>
-          <span class="block text-sm font-medium text-text-heading">
-            <%= t("identity_picker.result_label") %>
+          <span class="block text-xs uppercase tracking-wider text-text-muted mb-3">
+            <%= t("identity_picker.preview") %>
           </span>
-          <span class="block text-xs text-text-muted">
-            <%= t("identity_picker.result_description") %>
-          </span>
+          <div class="flex items-center gap-3">
+            <div class="w-16 h-16 rounded-full bg-surface-sunken overflow-hidden shrink-0"
+                 aria-hidden="true">
+              <img src="" alt=""
+                   class="w-full h-full object-cover"
+                   data-identity-picker-target="cropPreview">
+            </div>
+            <div>
+              <span class="block text-sm font-medium text-text-heading">
+                <%= t("identity_picker.preview_title") %>
+              </span>
+              <span class="block text-xs text-text-muted">
+                <%= t("identity_picker.preview_description") %>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <%# Zoom slider with label and percentage %>
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="inline-flex items-center gap-1.5 text-sm font-medium text-text-heading">
+              <%= t("identity_picker.zoom_label") %>
+            </span>
+            <span class="text-sm font-medium text-interactive"
+                  data-image-cropper-target="zoomPercent">
+              100%
+            </span>
+          </div>
+          <input type="range" min="0" max="100" value="0"
+                 data-image-cropper-target="slider"
+                 data-action="input->image-cropper#handleSlider"
+                 aria-label="<%= t('identity_picker.zoom_aria_label') %>"
+                 class="w-full h-2 rounded-full appearance-none cursor-pointer
+                        bg-border
+                        [&::-webkit-slider-thumb]:appearance-none
+                        [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
+                        [&::-webkit-slider-thumb]:rounded-full
+                        [&::-webkit-slider-thumb]:bg-white
+                        [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-border-strong
+                        [&::-webkit-slider-thumb]:shadow">
+        </div>
+
+        <%# Reset button %>
+        <button type="button"
+                data-action="click->identity-picker#resetCrop"
+                class="w-full inline-flex items-center justify-center gap-2 px-4 py-2
+                       text-sm font-medium text-text-body
+                       border border-border rounded-lg
+                       hover:bg-surface-sunken
+                       focus:outline-none focus:ring-2 focus:ring-interactive-focus
+                       min-h-[44px]">
+          <%= icon(:arrow_path, size: :sm) %>
+          <%= t("identity_picker.reset_crop") %>
+        </button>
+
+        <%# Info banner %>
+        <div class="flex items-start gap-2.5 p-3 rounded-lg bg-info-subtle text-info text-sm">
+          <%= icon(:information_circle, size: :sm, class: "shrink-0 mt-0.5") %>
+          <p><%= t("identity_picker.image_quality_tip") %></p>
         </div>
       </div>
-      <button type="button"
-              data-action="click->identity-picker#saveCrop"
-              class="inline-flex items-center gap-2 px-4 py-2 rounded-md
-                     bg-interactive text-text-on-interactive font-medium
-                     hover:bg-interactive-hover
-                     focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus
-                     min-h-[44px]">
-        <%= t("identity_picker.save_crop") %>
-      </button>
-    </div>
 
-    <%# Secondary actions %>
-    <div class="flex flex-col items-center gap-2 mt-4 pt-4 border-t border-border">
-      <button type="button"
-              data-action="click->identity-picker#resetCrop"
-              class="inline-flex items-center gap-2 text-sm text-interactive
-                     hover:text-interactive-hover
-                     min-h-[44px] px-2 rounded
-                     focus:outline-none focus:ring-2 focus:ring-interactive-focus">
-        <%= icon(:arrow_path, size: :sm) %>
-        <%= t("identity_picker.reset_crop") %>
-      </button>
-      <button type="button"
-              data-action="click->identity-picker#openFilePicker"
-              class="inline-flex items-center gap-2 text-sm text-interactive
-                     hover:text-interactive-hover
-                     min-h-[44px] px-2 rounded
-                     focus:outline-none focus:ring-2 focus:ring-interactive-focus">
-        <%= icon(:arrow_up_tray, size: :sm) %>
-        <%= t("identity_picker.upload_new") %>
-      </button>
-      <button type="button"
-              data-action="click->identity-picker#removePhoto"
-              class="inline-flex items-center gap-2 text-sm text-danger
-                     hover:text-danger/80
-                     min-h-[44px] px-2 rounded
-                     focus:outline-none focus:ring-2 focus:ring-interactive-focus">
-        <%= icon(:trash, size: :sm) %>
-        <%= t("identity_picker.remove_photo") %>
-      </button>
-      <button type="button"
-              data-action="click->identity-picker#backToHub"
-              class="text-sm text-text-muted hover:text-text-body
-                     min-h-[44px] px-2 rounded
-                     focus:outline-none focus:ring-2 focus:ring-interactive-focus">
-        <%= t("identity_picker.cancel") %>
-      </button>
+      <%# ── Footer: spans both columns ── %>
+      <div class="crop-view-footer flex flex-col gap-3 pt-4 border-t border-border">
+        <%# Primary row: Cancel + Save crop %>
+        <div class="flex items-center justify-end gap-3">
+          <button type="button"
+                  data-action="click->identity-picker#backToHub"
+                  class="inline-flex items-center justify-center px-4 py-2
+                         text-sm font-medium text-text-body
+                         border border-border rounded-lg
+                         hover:bg-surface-sunken
+                         focus:outline-none focus:ring-2 focus:ring-interactive-focus
+                         min-h-[44px]">
+            <%= t("identity_picker.cancel") %>
+          </button>
+          <button type="button"
+                  data-action="click->identity-picker#saveCrop"
+                  class="inline-flex items-center gap-2 px-5 py-2 rounded-lg
+                         bg-interactive text-text-on-interactive font-medium text-sm
+                         hover:bg-interactive-hover
+                         focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus
+                         min-h-[44px]">
+            <%= t("identity_picker.save_crop") %>
+          </button>
+        </div>
+        <%# Secondary row: Upload new (left) + Remove photo (right) %>
+        <div class="flex items-center justify-between">
+          <button type="button"
+                  data-action="click->identity-picker#openFilePicker"
+                  class="inline-flex items-center gap-1.5 text-sm text-interactive
+                         hover:text-interactive-hover
+                         min-h-[44px] px-2 rounded
+                         focus:outline-none focus:ring-2 focus:ring-interactive-focus">
+            <%= icon(:arrow_up_tray, size: :sm) %>
+            <%= t("identity_picker.upload_new") %>
+          </button>
+          <button type="button"
+                  data-action="click->identity-picker#removePhoto"
+                  class="inline-flex items-center gap-1.5 text-sm text-danger
+                         hover:text-danger/80
+                         min-h-[44px] px-2 rounded
+                         focus:outline-none focus:ring-2 focus:ring-interactive-focus">
+            <%= icon(:trash, size: :sm) %>
+            <%= t("identity_picker.remove_photo") %>
+          </button>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
