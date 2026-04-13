@@ -83,6 +83,7 @@ en:
     color_aria_label: "Circle color hue"
     result_label: "Result"
     result_description: "Circular preview"
+    reset_crop: "Reset"
     upload_new: "Upload new"
     remove_photo: "Remove photo"
     back: "Back"

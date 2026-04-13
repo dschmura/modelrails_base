@@ -49,6 +49,29 @@ export default class extends Controller {
     })
   }
 
+  // Public: reset selection and zoom to initial state
+  reset() {
+    if (!this._cropper) return
+
+    const selection = this._cropper.getCropperSelection()
+    if (selection) selection.$reset()
+
+    const image = this._cropper.getCropperImage()
+    if (image && this._baseTransform) {
+      image.$setTransform(this._baseTransform)
+    }
+
+    if (this.hasSliderTarget) {
+      this.sliderTarget.value = 0
+    }
+
+    this._announceReset()
+
+    setTimeout(() => {
+      this.dispatch("cropChanged")
+    }, 50)
+  }
+
   // Public: export cropped region as blob
   async exportCrop() {
     if (!this._cropper) return null
@@ -268,5 +291,10 @@ export default class extends Controller {
   _announceReady() {
     if (!this.hasLiveRegionTarget) return
     this.liveRegionTarget.textContent = "Image loaded. Use arrow keys to move selection, plus and minus to zoom."
+  }
+
+  _announceReset() {
+    if (!this.hasLiveRegionTarget) return
+    this.liveRegionTarget.textContent = "Crop reset to original position."
   }
 }
