@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["container", "slider", "liveRegion"]
+  static targets = ["container", "slider", "liveRegion", "zoomPercent", "dimensionBadge"]
   static values = { aspectRatio: { type: Number, default: 1 } }
 
   connect() {
@@ -69,6 +69,8 @@ export default class extends Controller {
 
     setTimeout(() => {
       this.dispatch("cropChanged")
+      const sel = this._cropper?.getCropperSelection()
+      if (sel) this._updateDimensionBadge(sel)
     }, 50)
   }
 
@@ -113,6 +115,7 @@ export default class extends Controller {
     canvas.dispatchEvent(new CustomEvent("actionend", { bubbles: true }))
 
     this._announceZoom(value)
+    this._updateZoomPercent(value)
   }
 
   // Keyboard shortcuts
@@ -202,6 +205,7 @@ export default class extends Controller {
     if (selection) {
       selection.addEventListener("change", (event) => {
         this._enforceBounds(event, selection)
+        this._updateDimensionBadge(selection)
       })
     }
 
@@ -211,6 +215,7 @@ export default class extends Controller {
     if (this.hasSliderTarget) {
       this.sliderTarget.value = 0
     }
+    this._updateZoomPercent(0)
 
     this._announceReady()
 
@@ -296,5 +301,20 @@ export default class extends Controller {
   _announceReset() {
     if (!this.hasLiveRegionTarget) return
     this.liveRegionTarget.textContent = "Crop reset to original position."
+  }
+
+  _updateZoomPercent(sliderValue) {
+    if (!this.hasZoomPercentTarget) return
+    const percent = Math.round(100 * Math.pow(3, sliderValue / 100))
+    this.zoomPercentTarget.textContent = `${percent}%`
+  }
+
+  _updateDimensionBadge(selection) {
+    if (!this.hasDimensionBadgeTarget) return
+    if (!selection) return
+
+    const w = Math.round(selection.width)
+    const h = Math.round(selection.height)
+    this.dimensionBadgeTarget.textContent = `${w} × ${h}px`
   }
 }
