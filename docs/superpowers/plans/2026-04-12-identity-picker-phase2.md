@@ -1616,7 +1616,7 @@ page and closes the modal."
 **Files:**
 - Modify: `app/views/account/profiles/edit.html.erb`
 
-- [ ] **Step 1: Replace the placeholder with the identity picker modal**
+- [x] **Step 1: Replace the placeholder with the identity picker modal**
 
 In `app/views/account/profiles/edit.html.erb`, replace lines 7-16 (the placeholder section):
 
@@ -1662,7 +1662,7 @@ In `app/views/account/profiles/edit.html.erb`, replace lines 7-16 (the placehold
   </div>
 ```
 
-- [ ] **Step 2: Add missing locale key**
+- [x] **Step 2: Add missing locale key**
 
 In `config/locales/en/account.en.yml`, add under `identity_picker:`:
 
@@ -1671,7 +1671,7 @@ In `config/locales/en/account.en.yml`, add under `identity_picker:`:
     edit_workspace_logo: "Edit workspace logo"
 ```
 
-- [ ] **Step 3: Verify the page renders**
+- [x] **Step 3: Verify the page renders**
 
 ```bash
 mise exec -- bundle exec rspec spec/requests/account/profiles_spec.rb --format documentation
@@ -1679,7 +1679,7 @@ mise exec -- bundle exec rspec spec/requests/account/profiles_spec.rb --format d
 
 Expected: PASS — profile edit page renders without errors.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add app/views/account/profiles/edit.html.erb config/locales/en/account.en.yml
