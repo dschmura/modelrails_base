@@ -39,12 +39,15 @@ cropper-shade {
   background: rgba(0, 0, 0, 0.5);
 }
 
-/* Selection handles use design tokens */
-cropper-selection [action="resize"] {
+/* Corner resize handles — larger, visible grab points */
+cropper-selection [action$="-resize"][action*="n"][action*="w"],
+cropper-selection [action$="-resize"][action*="n"][action*="e"],
+cropper-selection [action$="-resize"][action*="s"][action*="w"],
+cropper-selection [action$="-resize"][action*="s"][action*="e"] {
   width: 12px;
   height: 12px;
-  background: var(--color-interactive, #0284c7);
-  border: 2px solid white;
+  background: white;
+  border: 2px solid var(--color-interactive, #0284c7);
   border-radius: 50%;
 }
 

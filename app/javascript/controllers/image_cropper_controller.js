@@ -203,20 +203,23 @@ export default class extends Controller {
       <cropper-canvas>
         <cropper-image
           initial-center-size="contain"
-          rotatable scalable skewable translatable
+          scalable
         ></cropper-image>
         <cropper-shade></cropper-shade>
-        <cropper-handle action="move" plain></cropper-handle>
         <cropper-selection movable resizable outlined
           aspect-ratio="${this.aspectRatioValue}"
           initial-coverage="0.8">
           <cropper-handle action="move"
-            style="width:100%;height:100%;background:transparent">
+            theme-color="rgba(255, 255, 255, 0.35)">
           </cropper-handle>
-          <cropper-handle action="resize-top-left"></cropper-handle>
-          <cropper-handle action="resize-top-right"></cropper-handle>
-          <cropper-handle action="resize-bottom-left"></cropper-handle>
-          <cropper-handle action="resize-bottom-right"></cropper-handle>
+          <cropper-handle action="n-resize"></cropper-handle>
+          <cropper-handle action="e-resize"></cropper-handle>
+          <cropper-handle action="s-resize"></cropper-handle>
+          <cropper-handle action="w-resize"></cropper-handle>
+          <cropper-handle action="ne-resize"></cropper-handle>
+          <cropper-handle action="nw-resize"></cropper-handle>
+          <cropper-handle action="se-resize"></cropper-handle>
+          <cropper-handle action="sw-resize"></cropper-handle>
         </cropper-selection>
       </cropper-canvas>
     `
