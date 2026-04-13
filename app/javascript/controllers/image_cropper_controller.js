@@ -6,7 +6,7 @@ export default class extends Controller {
 
   connect() {
     this._initialized = false
-    this._initPending = false
+    this._initGeneration = 0
     this._baseTransform = null
 
     // Defer initialization if element is hidden (v2 produces 0x0 selection on hidden elements)
@@ -31,22 +31,23 @@ export default class extends Controller {
 
   // Public: load a new image (called by identity_picker_controller)
   loadImage(src) {
-    // Cancel any pending observer — we're taking over initialization
+    // Cancel any pending observer
     if (this._observer) {
       this._observer.disconnect()
       this._observer = null
     }
 
+    // Destroy existing cropper
     if (this._cropper) {
       this._cropper.getCropperCanvas()?.remove()
       this._cropper = null
     }
     this._initialized = false
-    this._initPending = false
 
     const img = this.containerTarget.querySelector("img")
     if (img) {
       img.src = src
+      // _deferredInit increments generation, canceling any prior queued init
       this._deferredInit()
     }
   }
@@ -156,22 +157,23 @@ export default class extends Controller {
   }
 
   _deferredInit() {
-    if (this._initPending || this._initialized) return
-    this._initPending = true
+    if (this._initialized) return
+
+    // Increment generation — any prior queued rAF chain sees a stale gen and bails
+    const gen = ++this._initGeneration
 
     // Double rAF ensures browser has reflowed after visibility change
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        this._initCropper()
+        if (gen === this._initGeneration) {
+          this._initCropper()
+        }
       })
     })
   }
 
   async _initCropper() {
-    if (this._initialized) {
-      this._initPending = false
-      return
-    }
+    if (this._initialized) return
 
     const { default: Cropper } = await import("cropperjs")
 
@@ -209,7 +211,6 @@ export default class extends Controller {
     }
 
     this._initialized = true
-    this._initPending = false
     this._announceReady()
   }
 
