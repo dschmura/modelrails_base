@@ -1,11 +1,22 @@
 /* Cropper.js v2 — container and selection styling */
 
 .cropper-container {
-  height: 50vh;
+  height: min(50vh, 400px);
   width: 100%;
   position: relative;
   overflow: hidden;
   background: var(--color-surface-sunken, #f1f5f9);
+  border-radius: var(--radius-lg, 0.5rem);
+}
+
+/* Fill the canvas area with a solid background (no checkerboard) */
+cropper-canvas {
+  background: var(--color-surface-sunken, #f1f5f9);
+}
+
+/* Dimmed overlay outside selection */
+cropper-shade {
+  background: rgba(0, 0, 0, 0.5);
 }
 
 /* Selection handles use design tokens */
@@ -15,12 +26,6 @@ cropper-selection [action="resize"] {
   background: var(--color-interactive, #0284c7);
   border: 2px solid white;
   border-radius: 50%;
-}
-
-/* Dimmed overlay outside selection */
-cropper-shade {
-  display: block !important;
-  background: rgba(0, 0, 0, 0.5);
 }
 
 /* Selection outline */

@@ -48,10 +48,17 @@ export default class extends Controller {
     }
   }
 
-  // Click on photo preview → open crop view
+  // Click on photo preview → open crop view (re-crop existing image)
   openCrop() {
     if (this.currentSourceValue !== "upload" || !this.hasImageValue) return
     this._switchMode("crop")
+
+    // Initialize cropper with the existing image (already visible in container)
+    const cropperEl = this.element.querySelector("[data-controller='image-cropper']")
+    if (cropperEl) {
+      const cropper = this.application.getControllerForElementAndIdentifier(cropperEl, "image-cropper")
+      if (cropper) cropper.initExisting()
+    }
   }
 
   // Open native file picker
