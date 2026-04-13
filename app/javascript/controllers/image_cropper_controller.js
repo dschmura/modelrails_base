@@ -6,6 +6,7 @@ export default class extends Controller {
 
   connect() {
     this._initialized = false
+    this._initPending = false
     this._baseTransform = null
 
     // Defer initialization if element is hidden (v2 produces 0x0 selection on hidden elements)
@@ -30,11 +31,18 @@ export default class extends Controller {
 
   // Public: load a new image (called by identity_picker_controller)
   loadImage(src) {
+    // Cancel any pending observer — we're taking over initialization
+    if (this._observer) {
+      this._observer.disconnect()
+      this._observer = null
+    }
+
     if (this._cropper) {
       this._cropper.getCropperCanvas()?.remove()
       this._cropper = null
-      this._initialized = false
     }
+    this._initialized = false
+    this._initPending = false
 
     const img = this.containerTarget.querySelector("img")
     if (img) {
@@ -148,6 +156,9 @@ export default class extends Controller {
   }
 
   _deferredInit() {
+    if (this._initPending || this._initialized) return
+    this._initPending = true
+
     // Double rAF ensures browser has reflowed after visibility change
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
@@ -157,7 +168,10 @@ export default class extends Controller {
   }
 
   async _initCropper() {
-    if (this._initialized) return
+    if (this._initialized) {
+      this._initPending = false
+      return
+    }
 
     const { default: Cropper } = await import("cropperjs")
 
@@ -195,6 +209,7 @@ export default class extends Controller {
     }
 
     this._initialized = true
+    this._initPending = false
     this._announceReady()
   }
 
