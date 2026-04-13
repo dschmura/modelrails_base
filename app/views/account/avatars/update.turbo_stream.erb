@@ -6,8 +6,10 @@
   <%= avatar_for(Current.user, size: :md) %>
 <% end %>
 
-<%= turbo_stream.append "modal-body" do %>
-  <div data-controller="modal-closer"></div>
+<% if @close_modal %>
+  <%= turbo_stream.append "modal-body" do %>
+    <div data-controller="modal-closer"></div>
+  <% end %>
 <% end %>
 
 <%= turbo_stream.append "toast-pills" do %>

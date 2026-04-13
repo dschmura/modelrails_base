@@ -103,6 +103,16 @@ RSpec.describe "Workspace Brandings", type: :request do
       end
     end
 
+    describe "PATCH /workspaces/:workspace_slug/branding crop save vs hub save" do
+      it "does NOT close modal when saving a crop (logo file present)" do
+        file = fixture_file_upload("avatar.png", "image/png")
+        patch workspace_branding_path(workspace), params: { logo: file },
+              headers: { "Accept" => "text/vnd.turbo-stream.html" }
+        expect(response.body).not_to include("modal-closer")
+        expect(response.body).to include("workspace_logo_branding")
+      end
+    end
+
     describe "authorization" do
       it "rejects non-owner/admin access" do
         viewer_role = Role.find_or_create_by!(slug: "viewer", workspace_id: nil) { |r| r.name = "Viewer" }

@@ -38,6 +38,9 @@ module Workspaces
         @workspace.logo.attach(params[:workspace][:logo])
       end
 
+      # Crop save (logo file present) keeps modal open; hub save (no logo) closes it
+      @close_modal = params[:logo].blank?
+
       if @workspace.update(branding_params)
         respond_to do |format|
           format.turbo_stream

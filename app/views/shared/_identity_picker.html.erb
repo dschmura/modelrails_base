@@ -33,39 +33,48 @@
   <%# ═══════ HUB VIEW ═══════ %>
   <div data-mode-switch-target="section" data-mode="hub">
 
-    <%# Large preview %>
+    <%# Large preview — all three rendered, visibility toggled by JS %>
     <div class="flex flex-col items-center py-6">
-      <% if has_image && current_source == "upload" %>
-        <button type="button"
-                data-action="click->identity-picker#openCrop"
-                class="relative w-32 h-32 rounded-full overflow-hidden
-                       group cursor-pointer
-                       focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus">
+      <%# Photo preview (clickable to crop) %>
+      <button type="button"
+              data-action="click->identity-picker#openCrop"
+              data-identity-picker-target="photoPreview"
+              class="relative w-32 h-32 rounded-full overflow-hidden
+                     group cursor-pointer
+                     focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus"
+              <%= "hidden" unless has_image && current_source == "upload" %>>
+        <% if image_url %>
           <%= image_tag image_url,
                 class: "w-full h-full object-cover",
-                alt: "",
-                data: { identity_picker_target: "photoPreview" } %>
-          <span class="absolute inset-0 bg-black/0 group-hover:bg-black/30
-                       flex items-center justify-center transition-colors">
-            <%= icon(:pencil, size: :md,
-                  class: "text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md") %>
-          </span>
-        </button>
-      <% else %>
-        <div class="w-32 h-32 rounded-full flex items-center justify-center text-3xl font-semibold text-white"
-             data-identity-picker-target="initialsPreview"
-             style="background-color: oklch(0.45 0.2 <%= current_hue %>)"
-             <% if current_source == "gravatar" %>hidden<% end %>>
-          <%= initials %>
-        </div>
-        <% if gravatar_url && current_source == "gravatar" %>
-          <%= image_tag gravatar_url,
-                class: "w-32 h-32 rounded-full object-cover",
-                alt: "",
-                loading: "lazy",
-                data: { identity_picker_target: "gravPreview" } %>
+                alt: "" %>
+        <% else %>
+          <img src="" class="w-full h-full object-cover" alt="">
         <% end %>
+        <span class="absolute inset-0 bg-black/0 group-hover:bg-black/30
+                     flex items-center justify-center transition-colors">
+          <%= icon(:pencil, size: :md,
+                class: "text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md") %>
+        </span>
+      </button>
+
+      <%# Initials preview %>
+      <div class="w-32 h-32 rounded-full flex items-center justify-center text-3xl font-semibold text-white"
+           data-identity-picker-target="initialsPreview"
+           style="background-color: oklch(0.45 0.2 <%= current_hue %>)"
+           <%= "hidden" unless current_source == "initials" %>>
+        <%= initials %>
+      </div>
+
+      <%# Gravatar preview %>
+      <% if gravatar_url %>
+        <%= image_tag gravatar_url,
+              class: "w-32 h-32 rounded-full object-cover",
+              alt: "",
+              loading: "lazy",
+              data: { identity_picker_target: "gravPreview" },
+              hidden: current_source != "gravatar" %>
       <% end %>
+
       <span class="text-xs text-text-muted mt-2 uppercase tracking-wider">
         <%= t("identity_picker.preview") %>
       </span>
