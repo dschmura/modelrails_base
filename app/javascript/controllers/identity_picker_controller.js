@@ -28,8 +28,11 @@ export default class extends Controller {
 
   // Source card selection
   selectSource(event) {
-    const source = event.currentTarget.querySelector("input[type='radio']")?.value
-      || event.params.source
+    // Labels forward clicks to their input, causing duplicate events.
+    // Only handle the original click on the label, not the forwarded one.
+    if (event.target.tagName === "INPUT") return
+
+    const source = event.params.source
     if (!source) return
 
     this.currentSourceValue = source
@@ -38,8 +41,10 @@ export default class extends Controller {
     this._updateContextualControls()
 
     // Photo + no image → open file picker immediately
+    // Use setTimeout to let the current click event finish before
+    // opening the file dialog (prevents browser click conflicts)
     if (source === "upload" && !this.hasImageValue) {
-      this.openFilePicker()
+      setTimeout(() => this.openFilePicker(), 0)
     }
   }
 
