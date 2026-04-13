@@ -177,6 +177,15 @@ export default class extends Controller {
     this._switchMode("hub")
   }
 
+  // Reset crop to initial state
+  resetCrop() {
+    const cropperEl = this.element.querySelector("[data-controller='image-cropper']")
+    if (!cropperEl) return
+
+    const cropper = this.application.getControllerForElementAndIdentifier(cropperEl, "image-cropper")
+    if (cropper) cropper.reset()
+  }
+
   // Color slider changed
   handleColorChange() {
     const hue = parseInt(this.colorSliderTarget.value, 10)
