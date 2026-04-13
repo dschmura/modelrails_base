@@ -190,6 +190,12 @@ export default class extends Controller {
     }
 
     this._announceReady()
+
+    // Dispatch initial cropChanged so the preview gets its first frame
+    // Delay slightly to let Cropper.js finish laying out the selection
+    setTimeout(() => {
+      this.dispatch("cropChanged")
+    }, 100)
   }
 
   _cropperTemplate() {
