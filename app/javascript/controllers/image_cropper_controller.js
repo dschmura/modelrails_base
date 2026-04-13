@@ -6,50 +6,47 @@ export default class extends Controller {
 
   connect() {
     this._initialized = false
-    this._initGeneration = 0
     this._baseTransform = null
-
-    // Defer initialization if element is hidden (v2 produces 0x0 selection on hidden elements)
-    if (this.element.closest("[hidden]")) {
-      this._observeVisibility()
-    } else {
-      this._deferredInit()
-    }
+    this._cropper = null
   }
 
   disconnect() {
-    if (this._observer) {
-      this._observer.disconnect()
-      this._observer = null
-    }
-    if (this._cropper) {
-      this._cropper.getCropperCanvas()?.remove()
-      this._cropper = null
-    }
-    this._initialized = false
+    this._destroy()
   }
 
-  // Public: load a new image (called by identity_picker_controller)
+  // Public: load a new image and initialize cropper
+  // Called by identity_picker_controller — the ONLY init path.
+  // The crop view must be visible before calling this.
   loadImage(src) {
-    // Cancel any pending observer
-    if (this._observer) {
-      this._observer.disconnect()
-      this._observer = null
-    }
-
-    // Destroy existing cropper
-    if (this._cropper) {
-      this._cropper.getCropperCanvas()?.remove()
-      this._cropper = null
-    }
-    this._initialized = false
+    this._destroy()
 
     const img = this.containerTarget.querySelector("img")
-    if (img) {
-      img.src = src
-      // _deferredInit increments generation, canceling any prior queued init
-      this._deferredInit()
+    if (!img) return
+
+    img.src = src
+
+    // Wait for the image to actually load before initializing Cropper
+    img.addEventListener("load", () => {
+      this._initCropper()
+    }, { once: true })
+
+    // If src is an object URL it may already be cached — force load event
+    if (img.complete) {
+      this._initCropper()
     }
+  }
+
+  // Public: initialize cropper with the existing image (for re-crop flow)
+  // Called when user clicks photo preview to re-crop an already-uploaded image.
+  initExisting() {
+    this._destroy()
+
+    // Double rAF to ensure the container is laid out after becoming visible
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        this._initCropper()
+      })
+    })
   }
 
   // Public: export cropped region as blob
@@ -136,55 +133,30 @@ export default class extends Controller {
 
   // Private
 
-  _observeVisibility() {
-    const hiddenParent = this.element.closest("[hidden]")
-    if (!hiddenParent) return
-
-    this._observer = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        if (mutation.type === "attributes" && mutation.attributeName === "hidden") {
-          if (!hiddenParent.hidden) {
-            this._observer.disconnect()
-            this._observer = null
-            this._deferredInit()
-            break
-          }
-        }
-      }
-    })
-
-    this._observer.observe(hiddenParent, { attributes: true, attributeFilter: ["hidden"] })
-  }
-
-  _deferredInit() {
-    if (this._initialized) return
-
-    // Increment generation — any prior queued rAF chain sees a stale gen and bails
-    const gen = ++this._initGeneration
-
-    // Double rAF ensures browser has reflowed after visibility change
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        if (gen === this._initGeneration) {
-          this._initCropper()
-        }
-      })
-    })
+  _destroy() {
+    if (this._cropper) {
+      this._cropper.getCropperCanvas()?.remove()
+      this._cropper = null
+    }
+    this._initialized = false
+    this._baseTransform = null
   }
 
   async _initCropper() {
     if (this._initialized) return
 
+    const img = this.containerTarget.querySelector("img")
+    if (!img || !img.src) return
+
     const { default: Cropper } = await import("cropperjs")
 
-    const img = this.containerTarget.querySelector("img")
-    if (!img) return
+    // Guard again after async import — another call may have run
+    if (this._initialized) return
 
     this._cropper = new Cropper(img, {
       template: this._cropperTemplate()
     })
 
-    // Wait for image to be ready, then capture baseline transform
     const canvas = this._cropper.getCropperCanvas()
     if (canvas) {
       canvas.addEventListener("actionend", () => {
@@ -211,17 +183,23 @@ export default class extends Controller {
     }
 
     this._initialized = true
+
+    // Reset zoom slider
+    if (this.hasSliderTarget) {
+      this.sliderTarget.value = 0
+    }
+
     this._announceReady()
   }
 
   _cropperTemplate() {
     return `
-      <cropper-canvas background>
+      <cropper-canvas>
         <cropper-image
           initial-center-size="contain"
           rotatable scalable skewable translatable
         ></cropper-image>
-        <cropper-shade hidden></cropper-shade>
+        <cropper-shade></cropper-shade>
         <cropper-handle action="move" plain></cropper-handle>
         <cropper-selection movable resizable outlined
           aspect-ratio="${this.aspectRatioValue}"
