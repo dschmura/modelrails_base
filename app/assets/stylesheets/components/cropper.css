@@ -21,6 +21,19 @@ cropper-canvas {
   background: var(--color-surface-sunken, #f1f5f9);
 }
 
+/*
+ * Touch/pointer interaction —
+ * Cropper.js v2 relies on pointer events for drag, resize, and pinch-zoom.
+ * touch-action:none prevents the browser from intercepting these gestures
+ * for scrolling or native zoom.
+ */
+cropper-canvas,
+cropper-handle,
+cropper-selection,
+cropper-shade {
+  touch-action: none;
+}
+
 /* Dimmed overlay outside selection */
 cropper-shade {
   background: rgba(0, 0, 0, 0.5);
