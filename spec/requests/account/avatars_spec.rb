@@ -128,6 +128,45 @@ RSpec.describe "Account Avatars", type: :request do
       end
     end
 
+    describe "PATCH /account/avatar crop save vs hub save" do
+      it "does NOT close modal when saving a crop (file present)" do
+        file = fixture_file_upload("avatar.png", "image/png")
+        patch account_avatar_path, params: { avatar: file, avatar_source: "upload" },
+              headers: { "Accept" => "text/vnd.turbo-stream.html" }
+        expect(response.body).not_to include("modal-closer")
+        expect(response.body).to include("user_avatar_profile")
+      end
+
+      it "closes modal when saving source change (no file)" do
+        patch account_avatar_path, params: { avatar_source: "initials" },
+              headers: { "Accept" => "text/vnd.turbo-stream.html" }
+        expect(response.body).to include("modal-closer")
+      end
+    end
+
+    describe "PATCH /account/avatar re-crop" do
+      it "saves avatar without avatar_original on re-crop" do
+        user.avatar.attach(
+          io: File.open(Rails.root.join("spec/fixtures/files/avatar.png")),
+          filename: "avatar.png", content_type: "image/png"
+        )
+        user.avatar_original.attach(
+          io: File.open(Rails.root.join("spec/fixtures/files/avatar.png")),
+          filename: "original.png", content_type: "image/png"
+        )
+        new_crop = fixture_file_upload("avatar.png", "image/png")
+        patch account_avatar_path, params: {
+          avatar: new_crop,
+          crop_coordinates: '{"x":20,"y":30,"w":50,"h":50}'
+        }
+        user.reload
+        expect(user.avatar).to be_attached
+        expect(user.avatar_original).to be_attached
+        metadata = user.avatar_original.blob.metadata
+        expect(metadata["crop"]).to eq("x" => 20, "y" => 30, "w" => 50, "h" => 50)
+      end
+    end
+
     describe "DELETE /account/avatar" do
       it "removes the avatar and falls back to initials" do
         user.avatar.attach(
@@ -147,6 +186,24 @@ RSpec.describe "Account Avatars", type: :request do
         delete account_avatar_path
         expect(user.reload.avatar_source).to eq("initials")
         expect(response).to redirect_to(edit_account_profile_path)
+      end
+    end
+
+    describe "DELETE /account/avatar purges original" do
+      it "purges both avatar and avatar_original" do
+        user.avatar.attach(
+          io: File.open(Rails.root.join("spec/fixtures/files/avatar.png")),
+          filename: "avatar.png", content_type: "image/png"
+        )
+        user.avatar_original.attach(
+          io: File.open(Rails.root.join("spec/fixtures/files/avatar.png")),
+          filename: "original.png", content_type: "image/png"
+        )
+        user.update_columns(avatar_source: "upload")
+        delete account_avatar_path
+        user.reload
+        expect(user.avatar).not_to be_attached
+        expect(user.avatar_original).not_to be_attached
       end
     end
   end

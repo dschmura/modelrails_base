@@ -35,6 +35,9 @@ module Account
         user.primary_color = params[:primary_color].to_i
       end
 
+      # Crop save (file present) keeps modal open; hub save (no file) closes it
+      @close_modal = params[:avatar].blank?
+
       if user.save
         respond_to do |format|
           format.turbo_stream

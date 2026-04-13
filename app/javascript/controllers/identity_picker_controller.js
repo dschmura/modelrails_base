@@ -10,7 +10,7 @@ export default class extends Controller {
     "colorHex",         // hex display span
     "fileInput",        // hidden file input
     "initialsPreview",  // initials circle in preview
-    "photoPreview",     // photo img in preview
+    "photoPreview",     // photo button in preview
     "gravPreview",      // gravatar img in preview
     "cropPreview",      // small circular preview in crop view
     "form"              // the hub form
@@ -128,10 +128,27 @@ export default class extends Controller {
       const html = await response.text()
       Turbo.renderStreamMessage(html)
       this.hasImageValue = true
+      this.currentSourceValue = "upload"
+      this.sourceFieldTarget.value = "upload"
+
+      // Update the photo preview with the newly saved avatar
+      // The turbo stream already replaced user_avatar_profile with the new image
+      // We need to update our local photo preview too
+      const profileAvatar = document.getElementById("user_avatar_profile")
+      if (profileAvatar) {
+        const newImg = profileAvatar.querySelector("img")
+        if (newImg && this.hasPhotoPreviewTarget) {
+          const previewImg = this.photoPreviewTarget.querySelector("img")
+          if (previewImg) {
+            previewImg.src = newImg.src
+          }
+        }
+      }
     }
 
     this._switchMode("hub")
     this._updatePreview()
+    this._updateContextualControls()
   }
 
   // "Remove photo" from crop view
