@@ -77,6 +77,32 @@ RSpec.describe "Workspace Brandings", type: :request do
       end
     end
 
+    describe "PATCH /workspaces/:workspace_slug/branding with logo + original" do
+      it "saves both logo and logo_original" do
+        cropped = fixture_file_upload("avatar.png", "image/png")
+        original = fixture_file_upload("avatar.png", "image/png")
+        patch workspace_branding_path(workspace), params: {
+          logo: cropped,
+          logo_original: original,
+          crop_coordinates: '{"x":5,"y":10,"w":80,"h":80}'
+        }
+        workspace.reload
+        expect(workspace.logo).to be_attached
+        expect(workspace.logo_original).to be_attached
+      end
+    end
+
+    describe "PATCH /workspaces/:workspace_slug/branding (turbo_stream)" do
+      it "responds with turbo stream that updates logo and closes modal" do
+        patch workspace_branding_path(workspace), params: {
+          workspace: { primary_color: "#6366f1" }
+        }, headers: { "Accept" => "text/vnd.turbo-stream.html" }
+        expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+        expect(response.body).to include("workspace_logo_branding")
+        expect(response.body).to include("modal-closer")
+      end
+    end
+
     describe "authorization" do
       it "rejects non-owner/admin access" do
         viewer_role = Role.find_or_create_by!(slug: "viewer", workspace_id: nil) { |r| r.name = "Viewer" }
