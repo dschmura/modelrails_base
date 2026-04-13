@@ -274,10 +274,12 @@
     <%# Result row %>
     <div class="flex items-center justify-between mt-4">
       <div class="flex items-center gap-3">
-        <img src="" alt=""
-             class="w-12 h-12 rounded-full object-cover"
-             data-identity-picker-target="cropPreview"
+        <div class="w-12 h-12 rounded-full bg-surface-sunken overflow-hidden shrink-0"
              aria-hidden="true">
+          <img src="" alt=""
+               class="w-full h-full object-cover"
+               data-identity-picker-target="cropPreview">
+        </div>
         <div>
           <span class="block text-sm font-medium text-text-heading">
             <%= t("identity_picker.result_label") %>
