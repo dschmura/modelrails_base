@@ -3,6 +3,7 @@ class Workspace < ApplicationRecord
   include Trackable
 
   has_one_attached :logo
+  has_one_attached :logo_original
   has_many :memberships, dependent: :destroy
   has_many :users, through: :memberships
   has_many :roles, dependent: :destroy
@@ -12,6 +13,12 @@ class Workspace < ApplicationRecord
   enum :plan, { free: "free", pro: "pro", enterprise: "enterprise" }
 
   validates :name, presence: true, length: { maximum: 255 }
+  validates :logo,
+    content_type: %w[image/png image/jpeg image/gif image/webp],
+    size: { less_than: 5.megabytes }
+  validates :logo_original,
+    content_type: %w[image/png image/jpeg image/gif image/webp],
+    size: { less_than: 10.megabytes }
   validates :slug, presence: true, uniqueness: true
   validates :max_members, numericality: { greater_than: 0 }
   validates :max_projects, numericality: { greater_than: 0 }

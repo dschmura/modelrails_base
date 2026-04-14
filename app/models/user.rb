@@ -6,6 +6,7 @@ class User < ApplicationRecord
   has_many :authentications, dependent: :destroy
   has_one :preferences, class_name: "UserPreferences", dependent: :destroy
   has_one_attached :avatar
+  has_one_attached :avatar_original
   has_many :memberships, dependent: :destroy
   has_many :workspaces, through: :memberships
   has_many :sent_invitations, class_name: "Invitation", foreign_key: :invited_by_id, dependent: :nullify
@@ -35,6 +36,7 @@ class User < ApplicationRecord
   validates :avatar,
     content_type: %w[image/png image/jpeg image/gif image/webp],
     size: { less_than: 5.megabytes }
+  validates :primary_color, inclusion: { in: 0..360 }, allow_nil: true
 
   MAX_FAILED_ATTEMPTS = 5
   LOCK_DURATION = 1.hour
@@ -90,9 +92,8 @@ class User < ApplicationRecord
   end
 
   def available_avatar_sources
-    sources = [ "initials" ]
+    sources = %w[upload initials]
     sources << "gravatar" if has_gravatar?
-    sources << "upload" if avatar.attached?
     sources
   end
 

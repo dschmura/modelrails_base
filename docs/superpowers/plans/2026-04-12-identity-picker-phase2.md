@@ -54,7 +54,7 @@
 - Modify: `app/models/user.rb`
 - Test: `spec/models/user_spec.rb`
 
-- [ ] **Step 1: Write the failing model spec**
+- [x] **Step 1: Write the failing model spec**
 
 Add to `spec/models/user_spec.rb` (create if it doesn't exist):
 
@@ -87,7 +87,7 @@ RSpec.describe User, type: :model do
 end
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 mise exec -- bundle exec rspec spec/models/user_spec.rb --format documentation
@@ -95,7 +95,7 @@ mise exec -- bundle exec rspec spec/models/user_spec.rb --format documentation
 
 Expected: FAIL — `primary_color` column doesn't exist.
 
-- [ ] **Step 3: Create the migration**
+- [x] **Step 3: Create the migration**
 
 ```bash
 mise exec -- bin/rails generate migration AddPrimaryColorToUsers primary_color:integer
@@ -117,7 +117,7 @@ Run:
 mise exec -- bin/rails db:migrate
 ```
 
-- [ ] **Step 4: Add validation to User model**
+- [x] **Step 4: Add validation to User model**
 
 In `app/models/user.rb`, after the existing validations (around line 37), add:
 
@@ -125,7 +125,7 @@ In `app/models/user.rb`, after the existing validations (around line 37), add:
   validates :primary_color, inclusion: { in: 0..360 }, allow_nil: true
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 ```bash
 mise exec -- bundle exec rspec spec/models/user_spec.rb --format documentation
@@ -133,7 +133,7 @@ mise exec -- bundle exec rspec spec/models/user_spec.rb --format documentation
 
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add db/migrate/ db/schema.rb app/models/user.rb spec/models/user_spec.rb
@@ -364,7 +364,7 @@ text across all hues via fixed lightness 0.45."
 - Modify: `config/importmap.rb`
 - Create: `app/assets/stylesheets/components/cropper.css`
 
-- [ ] **Step 1: Pin Cropper.js v2 in importmap**
+- [x] **Step 1: Pin Cropper.js v2 in importmap**
 
 In `config/importmap.rb`, add after the last pin:
 
@@ -374,7 +374,7 @@ pin "cropperjs", to: "https://cdn.jsdelivr.net/npm/cropperjs@2/dist/cropper.esm.
 
 Note: This is the ESM build (`.esm.js`), NOT the UMD build. The v2 ESM module registers Web Components (`cropper-canvas`, `cropper-image`, `cropper-selection`, etc.) on import.
 
-- [ ] **Step 2: Create custom Cropper.js CSS**
+- [x] **Step 2: Create custom Cropper.js CSS**
 
 Create `app/assets/stylesheets/components/cropper.css`:
 
@@ -411,7 +411,7 @@ cropper-selection[outlined] {
 }
 ```
 
-- [ ] **Step 3: Verify importmap resolves**
+- [x] **Step 3: Verify importmap resolves**
 
 ```bash
 mise exec -- bin/rails runner "puts Rails.application.importmap.to_json" | grep cropperjs
@@ -419,7 +419,7 @@ mise exec -- bin/rails runner "puts Rails.application.importmap.to_json" | grep 
 
 Expected: output includes the cropperjs CDN URL.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add config/importmap.rb app/assets/stylesheets/components/cropper.css
@@ -439,7 +439,7 @@ handles and overlay."
 
 This is the Cropper.js v2 wrapper. Pure crop concern — knows nothing about identity picker, sources, or forms.
 
-- [ ] **Step 1: Create the controller**
+- [x] **Step 1: Create the controller**
 
 Create `app/javascript/controllers/image_cropper_controller.js`:
 
@@ -749,7 +749,7 @@ crop:changed custom event for live preview updates."
 
 Recreated from Phase 1 deletion, now dispatches through modal controller's close method to fix focus restoration.
 
-- [ ] **Step 1: Create the controller**
+- [x] **Step 1: Create the controller**
 
 Create `app/javascript/controllers/modal_closer_controller.js`:
 
@@ -780,7 +780,7 @@ export default class extends Controller {
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add app/javascript/controllers/modal_closer_controller.js
@@ -1616,7 +1616,7 @@ page and closes the modal."
 **Files:**
 - Modify: `app/views/account/profiles/edit.html.erb`
 
-- [ ] **Step 1: Replace the placeholder with the identity picker modal**
+- [x] **Step 1: Replace the placeholder with the identity picker modal**
 
 In `app/views/account/profiles/edit.html.erb`, replace lines 7-16 (the placeholder section):
 
@@ -1662,7 +1662,7 @@ In `app/views/account/profiles/edit.html.erb`, replace lines 7-16 (the placehold
   </div>
 ```
 
-- [ ] **Step 2: Add missing locale key**
+- [x] **Step 2: Add missing locale key**
 
 In `config/locales/en/account.en.yml`, add under `identity_picker:`:
 
@@ -1671,7 +1671,7 @@ In `config/locales/en/account.en.yml`, add under `identity_picker:`:
     edit_workspace_logo: "Edit workspace logo"
 ```
 
-- [ ] **Step 3: Verify the page renders**
+- [x] **Step 3: Verify the page renders**
 
 ```bash
 mise exec -- bundle exec rspec spec/requests/account/profiles_spec.rb --format documentation
@@ -1679,7 +1679,7 @@ mise exec -- bundle exec rspec spec/requests/account/profiles_spec.rb --format d
 
 Expected: PASS — profile edit page renders without errors.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add app/views/account/profiles/edit.html.erb config/locales/en/account.en.yml

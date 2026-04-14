@@ -9,20 +9,67 @@ module Workspaces
     def update
       authorize @workspace, policy_class: Workspaces::BrandingPolicy
 
+      # Remove logo (from identity picker or form)
       if params[:remove_image].present?
         @workspace.logo.purge if @workspace.logo.attached?
+        @workspace.logo_original.purge if @workspace.logo_original.attached?
         redirect_to edit_workspace_branding_path(@workspace), notice: t(".success")
         return
       end
 
-      if params.dig(:workspace, :logo).present?
-        @workspace.logo.attach(params[:workspace][:logo])
+      # JS saveCrop sends "avatar"/"avatar_original" to match User flow —
+      # accept those as aliases for logo/logo_original
+      cropped_image = params[:avatar] || params[:logo]
+      original_image = params[:avatar_original] || params[:logo_original]
+
+      # Handle logo attachments (from identity picker crop flow)
+      if cropped_image.present?
+        @workspace.logo.attach(cropped_image)
       end
 
+      if original_image.present?
+        @workspace.logo_original.attach(original_image)
+      end
+
+      # Store crop coordinates
+      if params[:crop_coordinates].present? && @workspace.logo_original.attached?
+        coords = safe_parse_coordinates(params[:crop_coordinates])
+        if coords
+          blob = @workspace.logo_original.blob
+          blob.update!(metadata: blob.metadata.merge("crop" => coords))
+        end
+      end
+
+      # Handle avatar_source change (from identity picker removePhoto flow)
+      # When JS removePhoto sends avatar_source=initials, purge logo blobs immediately
+      if params[:avatar_source].present? && cropped_image.blank?
+        source = params[:avatar_source]
+        if source != "upload"
+          @workspace.logo.purge if @workspace.logo.attached?
+          @workspace.logo_original.purge if @workspace.logo_original.attached?
+        end
+      end
+
+      # Crop save (logo file present) keeps modal open; hub save (no logo) closes it
+      @close_modal = cropped_image.blank?
+
       if @workspace.update(branding_params)
-        redirect_to edit_workspace_branding_path(@workspace), notice: t(".success")
+        respond_to do |format|
+          format.turbo_stream
+          format.html { redirect_to edit_workspace_branding_path(@workspace), notice: t(".success") }
+        end
       else
-        render :edit, status: :unprocessable_entity
+        error_message = @workspace.errors.full_messages.to_sentence
+
+        respond_to do |format|
+          format.turbo_stream do
+            render turbo_stream: turbo_stream.append("toast-cards",
+              partial: "shared/toast_card",
+              locals: { type: :error, message: error_message }),
+                   status: :unprocessable_content
+          end
+          format.html { render :edit, status: :unprocessable_content }
+        end
       end
     end
 
@@ -30,6 +77,20 @@ module Workspaces
 
     def branding_params
       params.require(:workspace).permit(:primary_color)
+    rescue ActionController::ParameterMissing
+      {}
+    end
+
+    def safe_parse_coordinates(raw)
+      return nil if raw.blank?
+
+      parsed = JSON.parse(raw)
+      return nil unless parsed.is_a?(Hash)
+      return nil unless %w[x y w h].all? { |k| parsed[k].is_a?(Numeric) }
+
+      parsed.slice("x", "y", "w", "h")
+    rescue JSON::ParserError
+      nil
     end
   end
 end

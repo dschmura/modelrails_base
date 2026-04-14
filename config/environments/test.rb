@@ -1,5 +1,5 @@
 # The test environment is used exclusively to run your application's
-# test suite. You never need to work with it otherwise. Remember that
+# test suite. You never need to work with it directly. Remember that
 # your test database is "scratch space" for the test suite and is wiped
 # and recreated between test runs. Don't rely on the data there!
 
@@ -59,5 +59,10 @@ Rails.application.configure do
   config.after_initialize do
     Bullet.enable = true
     Bullet.raise = true
+    # ActiveStorage uses includes(:record) internally when touch_attachment_records is true.
+    # When a blob is updated, touch_attachments runs with includes(:record) for bulk SQL touch.
+    # Bullet incorrectly flags this as avoidable eager loading since the touch is via SQL,
+    # not Ruby object access. Safelist to avoid false positives from the framework.
+    Bullet.add_safelist(type: :unused_eager_loading, class_name: "ActiveStorage::Attachment", association: :record)
   end
 end
