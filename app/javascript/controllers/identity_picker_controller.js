@@ -20,14 +20,61 @@ export default class extends Controller {
   static values = {
     formUrl: String,
     currentSource: String,
-    hasImage: Boolean
+    hasImage: Boolean,
+    hubTitle: String,
+    cropTitle: String
   }
 
   connect() {
     this._pendingFile = null
+    this._currentMode = "hub"
+
+    // Intercept Escape and X button when in crop mode —
+    // navigate back to hub instead of closing the modal.
+    //
+    // The modal controller (on the dialog) has its own `cancel` listener
+    // that calls close() programmatically. We must intercept the cancel
+    // event with capture: true + stopImmediatePropagation to prevent the
+    // modal controller's handler from running.
+    this._dialog = this.element.closest("dialog")
+    if (this._dialog) {
+      this._handleCancel = (event) => {
+        if (this._currentMode === "crop") {
+          event.preventDefault()
+          event.stopImmediatePropagation()
+          this.backToHub()
+        }
+      }
+      this._dialog.addEventListener("cancel", this._handleCancel, true)
+
+      // Intercept the X (close) button in the modal header
+      const closeBtn = this._dialog.querySelector("[data-action='click->modal#close']")
+      if (closeBtn) {
+        this._handleCloseClick = (event) => {
+          if (this._currentMode === "crop") {
+            event.preventDefault()
+            event.stopImmediatePropagation()
+            this.backToHub()
+          }
+        }
+        closeBtn.addEventListener("click", this._handleCloseClick, true)
+      }
+    }
   }
 
-  // Source card selection
+  disconnect() {
+    if (this._dialog && this._handleCancel) {
+      this._dialog.removeEventListener("cancel", this._handleCancel, true)
+    }
+    if (this._dialog) {
+      const closeBtn = this._dialog.querySelector("[data-action='click->modal#close']")
+      if (closeBtn && this._handleCloseClick) {
+        closeBtn.removeEventListener("click", this._handleCloseClick, true)
+      }
+    }
+  }
+
+  // Source card selection via click (on the <label>)
   selectSource(event) {
     // Labels forward clicks to their input, causing duplicate events.
     // Only handle the original click on the label, not the forwarded one.
@@ -36,18 +83,46 @@ export default class extends Controller {
     const source = event.params.source
     if (!source) return
 
+    this._selectSourceByValue(source)
+    this._autoOpenForSource(source)
+  }
+
+  // Radio change — fires when keyboard user navigates with arrow keys
+  // inside the radiogroup. The label's click handler doesn't fire for
+  // keyboard selection, so we handle the change event separately.
+  // Note: we deliberately DO NOT auto-open file picker / crop view on
+  // keyboard change — keyboard users should be able to browse sources
+  // with arrow keys without being yanked into another view.
+  handleSourceChange(event) {
+    const source = event.target.value
+    if (!source) return
+
+    this._selectSourceByValue(source)
+  }
+
+  _selectSourceByValue(source) {
     this.currentSourceValue = source
     this.sourceFieldTarget.value = source
     this._updatePreview()
     this._updateContextualControls()
     this._updateCardStyles()
+  }
 
-    // Photo + no image → open file picker immediately
-    // Use setTimeout to let the current click event finish before
-    // opening the file dialog (prevents browser click conflicts)
-    if (source === "upload" && !this.hasImageValue) {
-      setTimeout(() => this.openFilePicker(), 0)
-    }
+  // Click on the Photo source card:
+  // - No image → open file picker (must upload to use this source)
+  // - Has image → open crop view to adjust
+  // Use setTimeout to let the current click event finish first
+  // (prevents browser conflicts with programmatic file input clicks)
+  _autoOpenForSource(source) {
+    if (source !== "upload") return
+
+    setTimeout(() => {
+      if (this.hasImageValue) {
+        this.openCrop()
+      } else {
+        this.openFilePicker()
+      }
+    }, 0)
   }
 
   // Click on photo preview → open crop view (re-crop existing image)
@@ -84,8 +159,12 @@ export default class extends Controller {
       return
     }
 
+    // Release any prior pending file/URL before creating a new one
+    this._releasePendingFile()
+
     this._pendingFile = file
-    const objectUrl = URL.createObjectURL(file)
+    this._pendingObjectUrl = URL.createObjectURL(file)
+    const objectUrl = this._pendingObjectUrl
 
     // Switch to crop view FIRST so the container is visible,
     // THEN load the image (Cropper.js v2 needs a visible container)
@@ -105,60 +184,84 @@ export default class extends Controller {
 
   // "Save crop" button clicked
   async saveCrop() {
-    const cropperEl = this.element.querySelector("[data-controller='image-cropper']")
-    if (!cropperEl) return
+    // In-flight guard — prevent double-click duplicate uploads
+    if (this._saving) return
+    this._saving = true
 
-    const cropper = this.application.getControllerForElementAndIdentifier(cropperEl, "image-cropper")
-    if (!cropper) return
+    try {
+      const cropperEl = this.element.querySelector("[data-controller='image-cropper']")
+      if (!cropperEl) return
 
-    const result = await cropper.exportCrop()
-    if (!result) return
+      const cropper = this.application.getControllerForElementAndIdentifier(cropperEl, "image-cropper")
+      if (!cropper) return
 
-    const { blob, coordinates } = result
+      const result = await cropper.exportCrop()
+      if (!result) return
 
-    const formData = new FormData()
-    formData.append("avatar", blob, "cropped-avatar.png")
+      const { blob, coordinates } = result
 
-    if (this._pendingFile) {
-      formData.append("avatar_original", this._pendingFile)
-      this._pendingFile = null
-    }
+      const formData = new FormData()
+      formData.append("avatar", blob, "cropped-avatar.png")
 
-    formData.append("avatar_source", "upload")
-    formData.append("crop_coordinates", JSON.stringify(coordinates))
+      if (this._pendingFile) {
+        formData.append("avatar_original", this._pendingFile)
+      }
 
-    // Add CSRF token
-    const csrfToken = document.querySelector("meta[name='csrf-token']")?.content
-    if (csrfToken) {
-      formData.append("authenticity_token", csrfToken)
-    }
+      formData.append("avatar_source", "upload")
+      formData.append("crop_coordinates", JSON.stringify(coordinates))
 
-    const response = await fetch(this.formUrlValue, {
-      method: "PATCH",
-      headers: { "Accept": "text/vnd.turbo-stream.html" },
-      body: formData
-    })
+      const csrfToken = document.querySelector("meta[name='csrf-token']")?.content
+      if (csrfToken) {
+        formData.append("authenticity_token", csrfToken)
+      }
 
-    if (response.ok) {
+      const response = await fetch(this.formUrlValue, {
+        method: "PATCH",
+        headers: { "Accept": "text/vnd.turbo-stream.html" },
+        body: formData
+      })
+
+      // Server validation failed — render error turbo stream, stay on crop view
+      if (response.status === 422) {
+        const html = await response.text()
+        Turbo.renderStreamMessage(html)
+        this._announce("Upload failed. Please try again.")
+        return
+      }
+
+      // Any other failure — show error, stay on crop view
+      if (!response.ok) {
+        this._announce("Upload failed. Please try again.")
+        return
+      }
+
+      // Success — render turbo stream, clean up, return to hub
       const html = await response.text()
       Turbo.renderStreamMessage(html)
+
+      this._releasePendingFile()
+
       this.hasImageValue = true
       this.currentSourceValue = "upload"
       this.sourceFieldTarget.value = "upload"
-    }
 
-    // Update the photo preview button with the cropped image
-    if (this.hasPhotoPreviewTarget) {
-      const previewImg = this.photoPreviewTarget.querySelector("img")
-      if (previewImg && this.hasCropPreviewTarget && this.cropPreviewTarget.src) {
-        previewImg.src = this.cropPreviewTarget.src
+      if (this.hasPhotoPreviewTarget) {
+        const previewImg = this.photoPreviewTarget.querySelector("img")
+        if (previewImg && this.hasCropPreviewTarget && this.cropPreviewTarget.src) {
+          previewImg.src = this.cropPreviewTarget.src
+        }
       }
-    }
 
-    this._switchMode("hub")
-    this._updatePreview()
-    this._updateContextualControls()
-    this._updateCardStyles()
+      this._switchMode("hub")
+      this._updatePreview()
+      this._updateContextualControls()
+      this._updateCardStyles()
+    } catch (error) {
+      console.error("saveCrop failed:", error)
+      this._announce("Upload failed. Please check your connection and try again.")
+    } finally {
+      this._saving = false
+    }
   }
 
   // "Remove photo" from crop view
@@ -173,7 +276,7 @@ export default class extends Controller {
 
   // "Back to hub" from crop view
   backToHub() {
-    this._pendingFile = null
+    this._releasePendingFile()
     this._switchMode("hub")
   }
 
@@ -225,11 +328,39 @@ export default class extends Controller {
   // Private
 
   _switchMode(mode) {
-    // mode-switch is on the same element as identity-picker (data-controller="identity-picker mode-switch")
-    // so we can use this.element directly
+    // Remember where focus was so we can restore it when returning to hub
+    if (mode === "crop" && this._currentMode !== "crop") {
+      this._previouslyFocused = document.activeElement
+    }
+
+    this._currentMode = mode
     const ctrl = this.application.getControllerForElementAndIdentifier(this.element, "mode-switch")
     if (ctrl) ctrl.modeValue = mode
     this._toggleModalSize(mode)
+    this._updateModalTitle(mode)
+    this._manageFocus(mode)
+  }
+
+  _manageFocus(mode) {
+    // Wait a tick for the mode-switch to unhide the new section
+    requestAnimationFrame(() => {
+      if (mode === "crop") {
+        // Focus the crop area so arrow keys immediately move the selection
+        const container = this.element.querySelector("[data-image-cropper-target='container']")
+        container?.focus()
+      } else if (mode === "hub") {
+        // Restore focus to what was focused before entering crop,
+        // or fall back to the currently-selected source card's radio
+        if (this._previouslyFocused && this.element.contains(this._previouslyFocused)) {
+          this._previouslyFocused.focus()
+        } else {
+          const selectedCard = this.element.querySelector(`[data-source='${this.currentSourceValue}']`)
+          const radio = selectedCard?.querySelector("input[type='radio']")
+          radio?.focus()
+        }
+        this._previouslyFocused = null
+      }
+    })
   }
 
   _updatePreview() {
@@ -295,6 +426,14 @@ export default class extends Controller {
     }
   }
 
+  _releasePendingFile() {
+    if (this._pendingObjectUrl) {
+      URL.revokeObjectURL(this._pendingObjectUrl)
+      this._pendingObjectUrl = null
+    }
+    this._pendingFile = null
+  }
+
   _toggleModalSize(mode) {
     const panel = this.element.closest("[data-modal-target='panel']")
     if (!panel) return
@@ -306,5 +445,13 @@ export default class extends Controller {
       panel.classList.remove("max-w-4xl")
       panel.classList.add("max-w-2xl")
     }
+  }
+
+  _updateModalTitle(mode) {
+    if (!this._dialog) return
+    const titleEl = this._dialog.querySelector("[id$='-title']")
+    if (!titleEl) return
+
+    titleEl.textContent = mode === "crop" ? this.cropTitleValue : this.hubTitleValue
   }
 }
