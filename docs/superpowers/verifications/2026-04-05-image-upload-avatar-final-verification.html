@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Verification Report: Image Upload Modal and Avatar System</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; line-height: 1.6; color: #1a1a1a; }
+  h1 { border-bottom: 2px solid #333; padding-bottom: 0.5rem; }
+  h2 { border-bottom: 1px solid #ccc; padding-bottom: 0.3rem; margin-top: 2rem; }
+  h3 { margin-top: 1.5rem; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+  th, td { border: 1px solid #ddd; padding: 0.5rem 0.75rem; text-align: left; }
+  th { background: #f5f5f5; }
+  code { background: #f0f0f0; padding: 0.15em 0.4em; border-radius: 3px; font-size: 0.9em; }
+  pre { background: #f5f5f5; padding: 1rem; border-radius: 4px; overflow-x: auto; }
+  .status-pass { color: #16a34a; font-weight: bold; }
+  .status-warn { color: #ca8a04; font-weight: bold; }
+  .meta { color: #666; }
+  ul { padding-left: 1.5rem; }
+  li { margin-bottom: 0.3rem; }
+</style>
+</head>
+<body>
+
+<h1>Verification Report: Image Upload Modal and Avatar System</h1>
+
+<table>
+  <tr><th>Specs</th><td><code>2026-04-05-image-upload-modal-design.md</code> and <code>2026-04-05-avatar-system-design.md</code></td></tr>
+  <tr><th>Date</th><td>2026-04-05</td></tr>
+  <tr><th>Verifier</th><td>implementation-verifier</td></tr>
+  <tr><th>Status</th><td class="status-pass">PASSED</td></tr>
+</table>
+
+<hr>
+
+<h2>Executive Summary</h2>
+
+<p>The image upload modal and avatar system implementation is complete and fully functional. All 919 tests in the full suite pass with 0 failures, including 37 avatar-specific unit/request tests and 17 system tests covering modal interaction, cropping, accessibility, and end-to-end avatar management. The implementation matches both design specs and includes all required files, controllers, helpers, services, jobs, migrations, I18n keys, and accessibility features.</p>
+
+<hr>
+
+<h2>1. Tasks Verification</h2>
+
+<p><strong>Status:</strong> <span class="status-pass">All Complete</span></p>
+
+<h3>Image Upload Modal (6 Task Groups)</h3>
+<ul>
+  <li>[x] Task 1: Pin Cropper.js via importmap and vendor CSS
+    <ul>
+      <li>[x] <code>config/importmap.rb</code> contains cropperjs pin</li>
+      <li>[x] <code>vendor/javascript/cropperjs.js</code> exists</li>
+      <li>[x] <code>vendor/assets/stylesheets/cropperjs.css</code> exists</li>
+    </ul>
+  </li>
+  <li>[x] Task 2: Create I18n keys
+    <ul>
+      <li>[x] <code>config/locales/en/image_upload.en.yml</code> exists with all required keys</li>
+    </ul>
+  </li>
+  <li>[x] Task 3: Image Cropper Controller
+    <ul>
+      <li>[x] <code>app/javascript/controllers/image_cropper_controller.js</code> exists</li>
+      <li>[x] Lazy-loads Cropper.js, handles file validation, dispatches events</li>
+    </ul>
+  </li>
+  <li>[x] Task 4: Image Upload Controller
+    <ul>
+      <li>[x] <code>app/javascript/controllers/image_upload_controller.js</code> exists</li>
+      <li>[x] Drag-and-drop, form submission, crop event handling</li>
+    </ul>
+  </li>
+  <li>[x] Task 5: Image Upload Modal Partial
+    <ul>
+      <li>[x] <code>app/views/shared/_image_upload_modal.html.erb</code> exists</li>
+      <li>[x] Configurable locals, accessibility attributes, crop/no-crop modes</li>
+    </ul>
+  </li>
+  <li>[x] Task 6: System Tests
+    <ul>
+      <li>[x] <code>spec/system/image_upload_modal_spec.rb</code> -- 12 specs, all passing</li>
+    </ul>
+  </li>
+</ul>
+
+<h3>Avatar System (8 Task Groups)</h3>
+<ul>
+  <li>[x] Task 1: Database Migration
+    <ul>
+      <li>[x] <code>db/migrate/20260405202949_add_avatar_fields_to_users_and_authentications.rb</code></li>
+      <li>[x] Adds avatar_source, has_gravatar to users; avatar_url to authentications</li>
+    </ul>
+  </li>
+  <li>[x] Task 2: GravatarService (TDD)
+    <ul>
+      <li>[x] <code>app/services/gravatar_service.rb</code> -- SHA256 HTTP HEAD check</li>
+      <li>[x] <code>spec/services/gravatar_service_spec.rb</code> -- 4 specs passing</li>
+    </ul>
+  </li>
+  <li>[x] Task 3: CheckGravatarJob (TDD)
+    <ul>
+      <li>[x] <code>app/jobs/check_gravatar_job.rb</code> -- async Gravatar check</li>
+      <li>[x] <code>spec/jobs/check_gravatar_job_spec.rb</code> -- 3 specs passing</li>
+    </ul>
+  </li>
+  <li>[x] Task 4: User Model Changes
+    <ul>
+      <li>[x] avatar_source validation, gravatar_url, available_avatar_sources methods</li>
+      <li>[x] Active Storage validations (content_type, size)</li>
+    </ul>
+  </li>
+  <li>[x] Task 5: Avatar Display Helper (TDD)
+    <ul>
+      <li>[x] <code>app/helpers/avatar_helper.rb</code> -- avatar_for with 5 sizes</li>
+      <li>[x] <code>spec/helpers/avatar_helper_spec.rb</code> -- 19 specs passing</li>
+    </ul>
+  </li>
+  <li>[x] Task 6: Avatars Controller Updates
+    <ul>
+      <li>[x] <code>app/controllers/account/avatars_controller.rb</code> -- handles upload + source changes</li>
+      <li>[x] <code>spec/requests/account/avatars_spec.rb</code> -- 11 specs passing</li>
+    </ul>
+  </li>
+  <li>[x] Task 7: View Integration
+    <ul>
+      <li>[x] Profile page (<code>account/profiles/edit.html.erb</code>) has avatar section with modal</li>
+      <li>[x] User menu (<code>shared/_user_menu.html.erb</code>) uses <code>avatar_for</code> helper</li>
+      <li>[x] Source selection radio buttons when multiple sources available</li>
+    </ul>
+  </li>
+  <li>[x] Task 8: System Tests
+    <ul>
+      <li>[x] <code>spec/system/avatar_spec.rb</code> -- 5 specs passing</li>
+    </ul>
+  </li>
+</ul>
+
+<h3>Incomplete or Issues</h3>
+<p>None. All tasks verified as complete through code inspection and passing tests.</p>
+
+<p><strong>Note:</strong> The plan files (<code>docs/superpowers/plans/2026-04-05-image-upload-modal.md</code> and <code>docs/superpowers/plans/2026-04-05-avatar-system.md</code>) still have unchecked step checkboxes (<code>- [ ]</code>) even though all tasks are implemented. This is a documentation tracking gap, not an implementation gap.</p>
+
+<hr>
+
+<h2>2. Documentation Verification</h2>
+
+<p><strong>Status:</strong> <span class="status-pass">Complete</span></p>
+
+<h3>Design Specs</h3>
+<ul>
+  <li>[x] Image Upload Modal: <code>docs/superpowers/specs/2026-04-05-image-upload-modal-design.md</code></li>
+  <li>[x] Avatar System: <code>docs/superpowers/specs/2026-04-05-avatar-system-design.md</code></li>
+  <li>[x] Modal System (dependency): <code>docs/superpowers/specs/2026-04-05-modal-system-design.md</code></li>
+</ul>
+
+<h3>Implementation Plans</h3>
+<ul>
+  <li>[x] Image Upload Modal: <code>docs/superpowers/plans/2026-04-05-image-upload-modal.md</code></li>
+  <li>[x] Avatar System: <code>docs/superpowers/plans/2026-04-05-avatar-system.md</code></li>
+</ul>
+
+<h3>Missing Documentation</h3>
+<p>None. Both design specs and implementation plans are present.</p>
+
+<hr>
+
+<h2>3. Roadmap Updates</h2>
+
+<p><strong>Status:</strong> <span class="status-warn">No Updates Needed</span></p>
+
+<h3>Notes</h3>
+<p>The project roadmap at <code>agent-os/product/roadmap.md</code> is a generic template with placeholder items (e.g., "[Feature 1]", "[Feature 2]"). It does not contain specific line items for the image upload modal or avatar system features. No roadmap updates were made.</p>
+
+<hr>
+
+<h2>4. Test Suite Results</h2>
+
+<p><strong>Status:</strong> <span class="status-pass">All Passing</span></p>
+
+<h3>Test Summary</h3>
+<table>
+  <tr><th>Metric</th><th>Count</th></tr>
+  <tr><td>Total Tests</td><td>919</td></tr>
+  <tr><td>Passing</td><td>919</td></tr>
+  <tr><td>Failing</td><td>0</td></tr>
+  <tr><td>Errors</td><td>0</td></tr>
+  <tr><td>Runtime</td><td>54.01 seconds</td></tr>
+  <tr><td>Line Coverage</td><td>93.91% (1574/1676)</td></tr>
+  <tr><td>Branch Coverage</td><td>83.0% (376/453)</td></tr>
+</table>
+
+<h3>Feature-Specific Tests</h3>
+<table>
+  <tr><th>Test File</th><th>Count</th><th>Status</th></tr>
+  <tr><td><code>spec/helpers/avatar_helper_spec.rb</code></td><td>19</td><td class="status-pass">All Passing</td></tr>
+  <tr><td><code>spec/services/gravatar_service_spec.rb</code></td><td>4</td><td class="status-pass">All Passing</td></tr>
+  <tr><td><code>spec/jobs/check_gravatar_job_spec.rb</code></td><td>3</td><td class="status-pass">All Passing</td></tr>
+  <tr><td><code>spec/requests/account/avatars_spec.rb</code></td><td>11</td><td class="status-pass">All Passing</td></tr>
+  <tr><td><code>spec/system/avatar_spec.rb</code></td><td>5</td><td class="status-pass">All Passing</td></tr>
+  <tr><td><code>spec/system/image_upload_modal_spec.rb</code></td><td>12</td><td class="status-pass">All Passing</td></tr>
+</table>
+
+<h3>Failed Tests</h3>
+<p>None -- all tests passing.</p>
+
+<h3>Notes</h3>
+<ul>
+  <li>Deprecation warnings from Rack about <code>:unprocessable_entity</code> vs <code>:unprocessable_content</code> are present but non-blocking.</li>
+  <li>VIPS warnings about IDAT data in the test fixture PNG are cosmetic and do not affect test results.</li>
+</ul>
+
+<hr>
+
+<h2>5. Implementation File Inventory</h2>
+
+<p>All files specified in both design specs are present:</p>
+
+<table>
+  <tr><th>File</th><th>Status</th></tr>
+  <tr><td><code>config/importmap.rb</code> (cropperjs pin)</td><td>Present</td></tr>
+  <tr><td><code>vendor/javascript/cropperjs.js</code></td><td>Present</td></tr>
+  <tr><td><code>vendor/assets/stylesheets/cropperjs.css</code></td><td>Present</td></tr>
+  <tr><td><code>app/javascript/controllers/image_cropper_controller.js</code></td><td>Present</td></tr>
+  <tr><td><code>app/javascript/controllers/image_upload_controller.js</code></td><td>Present</td></tr>
+  <tr><td><code>app/views/shared/_image_upload_modal.html.erb</code></td><td>Present</td></tr>
+  <tr><td><code>config/locales/en/image_upload.en.yml</code></td><td>Present</td></tr>
+  <tr><td><code>db/migrate/20260405202949_add_avatar_fields_to_users_and_authentications.rb</code></td><td>Present</td></tr>
+  <tr><td><code>app/services/gravatar_service.rb</code></td><td>Present</td></tr>
+  <tr><td><code>app/jobs/check_gravatar_job.rb</code></td><td>Present</td></tr>
+  <tr><td><code>app/helpers/avatar_helper.rb</code></td><td>Present</td></tr>
+  <tr><td><code>app/controllers/account/avatars_controller.rb</code></td><td>Present</td></tr>
+  <tr><td><code>app/views/account/profiles/edit.html.erb</code> (avatar section)</td><td>Present</td></tr>
+  <tr><td><code>app/views/shared/_user_menu.html.erb</code> (avatar_for helper)</td><td>Present</td></tr>
+  <tr><td><code>spec/helpers/avatar_helper_spec.rb</code></td><td>Present</td></tr>
+  <tr><td><code>spec/services/gravatar_service_spec.rb</code></td><td>Present</td></tr>
+  <tr><td><code>spec/jobs/check_gravatar_job_spec.rb</code></td><td>Present</td></tr>
+  <tr><td><code>spec/requests/account/avatars_spec.rb</code></td><td>Present</td></tr>
+  <tr><td><code>spec/system/avatar_spec.rb</code></td><td>Present</td></tr>
+  <tr><td><code>spec/system/image_upload_modal_spec.rb</code></td><td>Present</td></tr>
+  <tr><td><code>spec/fixtures/files/avatar.png</code></td><td>Present</td></tr>
+</table>
+
+</body>
+</html>

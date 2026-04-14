@@ -259,7 +259,7 @@ so the identity picker file picker is always accessible."
 - Modify: `app/helpers/avatar_helper.rb`
 - Test: `spec/helpers/avatar_helper_spec.rb`
 
-- [ ] **Step 1: Write failing specs**
+- [x] **Step 1: Write failing specs**
 
 Add to `spec/helpers/avatar_helper_spec.rb`, inside the `"with initials source"` context:
 
@@ -297,7 +297,7 @@ Add to `spec/helpers/avatar_helper_spec.rb`, inside the `"with initials source"`
       end
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 mise exec -- bundle exec rspec spec/helpers/avatar_helper_spec.rb --format documentation
@@ -305,7 +305,7 @@ mise exec -- bundle exec rspec spec/helpers/avatar_helper_spec.rb --format docum
 
 Expected: FAIL — `primary_color` not used in rendering yet.
 
-- [ ] **Step 3: Update render_initials_avatar**
+- [x] **Step 3: Update render_initials_avatar**
 
 In `app/helpers/avatar_helper.rb`, replace the `render_initials_avatar` method (lines 47-52):
 
@@ -329,7 +329,7 @@ In `app/helpers/avatar_helper.rb`, replace the `render_initials_avatar` method (
   end
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 ```bash
 mise exec -- bundle exec rspec spec/helpers/avatar_helper_spec.rb --format documentation
@@ -337,7 +337,7 @@ mise exec -- bundle exec rspec spec/helpers/avatar_helper_spec.rb --format docum
 
 Expected: PASS
 
-- [ ] **Step 5: Run full helper specs to check for regressions**
+- [x] **Step 5: Run full helper specs to check for regressions**
 
 ```bash
 mise exec -- bundle exec rspec spec/helpers/ --format documentation
@@ -345,7 +345,7 @@ mise exec -- bundle exec rspec spec/helpers/ --format documentation
 
 Expected: all pass
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add app/helpers/avatar_helper.rb spec/helpers/avatar_helper_spec.rb
@@ -800,7 +800,7 @@ trigger element that opened the modal."
 
 Hub orchestration — manages source selection, color picker, file picker, crop flow.
 
-- [ ] **Step 1: Create the controller**
+- [x] **Step 1: Create the controller**
 
 Create `app/javascript/controllers/identity_picker_controller.js`:
 
@@ -1049,7 +1049,7 @@ export default class extends Controller {
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add app/javascript/controllers/identity_picker_controller.js
