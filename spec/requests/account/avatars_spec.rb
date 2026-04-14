@@ -308,6 +308,27 @@ RSpec.describe "Account Avatars", type: :request do
       end
     end
 
+    context "avatar_source guard on file upload" do
+      let(:valid_avatar) { fixture_file_upload("avatar.png", "image/png") }
+
+      before do
+        # Simulate a user whose available sources don't include "upload"
+        allow_any_instance_of(User).to receive(:available_avatar_sources).and_return(%w[gravatar initials])
+      end
+
+      it "rejects file upload when upload is not an allowed source" do
+        patch account_avatar_path, params: {
+          avatar: valid_avatar,
+          avatar_original: valid_avatar,
+          avatar_source: "upload"
+        }, headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+        user.reload
+        expect(user.avatar).not_to be_attached
+        expect(user.avatar_original).not_to be_attached
+      end
+    end
+
     describe "DELETE /account/avatar purges original" do
       it "purges both avatar and avatar_original" do
         user.avatar.attach(

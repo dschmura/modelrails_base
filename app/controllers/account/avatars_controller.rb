@@ -4,6 +4,20 @@ module Account
       user = Current.user
       authorize user, policy_class: Account::AvatarPolicy
 
+      # Guard: reject upload attempts when upload is not an available source for this user
+      if params[:avatar_source] == "upload" && !user.available_avatar_sources.include?("upload")
+        respond_to do |format|
+          format.turbo_stream do
+            render turbo_stream: turbo_stream.append("toast-cards",
+              partial: "shared/toast_card",
+              locals: { type: :error, message: t("account.avatars.source_unavailable") }),
+                   status: :forbidden
+          end
+          format.html { redirect_to edit_account_profile_path, alert: t("account.avatars.source_unavailable") }
+        end
+        return
+      end
+
       # Handle file attachments (from crop save flow)
       if params[:avatar].present?
         user.avatar.attach(params[:avatar])
