@@ -244,6 +244,34 @@ RSpec.describe "Account profile — identity picker", type: :system do
     end
   end
 
+  describe "keyboard source selection" do
+    it "updates preview and color panel when arrow keys navigate the radiogroup" do
+      open_identity_picker
+
+      # Focus the Photo (upload) radio, then press ArrowDown once.
+      # available_avatar_sources for a default user (no Gravatar) is ["upload", "initials"],
+      # so a single ArrowDown moves selection from upload → initials.
+      page.driver.with_playwright_page do |playwright_page|
+        playwright_page.evaluate(<<~JS)
+          const radio = document.querySelector(
+            "[data-identity-picker-target='sourceCards'] input[type='radio'][value='upload']"
+          )
+          radio.focus()
+        JS
+        playwright_page.keyboard.press("ArrowDown")
+      end
+
+      # Preview section: initials now visible
+      expect(page).to have_css("[data-identity-picker-target='initialsPreview']:not([hidden])", wait: 2)
+
+      # Color panel visible (has_color_picker: true for User)
+      expect(page).to have_css("[data-identity-picker-target='colorPanel']:not([hidden])")
+
+      # The Initials source card has the selected-state classes
+      expect(page).to have_css("[data-source='initials'].border-interactive")
+    end
+  end
+
   describe "double-click guard on Save crop" do
     it "triggers only one PATCH request even if Save crop is clicked twice rapidly" do
       open_identity_picker
