@@ -208,4 +208,39 @@ RSpec.describe "Account profile — identity picker", type: :system do
       expect(page).to have_css("dialog[open]")
     end
   end
+
+  describe "modal title" do
+    let(:user) do
+      u = create(:user)
+      u.avatar.attach(
+        io: File.open(Rails.root.join("spec/fixtures/files/avatar.png")),
+        filename: "avatar.png",
+        content_type: "image/png"
+      )
+      u.avatar_original.attach(
+        io: File.open(Rails.root.join("spec/fixtures/files/avatar.png")),
+        filename: "original.png",
+        content_type: "image/png"
+      )
+      u.update!(avatar_source: "upload")
+      u
+    end
+
+    it "changes between hub and crop modes" do
+      open_identity_picker
+
+      # Hub view title
+      expect(page).to have_css("dialog h2", text: I18n.t("identity_picker.choose_profile_picture"))
+
+      # Enter crop view
+      find("button[data-identity-picker-target='photoPreview']").click
+      wait_for_crop_view
+      expect(page).to have_css("dialog h2", text: I18n.t("identity_picker.adjust_profile_picture"))
+
+      # Return to hub
+      click_button I18n.t("identity_picker.cancel")
+      wait_for_hub_view
+      expect(page).to have_css("dialog h2", text: I18n.t("identity_picker.choose_profile_picture"))
+    end
+  end
 end
