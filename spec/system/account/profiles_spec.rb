@@ -243,4 +243,38 @@ RSpec.describe "Account profile — identity picker", type: :system do
       expect(page).to have_css("dialog h2", text: I18n.t("identity_picker.choose_profile_picture"))
     end
   end
+
+  describe "double-click guard on Save crop" do
+    it "triggers only one PATCH request even if Save crop is clicked twice rapidly" do
+      open_identity_picker
+      select_identity_source("Photo")
+      attach_identity_picker_file(Rails.root.join("spec/fixtures/files/avatar.png"))
+      wait_for_crop_view
+      simulate_crop_adjustment
+
+      # Count PATCH requests and delay their responses so both clicks
+      # happen within the in-flight window.
+      patch_count = 0
+
+      page.driver.with_playwright_page do |playwright_page|
+        playwright_page.route("**/account/avatar", ->(route, request) {
+          if request.method == "PATCH"
+            patch_count += 1
+            sleep 0.5  # keeps the first request in flight long enough for a second click
+          end
+          route.continue
+        })
+      end
+
+      # Click twice rapidly — the controller's _saving guard should drop the second click
+      save_button = find_button(I18n.t("identity_picker.save_crop"))
+      save_button.click
+      save_button.click
+
+      # Wait for the first response to land (modal returns to hub)
+      wait_for_hub_view
+
+      expect(patch_count).to eq(1)
+    end
+  end
 end
