@@ -31,4 +31,39 @@ RSpec.describe "Workspace branding — identity picker", type: :system do
       expect(workspace.logo_original).to be_attached
     end
   end
+
+  describe "switch to initials" do
+    before do
+      workspace.logo.attach(
+        io: File.open(logo_fixture),
+        filename: "logo.png",
+        content_type: "image/png"
+      )
+      workspace.logo_original.attach(
+        io: File.open(logo_fixture),
+        filename: "logo_original.png",
+        content_type: "image/png"
+      )
+      workspace.save!
+      visit edit_workspace_branding_path(workspace)  # refresh after attaching
+    end
+
+    it "switches workspace to Initials (no color picker for workspace) and purges logo" do
+      open_identity_picker
+
+      select_identity_source("Initials")
+
+      # Workspace has has_color_picker: false — color panel should NOT be in the DOM
+      expect(page).to have_no_css("[data-identity-picker-target='colorPanel']")
+
+      click_button I18n.t("identity_picker.save")
+
+      # Modal closes
+      expect(page).to have_no_css("dialog[open]", wait: 3)
+
+      workspace.reload
+      expect(workspace.logo).not_to be_attached
+      expect(workspace.logo_original).not_to be_attached
+    end
+  end
 end
