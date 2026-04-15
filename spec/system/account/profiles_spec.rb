@@ -35,4 +35,26 @@ RSpec.describe "Account profile — identity picker", type: :system do
       expect(user.avatar_source).to eq("upload")
     end
   end
+
+  describe "source switching" do
+    it "switches to Initials with a custom color" do
+      open_identity_picker
+
+      select_identity_source("Initials")
+
+      # Color picker panel should appear (User has has_color_picker: true)
+      expect(page).to have_css("[data-identity-picker-target='colorPanel']:not([hidden])", wait: 2)
+
+      set_identity_color_hue(120)  # green
+
+      click_button I18n.t("identity_picker.save")
+
+      # Modal closes on save & apply
+      expect(page).to have_no_css("dialog[open]", wait: 3)
+
+      user.reload
+      expect(user.avatar_source).to eq("initials")
+      expect(user.primary_color).to eq(120)
+    end
+  end
 end
