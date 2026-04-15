@@ -29,6 +29,7 @@ export default class extends Controller {
   connect() {
     this._pendingFile = null
     this._currentMode = "hub"
+    this._filePickerOpen = false
 
     // Intercept Escape and X button when in crop mode —
     // navigate back to hub instead of closing the modal.
@@ -37,6 +38,12 @@ export default class extends Controller {
     // that calls close() programmatically. We must intercept the cancel
     // event with capture: true + stopImmediatePropagation to prevent the
     // modal controller's handler from running.
+    //
+    // We also intercept cancel while the file picker is open: when the
+    // user dismisses the OS file dialog (e.g. presses Escape), the browser
+    // fires a cancel event on the ancestor <dialog>. We prevent that from
+    // closing the whole modal — the user just changed their mind about
+    // picking a file and should remain on the hub view.
     this._dialog = this.element.closest("dialog")
     if (this._dialog) {
       this._handleCancel = (event) => {
@@ -44,6 +51,11 @@ export default class extends Controller {
           event.preventDefault()
           event.stopImmediatePropagation()
           this.backToHub()
+        } else if (this._filePickerOpen) {
+          // File picker was dismissed without selecting a file — stay in hub
+          event.preventDefault()
+          event.stopImmediatePropagation()
+          this._filePickerOpen = false
         }
       }
       this._dialog.addEventListener("cancel", this._handleCancel, true)
@@ -141,11 +153,13 @@ export default class extends Controller {
 
   // Open native file picker
   openFilePicker() {
+    this._filePickerOpen = true
     this.fileInputTarget.click()
   }
 
   // File selected from native picker
   handleFileSelected(event) {
+    this._filePickerOpen = false
     const file = event.target.files[0]
     if (!file) return
 
