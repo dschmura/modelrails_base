@@ -12,21 +12,33 @@
 
 The workspace has no persistent record of which identity source is active. The system infers state from `logo.attached?`, which is fragile (purging a blob for any reason silently changes the displayed identity).
 
-**Migration:** Add a `logo_source` string column with default `"initials"`. Backfill existing rows: any workspace with a logo attached gets `"upload"`.
+**Two migrations** (following project precedent of separating schema from data — see `20260406164212` + `20260406164814`):
+
+Migration 1 — schema only (`def change`):
 
 ```ruby
 class AddLogoSourceToWorkspaces < ActiveRecord::Migration[8.1]
-  def up
+  def change
     add_column :workspaces, :logo_source, :string, default: "initials", null: false
-
-    Workspace.where.associated(:logo_attachment).update_all(logo_source: "upload")
-  end
-
-  def down
-    remove_column :workspaces, :logo_source
   end
 end
 ```
+
+Migration 2 — data backfill (`def up`/`def down`):
+
+```ruby
+class BackfillLogoSourceOnWorkspaces < ActiveRecord::Migration[8.1]
+  def up
+    Workspace.joins(:logo_attachment).update_all(logo_source: "upload")
+  end
+
+  def down
+    # No-op: column default handles the reverse case
+  end
+end
+```
+
+Uses `joins(:logo_attachment)` rather than `where.associated` for consistency with the project's SQL-leaning backfill style.
 
 **Model changes (`app/models/workspace.rb`):**
 
@@ -64,16 +76,10 @@ current_source = is_user ? model.avatar_source : (model.logo.attached? ? "upload
 To:
 
 ```ruby
-current_source = if is_user
-                   model.avatar_source
-                 elsif model.respond_to?(:logo_source)
-                   model.logo_source
-                 else
-                   model.logo.attached? ? "upload" : "initials"
-                 end
+current_source = is_user ? model.avatar_source : model.logo_source
 ```
 
-The `respond_to?` guard maintains backward compatibility during the migration window.
+Uses the `is_user` boolean pattern consistent with all other branches in the partial (9 existing uses). No `respond_to?` guard — the migration is atomic, so `logo_source` will always be present once deployed.
 
 **View changes (`app/views/workspaces/brandings/edit.html.erb`):**
 
@@ -134,8 +140,10 @@ RESTful routing: `DELETE /workspace/:slug/branding` = remove the logo. Currently
 Ensure the branding resource includes `:destroy`:
 
 ```ruby
-resource :branding, only: [:edit, :update, :destroy]
+resource :branding, only: [ :edit, :update, :destroy ]
 ```
+
+(Note: spaces inside brackets to match project convention at `config/routes.rb:44`.)
 
 **Controller (`app/controllers/workspaces/brandings_controller.rb`):**
 
@@ -158,7 +166,50 @@ end
 
 Remove the `remove_image` guard from `update`. Update the branding edit page's remove button to send `DELETE` instead of `PATCH` with `remove_image`.
 
-Create `app/views/workspaces/brandings/destroy.turbo_stream.erb` to replace the logo preview and show a success toast.
+**Policy (`app/policies/workspaces/branding_policy.rb`):**
+
+Add `destroy?` — without it, `ApplicationPolicy#destroy?` returns `false` and every destroy request raises `Pundit::NotAuthorizedError`:
+
+```ruby
+def destroy?
+  can?("manage_settings")
+end
+```
+
+Matches the pattern of `edit?` and `update?` in the same file.
+
+**Locale key (`config/locales/en/workspaces.en.yml`):**
+
+Add under `workspaces.brandings`:
+
+```yaml
+destroy:
+  success: "Logo removed."
+```
+
+Following the pattern of `account.avatars.destroy.success: "Avatar removed."`.
+
+**Turbo stream (`app/views/workspaces/brandings/destroy.turbo_stream.erb`):**
+
+New file — first `destroy.turbo_stream.erb` in the project. Follows the structure of `update.turbo_stream.erb` (inline `turbo_stream.replace` block + `turbo_stream.append "toast-pills"` with `toast_pill` partial):
+
+```erb
+<%= turbo_stream.replace "workspace_logo_branding" do %>
+  <span id="workspace_logo_branding">
+    <%= workspace_icon_for(@workspace, size: :lg) %>
+  </span>
+<% end %>
+
+<%= turbo_stream.replace "workspace_logo_show" do %>
+  <span id="workspace_logo_show">
+    <%= workspace_icon_for(@workspace, size: :lg) %>
+  </span>
+<% end %>
+
+<%= turbo_stream.append "toast-pills" do %>
+  <%= render "shared/toast_pill", type: :success, message: t(".success") %>
+<% end %>
+```
 
 ### Gap 9 — Purge-on-failed-save
 
@@ -212,16 +263,20 @@ This updates the show page's logo in-place after a branding change (if the user 
 
 | File | Chunk | Change |
 |------|-------|--------|
-| `db/migrate/TIMESTAMP_add_logo_source_to_workspaces.rb` | 1 | New: migration + backfill |
+| `db/migrate/TIMESTAMP_add_logo_source_to_workspaces.rb` | 1 | New: schema migration (`def change`) |
+| `db/migrate/TIMESTAMP_backfill_logo_source_on_workspaces.rb` | 1 | New: data backfill (`def up`/`def down`) |
 | `app/models/workspace.rb` | 1 | Validation, `available_logo_sources` method |
 | `app/models/user.rb` | 1 | `avatar_original` validation |
 | `app/views/shared/_identity_picker.html.erb` | 1 | `current_source` uses `logo_source` |
-| `app/views/workspaces/brandings/edit.html.erb` | 1 | Use `available_logo_sources` |
+| `app/views/workspaces/brandings/edit.html.erb` | 1+2 | Use `available_logo_sources`, update remove button to DELETE |
 | `app/controllers/workspaces/brandings_controller.rb` | 1+2 | Source guard, persist `logo_source`, `destroy` action, purge-on-fail |
+| `app/policies/workspaces/branding_policy.rb` | 2 | Add `destroy?` method |
 | `config/routes.rb` | 2 | Add `:destroy` to branding resource |
+| `config/locales/en/workspaces.en.yml` | 2 | Add `brandings.destroy.success` key |
 | `app/views/workspaces/show.html.erb` | 2 | Use `workspace_icon_for` + named element |
 | `app/views/workspaces/brandings/destroy.turbo_stream.erb` | 2 | New: turbo stream for logo removal |
 | `app/views/workspaces/brandings/update.turbo_stream.erb` | 2 | Add `workspace_logo_show` replace |
 | `spec/models/workspace_spec.rb` | 1 | `logo_source` + `available_logo_sources` tests |
 | `spec/models/user_spec.rb` | 1 | `avatar_original` validation test |
 | `spec/requests/workspaces/brandings_spec.rb` | 1+2 | Source guard, destroy action, purge tests |
+| `spec/policies/workspaces/branding_policy_spec.rb` | 2 | `destroy?` policy test |
