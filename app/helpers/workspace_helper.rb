@@ -32,13 +32,14 @@ module WorkspaceHelper
   end
 
   def render_workspace_initials(workspace, config)
-    ws_hue = workspace.primary_color
-    ws_color = ws_hue ? "oklch(0.55 0.2 #{ws_hue})" : "var(--color-interactive)"
+    hue = workspace.primary_color || 210
+    # L=0.35, C=0.20 — AAA contrast with white text for initials circles
+    style = "background-color: oklch(0.35 0.2 #{hue});"
 
     content_tag :div, workspace.initials,
       class: "#{config[:css]} #{config[:text]} rounded-full flex items-center justify-center
               font-semibold text-white",
-      style: "background: #{ws_color};",
+      style: style,
       aria: { hidden: true }
   end
 end
