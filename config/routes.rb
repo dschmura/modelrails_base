@@ -43,7 +43,9 @@ Rails.application.routes.draw do
         end
       end
       resource :settings, only: [ :edit, :update ]
-      resource :branding, only: [ :edit, :update, :destroy ]
+      resource :branding, only: [ :edit, :update, :destroy ] do
+        get :hub
+      end
       resources :projects, param: :slug do
         scope module: :projects do
           resources :memberships, only: [ :index, :new, :create, :update, :destroy ] do
