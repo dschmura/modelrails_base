@@ -301,6 +301,23 @@ RSpec.describe "Workspace Brandings", type: :request do
       end
     end
 
+    describe "GET /workspaces/:workspace_slug/branding/hub" do
+      it "renders the hub partial with the requested source" do
+        get hub_workspace_branding_path(workspace, source: "initials"),
+          headers: { "Turbo-Frame" => "identity-picker-hub" }
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include("identity-picker-hub")
+      end
+
+      it "falls back to workspace's current source for invalid source param" do
+        get hub_workspace_branding_path(workspace, source: "invalid"),
+          headers: { "Turbo-Frame" => "identity-picker-hub" }
+
+        expect(response).to have_http_status(:ok)
+      end
+    end
+
     describe "authorization" do
       it "rejects non-owner/admin access" do
         viewer_role = Role.find_or_create_by!(slug: "viewer", workspace_id: nil) { |r| r.name = "Viewer" }

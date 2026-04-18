@@ -2,6 +2,39 @@ module Workspaces
   class BrandingsController < ApplicationController
     include WorkspaceScoped
 
+    def hub
+      authorize @workspace, :update?, policy_class: Workspaces::BrandingPolicy
+
+      @source = if params[:source].present? && @workspace.available_logo_sources.include?(params[:source])
+                  params[:source]
+      else
+                  @workspace.logo_source
+      end
+
+      is_user = false
+      has_image = @workspace.logo.attached?
+      current_hue = @workspace.primary_color || 210
+      display_url = has_image ? url_for(@workspace.logo) : nil
+
+      render partial: "shared/identity_picker_hub",
+        locals: {
+          model: @workspace,
+          form_url: workspace_branding_path(@workspace),
+          hub_url: hub_workspace_branding_path(@workspace),
+          current_source: @source,
+          has_color_picker: true,
+          available_sources: @workspace.available_logo_sources,
+          is_user: is_user,
+          has_image: has_image,
+          current_hue: current_hue,
+          display_url: display_url,
+          gravatar_url: nil,
+          initials: @workspace.initials,
+          hub_title: t("identity_picker.choose_workspace_logo")
+        },
+        layout: false
+    end
+
     def edit
       authorize @workspace, policy_class: Workspaces::BrandingPolicy
     end
