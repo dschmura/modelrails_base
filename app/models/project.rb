@@ -2,6 +2,7 @@ class Project < ApplicationRecord
   include Discardable
   include Tenanted
   include Trackable
+  include Broadcastable
 
   belongs_to :created_by, class_name: "User"
   has_many :project_memberships, dependent: :destroy
@@ -16,8 +17,6 @@ class Project < ApplicationRecord
 
   before_validation :generate_slug, if: -> { name.present? && (slug.blank? || (name_changed? && !slug_changed?)) }
 
-  after_commit :broadcast_changes, on: [ :create, :update ]
-
   def to_param
     slug
   end
@@ -28,10 +27,8 @@ class Project < ApplicationRecord
 
   private
 
-  def broadcast_changes
-    broadcast_refresh_to workspace
-  rescue => e
-    Rails.logger.warn("Broadcast failed: #{e.message}")
+  def broadcast_target
+    workspace
   end
 
   def generate_slug
