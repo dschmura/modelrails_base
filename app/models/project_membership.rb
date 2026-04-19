@@ -1,4 +1,6 @@
 class ProjectMembership < ApplicationRecord
+  include Broadcastable
+
   belongs_to :project
   belongs_to :user
 
@@ -9,14 +11,14 @@ class ProjectMembership < ApplicationRecord
 
   scope :pinned, -> { where(pinned: true) }
 
-  after_commit :broadcast_changes, on: [ :create, :update, :destroy ]
+  def self.broadcast_events
+    [ :create, :update, :destroy ]
+  end
 
   private
 
-  def broadcast_changes
-    broadcast_refresh_to project
-  rescue => e
-    Rails.logger.warn("Broadcast failed: #{e.message}")
+  def broadcast_target
+    project
   end
 
   def user_is_workspace_member

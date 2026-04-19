@@ -5,6 +5,7 @@ class Invitation < ApplicationRecord
   belongs_to :accepted_by, class_name: "User", optional: true
 
   include Trackable
+  include Broadcastable
 
   enum :status, { pending: "pending", accepted: "accepted", declined: "declined", revoked: "revoked" }, default: "pending"
 
@@ -15,8 +16,6 @@ class Invitation < ApplicationRecord
   validates :email, format: { with: User::EMAIL_FORMAT }, allow_nil: true
 
   before_create :generate_token
-
-  after_commit :broadcast_changes, on: [ :create, :update ]
 
   scope :pending, -> { where(status: "pending").where("expires_at > ?", Time.current) }
   scope :expired, -> { where(status: "pending").where("expires_at <= ?", Time.current) }
@@ -67,11 +66,8 @@ class Invitation < ApplicationRecord
 
   private
 
-  def broadcast_changes
-    target = invitable_type == "Project" ? invitable.workspace : invitable
-    broadcast_refresh_to target
-  rescue => e
-    Rails.logger.warn("Broadcast failed: #{e.message}")
+  def broadcast_target
+    invitable_type == "Project" ? invitable.workspace : invitable
   end
 
   def accept_workspace_invitation!(user)

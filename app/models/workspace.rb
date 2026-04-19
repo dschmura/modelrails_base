@@ -1,6 +1,7 @@
 class Workspace < ApplicationRecord
   include Discardable
   include Trackable
+  include Broadcastable
 
   has_one_attached :logo
   has_one_attached :logo_original
@@ -27,7 +28,9 @@ class Workspace < ApplicationRecord
 
   before_validation :generate_slug, if: -> { name.present? && (slug.blank? || (name_changed? && !slug_changed?)) }
 
-  after_commit :broadcast_changes, on: [ :update ]
+  def self.broadcast_events
+    [ :update ]
+  end
 
   def discard!
     transaction do
@@ -57,12 +60,6 @@ class Workspace < ApplicationRecord
   end
 
   private
-
-  def broadcast_changes
-    broadcast_refresh_to self
-  rescue => e
-    Rails.logger.warn("Broadcast failed: #{e.message}")
-  end
 
   def generate_slug
     base_slug = name.parameterize
