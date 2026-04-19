@@ -1,6 +1,7 @@
 class Membership < ApplicationRecord
   include Discardable
   include Trackable
+  include Broadcastable
 
   belongs_to :user
   belongs_to :workspace
@@ -41,8 +42,6 @@ class Membership < ApplicationRecord
     end
   }
 
-  after_commit :broadcast_changes, on: [ :create, :update ]
-
   def change_role!(new_role)
     update!(role: new_role)
   end
@@ -74,10 +73,8 @@ class Membership < ApplicationRecord
 
   private
 
-  def broadcast_changes
-    broadcast_refresh_to workspace
-  rescue => e
-    Rails.logger.warn("Broadcast failed: #{e.message}")
+  def broadcast_target
+    workspace
   end
 
   def workspace_has_member_capacity
