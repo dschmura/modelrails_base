@@ -2,7 +2,12 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["container", "slider", "liveRegion", "zoomPercent", "dimensionBadge"]
-  static values = { aspectRatio: { type: Number, default: 1 } }
+  static values = {
+    aspectRatio: { type: Number, default: 1 },
+    readyAnnounce: String,
+    resetAnnounce: String,
+    zoomAnnounce: String
+  }
 
   connect() {
     this._initialized = false
@@ -296,17 +301,18 @@ export default class extends Controller {
   _announceZoom(value) {
     if (!this.hasLiveRegionTarget) return
     const percent = Math.round(100 + value * 2)
-    this.liveRegionTarget.textContent = `Zoom ${percent}%`
+    const template = this.zoomAnnounceValue || "Zoom %{percent}%"
+    this.liveRegionTarget.textContent = template.replace("%{percent}", percent)
   }
 
   _announceReady() {
     if (!this.hasLiveRegionTarget) return
-    this.liveRegionTarget.textContent = "Image loaded. Use arrow keys to move selection, plus and minus to zoom."
+    this.liveRegionTarget.textContent = this.readyAnnounceValue || ""
   }
 
   _announceReset() {
     if (!this.hasLiveRegionTarget) return
-    this.liveRegionTarget.textContent = "Crop reset to original position."
+    this.liveRegionTarget.textContent = this.resetAnnounceValue || ""
   }
 
   _updateZoomPercent(sliderValue) {

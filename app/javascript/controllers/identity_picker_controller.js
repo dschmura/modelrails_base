@@ -7,7 +7,18 @@ export default class extends Controller {
     "initialsPreview", "gifWarning"
   ]
 
-  static values = { formUrl: String, hasImage: Boolean, hubTitle: String, cropTitle: String }
+  static values = {
+    formUrl: String,
+    hasImage: Boolean,
+    hubTitle: String,
+    cropTitle: String,
+    invalidTypeMessage: String,
+    fileTooLargeMessage: String,
+    uploadFailedMessage: String,
+    uploadFailedNetworkMessage: String,
+    colorAnnounceTemplate: String,
+    colorNames: String
+  }
 
   connect() {
     this._pendingFile = null
@@ -99,11 +110,11 @@ export default class extends Controller {
 
     const validTypes = ["image/png", "image/jpeg", "image/gif", "image/webp"]
     if (!validTypes.includes(file.type)) {
-      this._announce("Invalid file type. Please select a PNG, JPEG, GIF, or WebP image.")
+      this._announce(this.invalidTypeMessageValue)
       return
     }
     if (file.size > 5 * 1024 * 1024) {
-      this._announce("File is too large. Maximum size is 5 MB.")
+      this._announce(this.fileTooLargeMessageValue)
       return
     }
 
@@ -144,11 +155,11 @@ export default class extends Controller {
 
       if (response.status === 422) {
         Turbo.renderStreamMessage(await response.text())
-        this._announce("Upload failed. Please try again.")
+        this._announce(this.uploadFailedMessageValue)
         return
       }
       if (!response.ok) {
-        this._announce("Upload failed. Please try again.")
+        this._announce(this.uploadFailedMessageValue)
         return
       }
 
@@ -163,7 +174,7 @@ export default class extends Controller {
       this._manageFocus("hub")
     } catch (error) {
       console.error("saveCrop failed:", error)
-      this._announce("Upload failed. Please check your connection and try again.")
+      this._announce(this.uploadFailedNetworkMessageValue)
     } finally {
       this._saving = false
     }
@@ -271,19 +282,16 @@ export default class extends Controller {
   }
 
   _hueToColorName(hue) {
-    if (hue < 30) return "Red"
-    if (hue < 60) return "Orange"
-    if (hue < 90) return "Yellow"
-    if (hue < 150) return "Green"
-    if (hue < 210) return "Cyan"
-    if (hue < 270) return "Blue"
-    if (hue < 330) return "Purple"
-    return "Pink"
+    const names = this.colorNamesValue.split(",")
+    const thresholds = [30, 60, 90, 150, 210, 270, 330]
+    const index = thresholds.findIndex(t => hue < t)
+    return names[index >= 0 ? index : names.length - 1] || ""
   }
 
   _announceColor(hue) {
     const el = this.element.querySelector("[aria-live='polite']")
-    if (el) el.textContent = `Color: ${this._hueToColorName(hue)}`
+    const template = this.colorAnnounceTemplateValue || "Color: %{name}"
+    if (el) el.textContent = template.replace("%{name}", this._hueToColorName(hue))
   }
 
   _appendCsrfToken(formData) {
