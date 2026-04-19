@@ -48,7 +48,9 @@ class Workspace < ApplicationRecord
   end
 
   def owner
-    memberships.joins(:role).find_by(roles: { slug: "owner" })&.user
+    # Uses detect (not joins + find_by) so it works from preloaded
+    # memberships without firing a per-row query in list views.
+    memberships.detect { |m| m.role.slug == "owner" }&.user
   end
 
   def available_logo_sources
