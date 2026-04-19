@@ -4,7 +4,8 @@ class WorkspacesController < ApplicationController
 
   def index
     authorize Workspace
-    @workspaces = Current.user.workspaces.kept.includes(:logo_attachment)
+    @workspaces = Current.user.workspaces.kept
+      .includes(:logo_attachment, memberships: [ :role, { user: :avatar_attachment } ])
   end
 
   def new
