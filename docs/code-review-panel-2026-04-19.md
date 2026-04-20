@@ -106,3 +106,4 @@ The codebase is **production-ready and convention-aligned**. The panel agrees on
 | Explore Active Storage direct upload for `saveCrop` to eliminate last manual fetch | Jorge | Low |
 | Evaluate whether `Document` model can be collapsed into `Resource` | GoRails | Low |
 | Remove `branding_params` rescue pattern — use top-level `params.permit` | GoRails | Low |
+`
