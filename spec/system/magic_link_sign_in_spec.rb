@@ -18,10 +18,10 @@ RSpec.describe "Magic link sign-in", type: :system do
       expect(page).to have_text(user.email_address)
 
       # Extract the magic link token and visit it directly
-      user.reload
-      visit magic_link_session_path(token: user.magic_link_token)
+      token_record = MagicLinkToken.where(email: user.email_address).order(:created_at).last
+      visit magic_link_callback_path(token: token_record.token)
 
-      expect(page).to have_text(I18n.t("magic_link_sessions.show.success"))
+      expect(page).to have_text(I18n.t("magic_link_callbacks.show.signed_in"))
     end
   end
 
@@ -41,10 +41,10 @@ RSpec.describe "Magic link sign-in", type: :system do
       expect(page).to have_text(I18n.t("magic_links.create.check_email"))
 
       # Extract the magic link token and visit it directly
-      user.reload
-      visit magic_link_session_path(token: user.magic_link_token)
+      token_record = MagicLinkToken.where(email: user.email_address).order(:created_at).last
+      visit magic_link_callback_path(token: token_record.token)
 
-      expect(page).to have_text(I18n.t("magic_link_sessions.show.success"))
+      expect(page).to have_text(I18n.t("magic_link_callbacks.show.signed_in"))
     end
   end
 
