@@ -49,6 +49,7 @@ en:
       register_first: "Create an account to accept your invitation."
       invalid_token: "This invitation link is invalid."
       expired_or_used: "This invitation has expired or has already been used."
+      acceptance_failed: "This invitation could not be accepted. The workspace may be at capacity or you may already be a member."
   invitation_declines:
     show:
       title: "Decline invitation"

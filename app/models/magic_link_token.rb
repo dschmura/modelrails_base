@@ -14,6 +14,20 @@ class MagicLinkToken < ApplicationRecord
       &.then { |record| record.expires_at > Time.current && record.consumed_at.nil? ? record : nil }
   end
 
+  # Atomically find and consume a token. Returns the record if successful,
+  # nil if the token is invalid, expired, or already consumed by another thread.
+  def self.consume!(token)
+    transaction do
+      record = lock.find_by(token: token)
+      return nil unless record
+      return nil if record.expires_at <= Time.current
+      return nil if record.consumed_at.present?
+
+      record.update!(consumed_at: Time.current)
+      record
+    end
+  end
+
   def consume!
     update!(consumed_at: Time.current)
   end
