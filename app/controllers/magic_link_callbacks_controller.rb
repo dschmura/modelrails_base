@@ -10,7 +10,12 @@ class MagicLinkCallbacksController < ApplicationController
 
     @user = User.find_by(email_address: token_record.email)
     if @user
-      token_record.consume!
+      # Atomic consume prevents double-spend from concurrent requests
+      consumed = MagicLinkToken.consume!(token_record.token)
+      unless consumed
+        redirect_to new_session_path, alert: t(".invalid")
+        return
+      end
       start_new_session_for(@user)
       redirect_to root_path, notice: t(".signed_in")
     else
@@ -35,12 +40,17 @@ class MagicLinkCallbacksController < ApplicationController
     )
 
     if @user.save
+      # Atomic consume after successful registration prevents double-spend
+      consumed = MagicLinkToken.consume!(token_record.token)
+      unless consumed
+        redirect_to new_session_path, alert: t(".invalid")
+        return
+      end
       @user.authentications.create!(
         provider: "email",
         uid: @user.email_address,
         verified_at: Time.current
       )
-      token_record.consume!
       start_new_session_for(@user)
       redirect_to root_path, notice: t(".registered")
     else

@@ -101,10 +101,12 @@ class User < ApplicationRecord
 
   def confirm_email_change!(token)
     return false if token.blank?
-    return false if pending_email_token != token
-    return false unless pending_email_token_valid?
 
     transaction do
+      reload
+      return false if pending_email_token != token
+      return false unless pending_email_token_valid?
+
       self.email_address = pending_email
       clear_pending_email_fields
       save!

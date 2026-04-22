@@ -66,6 +66,10 @@ class Membership < ApplicationRecord
     admin_role = Role.find_or_create_by!(slug: "admin", workspace_id: nil) { |r| r.name = "Admin" }
 
     transaction do
+      workspace.lock!
+      reload
+      raise ActiveRecord::RecordInvalid, self unless role.slug == "owner"
+      target_membership.reload
       target_membership.update!(role: owner_role)
       update!(role: admin_role)
     end

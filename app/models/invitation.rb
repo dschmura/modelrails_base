@@ -24,6 +24,12 @@ class Invitation < ApplicationRecord
     sent = 0
     skipped = 0
 
+    # Preload existing members and pending invitations to avoid N+1 queries
+    existing_members = workspace.memberships.kept.joins(:user)
+      .pluck("LOWER(users.email_address)").to_set
+    existing_invites = workspace.invitations.pending
+      .where.not(email: nil).pluck(:email).map(&:downcase).to_set
+
     emails.each do |email|
       normalized = email.downcase
 
@@ -32,12 +38,7 @@ class Invitation < ApplicationRecord
         next
       end
 
-      if workspace.memberships.kept.joins(:user).where(users: { email_address: normalized }).exists?
-        skipped += 1
-        next
-      end
-
-      if workspace.invitations.pending.where(email: normalized).exists?
+      if existing_members.include?(normalized) || existing_invites.include?(normalized)
         skipped += 1
         next
       end
@@ -48,6 +49,7 @@ class Invitation < ApplicationRecord
         invited_by: invited_by,
         expires_at: 7.days.from_now
       )
+      existing_invites.add(normalized)
       InvitationMailer.invite(invitation).deliver_later
       sent += 1
     end
@@ -106,23 +108,31 @@ class Invitation < ApplicationRecord
   end
 
   def accept_workspace_invitation!(user)
+    invitable.lock!
     existing = invitable.memberships.find_by(user: user)
     if existing&.discarded?
       existing.undiscard!
     elsif existing && !existing.discarded?
       raise ActiveRecord::RecordInvalid.new(self), "User is already a member"
     else
+      if invitable.memberships.kept.count >= invitable.max_members
+        raise ActiveRecord::RecordInvalid.new(self), "Workspace is at capacity"
+      end
       invitable.memberships.create!(user: user, role: role)
     end
   end
 
   def accept_project_invitation!(user)
     workspace = invitable.workspace
+    workspace.lock!
 
     existing_membership = workspace.memberships.find_by(user: user)
     if existing_membership&.discarded?
       existing_membership.undiscard!
     elsif existing_membership.nil?
+      if workspace.memberships.kept.count >= workspace.max_members
+        raise ActiveRecord::RecordInvalid.new(self), "Workspace is at capacity"
+      end
       workspace.memberships.create!(user: user, role: role)
     end
 
