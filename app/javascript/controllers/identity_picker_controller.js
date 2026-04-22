@@ -85,6 +85,12 @@ export default class extends Controller {
       const titleEl = this._dialog?.querySelector("[id$='-title']")
       if (titleEl) titleEl.textContent = this.hubTitleValue
     }
+    // Announce the active source for screen readers after a turbo frame reload
+    const activeSource = this.element.querySelector("#identity-picker-hub a[aria-checked='true']")
+    if (activeSource) {
+      const sourceName = activeSource.querySelector(".text-text-heading")?.textContent?.trim()
+      if (sourceName) this._announce(sourceName)
+    }
   }
 
   openCrop() {
@@ -310,7 +316,8 @@ export default class extends Controller {
   _announceColor(hue) {
     const el = this.element.querySelector("[aria-live='polite']")
     const template = this.colorAnnounceTemplateValue || "Color: %{name}"
-    if (el) el.textContent = template.replace("%{name}", this._hueToColorName(hue))
+    const label = `${this._hueToColorName(hue)} (${hue}°)`
+    if (el) el.textContent = template.replace("%{name}", label)
   }
 
   _appendCsrfToken(formData) {

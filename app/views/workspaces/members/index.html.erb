@@ -102,7 +102,9 @@
         <%= render "shared/pagination", pagy: @pagy %>
       </div>
     <% else %>
-      <p class="mt-8 text-center text-text-muted"><%= t("workspaces.members.index.empty") %></p>
+      <div class="mt-8">
+        <%= render "shared/empty_state", message: t("workspaces.members.index.empty") %>
+      </div>
     <% end %>
   <% end %>
 

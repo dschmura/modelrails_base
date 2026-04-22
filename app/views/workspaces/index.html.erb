@@ -28,6 +28,11 @@
       <% end %>
     </div>
   <% else %>
-    <p class="mt-8 text-text-muted"><%= t("workspaces.index.empty") %></p>
+    <div class="mt-8">
+      <%= render "shared/empty_state",
+            message: t("workspaces.index.empty"),
+            action_text: t("workspaces.index.new_workspace"),
+            action_url: new_workspace_path %>
+    </div>
   <% end %>
 </div>
