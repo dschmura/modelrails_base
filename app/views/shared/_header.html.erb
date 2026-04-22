@@ -15,7 +15,7 @@
           <%= link_to t("navigation.workspaces"), main_app.workspaces_path,
                 class: "min-h-[44px] flex items-center text-text-body
                         hover:text-interactive-hover
-                        focus:outline-none focus:ring-2 focus:ring-interactive-focus rounded px-2" %>
+                        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus rounded px-2" %>
         <% else %>
           <%= link_to t("navigation.sign_up"), main_app.new_registration_path,
                 class: "min-h-[44px] flex items-center px-4 rounded-md
@@ -45,13 +45,13 @@
           <%= link_to t("navigation.workspaces"), main_app.workspaces_path,
                 class: "min-h-[44px] flex items-center px-2 text-text-body
                         hover:text-interactive-hover rounded
-                        focus:outline-none focus:ring-2 focus:ring-interactive-focus" %>
+                        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus" %>
           <%= render "shared/user_menu", context: :mobile %>
         <% else %>
           <%= link_to t("navigation.sign_in"), main_app.new_session_path,
                 class: "min-h-[44px] flex items-center px-2 text-text-body
                         hover:text-interactive-hover rounded
-                        focus:outline-none focus:ring-2 focus:ring-interactive-focus" %>
+                        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus" %>
           <%= link_to t("navigation.sign_up"), main_app.new_registration_path,
                 class: "min-h-[44px] flex items-center px-4 rounded-md
                         bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium

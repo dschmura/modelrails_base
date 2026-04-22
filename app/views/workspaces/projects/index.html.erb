@@ -34,6 +34,8 @@
       <% end %>
     </div>
   <% else %>
-    <p class="mt-8 text-text-muted"><%= t("workspaces.projects.index.empty") %></p>
+    <div class="mt-8">
+      <%= render "shared/empty_state", message: t("workspaces.projects.index.empty") %>
+    </div>
   <% end %>
 </div>
