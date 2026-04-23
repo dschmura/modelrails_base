@@ -17,8 +17,16 @@ RSpec.describe "shared/_footer", type: :view do
       expect(rendered).to have_css("p.text-center", text: I18n.t("footer.copyright"))
     end
 
-    it "includes an aria-hidden divider element" do
-      expect(rendered).to have_css("[aria-hidden='true']", visible: :all)
+    it "includes an aria-hidden vertical divider between nav clusters" do
+      expect(rendered).to have_css("span.bg-border[aria-hidden='true']", visible: :all)
+    end
+
+    it "includes a horizontal rule divider between the two rows" do
+      expect(rendered).to have_css("div.border-t.border-border[aria-hidden='true']", visible: :all)
+    end
+
+    it "mounts the footer Stimulus controller on the footer element" do
+      expect(rendered).to have_css("footer[data-controller='footer']")
     end
   end
 
