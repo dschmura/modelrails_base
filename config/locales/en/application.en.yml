@@ -29,4 +29,8 @@ en:
     privacy: "Privacy"
     contact: "Contact"
     docs: "Docs"
+    manage_cookies: "Manage cookies"
     copyright: "ModelRails. All rights reserved."
+    aria:
+      product: "Product"
+      legal: "Legal and privacy"
