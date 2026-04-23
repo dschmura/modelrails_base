@@ -63,3 +63,24 @@ When preparing the first SSL-enabled deploy, change these in the **same commit**
 - [ ] Update `config.hosts` if enabling DNS rebinding protection
 
 Test locally with `RAILS_ENV=production bin/rails server` to catch any redirect loops before deploying.
+
+## Development environment notes
+
+### CSP exception for letter_opener_web
+
+The production CSP defined in `config/initializers/content_security_policy.rb` sets `frame_src :none` and a nonce-enforced `script_src`. Those rules block the `letter_opener_web` email-preview iframe and its inline scripts.
+
+Because the engine is mounted only when `Rails.env.development?` (see `config/routes.rb`), CSP is disabled for the gem's controllers in a dev-only initializer at `config/initializers/letter_opener_web.rb`:
+
+```ruby
+Rails.application.config.to_prepare do
+  next unless Rails.env.development?
+  next unless defined?(LetterOpenerWeb::ApplicationController)
+
+  LetterOpenerWeb::ApplicationController.content_security_policy false
+end
+```
+
+This doesn't relax CSP anywhere else — the main app's CSP stays intact in every environment. The `X-Frame-Options: SAMEORIGIN` header from `config/initializers/security_headers.rb` is also preserved, so cross-origin iframing is still blocked.
+
+No production impact: the engine isn't mounted, so the initializer's guards short-circuit before touching the constant.
