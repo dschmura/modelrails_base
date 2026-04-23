@@ -54,7 +54,6 @@ Check the box to mark a feature for migration. Cross out to skip.
 
 ## UI & Design System
 
-
 - [x] **Class-based dark mode toggle** — Three-way toggle (light/dark/system) with Stimulus controller *(partial: system-only via media query)*
 - [x] **Semantic design tokens** — CSS custom properties for surfaces, text, borders, status, brand colors
 - [ ] **Toast notification system** — Auto-dismiss notices, persistent errors, progress bar, stack management
