@@ -61,17 +61,17 @@ RSpec.describe "shared/_footer", type: :view do
       expect(rendered).to have_css("#{selector} a", text: I18n.t("footer.contact"))
     end
 
-    it "contains a Manage cookies button wired to footer#reopenCookies" do
+    it "contains a Cookie settings button wired to footer#reopenCookies" do
       expect(rendered).to have_css(
         "#{selector} button[data-action*='click->footer#reopenCookies']",
-        text: I18n.t("footer.manage_cookies")
+        text: I18n.t("footer.cookie_settings")
       )
     end
 
-    it "gives the Manage cookies button an accessible label and does not promise a dialog" do
+    it "gives the Cookie settings button an accessible label and does not promise a dialog" do
       expect(rendered).to have_css(
         "#{selector} button[data-action*='click->footer#reopenCookies']",
-        text: I18n.t("footer.manage_cookies")
+        text: I18n.t("footer.cookie_settings")
       )
       expect(rendered).not_to have_css(
         "#{selector} button[aria-haspopup='dialog']"

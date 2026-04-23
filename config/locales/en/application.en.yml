@@ -29,7 +29,7 @@ en:
     privacy: "Privacy"
     contact: "Contact"
     docs: "Docs"
-    manage_cookies: "Manage cookies"
+    cookie_settings: "Cookie settings"
     copyright: "ModelRails. All rights reserved."
     aria:
       product: "Product"
