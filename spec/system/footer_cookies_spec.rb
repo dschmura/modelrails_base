@@ -1,10 +1,10 @@
 require "rails_helper"
 
-RSpec.describe "Footer: Manage cookies reopens Biscuit banner", type: :system do
-  it "renders a Manage cookies button in the footer on public pages" do
+RSpec.describe "Footer: Cookie settings reopens Biscuit banner", type: :system do
+  it "renders a Cookie settings button in the footer on public pages" do
     visit root_path
     within("footer") do
-      expect(page).to have_button(I18n.t("footer.manage_cookies"))
+      expect(page).to have_button(I18n.t("footer.cookie_settings"))
     end
   end
 
@@ -24,7 +24,7 @@ RSpec.describe "Footer: Manage cookies reopens Biscuit banner", type: :system do
     expect(page).to have_css("[data-biscuit-target='banner'][hidden]", visible: :hidden)
 
     within("footer") do
-      click_button I18n.t("footer.manage_cookies")
+      click_button I18n.t("footer.cookie_settings")
     end
 
     # Biscuit's reopen action calls #showBanner, making the banner visible again.
