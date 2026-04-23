@@ -18,11 +18,11 @@ RSpec.describe "shared/_footer", type: :view do
     end
 
     it "includes an aria-hidden vertical divider between nav clusters" do
-      expect(rendered).to have_css("span.bg-border[aria-hidden='true']", visible: :all)
+      expect(rendered).to have_css("div.border-l.border-border[aria-hidden='true']", visible: :all)
     end
 
     it "includes a horizontal rule divider between the two rows" do
-      expect(rendered).to have_css("div.border-t.border-border[aria-hidden='true']", visible: :all)
+      expect(rendered).to have_css("div.border-t.border-border")
     end
 
     it "mounts the footer Stimulus controller on the footer element" do
@@ -68,10 +68,19 @@ RSpec.describe "shared/_footer", type: :view do
       )
     end
 
-    it "marks the Manage cookies button as opening a dialog" do
+    it "gives the Manage cookies button an accessible label and does not promise a dialog" do
       expect(rendered).to have_css(
-        "#{selector} button[data-action*='click->footer#reopenCookies'][aria-haspopup='dialog']"
+        "#{selector} button[data-action*='click->footer#reopenCookies']",
+        text: I18n.t("footer.manage_cookies")
       )
+      expect(rendered).not_to have_css(
+        "#{selector} button[aria-haspopup='dialog']"
+      )
+    end
+
+    it "meets AAA target-size by applying min-h-[44px] to interactive elements" do
+      expect(rendered).to have_css("#{selector} a.min-h-\\[44px\\]", count: 2)
+      expect(rendered).to have_css("#{selector} button.min-h-\\[44px\\]", count: 1)
     end
   end
 end
