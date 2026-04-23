@@ -593,7 +593,7 @@ DEPENDENCIES
   lefthook (~> 2.1)
   letter_opener
   letter_opener_web
-  lexxy (~> 0.9.1.beta)
+  lexxy (~> 0.9.9.beta)
   markdowndocs
   omniauth
   omniauth-github
