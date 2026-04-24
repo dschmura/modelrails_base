@@ -6,6 +6,15 @@ RSpec.describe "Registrations", type: :request do
       get new_registration_path
       expect(response).to have_http_status(:ok)
     end
+
+    context "when the visitor is already signed in" do
+      it "redirects to root with an already-signed-in notice" do
+        sign_in(create(:user))
+        get new_registration_path
+        expect(response).to redirect_to(root_path)
+        expect(flash[:notice]).to eq(I18n.t("authentication.already_signed_in"))
+      end
+    end
   end
 
   describe "POST /signup" do

@@ -1,4 +1,6 @@
 en:
+  authentication:
+    already_signed_in: "You're already signed in."
   sessions:
     new:
       title: "Sign in"
