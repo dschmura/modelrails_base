@@ -60,6 +60,32 @@ Fixed-meaning colors that don't shift with theming. Red is always danger, green 
 
 Dark mode uses a class-based toggle (`.dark` on `<html>`) instead of a media query. This enables the three-way user preference (light / dark / system). All semantic and signal tokens remap automatically when `.dark` is present.
 
+### Workspace Branding
+
+Workspace-scoped routes emit a `--ws-primary` CSS custom property and a
+`data-workspace-branded` marker on `<main>`, activating a cascade that
+recolors the interactive tokens for that workspace:
+
+```erb
+<main data-workspace-branded
+      style="--ws-primary: oklch(0.40 0.15 <hue>);">
+```
+
+The cascade (in `app/assets/tailwind/application.css` under the "Workspace
+Branding Override" block) remaps:
+
+- `--color-interactive` ← `var(--ws-primary)`
+- `--color-interactive-hover` ← `color-mix(in oklch, --ws-primary 80%, black)`
+- `--color-interactive-focus` ← `var(--ws-primary)`
+- `--color-interactive-subtle` ← `color-mix(in oklch, --ws-primary 10%, white)`
+
+Dark-mode variants mix with white instead of black for appropriate contrast.
+
+The `primary_color` column on `workspaces` is an integer OKLCH hue (0–360)
+with default `210` (the app's sky base). When the column matches the
+default, the cascade computes values identical to the untouched tokens —
+no visual change. Explicit hue changes light up immediately.
+
 ## Form Builder
 
 ModelRails includes a custom `TailwindFormBuilder` set as the default form builder. It provides:
