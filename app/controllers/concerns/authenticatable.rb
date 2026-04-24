@@ -10,11 +10,23 @@ module Authenticatable
     def allow_unauthenticated_access(**options)
       skip_before_action :require_authentication, **options
     end
+
+    # Inverse guard: pages only useful when signed out (registration, sign-in,
+    # magic-link request, password-reset request). Authenticated visitors get
+    # redirected to root so they don't see a confusing "Create your account"
+    # form while they're already signed in.
+    def require_unauthenticated_access(**options)
+      before_action :redirect_if_authenticated, **options
+    end
   end
 
   private
     def authenticated?
       resume_session
+    end
+
+    def redirect_if_authenticated
+      redirect_to root_path, notice: t("authentication.already_signed_in") if resume_session
     end
 
     def require_authentication
