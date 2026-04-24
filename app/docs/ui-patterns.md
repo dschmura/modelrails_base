@@ -60,6 +60,42 @@ Fixed-meaning colors that don't shift with theming. Red is always danger, green 
 
 Dark mode uses a class-based toggle (`.dark` on `<html>`) instead of a media query. This enables the three-way user preference (light / dark / system). All semantic and signal tokens remap automatically when `.dark` is present.
 
+### Workspace Branding
+
+Workspace-scoped routes emit a `--ws-primary` CSS custom property and a
+`data-workspace-branded` marker on `<main>`, activating a cascade that
+recolors the interactive tokens for that workspace:
+
+```erb
+<main data-workspace-branded
+      style="--ws-primary: oklch(0.40 0.15 <hue>);">
+```
+
+The cascade (in `app/assets/tailwind/application.css` under the "Workspace
+Branding Override" block) remaps:
+
+- `--color-interactive` ← `var(--ws-primary)`
+- `--color-interactive-hover` ← `color-mix(in oklch, --ws-primary 80%, black)`
+- `--color-interactive-focus` ← `var(--ws-primary)`
+- `--color-interactive-subtle` ← `color-mix(in oklch, --ws-primary 10%, white)`
+
+Dark-mode variants mix with white instead of black for appropriate contrast.
+
+The `primary_color` column on `workspaces` is an integer OKLCH hue (0–360)
+with default `210` (the app's sky base). When the column matches the
+default, the cascade computes values identical to the untouched tokens —
+no visual change. Explicit hue changes light up immediately.
+
+**Contrast caveat.** The `oklch(0.40 0.15 <hue>)` formula yields AAA-level
+(7:1) contrast on white for most hues, but perceived lightness in OKLCH
+varies by hue at a fixed `L` coordinate. Yellow-green hues in the
+~80–140 range read as lighter than the coordinate suggests and can dip
+below AAA (and in places below AA) on white backgrounds. The model
+validation allows any integer 0–360, so workspace owners who pick a hue
+in this band get buttons whose contrast is not guaranteed. This is a
+known gap and will be addressed alongside the planned OKLCH
+color-strategy unification; the default (`210`, sky) always meets AAA.
+
 ## Form Builder
 
 ModelRails includes a custom `TailwindFormBuilder` set as the default form builder. It provides:
@@ -190,7 +226,7 @@ ModelRails targets **WCAG 2.2 Level AAA**:
 |---------|---------------|
 | Touch targets | `min-h-[44px]` on all interactive elements |
 | Focus indicators | `focus:ring-2 focus:ring-interactive-focus` consistently |
-| Color contrast | Interactive token is primary-800 (7.56:1 AAA on white) |
+| Color contrast | Default interactive token is primary-800 (7.56:1 AAA on white). On workspace-branded routes, contrast varies by hue — see Workspace Branding caveat below. |
 | Skip navigation | `sr-only` link to `#main-content` at top of every page |
 | Screen readers | ARIA labels, live regions, roles on all dynamic content |
 | Motion | Animations respect `prefers-reduced-motion` |
