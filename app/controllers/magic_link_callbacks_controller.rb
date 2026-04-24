@@ -4,7 +4,7 @@ class MagicLinkCallbacksController < ApplicationController
   def show
     token_record = MagicLinkToken.find_valid(params[:token])
     unless token_record
-      redirect_to new_session_path, alert: t(".invalid")
+      redirect_to(authenticated? ? root_path : new_session_path, alert: t(".invalid"))
       return
     end
 
@@ -13,7 +13,7 @@ class MagicLinkCallbacksController < ApplicationController
       # Atomic consume prevents double-spend from concurrent requests
       consumed = MagicLinkToken.consume!(token_record.token)
       unless consumed
-        redirect_to new_session_path, alert: t(".invalid")
+        redirect_to(authenticated? ? root_path : new_session_path, alert: t(".invalid"))
         return
       end
       start_new_session_for(@user)
@@ -29,7 +29,7 @@ class MagicLinkCallbacksController < ApplicationController
   def create
     token_record = MagicLinkToken.find_valid(params[:token])
     unless token_record
-      redirect_to new_session_path, alert: t(".invalid")
+      redirect_to(authenticated? ? root_path : new_session_path, alert: t(".invalid"))
       return
     end
 
@@ -43,7 +43,7 @@ class MagicLinkCallbacksController < ApplicationController
       # Atomic consume after successful registration prevents double-spend
       consumed = MagicLinkToken.consume!(token_record.token)
       unless consumed
-        redirect_to new_session_path, alert: t(".invalid")
+        redirect_to(authenticated? ? root_path : new_session_path, alert: t(".invalid"))
         return
       end
       @user.authentications.create!(
