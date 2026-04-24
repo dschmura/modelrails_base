@@ -1,5 +1,11 @@
 class PasswordsController < ApplicationController
   allow_unauthenticated_access
+  # Only guard the GET request form. POST /passwords (create) is a legitimate
+  # "forgot my password" request that a signed-in user might still trigger,
+  # and tests use it to simulate reset flows without fighting the guard.
+  # #edit and #update come from a tokenized email link and can happen while
+  # signed in too.
+  require_unauthenticated_access only: :new
   rate_limit to: 10, within: 3.minutes, only: :create,
     with: -> { redirect_to new_password_path, alert: t("passwords.create.rate_limited") }
   before_action :set_user_by_token, only: %i[edit update]
