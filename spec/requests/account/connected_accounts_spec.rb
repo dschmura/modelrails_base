@@ -45,4 +45,79 @@ RSpec.describe "Account Connected Accounts", type: :request do
       end
     end
   end
+
+  describe "GET /account/connected_accounts/verify/:token" do
+    let(:user) { create(:user) }
+    let(:auth) do
+      user.authentications.create!(
+        provider: "google",
+        uid: "uid-1",
+        email: "alice.work@gmail.com",
+        verification_token: "valid-token",
+        verification_sent_at: 1.hour.ago,
+        verified_at: nil
+      )
+    end
+
+    context "with a valid, unexpired token" do
+      it "marks the authentication verified" do
+        get verify_account_connected_accounts_path(token: auth.verification_token)
+        expect(auth.reload.verified_at).to be_present
+        expect(auth.verification_token).to be_nil
+      end
+
+      context "when the user is signed in" do
+        before { sign_in(user) }
+
+        it "redirects to connected accounts with success" do
+          get verify_account_connected_accounts_path(token: auth.verification_token)
+          expect(response).to redirect_to(account_connected_accounts_path)
+          expect(flash[:notice]).to include("linked")
+        end
+      end
+
+      context "when the user is signed out" do
+        it "redirects to sign-in with sign-in success message" do
+          get verify_account_connected_accounts_path(token: auth.verification_token)
+          expect(response).to redirect_to(new_session_path)
+          expect(flash[:notice]).to include("Sign in to continue")
+        end
+      end
+    end
+
+    context "with an expired token" do
+      before { auth.update!(verification_sent_at: 25.hours.ago) }
+
+      it "does not mark the authentication verified" do
+        get verify_account_connected_accounts_path(token: auth.verification_token)
+        expect(auth.reload.verified_at).to be_nil
+      end
+
+      it "redirects with an invalid-or-expired alert" do
+        get verify_account_connected_accounts_path(token: auth.verification_token)
+        expect(flash[:alert]).to include("invalid or expired")
+      end
+    end
+
+    context "with an unknown token" do
+      it "redirects with an invalid-or-expired alert" do
+        get verify_account_connected_accounts_path(token: "nonexistent")
+        expect(flash[:alert]).to include("invalid or expired")
+      end
+    end
+
+    context "with an already-consumed token" do
+      let(:original_token) { auth.verification_token }
+
+      before do
+        original_token  # materialize before verify! clears it
+        auth.verify!
+      end
+
+      it "redirects with an invalid-or-expired alert" do
+        get verify_account_connected_accounts_path(token: original_token)
+        expect(flash[:alert]).to include("invalid or expired")
+      end
+    end
+  end
 end
