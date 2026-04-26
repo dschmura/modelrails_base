@@ -3,6 +3,7 @@ module Account
     allow_unauthenticated_access only: :verify
 
     rate_limit to: 3, within: 3.minutes, only: :resend_verification,
+      by: -> { Current.user&.id || request.remote_ip },
       with: -> {
         redirect_to account_connected_accounts_path,
           alert: t("account.connected_accounts.resend_verification.rate_limited")
@@ -18,6 +19,12 @@ module Account
       if auth.nil? || auth.token_expired?
         redirect_to(authenticated? ? account_connected_accounts_path : new_session_path,
                     alert: t(".invalid_or_expired"))
+        return
+      end
+
+      if authenticated? && Current.user.id != auth.user_id
+        redirect_to account_connected_accounts_path,
+          alert: t(".invalid_or_expired")
         return
       end
 
@@ -49,13 +56,21 @@ module Account
     def destroy
       auth = Current.user.authentications.find(params[:id])
 
-      if auth.verified? && Current.user.authentications.verified.count <= 1
-        redirect_to account_connected_accounts_path,
-          alert: t(".cannot_remove_last_verified")
-      else
-        auth.destroy!
+      destroyed = Authentication.transaction do
+        if auth.verified? && Current.user.authentications.lock.verified.count <= 1
+          false
+        else
+          auth.destroy!
+          true
+        end
+      end
+
+      if destroyed
         redirect_to account_connected_accounts_path,
           notice: t(".success", provider: auth.provider.titleize)
+      else
+        redirect_to account_connected_accounts_path,
+          alert: t(".cannot_remove_last_verified")
       end
     end
   end

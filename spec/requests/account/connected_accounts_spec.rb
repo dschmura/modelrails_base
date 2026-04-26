@@ -119,6 +119,33 @@ RSpec.describe "Account Connected Accounts", type: :request do
         expect(flash[:alert]).to include("invalid or expired")
       end
     end
+
+    context "with a valid token belonging to a different user" do
+      let(:other_user) { create(:user) }
+      let!(:other_auth) do
+        other_user.authentications.create!(
+          provider: "google",
+          uid: "uid-other",
+          email: "other@example.com",
+          verification_token: "other-token",
+          verification_sent_at: 1.hour.ago,
+          verified_at: nil
+        )
+      end
+
+      before { sign_in(user) }
+
+      it "does not verify the other user's authentication" do
+        get verify_account_connected_accounts_path(token: "other-token")
+        expect(other_auth.reload.verified_at).to be_nil
+      end
+
+      it "redirects with invalid_or_expired (does not leak that the token belongs to another user)" do
+        get verify_account_connected_accounts_path(token: "other-token")
+        expect(response).to redirect_to(account_connected_accounts_path)
+        expect(flash[:alert]).to include("invalid or expired")
+      end
+    end
   end
 
   describe "DELETE /account/connected_accounts/:id (last verified method protection)" do
@@ -224,6 +251,40 @@ RSpec.describe "Account Connected Accounts", type: :request do
         3.times { post resend_verification_account_connected_account_path(pending_auth) }
         post resend_verification_account_connected_account_path(pending_auth)
         expect(flash[:alert]).to include("wait a moment")
+      end
+    end
+
+    context "rate limit scoping" do
+      it "scopes the rate limit by Current.user.id (not just IP)" do
+        # Verify the controller declaration includes a per-user `by:` lambda
+        # by ensuring the ActiveSupport::Cache key includes the user id
+        captured_key = nil
+        allow(Rails.cache).to receive(:increment) do |key, *|
+          captured_key = key
+          1
+        end
+
+        post resend_verification_account_connected_account_path(pending_auth)
+        expect(captured_key).to include(user.id.to_s)
+      end
+    end
+  end
+
+  describe "DELETE /account/connected_accounts/:id (last verified method protection) - concurrency" do
+    let(:user) { create(:user) }
+    before { sign_in(user) }
+
+    context "concurrency safety" do
+      let!(:verified1) { user.authentications.create!(provider: "email", uid: user.email_address,
+        email: user.email_address, verified_at: Time.current) }
+      let!(:verified2) { user.authentications.create!(provider: "google", uid: "g-1",
+        email: user.email_address, verified_at: Time.current) }
+
+      it "destroys one of two verified auths" do
+        expect {
+          delete account_connected_account_path(verified1)
+        }.to change(user.authentications.verified, :count).by(-1)
+        expect(user.authentications.verified.count).to eq(1)
       end
     end
   end
