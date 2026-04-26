@@ -128,9 +128,6 @@ en:
       initials:
         title: "Initials"
         description: "A simple, colored circle with your initials"
-  omniauth_callbacks:
-    create:
-      linked: "%{provider} has been connected to your account."
   email_verification_resends:
     create:
       success: "A new verification email has been sent."
