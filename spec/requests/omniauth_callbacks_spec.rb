@@ -287,6 +287,35 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
     end
   end
 
+  describe "Google OAuth with strategy-default provider name (production behavior)" do
+    let(:user) { create(:user, email_address: "rachel@example.com") }
+
+    before do
+      sign_in(user)
+      OmniAuth.config.test_mode = true
+      OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(
+        provider: "google_oauth2",  # ← matches what the real strategy emits
+        uid: "google-oauth2-prod-1",
+        info: { email: "rachel@example.com", name: "Rachel" },
+        credentials: { token: "tok", refresh_token: "rtok", expires_at: 1.hour.from_now.to_i }
+      )
+    end
+    after { OmniAuth.config.mock_auth.clear; OmniAuth.config.test_mode = false }
+
+    it "creates the auth with the canonical 'google' provider value" do
+      get "/auth/google_oauth2/callback"
+      auth = user.authentications.find_by(provider: "google")
+      expect(auth).to be_present
+      expect(auth.provider).to eq("google")
+    end
+
+    it "redirects to connected accounts (auto-verified path: emails match)" do
+      get "/auth/google_oauth2/callback"
+      expect(response).to redirect_to(account_connected_accounts_path)
+      expect(flash[:notice]).to include("linked")
+    end
+  end
+
   describe "signed-in user linking (verified flow)" do
     let(:user) { create(:user, email_address: "alice@home.com") }
 
@@ -420,6 +449,38 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
         get "/auth/google_oauth2/callback"
         expect(flash[:alert]).to include("couldn't link")
       end
+    end
+  end
+
+  describe "production-style AuthHash with strategy-default provider name" do
+    # Regression: omniauth-google-oauth2 strategy emits provider: "google_oauth2"
+    # in production, but our enum stores "google". The controller must normalize
+    # the strategy-name to the enum value before any DB lookup or write.
+    let(:user) { create(:user, email_address: "carol@home.com") }
+
+    before do
+      sign_in(user)
+      OmniAuth.config.test_mode = true
+      OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(
+        provider: "google_oauth2",
+        uid: "google-prod-1",
+        info: { email: "carol@home.com", name: "Carol" },
+        credentials: { token: "tok", refresh_token: "rtok", expires_at: 1.hour.from_now.to_i }
+      )
+    end
+    after { OmniAuth.config.mock_auth.clear; OmniAuth.config.test_mode = false }
+
+    it "does not raise and creates a verified google authentication" do
+      expect {
+        get "/auth/google_oauth2/callback"
+      }.to change { user.authentications.where(provider: "google").count }.by(1)
+    end
+
+    it "redirects to connected accounts with linked notice (Google, not Google Oauth2)" do
+      get "/auth/google_oauth2/callback"
+      expect(response).to redirect_to(account_connected_accounts_path)
+      expect(flash[:notice]).to include("Google")
+      expect(flash[:notice]).not_to include("Google Oauth2")
     end
   end
 end
