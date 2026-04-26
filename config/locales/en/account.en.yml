@@ -70,6 +70,10 @@ en:
       destroy:
         success: "%{provider} has been disconnected."
         last_method: "You cannot disconnect your only sign-in method."
+      verify:
+        success: "%{provider} linked. You can sign in with it."
+        success_signed_out: "%{provider} linked. Sign in to continue."
+        invalid_or_expired: "This confirmation link is invalid or expired. Sign in and request a new one from your connected accounts."
   identity_picker:
     preview: "Preview"
     last_updated: "Updated %{time} ago"
