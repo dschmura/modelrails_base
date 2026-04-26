@@ -217,4 +217,96 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
       expect(user.first_name).to eq("User")
     end
   end
+
+  describe "signed-in user linking (verified flow)" do
+    let(:user) { create(:user, email_address: "alice@home.com") }
+
+    before do
+      sign_in(user)
+      OmniAuth.config.test_mode = true
+    end
+
+    after { OmniAuth.config.mock_auth.clear; OmniAuth.config.test_mode = false }
+
+    context "when OAuth email matches user's primary email" do
+      before do
+        OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(
+          provider: "google", uid: "google-1",
+          info: { email: "alice@home.com", name: "Alice" },
+          credentials: { token: "tok", refresh_token: "rtok", expires_at: 1.hour.from_now.to_i }
+        )
+      end
+
+      it "creates the auth as verified immediately" do
+        get "/auth/google_oauth2/callback"
+        auth = user.authentications.find_by(provider: "google")
+        expect(auth).to be_verified
+        expect(auth.verification_token).to be_nil
+      end
+
+      it "redirects to connected accounts with linked notice" do
+        get "/auth/google_oauth2/callback"
+        expect(response).to redirect_to(account_connected_accounts_path)
+        expect(flash[:notice]).to include("linked")
+      end
+    end
+
+    context "when OAuth email differs from user's primary email" do
+      before do
+        OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(
+          provider: "google", uid: "google-1",
+          info: { email: "alice.work@gmail.com", name: "Alice" },
+          credentials: { token: "tok", refresh_token: "rtok", expires_at: 1.hour.from_now.to_i }
+        )
+      end
+
+      it "creates the auth as pending (verified_at nil)" do
+        get "/auth/google_oauth2/callback"
+        auth = user.authentications.find_by(provider: "google")
+        expect(auth.verified_at).to be_nil
+        expect(auth.verification_token).to be_present
+      end
+
+      it "captures the OAuth email on the auth row" do
+        get "/auth/google_oauth2/callback"
+        auth = user.authentications.find_by(provider: "google")
+        expect(auth.email).to eq("alice.work@gmail.com")
+      end
+
+      it "enqueues the verification email" do
+        expect {
+          get "/auth/google_oauth2/callback"
+        }.to have_enqueued_mail(AuthenticationMailer, :link_verification_email)
+      end
+
+      it "redirects to connected accounts with pending banner flash" do
+        get "/auth/google_oauth2/callback"
+        expect(response).to redirect_to(account_connected_accounts_path)
+        expect(flash[:notice]).to include("alice.work@gmail.com")
+      end
+    end
+
+    context "when user already has an authentication for this provider" do
+      before do
+        user.authentications.create!(provider: "google", uid: "old-uid",
+          email: "alice@home.com", verified_at: Time.current)
+        OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(
+          provider: "google", uid: "google-different-uid",
+          info: { email: "alice@home.com" },
+          credentials: { token: "tok", refresh_token: "rtok", expires_at: nil }
+        )
+      end
+
+      it "does not create a second authentication" do
+        expect {
+          get "/auth/google_oauth2/callback"
+        }.not_to change { user.authentications.count }
+      end
+
+      it "redirects with already_linked alert" do
+        get "/auth/google_oauth2/callback"
+        expect(flash[:alert]).to include("already linked")
+      end
+    end
+  end
 end
