@@ -63,10 +63,15 @@ en:
         invalid_theme: "Invalid theme."
     connected_accounts:
       index:
-        title: "Connected accounts"
-        email_provider: "Email and password"
-        verified: "Verified"
+        cancel_action: "Cancel link"
+        confirming_banner_html: "Almost there — we sent a confirmation link to <strong>%{email}</strong> to make sure that's really you. Click the link to finish linking %{provider}."
         disconnect: "Disconnect"
+        email_provider: "Email and password"
+        pending_help: "Check your email for a confirmation link."
+        pending_label: "Confirming %{email}"
+        resend_action: "Resend confirmation"
+        title: "Connected accounts"
+        verified: "Verified"
       destroy:
         success: "%{provider} unlinked."
         cannot_remove_last_verified: "You can't remove your last verified sign-in method."
