@@ -65,7 +65,8 @@ en:
       index:
         cancel_action: "Cancel link"
         confirming_banner_html: "Almost there — we sent a confirmation link to <strong>%{email}</strong> to make sure that's really you. Click the link to finish linking %{provider}."
-        disconnect: "Disconnect"
+        disconnect: "Unlink"
+        disconnect_confirm: "Remove this sign-in method?"
         email_provider: "Email and password"
         pending_help: "Check your email for a confirmation link."
         pending_label: "Confirming %{email}"
@@ -81,7 +82,7 @@ en:
         invalid_or_expired: "This confirmation link is invalid or expired. Sign in and request a new one from your connected accounts."
       resend_verification:
         resent: "We sent a fresh confirmation link to %{email}."
-        not_pending: "That sign-in method is already verified."
+        already_verified: "That sign-in method is already verified."
         rate_limited: "Please wait a moment before requesting another confirmation email."
   identity_picker:
     preview: "Preview"
