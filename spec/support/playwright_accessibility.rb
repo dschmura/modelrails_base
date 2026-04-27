@@ -85,7 +85,7 @@ RSpec.configure do |config|
         JS
       end
 
-      options = { runOnly: { type: "tag", values: [ "wcag2aa" ] } }
+      options = { runOnly: { type: "tag", values: [ "wcag2aa", "wcag2aaa" ] } }
       results = run_axe_audit(options)
       violations = results["violations"] || []
 
