@@ -256,9 +256,32 @@ RSpec.describe "Account Connected Accounts", type: :request do
         expect(verified_auth.reload.verified_at).to eq(original_verified_at)
       end
 
-      it "redirects with not_pending alert" do
+      it "redirects with already_verified alert" do
         post resend_verification_account_connected_account_path(verified_auth)
         expect(flash[:alert]).to include("already verified")
+      end
+    end
+
+    context "with an auth that is unverified but has no token (edge state)" do
+      let!(:unverified_no_token) do
+        user.authentications.create!(
+          provider: "google",
+          uid: "uid-edge",
+          email: "edge@example.com",
+          verified_at: nil,
+          verification_token: nil
+        )
+      end
+
+      it "regenerates a verification token" do
+        post resend_verification_account_connected_account_path(unverified_no_token)
+        expect(unverified_no_token.reload.verification_token).to be_present
+      end
+
+      it "enqueues the verification email" do
+        expect {
+          post resend_verification_account_connected_account_path(unverified_no_token)
+        }.to have_enqueued_mail(AuthenticationMailer, :link_verification_email)
       end
     end
 

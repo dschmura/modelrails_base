@@ -47,10 +47,18 @@ class OmniauthCallbacksController < ApplicationController
   end
 
   def handle_signed_in_link(user, auth_hash)
-    if user.authentications.exists?(provider: normalized_provider(auth_hash))
+    existing = user.authentications.find_by(provider: normalized_provider(auth_hash))
+
+    if existing&.verified?
       redirect_to account_connected_accounts_path,
         alert: t("omniauth_callbacks.create.already_linked",
                  provider: Authentication.display_name_for(normalized_provider(auth_hash)))
+      return
+    elsif existing&.pending?
+      redirect_to account_connected_accounts_path,
+        alert: t("omniauth_callbacks.create.pending_in_progress",
+                 provider: Authentication.display_name_for(normalized_provider(auth_hash)),
+                 email: existing.email)
       return
     end
 

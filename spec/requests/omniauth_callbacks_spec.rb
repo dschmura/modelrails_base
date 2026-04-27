@@ -510,6 +510,43 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
     end
   end
 
+  describe "signed-in user re-OAuthing with different OAuth account while pending exists" do
+    let(:user) { create(:user, email_address: "carol@home.com") }
+    let!(:carols_pending) do
+      user.authentications.create!(
+        provider: "google", uid: "google-account-A",
+        email: "carol.work@gmail.com",
+        verification_token: "old-token",
+        verification_sent_at: 1.hour.ago,
+        verified_at: nil
+      )
+    end
+
+    before do
+      sign_in(user)
+      OmniAuth.config.test_mode = true
+      # User picks a DIFFERENT Google account this time (different UID)
+      OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(
+        provider: "google", uid: "google-account-B",
+        info: { email: "carol.personal@gmail.com" },
+        credentials: { token: "tok", refresh_token: "rtok", expires_at: nil }
+      )
+    end
+    after { OmniAuth.config.mock_auth.clear; OmniAuth.config.test_mode = false }
+
+    it "alerts about the pending link with the affected email (not 'already linked')" do
+      get "/auth/google_oauth2/callback"
+      expect(flash[:alert]).to include("pending")
+      expect(flash[:alert]).to include("carol.work@gmail.com")
+    end
+
+    it "does not create a new authentication" do
+      expect {
+        get "/auth/google_oauth2/callback"
+      }.not_to change { user.authentications.count }
+    end
+  end
+
   describe "production-style AuthHash with strategy-default provider name" do
     # Regression: omniauth-google-oauth2 strategy emits provider: "google_oauth2"
     # in production, but our enum stores "google". The controller must normalize
