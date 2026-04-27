@@ -1,0 +1,6 @@
+en:
+  authentication:
+    providers:
+      email: "Email"
+      google: "Google"
+      github: "GitHub"
