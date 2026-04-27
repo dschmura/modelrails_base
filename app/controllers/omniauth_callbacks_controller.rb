@@ -33,7 +33,7 @@ class OmniauthCallbacksController < ApplicationController
     if Current.user.present? && Current.user.id != auth.user_id
       redirect_to account_connected_accounts_path,
         alert: t("omniauth_callbacks.create.collision_other_user",
-                 provider: normalized_provider(auth_hash).titleize)
+                 provider: Authentication.display_name_for(normalized_provider(auth_hash)))
     elsif auth.pending?
       auth.generate_verification_token!
       AuthenticationMailer.link_verification_email(auth).deliver_later
@@ -50,7 +50,7 @@ class OmniauthCallbacksController < ApplicationController
     if user.authentications.exists?(provider: normalized_provider(auth_hash))
       redirect_to account_connected_accounts_path,
         alert: t("omniauth_callbacks.create.already_linked",
-                 provider: normalized_provider(auth_hash).titleize)
+                 provider: Authentication.display_name_for(normalized_provider(auth_hash)))
       return
     end
 
@@ -74,7 +74,7 @@ class OmniauthCallbacksController < ApplicationController
       auth.verified_at = Time.current
       auth.save!
       redirect_to account_connected_accounts_path,
-        notice: t("omniauth_callbacks.create.linked", provider: normalized_provider(auth_hash).titleize)
+        notice: t("omniauth_callbacks.create.linked", provider: Authentication.display_name_for(normalized_provider(auth_hash)))
     else
       auth.assign_attributes(
         verification_token: SecureRandom.urlsafe_base64(32),
@@ -85,7 +85,7 @@ class OmniauthCallbacksController < ApplicationController
       flash[:confirming_email_for] = auth.id
       redirect_to account_connected_accounts_path,
         notice: t("omniauth_callbacks.create.pending",
-                  email: oauth_email, provider: normalized_provider(auth_hash).titleize)
+                  email: oauth_email, provider: Authentication.display_name_for(normalized_provider(auth_hash)))
     end
   end
 

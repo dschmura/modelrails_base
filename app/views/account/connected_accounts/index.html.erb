@@ -6,7 +6,7 @@
 
   <% if (auth_id = flash[:confirming_email_for]) && (pending = @authentications.find { |a| a.id == auth_id }) %>
     <div class="mt-6 rounded-lg border border-info-border bg-info-surface p-4 text-sm text-info">
-      <%= sanitize(t("account.connected_accounts.index.confirming_banner_html", email: pending.email, provider: pending.provider.titleize), tags: %w[strong em]) %>
+      <%= sanitize(t("account.connected_accounts.index.confirming_banner_html", email: pending.email, provider: pending.display_provider), tags: %w[strong em]) %>
     </div>
   <% end %>
 
@@ -15,7 +15,7 @@
       <div class="flex items-center justify-between p-4 border rounded-lg <%= authentication.pending? ? "bg-info-surface border-info-border" : "border-border" %>">
         <div>
           <p class="font-medium text-text-heading">
-            <%= authentication.provider.titleize %>
+            <%= authentication.display_provider %>
           </p>
           <% if authentication.pending? %>
             <p class="text-xs text-info">

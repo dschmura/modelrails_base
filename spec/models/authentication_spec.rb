@@ -244,4 +244,29 @@ RSpec.describe Authentication, type: :model do
       expect(Authentication.pending).not_to include(verified)
     end
   end
+
+  describe ".display_name_for" do
+    it "returns 'GitHub' for github (not 'Github')" do
+      expect(Authentication.display_name_for("github")).to eq("GitHub")
+    end
+
+    it "returns 'Google' for google" do
+      expect(Authentication.display_name_for("google")).to eq("Google")
+    end
+
+    it "returns 'Email' for email" do
+      expect(Authentication.display_name_for("email")).to eq("Email")
+    end
+
+    it "falls back to titleize for unknown providers" do
+      expect(Authentication.display_name_for("unknown_provider")).to eq("Unknown Provider")
+    end
+  end
+
+  describe "#display_provider" do
+    it "uses the class-level display map" do
+      auth = build(:authentication, provider: "github")
+      expect(auth.display_provider).to eq("GitHub")
+    end
+  end
 end
