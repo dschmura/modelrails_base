@@ -3,6 +3,20 @@ class Authentication < ApplicationRecord
 
   enum :provider, { email: "email", google: "google", github: "github" }
 
+  PROVIDER_DISPLAY_NAMES = {
+    "email"  => "Email",
+    "google" => "Google",
+    "github" => "GitHub"
+  }.freeze
+
+  def self.display_name_for(provider_string)
+    PROVIDER_DISPLAY_NAMES.fetch(provider_string, provider_string.to_s.titleize)
+  end
+
+  def display_provider
+    self.class.display_name_for(provider)
+  end
+
   validates :provider, presence: true
   validates :uid, presence: true
   validates :provider, uniqueness: { scope: :user_id }
