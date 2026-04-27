@@ -6,7 +6,6 @@ RSpec.describe "Verified OAuth account linking", type: :system do
   let(:user) { create(:user, email_address: "alice@home.com", first_name: "Alice") }
 
   before do
-    driven_by :rack_test
     OmniAuth.config.test_mode = true
     OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(
       provider: "google",
@@ -24,7 +23,7 @@ RSpec.describe "Verified OAuth account linking", type: :system do
   it "links Google with mismatched email via email verification" do
     sign_in_via_form(user)
 
-    # Trigger Google OAuth link via direct callback; rack_test follows the redirect chain
+    # Trigger Google OAuth link via direct callback
     perform_enqueued_jobs do
       visit "/auth/google_oauth2/callback"
     end
