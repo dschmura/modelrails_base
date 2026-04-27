@@ -3,14 +3,9 @@ class Authentication < ApplicationRecord
 
   enum :provider, { email: "email", google: "google", github: "github" }
 
-  PROVIDER_DISPLAY_NAMES = {
-    "email"  => "Email",
-    "google" => "Google",
-    "github" => "GitHub"
-  }.freeze
-
   def self.display_name_for(provider_string)
-    PROVIDER_DISPLAY_NAMES.fetch(provider_string, provider_string.to_s.titleize)
+    I18n.t("authentication.providers.#{provider_string}",
+           default: provider_string.to_s.titleize)
   end
 
   def display_provider
