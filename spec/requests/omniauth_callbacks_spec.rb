@@ -256,6 +256,102 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
       expect(response).to redirect_to(new_session_path)
       expect(flash[:notice]).to include("fresh confirmation link")
     end
+
+    context "when the user is signed in as the rightful owner" do
+      before { sign_in(user) }
+
+      it "redirects to connected accounts (not new_session_path)" do
+        get "/auth/google_oauth2/callback"
+        expect(response).to redirect_to(account_connected_accounts_path)
+      end
+
+      it "still regenerates the token and sends fresh email" do
+        old_token = pending_auth.verification_token
+        expect {
+          get "/auth/google_oauth2/callback"
+        }.to have_enqueued_mail(AuthenticationMailer, :link_verification_email)
+        expect(pending_auth.reload.verification_token).not_to eq(old_token)
+      end
+    end
+  end
+
+  describe "re-OAuth on existing pending authentication when OAuth email has changed" do
+    # Documents current behavior: the existing pending row's email is preserved
+    # on token regeneration. The new OAuth email from the strategy is ignored.
+    # If we ever decide to update email-on-re-OAuth, this test should be
+    # updated rather than silently changing behavior.
+    let(:user) { create(:user, email_address: "dean@example.com") }
+    let!(:dean_pending) do
+      user.authentications.create!(
+        provider: "google", uid: "dean-google-uid",
+        email: "dean.original@gmail.com",
+        verification_token: "old-token", verification_sent_at: 1.hour.ago,
+        verified_at: nil
+      )
+    end
+
+    before do
+      sign_in(user)
+      OmniAuth.config.test_mode = true
+      # Same UID, but new email from Google
+      OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(
+        provider: "google", uid: "dean-google-uid",
+        info: { email: "dean.updated@gmail.com" },
+        credentials: { token: "tok", refresh_token: "rtok", expires_at: nil }
+      )
+    end
+    after { OmniAuth.config.mock_auth.clear; OmniAuth.config.test_mode = false }
+
+    it "preserves the original email on the pending row (does not adopt the new OAuth email)" do
+      get "/auth/google_oauth2/callback"
+      expect(dean_pending.reload.email).to eq("dean.original@gmail.com")
+    end
+
+    it "references the original email in the flash notice" do
+      get "/auth/google_oauth2/callback"
+      expect(flash[:notice]).to include("dean.original@gmail.com")
+    end
+  end
+
+  describe "cross-user collision when existing auth is pending (security)" do
+    let(:alice) { create(:user, email_address: "alice@example.com") }
+    let(:eve) { create(:user, email_address: "eve@example.com") }
+    let!(:alices_pending) do
+      alice.authentications.create!(
+        provider: "google", uid: "alice-google-uid",
+        email: "alice.work@gmail.com",
+        verification_token: "old-token", verification_sent_at: 1.hour.ago,
+        verified_at: nil
+      )
+    end
+
+    before do
+      sign_in(eve)
+      OmniAuth.config.test_mode = true
+      OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(
+        provider: "google", uid: "alice-google-uid",
+        info: { email: "alice.work@gmail.com" },
+        credentials: { token: "tok", refresh_token: "rtok", expires_at: nil }
+      )
+    end
+    after { OmniAuth.config.mock_auth.clear; OmniAuth.config.test_mode = false }
+
+    it "does NOT regenerate Alice's verification token" do
+      old_token = alices_pending.verification_token
+      get "/auth/google_oauth2/callback"
+      expect(alices_pending.reload.verification_token).to eq(old_token)
+    end
+
+    it "does NOT enqueue a verification email to Alice" do
+      expect {
+        get "/auth/google_oauth2/callback"
+      }.not_to have_enqueued_mail(AuthenticationMailer, :link_verification_email)
+    end
+
+    it "redirects Eve with a collision alert (not pending_resent)" do
+      get "/auth/google_oauth2/callback"
+      expect(flash[:alert]).to include("different user")
+    end
   end
 
   describe "cross-user collision" do
@@ -449,6 +545,43 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
         get "/auth/google_oauth2/callback"
         expect(flash[:alert]).to include("couldn't link")
       end
+    end
+  end
+
+  describe "signed-in user re-OAuthing with different OAuth account while pending exists" do
+    let(:user) { create(:user, email_address: "carol@home.com") }
+    let!(:carols_pending) do
+      user.authentications.create!(
+        provider: "google", uid: "google-account-A",
+        email: "carol.work@gmail.com",
+        verification_token: "old-token",
+        verification_sent_at: 1.hour.ago,
+        verified_at: nil
+      )
+    end
+
+    before do
+      sign_in(user)
+      OmniAuth.config.test_mode = true
+      # User picks a DIFFERENT Google account this time (different UID)
+      OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(
+        provider: "google", uid: "google-account-B",
+        info: { email: "carol.personal@gmail.com" },
+        credentials: { token: "tok", refresh_token: "rtok", expires_at: nil }
+      )
+    end
+    after { OmniAuth.config.mock_auth.clear; OmniAuth.config.test_mode = false }
+
+    it "alerts about the pending link with the affected email (not 'already linked')" do
+      get "/auth/google_oauth2/callback"
+      expect(flash[:alert]).to include("pending")
+      expect(flash[:alert]).to include("carol.work@gmail.com")
+    end
+
+    it "does not create a new authentication" do
+      expect {
+        get "/auth/google_oauth2/callback"
+      }.not_to change { user.authentications.count }
     end
   end
 

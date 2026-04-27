@@ -34,24 +34,24 @@ module Account
 
       if authenticated?
         redirect_to account_connected_accounts_path,
-          notice: t(".success", provider: auth.provider.titleize)
+          notice: t(".success", provider: auth.display_provider)
       else
         redirect_to new_session_path,
-          notice: t(".success_signed_out", provider: auth.provider.titleize)
+          notice: t(".success_signed_out", provider: auth.display_provider)
       end
     end
 
     def resend_verification
       auth = Current.user.authentications.find(params[:id])
 
-      if auth.pending?
+      if auth.verified?
+        redirect_to account_connected_accounts_path,
+          alert: t(".already_verified")
+      else
         auth.generate_verification_token!
         AuthenticationMailer.link_verification_email(auth).deliver_later
         redirect_to account_connected_accounts_path,
           notice: t(".resent", email: auth.email)
-      else
-        redirect_to account_connected_accounts_path,
-          alert: t(".not_pending")
       end
     end
 
@@ -74,7 +74,7 @@ module Account
 
       if destroyed
         redirect_to account_connected_accounts_path,
-          notice: t(".success", provider: destroyed_auth.provider.titleize)
+          notice: t(".success", provider: destroyed_auth.display_provider)
       else
         redirect_to account_connected_accounts_path,
           alert: t(".cannot_remove_last_verified")

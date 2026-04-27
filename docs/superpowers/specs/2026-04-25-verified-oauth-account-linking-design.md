@@ -91,7 +91,9 @@ Three logical states (the third is derived from the others; not a distinct colum
        verification_token: SecureRandom.urlsafe_base64(32)
        verification_sent_at: Time.current
        verified_at: nil
-       (no oauth_token persisted until verified)
+       oauth_token / oauth_refresh_token / oauth_expires_at: persisted
+       (Tokens persist on pending rows so post-verification sign-in
+       works without a re-OAuth roundtrip. Cleared by destroy.)
 5. AuthenticationMailer.link_verification_email(auth).deliver_later
 6. Redirect to account_connected_accounts_path
    Flash: "Almost there — we sent a confirmation link to <oauth-email>.

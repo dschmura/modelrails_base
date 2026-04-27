@@ -44,13 +44,13 @@ class AuthenticationMailer < ApplicationMailer
     @user = authentication.user
     @authentication = authentication
     @verify_url = verify_account_connected_accounts_url(token: authentication.verification_token)
-    @app_name = I18n.t("application.name")
-    @provider_name = authentication.provider.titleize
+    @app_name = t("application.name")
+    @provider_name = authentication.display_provider
 
     mail(
       to: authentication.email,
-      subject: I18n.t("authentication_mailer.link_verification_email.subject",
-                      provider: @provider_name, app_name: @app_name)
+      subject: t("authentication_mailer.link_verification_email.subject",
+                 provider: @provider_name, app_name: @app_name)
     )
   end
 end
