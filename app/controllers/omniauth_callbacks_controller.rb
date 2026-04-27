@@ -30,15 +30,15 @@ class OmniauthCallbacksController < ApplicationController
   private
 
   def handle_existing_auth(auth, auth_hash)
-    if auth.pending?
-      auth.generate_verification_token!
-      AuthenticationMailer.link_verification_email(auth).deliver_later
-      redirect_to new_session_path,
-        notice: t("omniauth_callbacks.create.pending_resent", email: auth.email)
-    elsif Current.user.present? && Current.user.id != auth.user_id
+    if Current.user.present? && Current.user.id != auth.user_id
       redirect_to account_connected_accounts_path,
         alert: t("omniauth_callbacks.create.collision_other_user",
                  provider: normalized_provider(auth_hash).titleize)
+    elsif auth.pending?
+      auth.generate_verification_token!
+      AuthenticationMailer.link_verification_email(auth).deliver_later
+      redirect_to fallback_path,
+        notice: t("omniauth_callbacks.create.pending_resent", email: auth.email)
     else
       auth.update!(oauth_attrs(auth_hash))
       start_new_session_for(auth.user)
