@@ -65,7 +65,8 @@ en:
       index:
         cancel_action: "Cancel link"
         confirming_banner_html: "Almost there — we sent a confirmation link to <strong>%{email}</strong> to make sure that's really you. Click the link to finish linking %{provider}."
-        disconnect: "Disconnect"
+        disconnect: "Unlink"
+        disconnect_confirm: "Remove this sign-in method?"
         email_provider: "Email and password"
         pending_help: "Check your email for a confirmation link."
         pending_label: "Confirming %{email}"
