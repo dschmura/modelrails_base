@@ -32,6 +32,12 @@ class Authentication < ApplicationRecord
     verified_at.nil? && verification_token.present?
   end
 
+  # True iff (a) this auth is verified AND (b) it's the only verified auth for the user.
+  # Used by the destroy guard to prevent removing the user's last verified sign-in method.
+  def only_verified_remaining?
+    verified? && user.authentications.verified.count <= 1
+  end
+
   # Returns true only if a token was sent AND is now stale. False when no token was sent.
   # Used by the OAuth verification flow where the token must already exist (find_by(token:)).
   def token_expired?
