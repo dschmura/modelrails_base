@@ -269,4 +269,33 @@ RSpec.describe Authentication, type: :model do
       expect(auth.display_provider).to eq("GitHub")
     end
   end
+
+  describe "#only_verified_remaining?" do
+    let(:user) { create(:user) }
+
+    context "when this is the only verified auth for the user" do
+      let!(:auth) { user.authentications.create!(provider: "email", uid: user.email_address, email: user.email_address, verified_at: Time.current) }
+
+      it "returns true" do
+        expect(auth.only_verified_remaining?).to be true
+      end
+    end
+
+    context "when other verified auths exist for the user" do
+      let!(:auth) { user.authentications.create!(provider: "email", uid: user.email_address, email: user.email_address, verified_at: Time.current) }
+      let!(:other_verified) { user.authentications.create!(provider: "google", uid: "g-1", email: "test@example.com", verified_at: Time.current) }
+
+      it "returns false" do
+        expect(auth.only_verified_remaining?).to be false
+      end
+    end
+
+    context "when this auth is itself unverified" do
+      let!(:auth) { user.authentications.create!(provider: "email", uid: user.email_address, email: user.email_address, verified_at: nil, verification_token: "tok", verification_sent_at: 1.hour.ago) }
+
+      it "returns false (the auth being deleted isn't a verified auth, so deletion can't reduce the verified count)" do
+        expect(auth.only_verified_remaining?).to be false
+      end
+    end
+  end
 end
