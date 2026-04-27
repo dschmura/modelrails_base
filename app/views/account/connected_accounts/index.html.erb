@@ -6,7 +6,7 @@
 
   <% if (auth_id = flash[:confirming_email_for]) && (pending = @authentications.find { |a| a.id == auth_id }) %>
     <div class="mt-6 rounded-lg border border-info-border bg-info-surface p-4 text-sm text-info">
-      <%= sanitize(t("account.connected_accounts.index.confirming_banner_html", email: pending.email, provider: pending.display_provider), tags: %w[strong em]) %>
+      <%= t("account.connected_accounts.index.confirming_banner_html", email: pending.email, provider: pending.display_provider) %>
     </div>
   <% end %>
 
@@ -54,6 +54,7 @@
             <%= button_to t("account.connected_accounts.index.disconnect"),
                   account_connected_account_path(authentication),
                   method: :delete,
+                  data: { turbo_confirm: t("account.connected_accounts.index.disconnect_confirm") },
                   class: "text-sm text-danger underline hover:no-underline
                           focus:outline-none focus:ring-2 focus:ring-danger rounded
                           min-h-[44px] min-w-[44px] inline-flex items-center justify-center px-2" %>
