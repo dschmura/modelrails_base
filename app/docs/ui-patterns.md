@@ -224,7 +224,7 @@ ModelRails targets **WCAG 2.2 Level AAA**:
 
 | Pattern | Implementation |
 |---------|---------------|
-| Touch targets | `min-h-[44px]` on all interactive elements |
+| Touch targets | `--form-input-height` token (default 44px) drives `TailwindFormBuilder` inputs and the `.btn-touch-target` utility. Many existing partials still use the literal `min-h-[44px]` and migrate as touched — see `docs/design-system.md`. |
 | Focus indicators | `focus:ring-2 focus:ring-interactive-focus` consistently |
 | Color contrast | Default interactive token is primary-800 (7.56:1 AAA on white). On workspace-branded routes, contrast varies by hue — see Workspace Branding caveat below. |
 | Skip navigation | `sr-only` link to `#main-content` at top of every page |
@@ -293,6 +293,7 @@ Dispatching a synthetic click to the gem's (hidden) button decouples the footer 
 
 Deeper implementation guides for developers (not rendered to end users, live under `docs/` in the repo):
 
+- **Design system primitives:** `docs/design-system.md` — spacing tokens, component utilities (`.btn-touch-target`, `.btn-text*`, `.action-group`, `.page-container`), class ordering convention, migration recipe
 - **Design tokens & theming:** `docs/theming.md` — three-layer token architecture, OKLCH color mapping, workspace branding overrides
 - **Modal system:** `docs/modals.md` — native `<dialog>` integration, Stimulus controller internals, animation timing
 - **Toast system:** `docs/toasts.md` — pill vs. card routing, flash mapping, duration formula

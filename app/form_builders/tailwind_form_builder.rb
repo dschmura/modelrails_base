@@ -3,22 +3,22 @@ class TailwindFormBuilder < ActionView::Helpers::FormBuilder
   # The same token drives .btn-touch-target so inputs and buttons align at one source.
 
   # State-independent base classes (layout, spacing, shape)
-  FIELD_BASE = "block w-full rounded-md border px-3 py-2 placeholder:text-text-muted focus:outline-none focus:ring-2 min-h-[var(--form-input-height)]"
+  FIELD_BASE = "block w-full rounded-md border px-3 py-2 placeholder:text-text-muted focus:outline-none focus:ring-2 min-h-[var(--form-input-height)]".freeze
 
   # State-dependent classes — applied exclusively (normal OR error, never both)
-  FIELD_NORMAL = "border-border-strong bg-surface-raised text-text-heading focus:ring-interactive-focus"
-  FIELD_ERROR = "border-danger ring-2 ring-danger bg-danger-surface text-danger focus:ring-danger"
+  FIELD_NORMAL = "border-border-strong bg-surface-raised text-text-heading focus:ring-interactive-focus".freeze
+  FIELD_ERROR = "border-danger ring-2 ring-danger bg-danger-surface text-danger focus:ring-danger".freeze
 
-  LABEL_CLASSES = "block text-sm font-medium text-text-body"
-  ERROR_LABEL_CLASSES = "block text-sm font-medium text-danger"
-  HELP_TEXT_CLASSES = "text-sm text-text-muted"
-  ERROR_MESSAGE_CLASSES = "text-sm text-danger"
+  LABEL_CLASSES = "block text-sm font-medium text-text-body".freeze
+  ERROR_LABEL_CLASSES = "block text-sm font-medium text-danger".freeze
+  HELP_TEXT_CLASSES = "text-sm text-text-muted".freeze
+  ERROR_MESSAGE_CLASSES = "text-sm text-danger".freeze
 
-  SUBMIT_CLASSES = "min-h-[var(--form-input-height)] inline-flex items-center justify-center px-4 rounded-md bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus cursor-pointer"
+  SUBMIT_CLASSES = "min-h-[var(--form-input-height)] inline-flex items-center justify-center px-4 rounded-md bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus cursor-pointer".freeze
 
-  CHECKBOX_CLASSES = "size-5 rounded border-border-strong text-interactive focus:ring-2 focus:ring-interactive-focus mt-0.5"
+  CHECKBOX_CLASSES = "size-5 rounded border-border-strong text-interactive focus:ring-2 focus:ring-interactive-focus mt-0.5".freeze
 
-  FILE_FIELD_CLASSES = "block w-full text-sm text-text-body file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-interactive file:text-text-on-interactive hover:file:bg-interactive-hover file:cursor-pointer file:min-h-[var(--form-input-height)]"
+  FILE_FIELD_CLASSES = "block w-full text-sm text-text-body file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-interactive file:text-text-on-interactive hover:file:bg-interactive-hover file:cursor-pointer file:min-h-[var(--form-input-height)]".freeze
 
   def text_field(method, options = {})
     field_wrapper(method, options) do |opts|
