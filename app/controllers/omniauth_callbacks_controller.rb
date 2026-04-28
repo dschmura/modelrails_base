@@ -74,7 +74,7 @@ class OmniauthCallbacksController < ApplicationController
       **oauth_attrs(auth_hash)
     )
 
-    if email_matches
+    if email_matches && oauth_email_verified?(auth_hash)
       auth.verified_at = Time.current
       auth.save!
       redirect_to account_connected_accounts_path,
@@ -91,16 +91,38 @@ class OmniauthCallbacksController < ApplicationController
   end
 
   def handle_new_user_oauth(auth_hash)
-    user = find_verified_user_by_email(auth_hash.info.email) || create_user_from_oauth(auth_hash)
-    user.authentications.create!(
-      provider: normalized_provider(auth_hash),
-      uid: auth_hash.uid,
-      email: auth_hash.info.email,
-      verified_at: Time.current,
-      **oauth_attrs(auth_hash)
-    )
-    start_new_session_for(user)
-    redirect_to root_path, notice: t("sessions.create.success")
+    if oauth_email_verified?(auth_hash)
+      user = find_verified_user_by_email(auth_hash.info.email) || create_user_from_oauth(auth_hash)
+      user.authentications.create!(
+        provider: normalized_provider(auth_hash),
+        uid: auth_hash.uid,
+        email: auth_hash.info.email,
+        verified_at: Time.current,
+        **oauth_attrs(auth_hash)
+      )
+      start_new_session_for(user)
+      redirect_to root_path, notice: t("sessions.create.success")
+    else
+      # OAuth provider explicitly reports email as unverified (e.g., Google's
+      # info.email_verified: false). Refuse to auto-link to an existing user
+      # (account-takeover risk) and refuse to auto-verify. Create the user
+      # fresh — if the email already belongs to another account, User
+      # validation/uniqueness raises and the outer rescue surfaces a generic
+      # "linking failed" alert. Otherwise, create the auth as pending and
+      # email a verification link without signing the user in.
+      user = create_user_from_oauth(auth_hash)
+      auth = user.authentications.build(
+        provider: normalized_provider(auth_hash),
+        uid: auth_hash.uid,
+        email: auth_hash.info.email,
+        **oauth_attrs(auth_hash)
+      )
+      auth.assign_verification_token
+      auth.save!
+      AuthenticationMailer.link_verification_email(auth).deliver_later
+      redirect_to new_session_path,
+        notice: t("omniauth_callbacks.create.unverified_email_pending", email: auth_hash.info.email)
+    end
   end
 
   def fallback_path
@@ -109,6 +131,17 @@ class OmniauthCallbacksController < ApplicationController
 
   def normalized_provider(auth_hash)
     OmniauthAdapters.normalize_provider(auth_hash.provider)
+  end
+
+  # OAuth providers may explicitly mark the supplied email as unverified
+  # (e.g., Google returns info.email_verified: false for unverified Google
+  # accounts). When set to false we refuse to auto-verify the authentication
+  # or auto-link to an existing user — both would enable account takeover via
+  # an attacker-controlled unverified Google account. Providers that don't
+  # expose this field (e.g., GitHub) are treated as implicitly verified,
+  # preserving existing behavior. Only an explicit `false` triggers the gate.
+  def oauth_email_verified?(auth_hash)
+    auth_hash.info.email_verified != false
   end
 
   def oauth_attrs(auth_hash)
