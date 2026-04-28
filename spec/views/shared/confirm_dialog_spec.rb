@@ -88,11 +88,13 @@ RSpec.describe "shared/_confirm_dialog", type: :view do
     before { render_dialog }
 
     it "cancel button has 44px touch target" do
-      expect(rendered).to have_css("button.min-h-\\[44px\\]", text: I18n.t("modals.cancel"))
+      # Reads --form-input-height token (Design System Primitives v2 sweep)
+      expect(rendered).to have_css("button.min-h-\\[var\\(--form-input-height\\)\\]", text: I18n.t("modals.cancel"))
     end
 
     it "confirm button has 44px touch target" do
-      expect(rendered).to have_css(".min-h-\\[44px\\]", text: "Delete")
+      # Reads --form-input-height token (Design System Primitives v2 sweep)
+      expect(rendered).to have_css(".min-h-\\[var\\(--form-input-height\\)\\]", text: "Delete")
     end
 
     it "modal has aria-labelledby" do
