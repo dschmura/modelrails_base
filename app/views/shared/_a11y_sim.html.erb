@@ -1,45 +1,48 @@
 <%# Dev-only accessibility-simulation drop-up. Renders nothing in production. %>
 <% if Rails.env.development? %>
-  <%
-    modes = %w[normal blur grayscale deuteranopia low_contrast cataract]
-    mode_icons = {
-      "normal" => capture do %>
-        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" class="w-4 h-4" aria-hidden="true">
-          <path d="M1.5 10S5 3 10 3s8.5 7 8.5 7-3.5 7-8.5 7-8.5-7-8.5-7z" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="10" cy="10" r="2.5"/>
-        </svg>
-      <% end,
-      "blur" => capture do %>
-        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" class="w-4 h-4" aria-hidden="true">
-          <circle cx="10" cy="10" r="7" stroke-dasharray="2 2"/>
-          <circle cx="10" cy="10" r="3" stroke-dasharray="1.5 2"/>
-        </svg>
-      <% end,
-      "grayscale" => capture do %>
-        <svg viewBox="0 0 20 20" class="w-4 h-4" aria-hidden="true">
-          <circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
-          <path d="M10 3a7 7 0 010 14z" fill="currentColor"/>
-        </svg>
-      <% end,
-      "deuteranopia" => capture do %>
-        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" class="w-4 h-4" aria-hidden="true">
-          <circle cx="7" cy="10" r="4"/>
-          <circle cx="13" cy="10" r="4"/>
-        </svg>
-      <% end,
-      "low_contrast" => capture do %>
-        <svg viewBox="0 0 20 20" class="w-4 h-4" aria-hidden="true">
-          <circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
-          <path d="M10 3v14a7 7 0 000-14z" fill="currentColor"/>
-        </svg>
-      <% end,
-      "cataract" => capture do %>
-        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" class="w-4 h-4" aria-hidden="true">
-          <path d="M5 13a3 3 0 010-6 4 4 0 017.9-.5A3 3 0 0115 13H5z" stroke-linejoin="round"/>
-        </svg>
-      <% end
-    }
-  %>
+  <% modes = %w[normal blur grayscale deuteranopia low_contrast cataract] %>
+  <% mode_icons = {} %>
+
+  <% mode_icons["normal"] = capture do %>
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" class="w-4 h-4" aria-hidden="true">
+      <path d="M1.5 10S5 3 10 3s8.5 7 8.5 7-3.5 7-8.5 7-8.5-7-8.5-7z" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="10" cy="10" r="2.5"/>
+    </svg>
+  <% end %>
+
+  <% mode_icons["blur"] = capture do %>
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" class="w-4 h-4" aria-hidden="true">
+      <circle cx="10" cy="10" r="7" stroke-dasharray="2 2"/>
+      <circle cx="10" cy="10" r="3" stroke-dasharray="1.5 2"/>
+    </svg>
+  <% end %>
+
+  <% mode_icons["grayscale"] = capture do %>
+    <svg viewBox="0 0 20 20" class="w-4 h-4" aria-hidden="true">
+      <circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M10 3a7 7 0 010 14z" fill="currentColor"/>
+    </svg>
+  <% end %>
+
+  <% mode_icons["deuteranopia"] = capture do %>
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" class="w-4 h-4" aria-hidden="true">
+      <circle cx="7" cy="10" r="4"/>
+      <circle cx="13" cy="10" r="4"/>
+    </svg>
+  <% end %>
+
+  <% mode_icons["low_contrast"] = capture do %>
+    <svg viewBox="0 0 20 20" class="w-4 h-4" aria-hidden="true">
+      <circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M10 3v14a7 7 0 000-14z" fill="currentColor"/>
+    </svg>
+  <% end %>
+
+  <% mode_icons["cataract"] = capture do %>
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" class="w-4 h-4" aria-hidden="true">
+      <path d="M5 13a3 3 0 010-6 4 4 0 017.9-.5A3 3 0 0115 13H5z" stroke-linejoin="round"/>
+    </svg>
+  <% end %>
 
   <%# SVG filter def for deuteranopia simulation. Referenced by
       body.a11y-sim-deuteranopia via CSS filter: url(#...). Must be in-DOM
