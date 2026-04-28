@@ -78,9 +78,10 @@ RSpec.describe "shared/_footer", type: :view do
       )
     end
 
-    it "meets AAA target-size by applying min-h-[44px] to interactive elements" do
-      expect(rendered).to have_css("#{selector} a.min-h-\\[44px\\]", count: 2)
-      expect(rendered).to have_css("#{selector} button.min-h-\\[44px\\]", count: 1)
+    it "meets AAA target-size by applying --form-input-height to interactive elements" do
+      # Reads --form-input-height token (Design System Primitives v2 sweep)
+      expect(rendered).to have_css("#{selector} a.min-h-\\[var\\(--form-input-height\\)\\]", count: 2)
+      expect(rendered).to have_css("#{selector} button.min-h-\\[var\\(--form-input-height\\)\\]", count: 1)
     end
   end
 end

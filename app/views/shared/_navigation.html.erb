@@ -8,26 +8,26 @@
     <div class="flex items-center gap-4">
       <% if authenticated? %>
         <%= link_to t("navigation.profile"), edit_account_profile_path,
-              class: "min-h-[44px] flex items-center text-text-body
+              class: "min-h-[var(--form-input-height)] flex items-center text-text-body
                       hover:text-interactive-hover
                       focus:outline-none focus:ring-2 focus:ring-interactive-focus rounded px-2" %>
         <%= link_to t("navigation.connected_accounts"), account_connected_accounts_path,
-              class: "min-h-[44px] flex items-center text-text-body
+              class: "min-h-[var(--form-input-height)] flex items-center text-text-body
                       hover:text-interactive-hover
                       focus:outline-none focus:ring-2 focus:ring-interactive-focus rounded px-2" %>
         <%= render "shared/workspace_switcher" %>
         <%= button_to t("navigation.sign_out"), session_path, method: :delete,
-              class: "min-h-[44px] flex items-center text-text-body
+              class: "min-h-[var(--form-input-height)] flex items-center text-text-body
                       hover:text-interactive-hover
                       focus:outline-none focus:ring-2 focus:ring-interactive-focus rounded px-2
                       cursor-pointer" %>
       <% else %>
         <%= link_to t("navigation.sign_in"), new_session_path,
-              class: "min-h-[44px] flex items-center text-text-body
+              class: "min-h-[var(--form-input-height)] flex items-center text-text-body
                       hover:text-interactive-hover
                       focus:outline-none focus:ring-2 focus:ring-interactive-focus rounded px-2" %>
         <%= link_to t("navigation.sign_up"), new_registration_path,
-              class: "min-h-[44px] flex items-center px-4 rounded-md
+              class: "min-h-[var(--form-input-height)] flex items-center px-4 rounded-md
                       bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium
                       focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus" %>
       <% end %>

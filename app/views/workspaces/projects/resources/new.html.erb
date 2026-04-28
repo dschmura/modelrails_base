@@ -34,7 +34,7 @@
     <%= render "workspaces/projects/resources/types/#{@type.underscore}_form", form: form %>
 
     <%= submit_tag t("workspaces.projects.resources.new.submit"),
-          class: "w-full min-h-[44px] rounded-md px-4 py-2
+          class: "w-full min-h-[var(--form-input-height)] rounded-md px-4 py-2
                   bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium
                   focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus
                   cursor-pointer" %>
