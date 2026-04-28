@@ -616,4 +616,150 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
       expect(flash[:notice]).not_to include("Google Oauth2")
     end
   end
+
+  describe "OAuth provider explicitly reports email as unverified (info.email_verified: false)" do
+    # Google's omniauth strategy can set info.email_verified: false for
+    # unverified Google accounts. Refusing to trust that flag here prevents
+    # account-takeover where an attacker creates an unverified Google account
+    # matching a victim's existing email and auto-links to them.
+
+    after { OmniAuth.config.mock_auth.clear; OmniAuth.config.test_mode = false }
+
+    context "signed-in user linking, OAuth email matches primary email" do
+      let(:user) { create(:user, email_address: "linker@example.com") }
+
+      before do
+        sign_in(user)
+        OmniAuth.config.test_mode = true
+        OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(
+          provider: "google", uid: "linker-google-uid",
+          info: { email: "linker@example.com", email_verified: false },
+          credentials: { token: "tok", refresh_token: "rtok", expires_at: nil }
+        )
+      end
+
+      it "does NOT auto-verify the new authentication (creates as pending)" do
+        expect {
+          get "/auth/google_oauth2/callback"
+        }.to change { user.authentications.where(provider: "google").count }.by(1)
+
+        auth = user.authentications.find_by(provider: "google")
+        expect(auth.verified_at).to be_nil
+        expect(auth.verification_token).to be_present
+      end
+
+      it "sends a verification email" do
+        expect {
+          get "/auth/google_oauth2/callback"
+        }.to have_enqueued_mail(AuthenticationMailer, :link_verification_email)
+      end
+
+      it "redirects to connected accounts with the pending notice (not the linked notice)" do
+        get "/auth/google_oauth2/callback"
+        expect(response).to redirect_to(account_connected_accounts_path)
+        expect(flash[:notice]).to include("confirmation link")
+      end
+    end
+
+    context "new user signup with no existing user matching the email" do
+      before do
+        OmniAuth.config.test_mode = true
+        OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(
+          provider: "google", uid: "newbie-google-uid",
+          info: { email: "newbie@example.com", first_name: "New", last_name: "Bie", email_verified: false },
+          credentials: { token: "tok", refresh_token: "rtok", expires_at: nil }
+        )
+      end
+
+      it "creates the user but with a pending (not auto-verified) authentication" do
+        expect {
+          get "/auth/google_oauth2/callback"
+        }.to change(User, :count).by(1)
+          .and change(Authentication, :count).by(1)
+
+        auth = Authentication.find_by(provider: "google", uid: "newbie-google-uid")
+        expect(auth.verified_at).to be_nil
+        expect(auth.verification_token).to be_present
+      end
+
+      it "sends a verification email" do
+        expect {
+          get "/auth/google_oauth2/callback"
+        }.to have_enqueued_mail(AuthenticationMailer, :link_verification_email)
+      end
+
+      it "does NOT sign the user in (redirects to sign-in, not root)" do
+        get "/auth/google_oauth2/callback"
+        expect(response).to redirect_to(new_session_path)
+        expect(flash[:notice]).to include("hasn't been verified")
+      end
+    end
+
+    context "new user signup matching an existing user's email (account takeover risk)" do
+      let!(:victim) { create(:user, email_address: "victim@example.com") }
+      let!(:victim_email_auth) do
+        victim.authentications.create!(
+          provider: "email", uid: "victim@example.com", verified_at: Time.current
+        )
+      end
+
+      before do
+        OmniAuth.config.test_mode = true
+        # Attacker controls an unverified Google account using victim's email.
+        OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(
+          provider: "google", uid: "attacker-google-uid",
+          info: { email: "victim@example.com", email_verified: false },
+          credentials: { token: "tok", refresh_token: "rtok", expires_at: nil }
+        )
+      end
+
+      it "does NOT link the new Google authentication to the victim's account" do
+        expect {
+          get "/auth/google_oauth2/callback"
+        }.not_to change { victim.authentications.count }
+      end
+
+      it "does NOT create any authentication" do
+        expect {
+          get "/auth/google_oauth2/callback"
+        }.not_to change(Authentication, :count)
+      end
+
+      it "does NOT create a new user (User uniqueness on email_address blocks the create)" do
+        expect {
+          get "/auth/google_oauth2/callback"
+        }.not_to change(User, :count)
+      end
+
+      it "redirects to sign-in with a generic linking-failed alert (does not leak that the email exists)" do
+        get "/auth/google_oauth2/callback"
+        expect(response).to redirect_to(new_session_path)
+        expect(flash[:alert]).to include(I18n.t("omniauth_callbacks.create.linking_failed"))
+      end
+    end
+  end
+
+  describe "OAuth provider explicitly reports email as verified (info.email_verified: true) — regression" do
+    # Sanity: when the provider explicitly affirms verification, behavior is
+    # unchanged from the pre-gate path (auto-verify, sign in).
+    before do
+      OmniAuth.config.test_mode = true
+      OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(
+        provider: "google", uid: "verified-google-uid",
+        info: { email: "verified@example.com", first_name: "Veri", last_name: "Fied", email_verified: true },
+        credentials: { token: "tok", refresh_token: "rtok", expires_at: nil }
+      )
+    end
+    after { OmniAuth.config.mock_auth.clear; OmniAuth.config.test_mode = false }
+
+    it "creates the user with an auto-verified authentication and signs them in" do
+      expect {
+        get "/auth/google_oauth2/callback"
+      }.to change(User, :count).by(1)
+
+      auth = Authentication.find_by(provider: "google", uid: "verified-google-uid")
+      expect(auth.verified_at).to be_present
+      expect(response).to redirect_to(root_path)
+    end
+  end
 end
