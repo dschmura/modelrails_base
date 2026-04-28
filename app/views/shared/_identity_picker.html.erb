@@ -57,7 +57,7 @@
               data-action="click->identity-picker#backToHub"
               class="inline-flex items-center gap-1.5 text-sm text-interactive
                      hover:text-interactive-hover
-                     min-h-[44px] px-2 rounded
+                     min-h-[var(--form-input-height)] px-2 rounded
                      focus:outline-none focus:ring-2 focus:ring-interactive-focus">
         <%= icon(:arrow_left, size: :sm) %>
         <%= t("identity_picker.back_to_source") %>
@@ -170,7 +170,7 @@
                        border border-border rounded-lg
                        hover:bg-surface-sunken
                        focus:outline-none focus:ring-2 focus:ring-interactive-focus
-                       min-h-[44px]">
+                       min-h-[var(--form-input-height)]">
           <%= icon(:arrow_path, size: :sm) %>
           <%= t("identity_picker.reset_crop") %>
         </button>
@@ -201,7 +201,7 @@
                          border border-border rounded-lg
                          hover:bg-surface-sunken
                          focus:outline-none focus:ring-2 focus:ring-interactive-focus
-                         min-h-[44px]">
+                         min-h-[var(--form-input-height)]">
             <%= t("identity_picker.cancel") %>
           </button>
           <button type="button"
@@ -210,7 +210,7 @@
                          bg-interactive text-text-on-interactive font-medium text-sm
                          hover:bg-interactive-hover
                          focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus
-                         min-h-[44px]">
+                         min-h-[var(--form-input-height)]">
             <%= t("identity_picker.save_crop") %>
           </button>
         </div>
@@ -220,7 +220,7 @@
                   data-action="click->identity-picker#openFilePicker"
                   class="inline-flex items-center gap-1.5 text-sm text-interactive
                          hover:text-interactive-hover
-                         min-h-[44px] px-2 rounded
+                         min-h-[var(--form-input-height)] px-2 rounded
                          focus:outline-none focus:ring-2 focus:ring-interactive-focus">
             <%= icon(:arrow_up_tray, size: :sm) %>
             <%= t("identity_picker.upload_new") %>
@@ -229,7 +229,7 @@
                 method: :delete,
                 class: "inline-flex items-center gap-1.5 text-sm text-danger
                         hover:text-danger/80
-                        min-h-[44px] px-2 rounded
+                        min-h-[var(--form-input-height)] px-2 rounded
                         focus:outline-none focus:ring-2 focus:ring-interactive-focus
                         bg-transparent border-0 cursor-pointer",
                 data: { turbo_frame: "_top" } do %>
