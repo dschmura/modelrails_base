@@ -4,6 +4,15 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+### Accessibility
+
+- **WCAG 2.2 Level AAA contrast pass.** Bumped six color tokens to meet 7:1 contrast across light and dark modes:
+  - **Light mode:** `--color-danger` (red-700 → red-800), `--color-success` (green-700 → green-900, yellows pass at lower L), `--color-warning` (amber-700 → amber-900), `--color-info` (sky-700 → sky-900), `--color-text-muted` (slate-600 → slate-700, same as body).
+  - **Dark mode:** `--color-text-muted` (slate-400 → slate-300, same as body), `--color-interactive` (primary-400 → primary-300; matching adjustments on hover/focus).
+  - The "muted" token now has the same darkness as "body" in both modes — visual hierarchy comes from font-size/weight rather than color, since AAA's 7:1 floor leaves little room for two distinct foreground shades on a single surface.
+- **Promoted axe-core CI hook from `wcag2aa` to `wcag2aaa`.** Every system spec's automatic accessibility audit now runs at AAA, catching regressions that the prior AA-only audit silently allowed. The `playwright_accessibility.rb` failure output also now includes the full `failureSummary` from each violation (computed contrast ratio, foreground/background hex, font size and weight) — much faster to diagnose AAA contrast misses than the prior bare element dump.
+- Fixed a phantom class in `app/views/shared/_a11y_sim.html.erb` (`bg-interactive-surface` → `bg-interactive-subtle`). The non-existent token caused active-state items to inherit the focus state's gray background, which dropped contrast against `text-interactive` to 6.85:1.
+
 ---
 
 ## v1.4.0 — OAuth Hardening & Design System Primitives v2 (2026-04-28)
