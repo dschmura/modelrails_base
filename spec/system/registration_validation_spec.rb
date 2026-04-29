@@ -53,8 +53,23 @@ RSpec.describe "Registration form validation", type: :system do
       fill_in I18n.t("registrations.new.password_confirmation_label"), with: "SecureP@ssw0rd123!"
       click_button I18n.t("registrations.new.submit")
 
-      # Should not execute script — the name should be escaped in the rendered page
-      expect(page).not_to have_css("script")
+      # Wait for navigation away from the form (Capybara auto-waits on this matcher).
+      # Without this, the raw-HTML check below could race the in-flight submission
+      # and read a stale page.
+      expect(page).to have_current_path(root_path)
+
+      # XSS contract: the user's payload must appear ESCAPED in the rendered HTML,
+      # never as a literal `<script>` element. Check the raw HTML for the exact
+      # unescaped form (negative) and the auto-escaped form (positive).
+      #
+      # This is more reliable than `not_to have_css("script")` — every page emits
+      # ~3 layout `<script>` tags (theme_script, importmap, module loader). Those
+      # are normally `display: none` via browser UA styles and excluded by Capybara's
+      # default visibility filter, but Playwright's during-navigation visibility
+      # computation can briefly return inconsistent results, making the element-
+      # presence assertion flaky.
+      expect(page.html).not_to include("<script>alert('xss')</script>")
+      expect(page.html).to include("&lt;script&gt;alert(") # positive: escape ran
     end
   end
 end
