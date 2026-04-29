@@ -49,7 +49,9 @@ module Account
           alert: t(".already_verified")
       else
         auth.generate_verification_token!
-        AuthenticationMailer.link_verification_email(auth).deliver_later
+        if EmailRecipientThrottle.allow!(auth.email, kind: :verification)
+          AuthenticationMailer.link_verification_email(auth).deliver_later
+        end
         redirect_to account_connected_accounts_path,
           notice: t(".resent", email: auth.email)
       end

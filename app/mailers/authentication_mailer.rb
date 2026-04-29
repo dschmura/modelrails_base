@@ -53,4 +53,23 @@ class AuthenticationMailer < ApplicationMailer
                  provider: @provider_name, app_name: @app_name)
     )
   end
+
+  # Defense-in-depth notification: when an OAuth callback finds that the
+  # provider+uid pair is already linked to a DIFFERENT user (cross-user
+  # collision), email the legitimate owner of that linkage so they know
+  # someone else just tried to attach their OAuth identity to a different
+  # ModelRails account. The legitimate user's own account is unaffected
+  # — this email is purely informational.
+  def collision_alert(legitimate_user, provider_display_name)
+    @user = legitimate_user
+    @provider_name = provider_display_name
+    @app_name = t("application.name")
+    @connected_accounts_url = account_connected_accounts_url
+
+    mail(
+      to: legitimate_user.email_address,
+      subject: t("authentication_mailer.collision_alert.subject",
+                 provider: @provider_name, app_name: @app_name)
+    )
+  end
 end

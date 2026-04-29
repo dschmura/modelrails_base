@@ -1,0 +1,11 @@
+<%= I18n.t("authentication_mailer.collision_alert.greeting", first_name: @user.first_name) %>
+
+<%= I18n.t("authentication_mailer.collision_alert.body", provider: @provider_name, app_name: @app_name) %>
+
+<%= I18n.t("authentication_mailer.collision_alert.what_to_do", provider: @provider_name, app_name: @app_name) %>
+
+<%= I18n.t("authentication_mailer.collision_alert.cta") %>:
+<%= @connected_accounts_url %>
+
+---
+<%= I18n.t("authentication_mailer.collision_alert.footer", app_name: @app_name) %>
