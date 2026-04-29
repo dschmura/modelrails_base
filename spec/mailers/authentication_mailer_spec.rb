@@ -96,4 +96,43 @@ RSpec.describe AuthenticationMailer, type: :mailer do
       expect(mail.html_part.body.encoded.scan(/<html[^>]*>/i).length).to eq(1)
     end
   end
+
+  describe "#collision_alert" do
+    let(:legitimate_user) { create(:user, first_name: "Alice", email_address: "alice@example.com") }
+
+    subject(:mail) { described_class.collision_alert(legitimate_user, "Google") }
+
+    it "addresses the legitimate owner of the OAuth identity" do
+      expect(mail.to).to eq([ "alice@example.com" ])
+    end
+
+    it "names the provider in the subject" do
+      expect(mail.subject).to include("Google")
+    end
+
+    it "names the app in the subject" do
+      expect(mail.subject).to include(I18n.t("application.name"))
+    end
+
+    it "addresses the user by first name" do
+      expect(mail.body.encoded).to include("Alice")
+    end
+
+    it "links to the connected accounts page" do
+      expect(mail.body.encoded).to include("/account/connected_accounts")
+    end
+
+    it "renders both HTML and text parts" do
+      expect(mail.html_part).to be_present
+      expect(mail.text_part).to be_present
+    end
+
+    it "wraps the HTML in a <html lang='en'> element (WCAG 3.1.1)" do
+      expect(mail.html_part.body.encoded).to include('<html lang="en">')
+    end
+
+    it "states the user's account is unaffected (defense-in-depth, not breach notice)" do
+      expect(mail.body.encoded.downcase).to include("blocked")
+    end
+  end
 end

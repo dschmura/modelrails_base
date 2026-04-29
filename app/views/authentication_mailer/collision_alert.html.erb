@@ -1,0 +1,14 @@
+<% content_for :preheader do %><%= t("authentication_mailer.collision_alert.preheader", provider: @provider_name) %><% end %>
+<style>
+  .email-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #1f2937; line-height: 1.5; max-width: 480px; margin: 24px auto; padding: 0 16px; }
+  .button { display: inline-block; padding: 12px 24px; background: #1e40af; color: #fff; text-decoration: none; border-radius: 6px; font-weight: 600; }
+  .what { color: #374151; font-size: 14px; margin-top: 24px; }
+  .footer { color: #4b5563; font-size: 13px; margin-top: 16px; border-top: 1px solid #e5e7eb; padding-top: 12px; }
+</style>
+<div class="email-body">
+  <p><%= t("authentication_mailer.collision_alert.greeting", first_name: @user.first_name) %></p>
+  <p><%= t("authentication_mailer.collision_alert.body", provider: @provider_name, app_name: @app_name) %></p>
+  <p><%= t("authentication_mailer.collision_alert.what_to_do", provider: @provider_name, app_name: @app_name) %></p>
+  <p><a class="button" href="<%= @connected_accounts_url %>"><%= t("authentication_mailer.collision_alert.cta") %></a></p>
+  <p class="footer"><%= t("authentication_mailer.collision_alert.footer", app_name: @app_name) %></p>
+</div>

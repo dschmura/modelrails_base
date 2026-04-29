@@ -32,3 +32,11 @@ en:
       what_is_this: "We email you whenever a new sign-in method is added to your account. This protects your account from someone else linking it."
       footer: "If you didn't try to add this, ignore this email — your account stays untouched."
       preheader: "Confirm %{email} to finish linking your sign-in method."
+    collision_alert:
+      subject: "Someone tried to link %{provider} to a different %{app_name} account"
+      greeting: "Hi %{first_name},"
+      body: "Someone just tried to use your %{provider} account to sign in to a different %{app_name} account. We blocked the attempt — your account is unaffected and your %{provider} link still points to you."
+      what_to_do: "If that was you (perhaps you were trying to switch %{app_name} accounts), no action is needed. If you weren't expecting this, your %{provider} account itself may be at risk — review your %{provider} security settings and consider rotating your %{provider} password."
+      cta: "Review your connected accounts"
+      footer: "We send this alert when a third party attempts to attach your sign-in method elsewhere. It does not mean your %{app_name} account was compromised."
+      preheader: "Someone tried to link your %{provider} sign-in to a different account."

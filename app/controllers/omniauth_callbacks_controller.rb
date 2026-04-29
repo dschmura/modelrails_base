@@ -27,12 +27,21 @@ class OmniauthCallbacksController < ApplicationController
 
   def handle_existing_auth(auth, auth_hash)
     if Current.user.present? && Current.user.id != auth.user_id
+      # Cross-user collision: the OAuth provider+uid is already linked to a
+      # different user. Notify the legitimate owner (defense-in-depth) so
+      # they're aware someone tried to attach their identity elsewhere.
+      # Throttled to prevent flooding a victim if many attackers attempt this.
+      provider_name = Authentication.display_name_for(normalized_provider(auth_hash))
+      if EmailRecipientThrottle.allow!(auth.user.email_address, kind: :collision_alert)
+        AuthenticationMailer.collision_alert(auth.user, provider_name).deliver_later
+      end
       redirect_to account_connected_accounts_path,
-        alert: t("omniauth_callbacks.create.collision_other_user",
-                 provider: Authentication.display_name_for(normalized_provider(auth_hash)))
+        alert: t("omniauth_callbacks.create.collision_other_user", provider: provider_name)
     elsif auth.pending?
       auth.generate_verification_token!
-      AuthenticationMailer.link_verification_email(auth).deliver_later
+      if EmailRecipientThrottle.allow!(auth.email, kind: :verification)
+        AuthenticationMailer.link_verification_email(auth).deliver_later
+      end
       redirect_to fallback_path,
         notice: t("omniauth_callbacks.create.pending_resent", email: auth.email)
     else
@@ -82,7 +91,9 @@ class OmniauthCallbacksController < ApplicationController
     else
       auth.assign_verification_token
       auth.save!
-      AuthenticationMailer.link_verification_email(auth).deliver_later
+      if EmailRecipientThrottle.allow!(auth.email, kind: :verification)
+        AuthenticationMailer.link_verification_email(auth).deliver_later
+      end
       flash[:confirming_email_for] = auth.id
       redirect_to account_connected_accounts_path,
         notice: t("omniauth_callbacks.create.pending",
@@ -119,7 +130,9 @@ class OmniauthCallbacksController < ApplicationController
       )
       auth.assign_verification_token
       auth.save!
-      AuthenticationMailer.link_verification_email(auth).deliver_later
+      if EmailRecipientThrottle.allow!(auth.email, kind: :verification)
+        AuthenticationMailer.link_verification_email(auth).deliver_later
+      end
       redirect_to new_session_path,
         notice: t("omniauth_callbacks.create.unverified_email_pending", email: auth_hash.info.email)
     end
