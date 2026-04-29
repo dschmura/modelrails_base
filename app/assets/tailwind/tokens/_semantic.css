@@ -16,7 +16,7 @@
   /* --- Text --- */
   --color-text-heading:        var(--neutral-900);
   --color-text-body:           var(--neutral-700);
-  --color-text-muted:          var(--neutral-600);
+  --color-text-muted:          var(--neutral-700); /* AAA 7:1 on white surface — same darkness as body; visual hierarchy is now via font-size/weight, not lightness */
   --color-text-on-interactive: oklch(100% 0 0);  /* white */
 
   /* --- Interactive (buttons, links, focus rings) --- */
@@ -58,13 +58,13 @@
   /* --- Text --- */
   --color-text-heading:        var(--neutral-100);
   --color-text-body:           var(--neutral-300);
-  --color-text-muted:          var(--neutral-400);
+  --color-text-muted:          var(--neutral-300); /* AAA 7:1 on dark surface — same as body; visual hierarchy via font-size/weight, not lightness (matches light-mode policy) */
   --color-text-on-interactive: var(--neutral-900);  /* dark text on light interactive bg */
 
   /* --- Interactive --- */
-  --color-interactive:       var(--primary-400);
-  --color-interactive-hover: var(--primary-300);
-  --color-interactive-focus: var(--primary-400);
+  --color-interactive:       var(--primary-300); /* was primary-400 (6.7:1 on slate-800) — primary-300 reaches AAA 7:1 */
+  --color-interactive-hover: var(--primary-200);
+  --color-interactive-focus: var(--primary-300);
   --color-interactive-subtle: var(--primary-950);
 
   /* --- Accent --- */

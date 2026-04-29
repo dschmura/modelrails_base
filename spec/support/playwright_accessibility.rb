@@ -85,17 +85,19 @@ RSpec.configure do |config|
         JS
       end
 
-      # NOTE: Project targets WCAG 2.2 Level AAA, but axe-core's `wcag2aaa` tag
-      # surfaces pre-existing AAA contrast violations on multiple pages outside
-      # the scope of any single feature branch. Tracked as a follow-up: do a
-      # codebase-wide AAA contrast pass, then promote this tag to `wcag2aaa`.
-      options = { runOnly: { type: "tag", values: [ "wcag2aa" ] } }
+      # Audits at WCAG 2.2 Level AAA — the project's design target. The
+      # `wcag2aaa` tag adds the AAA-only rules (notably 7:1 contrast for normal
+      # text, 4.5:1 for large text, plus 44x44 target-size on `wcag22aaa`).
+      options = { runOnly: { type: "tag", values: [ "wcag2aaa" ] } }
       results = run_axe_audit(options)
       violations = results["violations"] || []
 
       formatted = violations.map do |v|
-        nodes = (v["nodes"] || []).map { |n| n["html"] }.join("\n  ")
-        "\n#{v["id"]}: #{v["help"]}\n  Impact: #{v["impact"]}\n  Affected elements:\n  #{nodes}"
+        node_details = (v["nodes"] || []).map do |n|
+          summary = n["failureSummary"] || ""
+          "  #{n["html"]}\n      #{summary.gsub("\n", "\n      ")}"
+        end.join("\n")
+        "\n#{v["id"]}: #{v["help"]}\n  Impact: #{v["impact"]}\n  Affected elements:\n#{node_details}"
       end
 
       expect(violations).to be_empty,
