@@ -25,15 +25,14 @@ class SessionsController < ApplicationController
   end
 
   def lookup
-    email = params[:email_address]&.downcase&.strip
+    @email_lookup_form = EmailLookupForm.new(email_address: params[:email_address])
 
-    unless email&.match?(User::EMAIL_FORMAT)
-      @email_error = t(".invalid_email")
-      @email_address = params[:email_address]
+    unless @email_lookup_form.valid?
       render :email_error
       return
     end
 
+    email = @email_lookup_form.email_address.downcase.strip
     user = User.find_by(email_address: email)
 
     if user&.has_password?
