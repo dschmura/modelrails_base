@@ -338,6 +338,40 @@ RSpec.describe "Account Connected Accounts", type: :request do
       end
     end
 
+    context "per-recipient throttle (across attempters)" do
+      # The per-user rate_limit blocks one signed-in user from spamming.
+      # The per-recipient throttle additionally caps how many emails any single
+      # recipient address receives across ALL signers, so coordinated attempts
+      # (or attackers cycling accounts) can't bury one inbox.
+      around do |ex|
+        original = Rails.cache
+        Rails.cache = ActiveSupport::Cache::MemoryStore.new
+        ex.run
+      ensure
+        Rails.cache = original
+      end
+
+      it "drops verification email once recipient cap is hit, even if the per-user limit allows" do
+        # Pre-fill the per-recipient counter to its cap; the next send must be dropped.
+        EmailRecipientThrottle::CAP.times do
+          EmailRecipientThrottle.allow!(pending_auth.email, kind: :verification)
+        end
+
+        expect {
+          post resend_verification_account_connected_account_path(pending_auth)
+        }.not_to have_enqueued_mail(AuthenticationMailer, :link_verification_email)
+      end
+
+      it "still flashes the success notice (does not leak throttle state to the client)" do
+        EmailRecipientThrottle::CAP.times do
+          EmailRecipientThrottle.allow!(pending_auth.email, kind: :verification)
+        end
+
+        post resend_verification_account_connected_account_path(pending_auth)
+        expect(flash[:notice]).to include(pending_auth.email)
+      end
+    end
+
     context "rate limit scoping" do
       it "scopes the rate limit by Current.user.id (not just IP)" do
         # Verify the controller declaration includes a per-user `by:` lambda

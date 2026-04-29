@@ -383,6 +383,48 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
     end
   end
 
+  describe "cross-user collision sends defense-in-depth alert to legitimate owner" do
+    # Use a real cache store so EmailRecipientThrottle's throttle logic exercises;
+    # otherwise null_store makes increment return nil and we can't observe drops.
+    around do |ex|
+      original = Rails.cache
+      Rails.cache = ActiveSupport::Cache::MemoryStore.new
+      ex.run
+    ensure
+      Rails.cache = original
+    end
+
+    let(:alice) { create(:user, email_address: "alice@example.com", first_name: "Alice") }
+    let(:eve)   { create(:user, email_address: "eve@example.com") }
+
+    before do
+      alice.authentications.create!(provider: "google", uid: "shared-uid",
+        email: "alice@example.com", verified_at: Time.current)
+      sign_in(eve)
+      OmniAuth.config.test_mode = true
+      OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(
+        provider: "google", uid: "shared-uid",
+        info: { email: "alice@example.com" },
+        credentials: { token: "tok", refresh_token: "rtok", expires_at: nil }
+      )
+    end
+    after { OmniAuth.config.mock_auth.clear; OmniAuth.config.test_mode = false }
+
+    it "enqueues a collision_alert email to the legitimate owner" do
+      expect {
+        get "/auth/google_oauth2/callback"
+      }.to have_enqueued_mail(AuthenticationMailer, :collision_alert).with(alice, "Google")
+    end
+
+    it "drops further alerts to the same recipient once the per-recipient cap is hit" do
+      EmailRecipientThrottle::CAP.times { get "/auth/google_oauth2/callback" }
+
+      expect {
+        get "/auth/google_oauth2/callback"
+      }.not_to have_enqueued_mail(AuthenticationMailer, :collision_alert)
+    end
+  end
+
   describe "Google OAuth with strategy-default provider name (production behavior)" do
     let(:user) { create(:user, email_address: "rachel@example.com") }
 

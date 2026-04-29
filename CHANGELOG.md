@@ -4,6 +4,11 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+### Security
+
+- **Per-recipient email throttle** (`app/lib/email_recipient_throttle.rb`). Caps how many emails of a given kind a single recipient address receives across all senders within a sliding window — orthogonal to the per-user `rate_limit` declarations that already gate controller actions. Default policy: 3 sends per recipient per kind per hour, fail-open on cache miss. Closes the gap where N attackers (or one attacker cycling accounts) could each stay under their per-user limit while collectively flooding one victim's inbox. Counter lives in `Rails.cache` (Solid Cache) keyed by SHA-256 of the canonical (NFC + downcase + strip) email plus the kind, so case/whitespace/encoding variants share a bucket. Independent buckets per kind so a flood of one type doesn't suppress legitimate sends of another. Gated callsites: every `AuthenticationMailer.link_verification_email` dispatch in `OmniauthCallbacksController` (re-OAuth on pending, signed-in mismatched-email link, unverified-email new-user) and `Account::ConnectedAccountsController#resend_verification`, plus the new `collision_alert` dispatch.
+- **Cross-user OAuth collision alert** (`AuthenticationMailer#collision_alert`). When `OmniauthCallbacksController` detects that a `provider+uid` pair is already linked to a different user (someone else's verified OAuth identity), the legitimate owner now receives a defense-in-depth notification email so they're aware a third party tried to attach their sign-in method to a different ModelRails account. The email explicitly states the user's account is unaffected (does not imply breach) and links to the connected accounts page. Throttled by the per-recipient throttle (`kind: :collision_alert`, separate bucket from verification) so an attacker can't weaponize the alert into a flood. New I18n keys under `authentication_mailer.collision_alert` in `config/locales/en/mailers.en.yml`; HTML and text templates follow the existing `link_verification_email` styling pattern.
+
 ### Accessibility
 
 - **WCAG 2.2 Level AAA contrast pass.** Bumped six color tokens to meet 7:1 contrast across light and dark modes:
