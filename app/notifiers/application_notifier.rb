@@ -23,6 +23,18 @@ class ApplicationNotifier < Noticed::Event
       update_column(:seen_at, Time.current)
     end
 
+    # Wrap any Notifier message/url body that traverses associations or
+    # accesses attributes on the resource. Catches:
+    #   - ActiveRecord::RecordNotFound (e.g., resource was destroyed mid-render)
+    #   - NoMethodError on nil receiver (e.g., a chained association is now nil)
+    # Real bugs (typos, missing methods on non-nil receivers) propagate.
+    #
+    # Note: only deletion shapes where Ruby raises with a *nil* receiver are
+    # caught. If your message accesses `resource.invitable.name` and the
+    # `invitable` is gone, the call to `.name` on nil raises NoMethodError
+    # with receiver=nil — caught. Other deletion patterns (stale FK pointing
+    # to a deleted record that still loads as a stub object) won't trigger
+    # nil-receiver and may bubble up as RecordNotFound or other exceptions.
     def render_safe_or_placeholder
       yield
     rescue ActiveRecord::RecordNotFound
@@ -57,6 +69,15 @@ class ApplicationNotifier < Noticed::Event
 
   private
 
+  # CALLSITE CONVENTION: Notifier callers should pass BOTH `record:` AND
+  # `resource:` in the with(...) hash. They are typically the same object,
+  # but conceptually distinct:
+  #   - `record:` is Noticed's polymorphic backref (populates noticed_events.record_type/_id)
+  #   - `resource:` is our idempotency-key seed (read by populate_idempotency_key below)
+  # Future Notifiers should follow this pattern unless there's a reason to use
+  # different objects (e.g., resource is a transient activity object while
+  # record points to the canonical domain entity).
+  #
   # Populates record.idempotency_key (the column added by Task 2's hardening
   # migration). Writes to the column directly, NOT to params — the key is a
   # first-class identifier, not metadata buried in JSONB.

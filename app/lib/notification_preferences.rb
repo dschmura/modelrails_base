@@ -13,9 +13,13 @@ class NotificationPreferences
   # Used by NotificationCleanupJob (PR-5) to enforce a 1-year retention floor
   # on security-class notifications regardless of user retention preference.
   RETENTION_FLOORS = { "security" => 365.days }.freeze
-  # Class names of Notifiers in the security category. Consumed by the cleanup
-  # job to identify which noticed_notifications rows fall under the floor.
-  # @see app/jobs/notification_cleanup_job.rb (added in PR-5).
+  # Keep in sync with Notifier classes whose category is :security. Currently:
+  # - PasswordChangedNotifier (lands in PR-1, Task 6)
+  # - SignInFromNewDeviceNotifier (lands in PR-2)
+  # Consumer: NotificationCleanupJob (PR-5) uses this list to enforce the
+  # 1-year retention floor on security-class notifications regardless of
+  # user retention preference. If a Notifier in this list is renamed,
+  # update this constant.
   SECURITY_NOTIFIER_TYPES = %w[SignInFromNewDeviceNotifier PasswordChangedNotifier].freeze
 
   def initialize(jsonb_hash)
