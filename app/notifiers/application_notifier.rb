@@ -15,9 +15,7 @@ class ApplicationNotifier < Noticed::Event
     end
 
     def recipient_locale
-      # Query directly to bypass any stale AR association cache on the recipient.
-      prefs = UserPreferences.find_by(user_id: recipient.id)
-      prefs&.locale.presence&.to_sym || I18n.default_locale
+      recipient.try(:preferences)&.locale.presence&.to_sym || I18n.default_locale
     end
 
     def mark_seen!
@@ -39,13 +37,7 @@ class ApplicationNotifier < Noticed::Event
     private
 
     def preferences_object
-      # Query directly to bypass any stale AR association cache on the recipient.
-      # notification.recipient may be the same Ruby object as the caller (e.g.
-      # when loaded via user.notifications), so a direct lookup avoids the issue
-      # of a nil-cached has_one when preferences were created after the user was
-      # first loaded into memory.
-      prefs = UserPreferences.find_by(user_id: recipient.id)
-      prefs&.notification_preferences_object || NotificationPreferences.new(nil)
+      recipient.try(:preferences)&.notification_preferences_object || NotificationPreferences.new(nil)
     end
   end
 

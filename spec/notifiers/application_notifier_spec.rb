@@ -132,7 +132,7 @@ RSpec.describe ApplicationNotifier, type: :notifier do
 
   describe "#recipient_pref" do
     let(:user) { create(:user) }
-    let!(:prefs) { user.preferences || create(:user_preferences, user: user) }
+    let!(:prefs) { create(:user_preferences, user: user) }
 
     it "delegates to NotificationPreferences#allow?" do
       StubAccountAccessNotifier.with(resource: user).deliver(user)
@@ -159,7 +159,7 @@ RSpec.describe ApplicationNotifier, type: :notifier do
 
   describe "#recipient_locale" do
     let(:user) { create(:user) }
-    let!(:prefs) { user.preferences || create(:user_preferences, user: user) }
+    let!(:prefs) { create(:user_preferences, user: user) }
 
     it "returns the recipient's locale from preferences" do
       prefs.update!(locale: "fr")
