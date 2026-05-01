@@ -1,4 +1,11 @@
 # Lefthook git hooks — skip with LEFTHOOK=0 or --no-verify
+#
+# Pre-push commands set skip_empty: false so the full suite (brakeman, rspec,
+# rubocop) runs on every push, including the first push of a new branch where
+# no remote ref exists yet to compute push_files against. Without this,
+# Lefthook's default skip_empty: true causes "no matching push files" and
+# silently skips the gate — a known mode where prior project PRs bypassed
+# local CI without anyone noticing.
 
 pre-commit:
   parallel: true
@@ -13,12 +20,14 @@ pre-push:
   commands:
     brakeman:
       tags: security
+      skip_empty: false
       run: mise exec -- bundle exec brakeman --no-pager -q
       skip:
         - merge
         - rebase
     rspec:
       tags: test
+      skip_empty: false
       env:
         CI: "true"
       run: mise exec -- bundle exec rspec
@@ -27,6 +36,7 @@ pre-push:
         - rebase
     rubocop:
       tags: style
+      skip_empty: false
       run: mise exec -- bundle exec rubocop -f simple
       skip:
         - merge
