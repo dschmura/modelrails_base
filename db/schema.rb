@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_01_002109) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_01_002927) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -243,7 +243,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_01_002109) do
     t.string "timezone"
     t.datetime "updated_at", null: false
     t.integer "user_id", null: false
-    t.index ["digest_next_due_at"], name: "index_user_preferences_digest_next_due_at", where: "digest_next_due_at IS NOT NULL"
+    t.index ["digest_next_due_at"], name: "index_user_preferences_on_digest_next_due_at", where: "digest_next_due_at IS NOT NULL"
     t.index ["user_id"], name: "index_user_preferences_on_user_id"
   end
 

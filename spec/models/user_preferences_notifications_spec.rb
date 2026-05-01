@@ -56,7 +56,7 @@ RSpec.describe UserPreferences, "notification_preferences columns" do
 
     it "has a partial index where digest_next_due_at IS NOT NULL" do
       indexes = ActiveRecord::Base.connection.indexes("user_preferences")
-      idx = indexes.find { |i| i.name == "index_user_preferences_digest_next_due_at" }
+      idx = indexes.find { |i| i.name == "index_user_preferences_on_digest_next_due_at" }
       expect(idx).not_to be_nil
       expect(idx.where).to include("digest_next_due_at IS NOT NULL")
     end

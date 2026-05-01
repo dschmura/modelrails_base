@@ -8,6 +8,8 @@ class BackfillDigestNextDueAt < ActiveRecord::Migration[8.1]
       batch.each do |prefs|
         # Spread first-cycle digest sends randomly across 24 hours to avoid
         # a thundering herd against DigestMailerJob's 15-minute polling cadence.
+        # update_columns: skip validations/callbacks and don't bump updated_at —
+        # this is system-initialization data, not a user-driven change.
         prefs.update_columns(
           digest_next_due_at: Time.current + rand(24).hours + rand(60).minutes
         )
