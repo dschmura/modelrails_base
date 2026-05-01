@@ -150,6 +150,25 @@ RSpec.describe NotificationPreferences do
         expect(described_class.new(jsonb).next_due_at_in(tz)).to eq tz.parse("2026-03-08 08:00:00")
       end
     end
+
+    it "handles DST transition correctly across fall-back (weekly cadence)" do
+      # November 1, 2026 is US fall-back Sunday. Test that ActiveSupport's
+      # Duration arithmetic does the right thing across the boundary.
+      jsonb = default_jsonb.deep_merge("digest" => { "cadence" => "weekly" })
+      travel_to(tz.parse("2026-10-25 14:00:00")) do
+        expect(described_class.new(jsonb).next_due_at_in(tz)).to eq tz.parse("2026-11-01 08:00:00")
+      end
+    end
+
+    it "for weekly cadence at exactly 08:00:00, returns 7 days out (today's slot just passed, next 8am + 6 days)" do
+      # At exactly 8am the `<= now` guard advances to tomorrow (May 1),
+      # then +6 days for weekly = May 7. Not May 8 — the +1-day is the
+      # next-daily-slot, and weekly adds 6 on top of that.
+      jsonb = default_jsonb.deep_merge("digest" => { "cadence" => "weekly" })
+      travel_to(tz.parse("2026-04-30 08:00:00")) do
+        expect(described_class.new(jsonb).next_due_at_in(tz)).to eq tz.parse("2026-05-07 08:00:00")
+      end
+    end
   end
 
   describe "constants" do

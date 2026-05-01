@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe "Noticed gem setup" do
   it "loads Noticed::Event constant" do
-    expect(defined?(Noticed::Event)).to be_truthy
+    expect { Noticed::Event }.not_to raise_error
   end
 
   it "creates noticed_events table with expected columns" do

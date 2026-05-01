@@ -10,6 +10,10 @@ class HardenNoticedTables < ActiveRecord::Migration[8.1]
       where: "idempotency_key IS NOT NULL",
       name: "index_noticed_events_on_idempotency_key"
 
+    # Inline backfill for fork-data scenarios. dir.down is omitted: the column
+    # drop in the auto-reversed `change` block cleans up the data automatically
+    # (column gone → values gone), so no explicit data-undo step is needed.
+    #
     # Inline backfill: if any existing noticed_events rows have an
     # idempotency_key in their params JSONB (from earlier work or forks
     # pulling this PR), populate the new column. No-op for fresh tables.

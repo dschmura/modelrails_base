@@ -155,6 +155,21 @@ RSpec.describe ApplicationNotifier, type: :notifier do
       notification = user.notifications.last
       expect(notification.recipient_pref(:email)).to be true
     end
+
+    it "returns false for non-security when recipient has no preferences row" do
+      bare_user = create(:user)
+      # Don't create UserPreferences for this user.
+      StubAccountAccessNotifier.with(resource: bare_user).deliver(bare_user)
+      notification = bare_user.notifications.last
+      expect(notification.recipient_pref(:in_app)).to be false
+    end
+
+    it "still permits security for a recipient without preferences row" do
+      bare_user = create(:user)
+      StubSecurityNotifier.with(resource: bare_user).deliver(bare_user)
+      notification = bare_user.notifications.last
+      expect(notification.recipient_pref(:in_app)).to be true
+    end
   end
 
   describe "#recipient_locale" do
@@ -205,6 +220,15 @@ RSpec.describe ApplicationNotifier, type: :notifier do
         notification.mark_seen!
         expect(notification.reload.seen_at).to eq original
       end
+    end
+
+    it "does not bump updated_at (system action, preserves cache keys)" do
+      StubAccountAccessNotifier.with(resource: resource).deliver(user)
+      notification = user.notifications.last
+      notification.update_columns(updated_at: 1.hour.ago)
+      original_updated_at = notification.updated_at
+      notification.mark_seen!
+      expect(notification.reload.updated_at).to be_within(1.second).of(original_updated_at)
     end
   end
 

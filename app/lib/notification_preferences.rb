@@ -1,5 +1,10 @@
 # frozen_string_literal: true
 
+# Wraps the user_preferences.notification_preferences JSONB column with
+# typed accessors. Centralizes the v1 DND-vs-security rule:
+# `do_not_disturb: true` suspends all delivery EXCEPT for the `security`
+# category. Every Notifier routes preference checks through this object;
+# none should hand-roll the DND check.
 class NotificationPreferences
   CATEGORIES = %w[security account_access workspace_activity project_activity billing].freeze
   CHANNELS   = %w[in_app email digest].freeze

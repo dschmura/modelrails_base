@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class ApplicationNotifier < Noticed::Event
-  class_attribute :category_name, instance_writer: false
+  class_attribute :category_name, instance_accessor: false
 
   def self.category(name)
     self.category_name = name.to_s
@@ -20,7 +20,7 @@ class ApplicationNotifier < Noticed::Event
 
     def mark_seen!
       return if seen_at.present?
-      update_columns(seen_at: Time.current, updated_at: Time.current)
+      update_column(:seen_at, Time.current)
     end
 
     def render_safe_or_placeholder
@@ -80,6 +80,10 @@ class ApplicationNotifier < Noticed::Event
         "#{self.class.name} requires either a :resource with an id, or an explicit :idempotency_key"
     end
 
+    # One-minute bucket is the documented dedup window. Cross-boundary
+    # dispatches (one at second 59, retry at second 0 of next minute) get
+    # different keys and BOTH succeed. This is intentional — coalescing
+    # beyond a minute is digest territory, not idempotency.
     self.idempotency_key = "#{self.class.name}_#{resource_id}_#{Time.current.to_i / 60}"
   end
 end
