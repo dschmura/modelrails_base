@@ -7,12 +7,14 @@ class WorkspaceInvitationReceivedNotifier < ApplicationNotifier
 
   notification_methods do
     def message
-      I18n.t(
-        "notifications.workspace_invitation_received.message",
-        locale: recipient_locale,
-        workspace: event.params[:resource].invitable.name,
-        inviter: event.params[:resource].invited_by&.email_address
-      )
+      render_safe_or_placeholder do
+        I18n.t(
+          "notifications.workspace_invitation_received.message",
+          locale: recipient_locale,
+          workspace: event.params[:resource].invitable.name,
+          inviter: event.params[:resource].invited_by&.email_address
+        )
+      end
     end
 
     def url
