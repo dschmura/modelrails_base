@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_30_235615) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_01_002109) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -234,12 +234,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_30_235615) do
 
   create_table "user_preferences", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.datetime "digest_last_sent_at"
+    t.datetime "digest_next_due_at"
     t.string "docs_mode"
     t.string "locale"
+    t.json "notification_preferences", default: {"do_not_disturb" => false, "digest" => {"enabled" => true, "cadence" => "daily", "hour_local" => 8}, "categories" => {"security" => {"in_app" => true, "email" => true, "digest" => false}, "account_access" => {"in_app" => true, "email" => true, "digest" => false}, "workspace_activity" => {"in_app" => true, "email" => false, "digest" => true}, "project_activity" => {"in_app" => true, "email" => false, "digest" => true}, "billing" => {"in_app" => true, "email" => true, "digest" => false}}, "retention_days" => 90}, null: false
     t.string "theme", default: "system"
     t.string "timezone"
     t.datetime "updated_at", null: false
     t.integer "user_id", null: false
+    t.index ["digest_next_due_at"], name: "index_user_preferences_digest_next_due_at", where: "digest_next_due_at IS NOT NULL"
     t.index ["user_id"], name: "index_user_preferences_on_user_id"
   end
 
