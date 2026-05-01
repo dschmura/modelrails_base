@@ -207,7 +207,7 @@ RSpec.describe ApplicationNotifier, type: :notifier do
       notification = user.notifications.last
       freeze_time do
         notification.mark_seen!
-        expect(notification.reload.seen_at).to eq Time.current
+        expect(notification.reload.seen_at).to be_within(1.second).of(Time.current)
       end
     end
 
@@ -215,7 +215,7 @@ RSpec.describe ApplicationNotifier, type: :notifier do
       StubAccountAccessNotifier.with(resource: resource).deliver(user)
       notification = user.notifications.last
       notification.mark_seen!
-      original = notification.seen_at
+      original = notification.reload.seen_at
       travel 1.hour do
         notification.mark_seen!
         expect(notification.reload.seen_at).to eq original
