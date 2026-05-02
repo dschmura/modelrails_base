@@ -341,7 +341,7 @@ GEM
     parser (3.3.11.1)
       ast (~> 2.4.1)
       racc
-    playwright-ruby-client (1.59.0)
+    playwright-ruby-client (1.59.1)
       base64
       concurrent-ruby (>= 1.1.6)
       mime-types (>= 3.0)
@@ -755,7 +755,7 @@ CHECKSUMS
   pagy (43.5.3) sha256=f9d73e690648d484706661dcb815647775cf8330fcc5c6e62ec87b9df431290b
   parallel (2.0.1) sha256=337782d3e39f4121e67563bf91dd8ece67f48923d90698614773a0ec9a5b2c7d
   parser (3.3.11.1) sha256=d17ace7aabe3e72c3cc94043714be27cc6f852f104d81aa284c2281aecc65d54
-  playwright-ruby-client (1.59.0) sha256=b9e66233ed7b83e917980badc27ecd233e244503c74772a3854dbd5d41438c21
+  playwright-ruby-client (1.59.1) sha256=55c8bb7f080e4584347cb21a2442ea91d5a6bcbe78f96c8cb7dbe3546f4401db
   pp (0.6.3) sha256=2951d514450b93ccfeb1df7d021cae0da16e0a7f95ee1e2273719669d0ab9df6
   prettyprint (0.2.0) sha256=2bc9e15581a94742064a3cc8b0fb9d45aae3d03a1baa6ef80922627a0766f193
   prism (1.9.0) sha256=7b530c6a9f92c24300014919c9dcbc055bf4cdf51ec30aed099b06cd6674ef85
