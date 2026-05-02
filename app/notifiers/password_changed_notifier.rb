@@ -3,14 +3,12 @@
 class PasswordChangedNotifier < ApplicationNotifier
   category :security
 
-  required_param :resource
-
   notification_methods do
     def message
       render_safe_or_placeholder do
         I18n.t("notifications.password_changed.message",
                locale: recipient_locale,
-               user_name: event.params[:resource].first_name)
+               user_name: event.record.first_name)
       end
     end
 

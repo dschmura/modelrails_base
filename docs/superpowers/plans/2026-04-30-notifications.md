@@ -747,7 +747,6 @@ RSpec.describe ApplicationNotifier, type: :notifier do
     stub_const("StubAccountAccessNotifier", Class.new(ApplicationNotifier) do
       category :account_access
       deliver_by :database
-      required_param :resource
 
       def message = "stub"
       def url     = "/stub"
@@ -756,7 +755,6 @@ RSpec.describe ApplicationNotifier, type: :notifier do
     stub_const("StubSecurityNotifier", Class.new(ApplicationNotifier) do
       category :security
       deliver_by :database
-      required_param :resource
 
       def message = "stub-security"
       def url     = "/stub"
@@ -774,13 +772,13 @@ RSpec.describe ApplicationNotifier, type: :notifier do
     let(:resource) { create(:user) }
 
     it "populates the idempotency_key column (not params) before insert" do
-      StubAccountAccessNotifier.with(resource: resource).deliver(user)
+      StubAccountAccessNotifier.with(record: resource).deliver(user)
       event = Noticed::Event.last
       expect(event.idempotency_key).to be_present
     end
 
     it "does NOT embed the key in params" do
-      StubAccountAccessNotifier.with(resource: resource).deliver(user)
+      StubAccountAccessNotifier.with(record: resource).deliver(user)
       event = Noticed::Event.last
       expect(event.params["idempotency_key"]).to be_nil
       expect(event.params[:idempotency_key]).to be_nil
@@ -788,7 +786,7 @@ RSpec.describe ApplicationNotifier, type: :notifier do
 
     it "uses Notifier_class + resource_id + minute-bucket format" do
       freeze_time do
-        StubAccountAccessNotifier.with(resource: resource).deliver(user)
+        StubAccountAccessNotifier.with(record: resource).deliver(user)
         event = Noticed::Event.last
         expect(event.idempotency_key)
           .to eq "StubAccountAccessNotifier_#{resource.id}_#{Time.current.to_i / 60}"
@@ -796,46 +794,46 @@ RSpec.describe ApplicationNotifier, type: :notifier do
     end
 
     it "preserves a domain-supplied idempotency_key when already set on the column" do
-      notifier = StubAccountAccessNotifier.with(resource: resource)
+      notifier = StubAccountAccessNotifier.with(record: resource)
       notifier.idempotency_key = "manual-123"
       notifier.deliver(user)
       event = Noticed::Event.last
       expect(event.idempotency_key).to eq "manual-123"
     end
 
-    it "raises ArgumentError when no resource and no explicit key supplied" do
+    it "raises ArgumentError when no record and no explicit key supplied" do
       expect {
-        stub_const("StubNoResourceNotifier", Class.new(ApplicationNotifier) do
+        stub_const("StubNoRecordNotifier", Class.new(ApplicationNotifier) do
           category :account_access
           deliver_by :database
           def message = "stub"; def url = "/stub"
         end)
-        StubNoResourceNotifier.new.deliver(user)
-      }.to raise_error(ArgumentError, /requires either a :resource/)
+        StubNoRecordNotifier.new.deliver(user)
+      }.to raise_error(ArgumentError, /requires either a :record/)
     end
 
     it "deduplicates repeated identical events within the same minute" do
       freeze_time do
-        StubAccountAccessNotifier.with(resource: resource).deliver(user)
+        StubAccountAccessNotifier.with(record: resource).deliver(user)
         expect {
-          StubAccountAccessNotifier.with(resource: resource).deliver(user)
+          StubAccountAccessNotifier.with(record: resource).deliver(user)
         }.not_to change(Noticed::Event, :count)
       end
     end
 
     it "returns :delivered on first send" do
       freeze_time do
-        result = StubAccountAccessNotifier.with(resource: resource).deliver(user)
+        result = StubAccountAccessNotifier.with(record: resource).deliver(user)
         expect(result).to eq :delivered
       end
     end
 
     it "returns :deduplicated on second send within the same minute (no exception escapes)" do
       freeze_time do
-        StubAccountAccessNotifier.with(resource: resource).deliver(user)
+        StubAccountAccessNotifier.with(record: resource).deliver(user)
         result = nil
         expect {
-          result = StubAccountAccessNotifier.with(resource: resource).deliver(user)
+          result = StubAccountAccessNotifier.with(record: resource).deliver(user)
         }.not_to raise_error
         expect(result).to eq :deduplicated
       end
@@ -845,8 +843,8 @@ RSpec.describe ApplicationNotifier, type: :notifier do
       freeze_time do
         # Simulate two concurrent dispatches for the same key; both should link
         # their noticed_notifications rows to the same noticed_events row.
-        result1 = StubAccountAccessNotifier.with(resource: resource).deliver(user)
-        result2 = StubAccountAccessNotifier.with(resource: resource).deliver(user)
+        result1 = StubAccountAccessNotifier.with(record: resource).deliver(user)
+        result2 = StubAccountAccessNotifier.with(record: resource).deliver(user)
 
         expect(result1).to eq :delivered
         expect(result2).to eq :deduplicated
@@ -863,7 +861,7 @@ RSpec.describe ApplicationNotifier, type: :notifier do
     let!(:prefs) { user.user_preferences || create(:user_preferences, user: user) }
 
     it "delegates to NotificationPreferences#allow?" do
-      StubAccountAccessNotifier.with(resource: user).deliver(user)
+      StubAccountAccessNotifier.with(record: user).deliver(user)
       notification = user.notifications.last
       expect(notification.recipient_pref(:in_app)).to be true
     end
@@ -871,7 +869,7 @@ RSpec.describe ApplicationNotifier, type: :notifier do
     it "returns false when DND is on for non-security" do
       user.user_preferences.update!(notification_preferences:
         user.user_preferences.notification_preferences.merge("do_not_disturb" => true))
-      StubAccountAccessNotifier.with(resource: user).deliver(user)
+      StubAccountAccessNotifier.with(record: user).deliver(user)
       notification = user.notifications.last
       expect(notification.recipient_pref(:email)).to be false
     end
@@ -879,7 +877,7 @@ RSpec.describe ApplicationNotifier, type: :notifier do
     it "still returns true for security under DND" do
       user.user_preferences.update!(notification_preferences:
         user.user_preferences.notification_preferences.merge("do_not_disturb" => true))
-      StubSecurityNotifier.with(resource: user).deliver(user)
+      StubSecurityNotifier.with(record: user).deliver(user)
       notification = user.notifications.last
       expect(notification.recipient_pref(:email)).to be true
     end
@@ -890,14 +888,14 @@ RSpec.describe ApplicationNotifier, type: :notifier do
 
     it "returns the recipient's locale from UserPreferences" do
       user.user_preferences&.update!(locale: "fr") || create(:user_preferences, user: user, locale: "fr")
-      StubAccountAccessNotifier.with(resource: user).deliver(user)
+      StubAccountAccessNotifier.with(record: user).deliver(user)
       notification = user.notifications.last
       expect(notification.recipient_locale).to eq :fr
     end
 
     it "falls back to I18n.default_locale when locale is blank" do
       user.user_preferences&.update!(locale: nil)
-      StubAccountAccessNotifier.with(resource: user).deliver(user)
+      StubAccountAccessNotifier.with(record: user).deliver(user)
       notification = user.notifications.last
       expect(notification.recipient_locale).to eq I18n.default_locale
     end
@@ -907,7 +905,7 @@ RSpec.describe ApplicationNotifier, type: :notifier do
     let(:user) { create(:user) }
 
     it "sets seen_at on the underlying notification row" do
-      StubAccountAccessNotifier.with(resource: user).deliver(user)
+      StubAccountAccessNotifier.with(record: user).deliver(user)
       notification = user.notifications.last
       freeze_time do
         notification.mark_seen!
@@ -916,7 +914,7 @@ RSpec.describe ApplicationNotifier, type: :notifier do
     end
 
     it "is idempotent (re-calls don't bump the timestamp)" do
-      StubAccountAccessNotifier.with(resource: user).deliver(user)
+      StubAccountAccessNotifier.with(record: user).deliver(user)
       notification = user.notifications.last
       notification.mark_seen!
       original = notification.seen_at
@@ -931,13 +929,13 @@ RSpec.describe ApplicationNotifier, type: :notifier do
     let(:user) { create(:user) }
 
     it "yields normally when no error" do
-      StubAccountAccessNotifier.with(resource: user).deliver(user)
+      StubAccountAccessNotifier.with(record: user).deliver(user)
       notification = user.notifications.last
       expect(notification.render_safe_or_placeholder { "ok" }).to eq "ok"
     end
 
     it "swallows RecordNotFound and renders placeholder" do
-      StubAccountAccessNotifier.with(resource: user).deliver(user)
+      StubAccountAccessNotifier.with(record: user).deliver(user)
       notification = user.notifications.last
       result = notification.render_safe_or_placeholder do
         raise ActiveRecord::RecordNotFound, "boom"
@@ -946,14 +944,14 @@ RSpec.describe ApplicationNotifier, type: :notifier do
     end
 
     it "swallows NoMethodError only when receiver is nil (nil.fnord pattern)" do
-      StubAccountAccessNotifier.with(resource: user).deliver(user)
+      StubAccountAccessNotifier.with(record: user).deliver(user)
       notification = user.notifications.last
       result = notification.render_safe_or_placeholder { nil.fnord }
       expect(result).to eq I18n.t("notifications.placeholder")
     end
 
     it "re-raises NoMethodError when receiver is not nil (real bug)" do
-      StubAccountAccessNotifier.with(resource: user).deliver(user)
+      StubAccountAccessNotifier.with(record: user).deliver(user)
       notification = user.notifications.last
       expect {
         notification.render_safe_or_placeholder { "string".nonexistent_method }
@@ -961,7 +959,7 @@ RSpec.describe ApplicationNotifier, type: :notifier do
     end
 
     it "logs at info level" do
-      StubAccountAccessNotifier.with(resource: user).deliver(user)
+      StubAccountAccessNotifier.with(record: user).deliver(user)
       notification = user.notifications.last
       expect(Rails.logger).to receive(:info).with(/deleted record/)
       notification.render_safe_or_placeholder { raise ActiveRecord::RecordNotFound }
@@ -1046,15 +1044,14 @@ class ApplicationNotifier < Noticed::Event
   def populate_idempotency_key
     return if idempotency_key.present?
 
-    resource = params[:resource] || params["resource"]
-    resource_id = resource.try(:id) || resource.try(:to_gid_param)
+    seed_id = record.try(:id) || record.try(:to_gid_param)
 
-    if resource_id.blank?
+    if seed_id.blank?
       raise ArgumentError,
-        "#{self.class.name} requires either a :resource with an id, or an explicit idempotency_key"
+        "#{self.class.name} requires either a :record with an id, or an explicit idempotency_key"
     end
 
-    self.idempotency_key = "#{self.class.name}_#{resource_id}_#{Time.current.to_i / 60}"
+    self.idempotency_key = "#{self.class.name}_#{seed_id}_#{Time.current.to_i / 60}"
   end
 end
 ```

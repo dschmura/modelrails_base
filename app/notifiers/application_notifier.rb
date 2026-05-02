@@ -69,20 +69,13 @@ class ApplicationNotifier < Noticed::Event
 
   private
 
-  # CALLSITE CONVENTION: Notifier callers should pass BOTH `record:` AND
-  # `resource:` in the with(...) hash. They are typically the same object,
-  # but conceptually distinct:
-  #   - `record:` is Noticed's polymorphic backref (populates noticed_events.record_type/_id)
-  #   - `resource:` is our idempotency-key seed (read by populate_idempotency_key below)
-  # Future Notifiers should follow this pattern unless there's a reason to use
-  # different objects (e.g., resource is a transient activity object while
-  # record points to the canonical domain entity).
+  # Populates noticed_events.idempotency_key from the polymorphic `record`
+  # that Noticed assigns from `with(record: ...)`. Noticed strips :record
+  # from params before validation, so we read self.record (the association)
+  # rather than params[:record]. Pass an explicit `idempotency_key:` to
+  # override when the natural record id isn't the right dedup seed.
   #
-  # Populates record.idempotency_key (the column added by Task 2's hardening
-  # migration). Writes to the column directly, NOT to params — the key is a
-  # first-class identifier, not metadata buried in JSONB.
-  #
-  # Raises ArgumentError if no resource and no explicit key are supplied.
+  # Raises ArgumentError if neither :record nor an explicit key is supplied.
   # Loud failure beats silent dedup-collapse across distinct events.
   def populate_idempotency_key
     return if idempotency_key.present?
@@ -93,18 +86,17 @@ class ApplicationNotifier < Noticed::Event
       return
     end
 
-    resource = params[:resource] || params["resource"]
-    resource_id = resource.try(:id) || resource.try(:to_gid_param)
+    seed_id = record.try(:id) || record.try(:to_gid_param)
 
-    if resource_id.blank?
+    if seed_id.blank?
       raise ArgumentError,
-        "#{self.class.name} requires either a :resource with an id, or an explicit :idempotency_key"
+        "#{self.class.name} requires either a :record with an id, or an explicit :idempotency_key"
     end
 
     # One-minute bucket is the documented dedup window. Cross-boundary
     # dispatches (one at second 59, retry at second 0 of next minute) get
     # different keys and BOTH succeed. This is intentional — coalescing
     # beyond a minute is digest territory, not idempotency.
-    self.idempotency_key = "#{self.class.name}_#{resource_id}_#{Time.current.to_i / 60}"
+    self.idempotency_key = "#{self.class.name}_#{seed_id}_#{Time.current.to_i / 60}"
   end
 end
