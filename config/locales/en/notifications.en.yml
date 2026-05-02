@@ -10,6 +10,19 @@ en:
         one:   "1 unread"
         other: "%{count} unread"
       unread_with_dnd: "%{count} unread (%{hidden} hidden by Do Not Disturb)"
+    categories:
+      security: "Security"
+      account_access: "Account & Access"
+      workspace_activity: "Workspace Activity"
+      project_activity: "Project Activity"
+      billing: "Billing"
+    channels:
+      in_app: "In-app notifications"
+      email: "Email"
+      digest: "Digest"
+    preferences:
+      do_not_disturb: "Do Not Disturb"
+      do_not_disturb_description: "Pauses most notifications. Security alerts (such as password changes and sign-in events) are always delivered."
     workspace_invitation_received:
       message: "%{inviter} invited you to %{workspace}"
     password_changed:

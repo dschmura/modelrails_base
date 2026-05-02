@@ -18,12 +18,9 @@ class WorkspaceInvitationReceivedNotifier < ApplicationNotifier
     end
 
     def url
-      # Routes to the accept-invitation page; full wiring with workspace context in PR-3.
       Rails.application.routes.url_helpers.accept_invitation_path(
         token: event.params[:resource].token
       )
-    rescue NoMethodError
-      "/invitations/#{event.params[:resource].token}/accept"
     end
   end
 end

@@ -192,8 +192,22 @@ RSpec.describe NotificationPreferences do
       expect(described_class::CATEGORIES).to be_frozen
       expect(described_class::CHANNELS).to be_frozen
       expect(described_class::DIGEST_ELIGIBLE_CATEGORIES).to be_frozen
-      expect(described_class::SECURITY_NOTIFIER_TYPES).to be_frozen
       expect(described_class::RETENTION_FLOORS).to be_frozen
+    end
+  end
+
+  describe ".security_notifier_types" do
+    it "returns class names of every Notifier with category :security" do
+      # Reference the security-category Notifier explicitly so autoload runs.
+      _ = PasswordChangedNotifier
+      result = described_class.security_notifier_types
+      expect(result).to include("PasswordChangedNotifier")
+    end
+
+    it "excludes non-security Notifiers" do
+      _ = WorkspaceInvitationReceivedNotifier  # category :account_access
+      result = described_class.security_notifier_types
+      expect(result).not_to include("WorkspaceInvitationReceivedNotifier")
     end
   end
 end
