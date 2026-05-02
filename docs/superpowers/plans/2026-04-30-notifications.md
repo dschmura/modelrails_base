@@ -1730,6 +1730,27 @@ Branch: `feat/notifications-in-app-surfaces`.
 
 ---
 
+## Planning constraint inherited from PR-1 panel review (A3)
+
+PR-3 **must include at least one user-visible behavior that branches on the
+`:delivered` vs `:deduplicated` sentinel return** from `ApplicationNotifier#deliver`.
+Natural candidates:
+
+- A controller action that triggers a notifier and renders a flash message:
+  `flash[:notice] = t("notifications.sent")` only on `:delivered` (silent on `:deduplicated`,
+  so retried/deduped dispatches don't double-notify the actor).
+- An audit log entry that records "notification sent" only on `:delivered`, preventing
+  retry-induced double-counting.
+
+Rationale: the sentinel contract was kept in PR-1 on the basis that PR-3 would
+prove its value via concrete usage (Chris Oliver's "ship it, but make sure the
+plan includes a callsite that does branch on it" — adopted as a design constraint
+during PR-1's panel-review synthesis). If PR-3 closes without such a callsite,
+that is the trigger to revisit removing the sentinel and simplifying
+`ApplicationNotifier#deliver` to a silent rescue.
+
+---
+
 ## Task 11 — `Account::NotificationsController` (TDD)
 
 **Files:**
