@@ -99,5 +99,21 @@ RSpec.describe WorkspaceInvitationDeclinedNotifier, type: :notifier do
       }.to change { Noticed::Event.where(type: described_class.name).count }.by(1)
       expect(inviter.notifications.count).to eq 1
     end
+
+    it "does not fire when the invitation email matches the inviter's email_address (self-decline edge)" do
+      # Mirror the self-accept guard on notify_accepted: an inviter who declines
+      # their own invitation (e.g., bulk-invited themselves, then declined via
+      # the magic link) shouldn't ping themselves about it. Decline path has no
+      # accepted_by analog, so the guard compares email-vs-inviter.email_address
+      # via EmailNormalizer.equivalent? for case + Unicode + IDN safety.
+      self_invitation = create(:invitation,
+                               invitable: workspace,
+                               email: inviter.email_address.upcase, # mixed case to verify normalization
+                               invited_by: inviter)
+      expect {
+        self_invitation.decline!
+      }.not_to change { Noticed::Event.where(type: described_class.name).count }
+      expect(inviter.notifications.count).to eq 0
+    end
   end
 end

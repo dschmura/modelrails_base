@@ -166,8 +166,14 @@ class Invitation < ApplicationRecord
     WorkspaceInvitationAcceptedNotifier.with(record: self).deliver(invited_by)
   end
 
+  # Mirror of notify_accepted's self-recipient guard. Decline has no accepted_by
+  # column (declines come from email/magic-link, not a signed-in user), so the
+  # check is "did the inviter decline their own invitation?" — compared via
+  # EmailNormalizer.equivalent? to absorb case / Unicode-NFC / IDN punycode
+  # variation between the stored invitation email and the inviter's address.
   def notify_declined
     return if invited_by.blank?
+    return if EmailNormalizer.equivalent?(email, invited_by.email_address)
     WorkspaceInvitationDeclinedNotifier.with(record: self).deliver(invited_by)
   end
 end
