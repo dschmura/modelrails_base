@@ -53,18 +53,40 @@ RSpec.describe "Sessions new-device detection", type: :request do
       }, headers: { "User-Agent" => first_ua }
       delete session_path
 
-      # Travel past the 1-minute idempotency bucket so the second event gets a
-      # distinct idempotency_key. Two different devices in the same minute would
-      # otherwise collapse via the dedup index — that's a known v1 limitation,
-      # not the behavior under test here.
-      travel(2.minutes) do
-        expect {
-          post session_path, params: {
-            email_address: user.email_address,
-            password: "SecureP@ssw0rd123!"
-          }, headers: { "User-Agent" => second_ua }
-        }.to change { Noticed::Event.where(type: "SignInFromNewDeviceNotifier").count }.by(1)
-      end
+      expect {
+        post session_path, params: {
+          email_address: user.email_address,
+          password: "SecureP@ssw0rd123!"
+        }, headers: { "User-Agent" => second_ua }
+      }.to change { Noticed::Event.where(type: "SignInFromNewDeviceNotifier").count }.by(1)
+    end
+
+    # Security regression guard: prior to folding the browser digest into the
+    # idempotency_key, two distinct devices signing in within the same minute
+    # would collapse on the dedup index — the second alert would be silently
+    # swallowed. That's a real attack surface (phisher signs in seconds after
+    # the legit user). Lock this in with a fully-realistic request flow that
+    # does NOT use travel/time-helpers.
+    it "fires for two distinct devices signing in within the same minute" do
+      first_ua  = "Mozilla/5.0 (Macintosh) Safari"
+      second_ua = "Mozilla/5.0 (Windows NT 10.0) Chrome/120"
+
+      post session_path, params: {
+        email_address: user.email_address,
+        password: "SecureP@ssw0rd123!"
+      }, headers: { "User-Agent" => first_ua }
+      delete session_path
+
+      expect {
+        post session_path, params: {
+          email_address: user.email_address,
+          password: "SecureP@ssw0rd123!"
+        }, headers: { "User-Agent" => second_ua }
+      }.to change { Noticed::Event.where(type: "SignInFromNewDeviceNotifier").count }.by(1)
+
+      events = Noticed::Event.where(type: "SignInFromNewDeviceNotifier")
+      expect(events.count).to eq 2
+      expect(events.pluck(:idempotency_key).uniq.size).to eq 2
     end
 
     it "does not fire on a failed sign-in attempt" do

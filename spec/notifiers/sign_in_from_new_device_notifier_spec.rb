@@ -43,11 +43,36 @@ RSpec.describe SignInFromNewDeviceNotifier, type: :notifier do
       expect(event.params["idempotency_key"]).to be_nil
     end
 
-    it "deduplicates concurrent dispatches within the same minute" do
+    it "deduplicates same-device dispatches within the same minute (legitimate retry case)" do
       freeze_time do
         described_class.with(record: user, user_agent: user_agent, os: os).deliver(user)
         result = described_class.with(record: user, user_agent: user_agent, os: os).deliver(user)
         expect(result).to eq :deduplicated
+      end
+    end
+
+    # Security regression guard: the base ApplicationNotifier seeds the
+    # idempotency_key from (class, record.id, minute). Because `record` here is
+    # the user, two distinct devices signing in within the same minute would
+    # collide on that key and the second event would be silently dropped — a
+    # real attack surface (phisher signs in seconds after the legit user).
+    # SignInFromNewDeviceNotifier overrides populate_idempotency_key to fold
+    # the browser digest into the seed so each (user, device, minute) gets a
+    # distinct key. This pins that contract in place.
+    it "delivers both events when two distinct devices sign in within the same minute" do
+      other_ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120"
+      other_os = "Windows"
+
+      freeze_time do
+        first  = described_class.with(record: user, user_agent: user_agent, os: os).deliver(user)
+        second = described_class.with(record: user, user_agent: other_ua, os: other_os).deliver(user)
+
+        expect(first).to eq :delivered
+        expect(second).to eq :delivered
+
+        events = Noticed::Event.where(type: described_class.name).order(:created_at)
+        expect(events.count).to eq 2
+        expect(events.pluck(:idempotency_key).uniq.size).to eq 2
       end
     end
 
