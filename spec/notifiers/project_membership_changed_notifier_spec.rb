@@ -88,6 +88,23 @@ RSpec.describe ProjectMembershipChangedNotifier, type: :notifier do
                new_role: "Editor")
       )
     end
+
+    it "passes recipient_locale to I18n.t (matches the convention used by sibling notifiers)" do
+      # Mirror the locale-fallback pattern from application_notifier_spec.rb:
+      # the message must pass `locale: recipient_locale` into I18n.t so the
+      # rendered string respects the recipient's prefs.locale rather than the
+      # ambient I18n.locale at dispatch time. Verified by intercepting the
+      # I18n.t call to assert the keyword is forwarded.
+      prefs = create(:user_preferences, user: user)
+      prefs.update!(locale: "fr")
+      described_class.with(record: project_membership).deliver(user)
+      notification = user.notifications.last
+      expect(I18n).to receive(:t).with(
+        "notifications.project_membership_changed.message",
+        hash_including(locale: :fr)
+      ).and_call_original
+      notification.message
+    end
   end
 
   describe "ProjectMembership callback triggers" do
