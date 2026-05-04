@@ -27,5 +27,7 @@ en:
       message: "%{inviter} invited you to %{workspace}"
     workspace_invitation_accepted:
       message: "%{accepter} accepted your invitation to %{workspace}"
+    workspace_invitation_declined:
+      message: "%{decliner_email} declined your invitation to %{workspace}"
     password_changed:
       message: "Your password was changed for your account, %{user_name}."
