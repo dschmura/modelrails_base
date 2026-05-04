@@ -43,7 +43,7 @@ class SignInFromNewDeviceNotifier < ApplicationNotifier
   # `record` is the user — meaning a phisher signing in seconds after the
   # legitimate user would silently lose their alert to the dedup index, or a
   # user switching from laptop to phone would only see the first alert. By
-  # folding the same browser digest used by `User#browser_digest` into the
+  # folding the same browser digest used by `User.browser_digest` into the
   # key, dedup is now (user, device, minute) — collapse only on a true
   # same-device retry, which IS the legitimate dedup case.
   #
@@ -53,7 +53,7 @@ class SignInFromNewDeviceNotifier < ApplicationNotifier
   def populate_idempotency_key
     return if idempotency_key.present?
 
-    digest_short = Digest::SHA256.hexdigest("#{params[:user_agent]} #{params[:os]}")[0, 12]
+    digest_short = User.browser_digest(params[:user_agent], params[:os])[0, 12]
     self.idempotency_key = "#{self.class.name}_#{record.id}_#{digest_short}_#{Time.current.to_i / 60}"
   end
 end

@@ -13,6 +13,13 @@ RSpec.describe User, type: :model do
     end
   end
 
+  describe ".browser_digest (single source of truth)" do
+    it 'produces a deterministic SHA256 of "{ua} {os}"' do
+      expected = Digest::SHA256.hexdigest("agent macos")
+      expect(User.browser_digest("agent", "macos")).to eq expected
+    end
+  end
+
   describe "#seen_browser? and #record_browser!" do
     let(:user) { create(:user) }
     let(:user_agent) { "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_2) AppleWebKit/605.1.15" }

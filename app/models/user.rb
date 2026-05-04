@@ -49,6 +49,15 @@ class User < ApplicationRecord
   MAX_FAILED_ATTEMPTS = 5
   LOCK_DURATION = 1.hour
 
+  # Single source of truth for the (user_agent, os) -> digest formula used by
+  # the new-device sign-in detector. Public so SignInFromNewDeviceNotifier's
+  # `populate_idempotency_key` override can reuse the same formula — keeping
+  # the User-side fingerprint and the Notifier-side dedup key in lockstep.
+  # Intentionally coarse (no salt, no normalization) — see #seen_browser?.
+  def self.browser_digest(user_agent, os)
+    Digest::SHA256.hexdigest("#{user_agent} #{os}")
+  end
+
   def full_name
     "#{first_name} #{last_name}"
   end
@@ -140,7 +149,7 @@ class User < ApplicationRecord
   # same browser/OS combo across minor UA bumps still matches "seen". The goal
   # is "alert on unfamiliar device", not forensic device tracking.
   def seen_browser?(user_agent, os)
-    digest = browser_digest(user_agent, os)
+    digest = self.class.browser_digest(user_agent, os)
     last_known_browsers.any? { |entry| entry["digest"] == digest }
   end
 
@@ -150,7 +159,7 @@ class User < ApplicationRecord
   # post-sign-in hot path. Times are stored as ISO-8601 strings for stable
   # serialization round-trips through the JSON column.
   def record_browser!(user_agent, os)
-    digest = browser_digest(user_agent, os)
+    digest = self.class.browser_digest(user_agent, os)
     now = Time.current
     browsers = last_known_browsers.dup
     if (entry = browsers.find { |e| e["digest"] == digest })
@@ -166,10 +175,6 @@ class User < ApplicationRecord
   end
 
   private
-
-  def browser_digest(user_agent, os)
-    Digest::SHA256.hexdigest("#{user_agent} #{os}")
-  end
 
   def check_gravatar_later
     CheckGravatarJob.perform_later(self)
