@@ -1,3 +1,5 @@
+<%= t("notification_mailer.workspace_role_changed.heading", workspace: @workspace.name) %>
+
 <%= t("notification_mailer.workspace_role_changed.greeting", name: @recipient.first_name) %>
 
 <%= t("notification_mailer.workspace_role_changed.body", workspace: @workspace.name, role: @role.name) %>
