@@ -18,13 +18,14 @@ class Membership < ApplicationRecord
   # Notify the new member + workspace owners whenever a fresh membership is created.
   # `deliver(nil)` defers recipient resolution to the Notifier's `recipients` block.
   #
-  # Gated by `workspace_has_existing_owner?` — a workspace without owners (e.g.
-  # User#create_personal_workspace seeding the very first owner-membership, or
-  # bare-bones test factories that build a workspace + non-owner membership but
-  # never seed an owner) has nobody for whom the "new member joined" event is
-  # actionable. Firing in that scenario produces a self-notification at best,
-  # and pollutes adjacent specs that exercise Membership creation as setup.
-  after_create_commit :notify_member_added, if: :workspace_has_existing_owner?
+  # Gated by `workspace_has_other_owners?` — a workspace without owners *other
+  # than this membership* (e.g. User#create_personal_workspace seeding the very
+  # first owner-membership, or bare-bones test factories that build a workspace
+  # + non-owner membership but never seed an owner) has nobody for whom the
+  # "new member joined" event is actionable. Firing in that scenario produces
+  # a self-notification at best, and pollutes adjacent specs that exercise
+  # Membership creation as setup.
+  after_create_commit :notify_member_added, if: :workspace_has_other_owners?
 
   scope :search, ->(query) {
     return all if query.blank?
@@ -126,11 +127,14 @@ class Membership < ApplicationRecord
   end
 
   # True when at least one OTHER kept owner-role membership exists in the
-  # workspace at the moment of after_create_commit. Excludes self by id so the
-  # very first owner being seeded (User#create_personal_workspace, bootstrap)
-  # is not treated as having a pre-existing owner. Owners-from-other-workspaces
-  # are correctly excluded by the workspace_id scope.
-  def workspace_has_existing_owner?
+  # workspace at the moment of after_create_commit. The `where.not(id: id)`
+  # self-exclusion is load-bearing: it ensures the very first owner being
+  # seeded (User#create_personal_workspace, bootstrap) is not treated as
+  # having a pre-existing owner. The method name surfaces this — "OTHER
+  # owners" — so a future reader of the `if:` callback option immediately
+  # understands that self-exclusion is the contract, not an accident.
+  # Owners-from-other-workspaces are correctly excluded by the workspace_id scope.
+  def workspace_has_other_owners?
     return false if workspace_id.blank?
     Membership.kept
       .joins(:role)
