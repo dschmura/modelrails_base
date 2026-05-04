@@ -71,13 +71,17 @@ Rails.application.configure do
     # not Ruby object access. Safelist to avoid false positives from the framework.
     Bullet.add_safelist(type: :unused_eager_loading, class_name: "ActiveStorage::Attachment", association: :record)
 
-    # Noticed v2's EventJob iterates `event.notifications.each` and accesses each
-    # notification's `recipient` (for the deliver_by :email lambda's recipient_pref
-    # check, and for the Email delivery method's params hash). Bullet flags this
-    # as N+1 when there are multiple recipients (i.e., any multi-recipient Notifier
-    # like WorkspaceMemberAddedNotifier). The library doesn't expose a hook to
-    # eager-load `:recipient` on the notifications relation, so this is a structural
-    # constraint of the gem rather than an avoidable app-side N+1.
+    # DELIVERY-LAYER ONLY: Noticed v2's EventJob iterates `event.notifications.each`
+    # and accesses each notification's `recipient` (for the deliver_by :email
+    # lambda's `recipient_pref` check, and for the Email delivery's params hash).
+    # The library doesn't expose a hook to eager-load `:recipient` on the
+    # notifications relation, so this is a structural constraint of the gem.
+    #
+    # Note: this safelist DOES NOT cover the recipients-resolver layer; that
+    # layer eager-loads users explicitly with `.includes(:user)` in
+    # WorkspaceMemberAddedNotifier#recipients. If a future Notifier introduces
+    # a resolver-layer N+1 it will trip Bullet correctly — only the
+    # delivery-iteration path under EventJob is whitelisted.
     Bullet.add_safelist(type: :n_plus_one_query,
                         class_name: "WorkspaceMemberAddedNotifier::Notification",
                         association: :recipient)
