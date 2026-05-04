@@ -31,6 +31,8 @@ en:
       message: "%{decliner_email} declined your invitation to %{workspace}"
     workspace_role_changed:
       message: "Your role in %{workspace} changed to %{new_role}"
+    project_membership_changed:
+      message: "Your access to %{project} changed to %{new_role}"
     password_changed:
       message: "Your password was changed for your account, %{user_name}."
   notification_mailer:
