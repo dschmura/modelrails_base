@@ -31,6 +31,8 @@ en:
       message: "%{decliner_email} declined your invitation to %{workspace}"
     workspace_role_changed:
       message: "Your role in %{workspace} changed to %{new_role}"
+    workspace_invitation_expiring_soon:
+      message: "Your invitation to %{workspace} expires in %{hours_remaining} hours"
     project_membership_changed:
       message: "Your access to %{project} changed to %{new_role}"
     password_changed:
@@ -41,3 +43,8 @@ en:
       greeting: "Hi %{name},"
       body: "Your role in %{workspace} has changed to %{role}."
       action: "Open workspace"
+    workspace_invitation_expiring_soon:
+      subject: "Your invitation to %{workspace} is about to expire"
+      greeting: "Hi %{name},"
+      body: "Your invitation to %{workspace} expires in %{hours_remaining} hours. Accept it before then to avoid having to request a new one."
+      action: "Accept invitation"
