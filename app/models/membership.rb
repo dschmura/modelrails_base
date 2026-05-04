@@ -15,6 +15,17 @@ class Membership < ApplicationRecord
   # also fires correctly under nested transactions where dirty tracking can lag.
   after_update_commit :notify_role_changed, if: :saved_change_to_role_id?
 
+  # Notify the new member + workspace owners whenever a fresh membership is created.
+  # `deliver(nil)` defers recipient resolution to the Notifier's `recipients` block.
+  #
+  # Gated by `workspace_has_existing_owner?` — a workspace without owners (e.g.
+  # User#create_personal_workspace seeding the very first owner-membership, or
+  # bare-bones test factories that build a workspace + non-owner membership but
+  # never seed an owner) has nobody for whom the "new member joined" event is
+  # actionable. Firing in that scenario produces a self-notification at best,
+  # and pollutes adjacent specs that exercise Membership creation as setup.
+  after_create_commit :notify_member_added, if: :workspace_has_existing_owner?
+
   scope :search, ->(query) {
     return all if query.blank?
     sanitized = sanitize_sql_like(query.downcase)
@@ -104,5 +115,28 @@ class Membership < ApplicationRecord
   def notify_role_changed
     return if user.blank?
     WorkspaceRoleChangedNotifier.with(record: self).deliver(user)
+  end
+
+  # Pass `nil` to deliver — the Notifier's class-level `recipients` block is
+  # responsible for resolving the (added user + owners) bucket and filtering by
+  # in-app preference.
+  def notify_member_added
+    return if user.blank? || workspace.blank?
+    WorkspaceMemberAddedNotifier.with(record: self).deliver(nil)
+  end
+
+  # True when at least one OTHER kept owner-role membership exists in the
+  # workspace at the moment of after_create_commit. Excludes self by id so the
+  # very first owner being seeded (User#create_personal_workspace, bootstrap)
+  # is not treated as having a pre-existing owner. Owners-from-other-workspaces
+  # are correctly excluded by the workspace_id scope.
+  def workspace_has_existing_owner?
+    return false if workspace_id.blank?
+    Membership.kept
+      .joins(:role)
+      .where(workspace_id: workspace_id)
+      .where(roles: { slug: "owner" })
+      .where.not(id: id)
+      .exists?
   end
 end

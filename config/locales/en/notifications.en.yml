@@ -33,6 +33,8 @@ en:
       message: "Your role in %{workspace} changed to %{new_role}"
     workspace_invitation_expiring_soon:
       message: "Your invitation to %{workspace} expires in %{hours_remaining} hours"
+    workspace_member_added:
+      message: "%{added_user_name} joined %{workspace}"
     project_membership_changed:
       message: "Your access to %{project} changed to %{new_role}"
     password_changed:
@@ -50,3 +52,9 @@ en:
       greeting: "Hi %{name},"
       body: "Your invitation to %{workspace} expires in %{hours_remaining} hours. Accept it before then to avoid having to request a new one."
       action: "Accept invitation"
+    workspace_member_added:
+      subject: "You've been added to %{workspace}"
+      heading: "Welcome to %{workspace}"
+      greeting: "Hi %{name},"
+      body: "You've been added to %{workspace} as %{role}."
+      action: "Open workspace"

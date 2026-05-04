@@ -37,4 +37,18 @@ class NotificationMailer < ApplicationMailer
                  workspace: @workspace.name)
     )
   end
+
+  def workspace_member_added
+    @notification = params[:notification]
+    @recipient = params[:recipient]
+    @membership = params[:record]
+    @workspace = @membership.workspace
+    @role = @membership.role
+
+    mail(
+      to: @recipient.email_address,
+      subject: t("notification_mailer.workspace_member_added.subject",
+                 workspace: @workspace.name)
+    )
+  end
 end
