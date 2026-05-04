@@ -444,4 +444,20 @@ RSpec.describe Invitation, type: :model do
       expect(inv.errors[:email]).to be_empty
     end
   end
+  describe "#resolved_workspace" do
+    let(:workspace) { create(:workspace) }
+    let(:owner) { create(:user) }
+
+    it "returns the invitable when invitable is a Workspace" do
+      invitation = create(:invitation, invitable: workspace)
+      expect(invitation.resolved_workspace).to eq(workspace)
+    end
+
+    it "returns the project's workspace when invitable is a Project" do
+      create(:membership, :owner, user: owner, workspace: workspace)
+      project = create(:project, workspace: workspace, created_by: owner)
+      invitation = create(:invitation, invitable: project, project_role: "editor")
+      expect(invitation.resolved_workspace).to eq(workspace)
+    end
+  end
 end

@@ -20,7 +20,7 @@ class WorkspaceInvitationExpiringSoonNotifier < ApplicationNotifier
         I18n.t(
           "notifications.workspace_invitation_expiring_soon.message",
           locale: recipient_locale,
-          workspace: resolved_workspace&.name,
+          workspace: event.record.resolved_workspace&.name,
           hours_remaining: hours_remaining
         )
       end
@@ -31,13 +31,6 @@ class WorkspaceInvitationExpiringSoonNotifier < ApplicationNotifier
     end
 
     private
-
-    # Workspace context: invitations may target a Workspace directly or a
-    # Project — in the latter case the workspace comes from the project.
-    def resolved_workspace
-      invitable = event.record.invitable
-      invitable.is_a?(Workspace) ? invitable : invitable.workspace
-    end
 
     def hours_remaining
       ((event.record.expires_at - Time.current) / 1.hour).round

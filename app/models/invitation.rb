@@ -108,6 +108,17 @@ class Invitation < ApplicationRecord
     email.nil?
   end
 
+  # Resolves the workspace context for a polymorphic invitation. An invitation
+  # may target a Workspace directly or a Project — in the latter case the
+  # workspace context comes from the project. Single source of truth shared by
+  # the notifiers (Accepted / Declined / ExpiringSoon) and NotificationMailer.
+  def resolved_workspace
+    case invitable
+    when Workspace then invitable
+    when Project   then invitable.workspace
+    end
+  end
+
   private
 
   def broadcast_target

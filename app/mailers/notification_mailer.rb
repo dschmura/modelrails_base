@@ -27,13 +27,7 @@ class NotificationMailer < ApplicationMailer
     @notification = params[:notification]
     @recipient = params[:recipient]
     @invitation = params[:record]
-
-    if @invitation.invitable_type == "Project"
-      @project = @invitation.invitable
-      @workspace = @project.workspace
-    else
-      @workspace = @invitation.invitable
-    end
+    @workspace = @invitation.resolved_workspace
 
     @hours_remaining = ((@invitation.expires_at - Time.current) / 1.hour).round
     @accept_url = accept_invitation_url(token: @invitation.token)
