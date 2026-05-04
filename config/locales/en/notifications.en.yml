@@ -39,6 +39,8 @@ en:
       message: "Your access to %{project} changed to %{new_role}"
     password_changed:
       message: "Your password was changed for your account, %{user_name}."
+    sign_in_from_new_device:
+      message: "We noticed a new sign-in from %{os}. If this wasn't you, please review your account."
   notification_mailer:
     workspace_role_changed:
       subject: "Your role in %{workspace} has changed"
@@ -58,3 +60,9 @@ en:
       greeting: "Hi %{name},"
       body: "You've been added to %{workspace} as %{role}."
       action: "Open workspace"
+    sign_in_from_new_device:
+      subject: "New sign-in from %{os}"
+      heading: "New sign-in to your account"
+      greeting: "Hi %{name},"
+      body: "We noticed your account was just signed in from a browser we haven't seen before (%{os}). If this was you, no action is needed. If you didn't sign in, change your password and review your connected accounts immediately."
+      action: "Review account security"
