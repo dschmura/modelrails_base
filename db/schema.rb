@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_01_002927) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_04_171539) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -254,6 +254,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_01_002927) do
     t.integer "failed_login_attempts", default: 0, null: false
     t.string "first_name"
     t.boolean "has_gravatar", default: false, null: false
+    t.json "last_known_browsers", default: [], null: false
     t.string "last_name"
     t.datetime "locked_at"
     t.string "password_digest"

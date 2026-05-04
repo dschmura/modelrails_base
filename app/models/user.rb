@@ -49,6 +49,15 @@ class User < ApplicationRecord
   MAX_FAILED_ATTEMPTS = 5
   LOCK_DURATION = 1.hour
 
+  # Single source of truth for the (user_agent, os) -> digest formula used by
+  # the new-device sign-in detector. Public so SignInFromNewDeviceNotifier's
+  # `populate_idempotency_key` override can reuse the same formula — keeping
+  # the User-side fingerprint and the Notifier-side dedup key in lockstep.
+  # Intentionally coarse (no salt, no normalization) — see #seen_browser?.
+  def self.browser_digest(user_agent, os)
+    Digest::SHA256.hexdigest("#{user_agent} #{os}")
+  end
+
   def full_name
     "#{first_name} #{last_name}"
   end
@@ -133,6 +142,36 @@ class User < ApplicationRecord
     pending_email_token.present? &&
       pending_email_sent_at.present? &&
       pending_email_sent_at > 24.hours.ago
+  end
+
+  # Browser-fingerprint heuristic for the new-device sign-in detector.
+  # Digest is intentionally coarse — `SHA256("#{user_agent} #{os}")` — so the
+  # same browser/OS combo across minor UA bumps still matches "seen". The goal
+  # is "alert on unfamiliar device", not forensic device tracking.
+  def seen_browser?(user_agent, os)
+    digest = self.class.browser_digest(user_agent, os)
+    last_known_browsers.any? { |entry| entry["digest"] == digest }
+  end
+
+  # Records or refreshes a (ua, os) fingerprint on the user. New entries get a
+  # `first_seen_at`; subsequent records of the same digest only bump
+  # `last_seen_at`. Persists via update_column to bypass validation/touch on a
+  # post-sign-in hot path. Times are stored as ISO-8601 strings for stable
+  # serialization round-trips through the JSON column.
+  def record_browser!(user_agent, os)
+    digest = self.class.browser_digest(user_agent, os)
+    now = Time.current
+    browsers = last_known_browsers.dup
+    if (entry = browsers.find { |e| e["digest"] == digest })
+      entry["last_seen_at"] = now.iso8601
+    else
+      browsers << {
+        "digest" => digest,
+        "first_seen_at" => now.iso8601,
+        "last_seen_at" => now.iso8601
+      }
+    end
+    update_column(:last_known_browsers, browsers)
   end
 
   private

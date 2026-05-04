@@ -55,6 +55,44 @@ module Authenticatable
         Current.session = session
         cookies.signed.permanent[:session_id] = { value: session.id, httponly: true, same_site: :lax }
         sync_theme_cookie_to_preferences(user)
+        detect_and_record_new_device(user)
+      end
+    end
+
+    # Fires the SignInFromNewDeviceNotifier when the (user_agent, os) digest
+    # is novel for this user, then records the fingerprint either way. Called
+    # from start_new_session_for so it runs once per Session.create! — i.e.
+    # exactly the moment we recognize as "successful sign-in" — and not on
+    # every authenticated request (resume_session does not call this).
+    #
+    # Best-effort: any error here MUST NOT break sign-in. The Notifier itself
+    # rescues RecordNotUnique to dedupe, but unexpected failures (queue down,
+    # JSON column write hiccup) should still let the user in. Log + swallow.
+    def detect_and_record_new_device(user)
+      ua = request.user_agent.to_s
+      os = parse_os_from_user_agent(ua)
+
+      unless user.seen_browser?(ua, os)
+        SignInFromNewDeviceNotifier.with(record: user, user_agent: ua, os: os).deliver(user)
+      end
+
+      user.record_browser!(ua, os)
+    rescue => e
+      Rails.logger.warn("[new-device-detection] swallowed error for user=#{user.id}: #{e.class}: #{e.message}")
+    end
+
+    # Coarse-grained OS label derived from the User-Agent string. Intentionally
+    # simple — the digest only needs to be deterministic, not gold-standard
+    # device fingerprinting. Order matters (iOS check precedes "Mac" because
+    # Mobile Safari UAs contain "Macintosh"-like substrings on iPad).
+    def parse_os_from_user_agent(user_agent)
+      case user_agent
+      when /iPhone|iPad|iPod/      then "iOS"
+      when /Android/               then "Android"
+      when /Windows/               then "Windows"
+      when /Macintosh|Mac OS X/    then "Macintosh"
+      when /Linux/                 then "Linux"
+      else                              "Other"
       end
     end
 
