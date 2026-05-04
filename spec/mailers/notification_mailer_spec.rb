@@ -74,4 +74,67 @@ RSpec.describe NotificationMailer, type: :mailer do
       expect(greeting_index).to be > h1_index
     end
   end
+
+  describe "#sign_in_from_new_device" do
+    # Use a real cache store so EmailRecipientThrottle's increment counts.
+    around do |ex|
+      original = Rails.cache
+      Rails.cache = ActiveSupport::Cache::MemoryStore.new
+      ex.run
+    ensure
+      Rails.cache = original
+    end
+
+    let(:user) { create(:user, email_address: "ada@example.com", first_name: "Ada") }
+    # Build a Noticed::Event so params[:notification].params[:os] resolves.
+    let(:notification) do
+      SignInFromNewDeviceNotifier.new(
+        params: { user_agent: "Mozilla/5.0", os: "Macintosh" }
+      )
+    end
+
+    let(:mail) do
+      described_class.with(
+        notification: notification,
+        recipient: user,
+        record: user
+      ).sign_in_from_new_device
+    end
+
+    it "addresses the user's email address" do
+      expect(mail.to).to eq([ "ada@example.com" ])
+    end
+
+    it "subject substitutes the OS" do
+      expect(mail.subject).to eq(
+        I18n.t("notification_mailer.sign_in_from_new_device.subject", os: "Macintosh")
+      )
+    end
+
+    it "uses a localized purpose-driven H1, NOT the greeting" do
+      html = mail.html_part.body.encoded
+      heading = I18n.t("notification_mailer.sign_in_from_new_device.heading")
+      expect(html).to match(%r{<h1[^>]*>\s*#{Regexp.escape(heading)}\s*</h1>}m)
+      expect(html).not_to match(%r{<h1[^>]*>\s*Hi Ada,?\s*</h1>}m)
+    end
+
+    it "places the greeting in a <p> below the H1" do
+      html = mail.html_part.body.encoded
+      h1_index = html.index("<h1")
+      greeting_index = html.index("Hi Ada")
+      expect(h1_index).to be_present
+      expect(greeting_index).to be_present
+      expect(greeting_index).to be > h1_index
+    end
+
+    it "renders the OS in the body" do
+      expect(mail.html_part.body.encoded).to include("Macintosh")
+      expect(mail.text_part.body.encoded).to include("Macintosh")
+    end
+
+    it "links to the connected accounts page" do
+      expect(mail.html_part.body.encoded).to include(account_connected_accounts_url)
+      expect(mail.text_part.body.encoded).to include(account_connected_accounts_url)
+    end
+  end
 end

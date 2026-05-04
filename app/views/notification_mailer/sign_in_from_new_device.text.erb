@@ -1,0 +1,7 @@
+<%= t("notification_mailer.sign_in_from_new_device.heading") %>
+
+<%= t("notification_mailer.sign_in_from_new_device.greeting", name: @recipient.first_name) %>
+
+<%= t("notification_mailer.sign_in_from_new_device.body", os: @os) %>
+
+<%= t("notification_mailer.sign_in_from_new_device.action") %>: <%= @account_url %>
