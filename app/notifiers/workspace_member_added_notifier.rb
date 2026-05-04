@@ -14,21 +14,15 @@
 # auto-saved by the deliver pipeline — so per-recipient in-app gating MUST happen here.
 #
 # Users without a UserPreferences row (default factory output) are treated as "opted in" for
-# in-app at the column default level — the same JSON the schema would seed had a row been
-# created. Without this fallback, freshly-created users (no preferences row yet) would be
-# silently filtered out of every workspace_activity dispatch, which would be a regression.
+# in-app at the column default level via `ApplicationNotifier.preferences_for`, which wraps
+# the schema default JSONB blob. Without this fallback, freshly-created users would be silently
+# filtered out of every workspace_activity dispatch.
 #
 # Email gating mirrors the WorkspaceRoleChangedNotifier pattern: a `before_enqueue` lambda
 # throws :abort to skip the email job when (a) the recipient is anyone other than the added
 # user, or (b) the added user opted out of workspace_activity.email.
 class WorkspaceMemberAddedNotifier < ApplicationNotifier
   category :workspace_activity
-
-  # Schema column default for user_preferences.notification_preferences. Sourced at class-load
-  # time so the default is canonical (matches what the migration would seed). Used as the
-  # fallback when a user has no UserPreferences row at all.
-  DEFAULT_PREFERENCES = (UserPreferences.columns_hash["notification_preferences"]&.default || "{}")
-  DEFAULT_PREFERENCES_HASH = DEFAULT_PREFERENCES.is_a?(Hash) ? DEFAULT_PREFERENCES : (JSON.parse(DEFAULT_PREFERENCES) rescue {})
 
   recipients do
     added_user = record.user
@@ -37,16 +31,20 @@ class WorkspaceMemberAddedNotifier < ApplicationNotifier
     # Owners include both global ("workspace_id IS NULL") and any workspace-scoped owner
     # role. The codebase currently seeds owner as a global role, but `effective_roles`
     # convention is to query both scopes for forward-compat with custom workspace roles.
+    # `.includes(:user)` preloads the user association so the subsequent `.map(&:user)`
+    # does not N+1 — the resolver runs synchronously in the request path that triggered
+    # the membership create.
     owner_role_ids = Role.where(slug: "owner", workspace_id: [ nil, workspace.id ]).pluck(:id)
-    owner_users = workspace.memberships.kept.where(role_id: owner_role_ids).map(&:user)
+    owner_users = workspace.memberships.kept.where(role_id: owner_role_ids).includes(:user).map(&:user)
 
     candidates = ([ added_user ] + owner_users).compact.uniq
 
     # Filter out users whose workspace_activity.in_app preference is off (or DND).
-    # See class-level docs above for why this is the correct gate point.
+    # See class-level docs above for why this is the correct gate point. The
+    # `preferences_for` helper wraps the schema-default JSONB blob for users
+    # without a persisted UserPreferences row.
     candidates.select do |user|
-      prefs_data = user.try(:preferences)&.notification_preferences || DEFAULT_PREFERENCES_HASH
-      NotificationPreferences.new(prefs_data).allow?(category: "workspace_activity", channel: "in_app")
+      preferences_for(user).allow?(category: "workspace_activity", channel: "in_app")
     end
   end
 
