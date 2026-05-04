@@ -106,4 +106,18 @@ RSpec.describe Project, type: :model do
       project.save
     end
   end
+
+  describe "factory" do
+    it "does not auto-create a workspace membership for created_by" do
+      workspace = create(:workspace)
+      expect { create(:project, workspace: workspace) }
+        .not_to change(workspace.memberships, :count)
+    end
+
+    it "with :with_membership trait, creates a membership for created_by" do
+      workspace = create(:workspace)
+      expect { create(:project, :with_membership, workspace: workspace) }
+        .to change(workspace.memberships, :count).by(1)
+    end
+  end
 end
