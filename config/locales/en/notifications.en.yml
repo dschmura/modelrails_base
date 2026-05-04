@@ -25,5 +25,7 @@ en:
       do_not_disturb_description: "Pauses most notifications. Security alerts (such as password changes and sign-in events) are always delivered."
     workspace_invitation_received:
       message: "%{inviter} invited you to %{workspace}"
+    workspace_invitation_accepted:
+      message: "%{accepter} accepted your invitation to %{workspace}"
     password_changed:
       message: "Your password was changed for your account, %{user_name}."

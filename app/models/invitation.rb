@@ -17,6 +17,13 @@ class Invitation < ApplicationRecord
 
   before_create :generate_token
 
+  # Notifier triggers: fire on the accepted transition only.
+  # `accepted_at_previously_changed?` is true exclusively in the
+  # after_update_commit phase of the update that wrote the new value, so we
+  # get one notification per state transition (never on subsequent unrelated
+  # updates).
+  after_update_commit :notify_accepted, if: :just_accepted?
+
   scope :pending, -> { where(status: "pending").where("expires_at > ?", Time.current) }
   scope :expired, -> { where(status: "pending").where("expires_at <= ?", Time.current) }
 
@@ -143,5 +150,15 @@ class Invitation < ApplicationRecord
 
   def generate_token
     self.token = SecureRandom.urlsafe_base64(32)
+  end
+
+  def just_accepted?
+    accepted_at_previously_changed? && accepted_at.present?
+  end
+
+  def notify_accepted
+    return if invited_by.blank?
+    return if invited_by == accepted_by  # don't ping the inviter for their own acceptance
+    WorkspaceInvitationAcceptedNotifier.with(record: self).deliver(invited_by)
   end
 end
