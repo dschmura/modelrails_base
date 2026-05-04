@@ -50,8 +50,8 @@ RSpec.describe "shared/_confirm_dialog", type: :view do
       expect(rendered).to have_css(".text-danger-icon svg")
     end
 
-    it "uses danger styling on confirm button" do
-      expect(rendered).to have_css(".bg-danger")
+    it "uses the .btn-danger component on the confirm button" do
+      expect(rendered).to have_css("form button[type='submit'].btn-danger, form input[type='submit'].btn-danger")
     end
   end
 
@@ -62,8 +62,8 @@ RSpec.describe "shared/_confirm_dialog", type: :view do
       expect(rendered).to have_css(".text-info-icon svg")
     end
 
-    it "uses interactive styling on confirm button" do
-      expect(rendered).to have_css(".bg-interactive")
+    it "uses the .btn-primary component on the confirm button" do
+      expect(rendered).to have_css("form button[type='submit'].btn-primary, form input[type='submit'].btn-primary")
     end
   end
 
@@ -87,14 +87,17 @@ RSpec.describe "shared/_confirm_dialog", type: :view do
   describe "accessibility" do
     before { render_dialog }
 
-    it "cancel button has 44px touch target" do
-      # Reads --form-input-height token (Design System Primitives v2 sweep)
-      expect(rendered).to have_css("button.min-h-\\[var\\(--form-input-height\\)\\]", text: I18n.t("modals.cancel"))
+    # The .btn-* component classes apply min-height via --form-input-height
+    # (44px floor for WCAG 2.2 AAA touch targets). Asserting on the component
+    # class — rather than the raw Tailwind arbitrary-value class — keeps the
+    # test focused on the contract (a button gets the right component) rather
+    # than the implementation detail (which utilities the component @applies).
+    it "cancel button uses .btn-secondary (44px touch target via --form-input-height)" do
+      expect(rendered).to have_css("button.btn-secondary", text: I18n.t("modals.cancel"))
     end
 
-    it "confirm button has 44px touch target" do
-      # Reads --form-input-height token (Design System Primitives v2 sweep)
-      expect(rendered).to have_css(".min-h-\\[var\\(--form-input-height\\)\\]", text: "Delete")
+    it "confirm button uses a .btn-* component (44px touch target via --form-input-height)" do
+      expect(rendered).to have_css("form .btn-danger, form .btn-primary", text: "Delete")
     end
 
     it "modal has aria-labelledby" do

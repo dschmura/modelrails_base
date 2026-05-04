@@ -99,6 +99,49 @@ RSpec.describe Invitation, type: :model do
     end
   end
 
+  # Regression: capacity is enforced through the invitation acceptance path.
+  # Membership-level capacity is also tested in spec/models/membership_spec.rb,
+  # but the accept! flow goes through Invitation#accept_workspace_invitation!
+  # which acquires workspace.lock! BEFORE checking the count (line 111 vs 118).
+  # This test locks in that the lock-then-check sequence prevents over-capacity
+  # acceptances, even on engines (e.g., PostgreSQL) where row-level locks are
+  # the only serialization mechanism. SQLite's BEGIN IMMEDIATE provides
+  # additional database-wide write serialization, but this test asserts the
+  # business rule independent of engine.
+  describe "#accept! capacity enforcement (regression)" do
+    it "rejects acceptance when workspace is at max_members" do
+      workspace = create(:workspace, max_members: 2)
+      create(:membership, :owner, workspace: workspace)
+      create(:membership, workspace: workspace)
+      invitation = create(:invitation, invitable: workspace)
+      user = create(:user)
+
+      expect { invitation.accept!(user) }
+        .to raise_error(ActiveRecord::RecordInvalid)
+
+      expect(workspace.memberships.kept.count).to eq(2)
+      expect(invitation.reload).to be_pending
+    end
+
+    it "rejects project-invitation acceptance when workspace is at capacity" do
+      workspace = create(:workspace, max_members: 2)
+      owner_membership = create(:membership, :owner, workspace: workspace)
+      create(:membership, workspace: workspace)
+      # Reuse the owner as the project's created_by to avoid the project factory's
+      # after_create membership backfill (which would push the workspace over cap
+      # before our invitation acceptance even runs — see spec/factories/projects.rb).
+      project = create(:project, workspace: workspace, created_by: owner_membership.user)
+      invitation = create(:invitation, invitable: project, project_role: "editor")
+      user = create(:user)
+
+      expect { invitation.accept!(user) }
+        .to raise_error(ActiveRecord::RecordInvalid)
+
+      expect(workspace.memberships.kept.count).to eq(2)
+      expect(invitation.reload).to be_pending
+    end
+  end
+
   describe "#decline!" do
     let(:invitation) { create(:invitation) }
 
