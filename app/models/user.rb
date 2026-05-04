@@ -135,7 +135,41 @@ class User < ApplicationRecord
       pending_email_sent_at > 24.hours.ago
   end
 
+  # Browser-fingerprint heuristic for the new-device sign-in detector.
+  # Digest is intentionally coarse — `SHA256("#{user_agent} #{os}")` — so the
+  # same browser/OS combo across minor UA bumps still matches "seen". The goal
+  # is "alert on unfamiliar device", not forensic device tracking.
+  def seen_browser?(user_agent, os)
+    digest = browser_digest(user_agent, os)
+    last_known_browsers.any? { |entry| entry["digest"] == digest }
+  end
+
+  # Records or refreshes a (ua, os) fingerprint on the user. New entries get a
+  # `first_seen_at`; subsequent records of the same digest only bump
+  # `last_seen_at`. Persists via update_column to bypass validation/touch on a
+  # post-sign-in hot path. Times are stored as ISO-8601 strings for stable
+  # serialization round-trips through the JSON column.
+  def record_browser!(user_agent, os)
+    digest = browser_digest(user_agent, os)
+    now = Time.current
+    browsers = last_known_browsers.dup
+    if (entry = browsers.find { |e| e["digest"] == digest })
+      entry["last_seen_at"] = now.iso8601
+    else
+      browsers << {
+        "digest" => digest,
+        "first_seen_at" => now.iso8601,
+        "last_seen_at" => now.iso8601
+      }
+    end
+    update_column(:last_known_browsers, browsers)
+  end
+
   private
+
+  def browser_digest(user_agent, os)
+    Digest::SHA256.hexdigest("#{user_agent} #{os}")
+  end
 
   def check_gravatar_later
     CheckGravatarJob.perform_later(self)
