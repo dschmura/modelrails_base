@@ -108,6 +108,16 @@ class Invitation < ApplicationRecord
     email.nil?
   end
 
+  # Hours remaining until expiry, ceiled to the next whole hour. Single source
+  # of truth for the user-facing "expires in N hours" copy in both the
+  # WorkspaceInvitationExpiringSoonNotifier message and the matching mailer.
+  # Ceil (not round/floor) so T-30min reads as "1 hour" not "0 hours" — the
+  # message is hours-remaining, and rounding down to zero is misleading UX.
+  def expires_in_hours
+    return 0 if expires_at <= Time.current
+    ((expires_at - Time.current) / 1.hour).ceil
+  end
+
   # Resolves the workspace context for a polymorphic invitation. An invitation
   # may target a Workspace directly or a Project — in the latter case the
   # workspace context comes from the project. Single source of truth shared by

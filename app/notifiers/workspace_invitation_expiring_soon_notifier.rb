@@ -21,19 +21,13 @@ class WorkspaceInvitationExpiringSoonNotifier < ApplicationNotifier
           "notifications.workspace_invitation_expiring_soon.message",
           locale: recipient_locale,
           workspace: event.record.resolved_workspace&.name,
-          hours_remaining: hours_remaining
+          hours_remaining: event.record.expires_in_hours
         )
       end
     end
 
     def url
       Rails.application.routes.url_helpers.accept_invitation_path(token: event.record.token)
-    end
-
-    private
-
-    def hours_remaining
-      ((event.record.expires_at - Time.current) / 1.hour).round
     end
   end
 end

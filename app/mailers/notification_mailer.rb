@@ -28,8 +28,7 @@ class NotificationMailer < ApplicationMailer
     @recipient = params[:recipient]
     @invitation = params[:record]
     @workspace = @invitation.resolved_workspace
-
-    @hours_remaining = ((@invitation.expires_at - Time.current) / 1.hour).round
+    @hours_remaining = @invitation.expires_in_hours
     @accept_url = accept_invitation_url(token: @invitation.token)
 
     mail(
