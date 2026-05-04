@@ -4,16 +4,7 @@
 
   confirm_icon = variant == :danger ? :exclamation_triangle : :information_circle
   icon_color = variant == :danger ? "text-danger-icon" : "text-info-icon"
-
-  confirm_classes = if variant == :danger
-    "min-h-[var(--form-input-height)] inline-flex items-center justify-center px-4 rounded-md
-     bg-danger hover:bg-danger/90 text-text-on-interactive font-medium
-     focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-danger cursor-pointer"
-  else
-    "min-h-[var(--form-input-height)] inline-flex items-center justify-center px-4 rounded-md
-     bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium
-     focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus cursor-pointer"
-  end
+  confirm_class = variant == :danger ? "btn-danger" : "btn-primary"
 %>
 <%= render "shared/modal", title: title, id: id, size: :sm do %>
   <div class="flex gap-4">
@@ -24,15 +15,9 @@
   </div>
 
   <div class="flex gap-3 justify-end mt-6 pt-4 border-t border-border">
-    <button data-action="click->modal#close"
-            class="min-h-[var(--form-input-height)] inline-flex items-center justify-center px-4 rounded-md
-                   border border-border text-text-body
-                   hover:bg-surface-sunken
-                   focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus
-                   cursor-pointer">
+    <button data-action="click->modal#close" class="btn-secondary">
       <%= cancel_label %>
     </button>
-    <%= button_to confirm_text, confirm_url, method: confirm_method,
-          class: confirm_classes %>
+    <%= button_to confirm_text, confirm_url, method: confirm_method, class: confirm_class %>
   </div>
 <% end %>
