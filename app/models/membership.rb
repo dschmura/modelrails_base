@@ -10,6 +10,11 @@ class Membership < ApplicationRecord
   validates :user_id, uniqueness: { scope: :workspace_id }
   validate :workspace_has_member_capacity, on: :create
 
+  # Notify the affected user whenever their role within the workspace changes.
+  # Uses saved_change_to_role_id? rather than role_id_previously_changed? so it
+  # also fires correctly under nested transactions where dirty tracking can lag.
+  after_update_commit :notify_role_changed, if: :saved_change_to_role_id?
+
   scope :search, ->(query) {
     return all if query.blank?
     sanitized = sanitize_sql_like(query.downcase)
@@ -94,5 +99,10 @@ class Membership < ApplicationRecord
       errors.add(:base, :last_owner)
       raise ActiveRecord::RecordInvalid, self
     end
+  end
+
+  def notify_role_changed
+    return if user.blank?
+    WorkspaceRoleChangedNotifier.with(record: self).deliver(user)
   end
 end

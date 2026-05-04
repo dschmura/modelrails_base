@@ -29,5 +29,13 @@ en:
       message: "%{accepter} accepted your invitation to %{workspace}"
     workspace_invitation_declined:
       message: "%{decliner_email} declined your invitation to %{workspace}"
+    workspace_role_changed:
+      message: "Your role in %{workspace} changed to %{new_role}"
     password_changed:
       message: "Your password was changed for your account, %{user_name}."
+  notification_mailer:
+    workspace_role_changed:
+      subject: "Your role in %{workspace} has changed"
+      greeting: "Hi %{name},"
+      body: "Your role in %{workspace} has changed to %{role}."
+      action: "Open workspace"
