@@ -27,6 +27,8 @@ en:
       message: "%{inviter} invited you to %{workspace}"
     workspace_invitation_accepted:
       message: "%{accepter} accepted your invitation to %{workspace}"
+    workspace_invitation_resent:
+      message: "You resent the invitation to %{invitee_email} for %{workspace}"
     workspace_invitation_declined:
       message: "%{decliner_email} declined your invitation to %{workspace}"
     workspace_role_changed:
@@ -43,6 +45,27 @@ en:
       message: "Your password was changed for your account, %{user_name}."
     sign_in_from_new_device:
       message: "We noticed a new sign-in from %{os}. If this wasn't you, please review your account."
+    index:
+      heading: "Notifications"
+      filters:
+        all: "All"
+        unread: "Unread"
+        security: "Security"
+        account_access: "Access"
+        workspace_activity: "Workspace"
+        project_activity: "Project"
+        billing: "Billing"
+      empty_all: "You're all caught up."
+      empty_filter: "Nothing matches this filter."
+      mark_all_read:
+        action: "Mark all as read"
+        success: "All notifications marked as read."
+      destroy_all_read:
+        action: "Delete all read"
+        confirm: "Delete all your read notifications?"
+        success: "Read notifications deleted."
+    destroy:
+      success: "Notification deleted."
   notification_mailer:
     workspace_role_changed:
       subject: "Your role in %{workspace} has changed"
