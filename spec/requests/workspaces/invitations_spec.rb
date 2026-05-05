@@ -125,6 +125,22 @@ RSpec.describe "Workspace Invitations", type: :request do
 
           expect(first_flash).to eq(I18n.t("workspaces.invitations.resend.resent"))
           expect(second_flash).to eq(I18n.t("workspaces.invitations.resend.recently_sent"))
+
+          # Make the dedup mechanism explicit: the second dispatch's
+          # populate_idempotency_key callback computed the same
+          # `<NotifierClass>_<invitation.id>_<minute_bucket>` seed as the first
+          # — that's what the partial unique index on noticed_events
+          # (idempotency_key) catches, raising RecordNotUnique inside
+          # ApplicationNotifier#deliver, which the rescue clause turns into
+          # the :deduplicated sentinel. The test exercises this end-to-end
+          # via the real DB constraint (no stubs), so we should observe
+          # exactly one event row for this notifier+invitation tuple inside
+          # the frozen minute.
+          events = Noticed::Event.where(type: WorkspaceInvitationResentNotifier.name).order(:created_at)
+          expect(events.count).to eq(1)
+          expect(events.first.idempotency_key).to be_present
+          expected_key = "#{WorkspaceInvitationResentNotifier.name}_#{invitation.id}_#{Time.current.to_i / 60}"
+          expect(events.first.idempotency_key).to eq(expected_key)
         end
       end
 
