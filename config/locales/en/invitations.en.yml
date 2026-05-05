@@ -35,6 +35,7 @@ en:
         revoked: "Invitation revoked."
       resend:
         resent: "Invitation resent."
+        recently_sent: "We already resent this within the last minute."
         magic_link_refreshed: "Magic link refreshed."
         rate_limited: "Too many requests. Please try again later."
   invitation_accepts:
