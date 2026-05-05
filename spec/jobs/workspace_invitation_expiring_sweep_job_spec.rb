@@ -126,5 +126,43 @@ RSpec.describe WorkspaceInvitationExpiringSweepJob, type: :job do
         described_class.perform_now
       }.not_to change { Noticed::Event.where(type: "WorkspaceInvitationExpiringSoonNotifier").count }
     end
+
+    # Integration test for the seam between the sweep job (which fires every 6
+    # hours) and the day-bucket idempotency override on
+    # WorkspaceInvitationExpiringSoonNotifier. The sweep spec covers query +
+    # dispatch logic; the Notifier spec covers idempotency in isolation. This
+    # asserts they compose: two sweeps in the same UTC day produce ONE event +
+    # ONE notification per invitation, not two — even though the second sweep
+    # passes the same invitation back through the dispatch path.
+    it "deduplicates notifications when sweep runs twice within a day" do
+      # Anchor mid-day so the +5h second tick stays inside the same UTC day
+      # (the day-bucket key is keyed off `Time.current.to_date.iso8601`).
+      anchor = Time.utc(2026, 5, 4, 8, 0, 0)
+
+      travel_to(anchor) do
+        create(:invitation,
+               invitable: workspace,
+               email: invitee.email_address,
+               invited_by: inviter,
+               # 12h from anchor → still in 24h window on the +5h re-run.
+               expires_at: anchor + 12.hours)
+
+        described_class.perform_now
+      end
+
+      travel_to(anchor + 5.hours) do
+        described_class.perform_now
+      end
+
+      expect(
+        Noticed::Event.where(type: "WorkspaceInvitationExpiringSoonNotifier").count
+      ).to eq 1
+      expect(
+        Noticed::Notification.where(
+          recipient: invitee,
+          type: "WorkspaceInvitationExpiringSoonNotifier::Notification"
+        ).count
+      ).to eq 1
+    end
   end
 end
