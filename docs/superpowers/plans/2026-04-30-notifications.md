@@ -1809,7 +1809,7 @@ mentioned in PR-3 batch 4 CHANGELOG.
 - Create: `spec/requests/account/notifications_spec.rb`
 - Create: `spec/policies/notification_policy_spec.rb`
 
-- [ ] **Step 11.1: Routes**
+- [x] **Step 11.1: Routes**
 
 ```ruby
 namespace :account do
@@ -1822,11 +1822,11 @@ namespace :account do
 end
 ```
 
-- [ ] **Step 11.2: Pundit policy**
+- [x] **Step 11.2: Pundit policy**
 
 `app/policies/notification_policy.rb`: scope to `notifications.where(recipient: user)`; `update?`, `destroy?` permit only when `record.recipient_id == user.id`.
 
-- [ ] **Step 11.3: Failing request specs**
+- [x] **Step 11.3: Failing request specs**
 
 `spec/requests/account/notifications_spec.rb` covering:
 
@@ -1844,7 +1844,7 @@ end
 - Other user's notification IDs return 404 (Pundit scope hides)
 - Unauthenticated request → redirect to sign-in
 
-- [ ] **Step 11.4: Implement the controller**
+- [x] **Step 11.4: Implement the controller**
 
 ```ruby
 class Account::NotificationsController < ApplicationController
@@ -1905,7 +1905,7 @@ class Account::NotificationsController < ApplicationController
 end
 ```
 
-- [ ] **Step 11.5: Locale keys**
+- [x] **Step 11.5: Locale keys**
 
 Add to `notifications.en.yml`:
 
@@ -1931,9 +1931,9 @@ Add to `notifications.en.yml`:
         success: "Read notifications deleted."
 ```
 
-- [ ] **Step 11.6: Run specs + full suite**
+- [x] **Step 11.6: Run specs + full suite**
 
-- [ ] **Step 11.7: Commit**
+- [x] **Step 11.7: Commit**
 
 ```bash
 git commit -m "feat(notifications): /account/notifications controller, routes, policy, specs"
