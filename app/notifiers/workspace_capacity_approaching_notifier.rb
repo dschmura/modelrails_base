@@ -30,20 +30,14 @@ class WorkspaceCapacityApproachingNotifier < ApplicationNotifier
 
   recipients do
     workspace = record
-    # Owners include both global ("workspace_id IS NULL") and any workspace-scoped
-    # owner role, mirroring `WorkspaceMemberAddedNotifier`'s resolver.
-    # `.includes(:user)` preloads the user association so the subsequent
-    # `.map(&:user)` does not N+1 — the resolver runs synchronously inside the
-    # sweep job's tight loop, so per-row association loads compound quickly.
-    owner_role_ids = Role.where(slug: "owner", workspace_id: [ nil, workspace.id ]).pluck(:id)
-    owner_users = workspace.memberships.kept.where(role_id: owner_role_ids).includes(:user).map(&:user).compact
-
-    # Filter out users whose billing.in_app pref is off (or DND). See class-level
-    # docs above for why this is the correct gate point. The `preferences_for`
-    # helper wraps the schema-default JSONB blob for users without a persisted
-    # UserPreferences row, so newly-created users are correctly treated as
-    # opted-in for in-app at the column-default level.
-    owner_users.select do |user|
+    # Delegate owner resolution to the canonical helper on Workspace (which
+    # joins :role, filters by slug "owner", and preloads :user to avoid N+1).
+    # Filter the resulting Users by their billing.in_app preference: see the
+    # class-level docs above for why this is the correct gate point. The
+    # `preferences_for` helper wraps the schema-default JSONB blob for users
+    # without a persisted UserPreferences row, so newly-created users are
+    # correctly treated as opted-in for in-app at the column-default level.
+    workspace.owners.select do |user|
       preferences_for(user).allow?(category: "billing", channel: "in_app")
     end
   end
