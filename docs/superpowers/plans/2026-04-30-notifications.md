@@ -1751,6 +1751,54 @@ that is the trigger to revisit removing the sentinel and simplifying
 
 ---
 
+## Sentinel callsite resolution — Option D (decided 2026-05-05, batch 1 planning)
+
+**Discovery during PR-3 batch 1 codebase survey:**
+
+- `Workspaces::InvitationsController#resend` already exists and currently
+  invokes `InvitationMailer.invite` directly (not through a notifier).
+- `WorkspaceInvitationReceivedNotifier` (PR-2 catalog) is **dead code** —
+  defined but never dispatched. It is also structurally incomplete: no
+  `deliver_by :email`, no `recipients` resolver, and shaped for an
+  existing-User recipient rather than the email-only invitee that
+  invitations actually target. Migrating the resend mailer call to it
+  would silently regress the invitee email.
+
+**Selected approach: Option D** — introduce a new
+`WorkspaceInvitationResentNotifier` (recipient = the inviter, not the
+invitee) dispatched from `Workspaces::InvitationsController#resend`
+**alongside** the existing `InvitationMailer.invite` call (which
+remains the email path to the invitee).
+
+The new notifier matches the existing actor-receives-confirmation pattern
+already used by `PasswordChangedNotifier` and `SignInFromNewDeviceNotifier`.
+The sentinel branches the controller's flash message — `"Sent"` on
+`:delivered`, `"Recently sent"` on `:deduplicated`. Real concurrency case
+(inviter double-clicks resend), real UX value (inviter sees in-app
+confirmation of their resend action with throttle-aware copy).
+
+**Rejected alternatives:**
+
+- **Test-notification button on `/account/notifications`** — five panel
+  reviewers (Chris O., Aaron P., DHH, Dave T., Jim W.) flagged this as
+  contract-satisfier code that wouldn't exercise the throttle under real
+  production traffic.
+- **Replace mailer with notifier on resend** — notifier is structurally
+  incomplete; would silently lose the invitee email.
+- **Complete the notifier first, then migrate** — scope creep into PR-2
+  cleanup territory; defers cleanly to a separate follow-up PR.
+
+**Follow-up filed (not in PR-3):** complete or remove
+`WorkspaceInvitationReceivedNotifier`, and consider migrating all three
+`InvitationMailer.invite` callsites
+([app/models/invitation.rb:60](../../app/models/invitation.rb),
+[app/controllers/workspaces/invitations_controller.rb:46](../../app/controllers/workspaces/invitations_controller.rb),
+[app/controllers/workspaces/projects/invitations_controller.rb:25](../../app/controllers/workspaces/projects/invitations_controller.rb))
+to a properly-completed notifier in a dedicated cleanup PR. Will be
+mentioned in PR-3 batch 4 CHANGELOG.
+
+---
+
 ## Task 11 — `Account::NotificationsController` (TDD)
 
 **Files:**
@@ -1761,7 +1809,7 @@ that is the trigger to revisit removing the sentinel and simplifying
 - Create: `spec/requests/account/notifications_spec.rb`
 - Create: `spec/policies/notification_policy_spec.rb`
 
-- [ ] **Step 11.1: Routes**
+- [x] **Step 11.1: Routes**
 
 ```ruby
 namespace :account do
@@ -1774,11 +1822,11 @@ namespace :account do
 end
 ```
 
-- [ ] **Step 11.2: Pundit policy**
+- [x] **Step 11.2: Pundit policy**
 
 `app/policies/notification_policy.rb`: scope to `notifications.where(recipient: user)`; `update?`, `destroy?` permit only when `record.recipient_id == user.id`.
 
-- [ ] **Step 11.3: Failing request specs**
+- [x] **Step 11.3: Failing request specs**
 
 `spec/requests/account/notifications_spec.rb` covering:
 
@@ -1796,7 +1844,7 @@ end
 - Other user's notification IDs return 404 (Pundit scope hides)
 - Unauthenticated request → redirect to sign-in
 
-- [ ] **Step 11.4: Implement the controller**
+- [x] **Step 11.4: Implement the controller**
 
 ```ruby
 class Account::NotificationsController < ApplicationController
@@ -1857,7 +1905,7 @@ class Account::NotificationsController < ApplicationController
 end
 ```
 
-- [ ] **Step 11.5: Locale keys**
+- [x] **Step 11.5: Locale keys**
 
 Add to `notifications.en.yml`:
 
@@ -1883,9 +1931,9 @@ Add to `notifications.en.yml`:
         success: "Read notifications deleted."
 ```
 
-- [ ] **Step 11.6: Run specs + full suite**
+- [x] **Step 11.6: Run specs + full suite**
 
-- [ ] **Step 11.7: Commit**
+- [x] **Step 11.7: Commit**
 
 ```bash
 git commit -m "feat(notifications): /account/notifications controller, routes, policy, specs"

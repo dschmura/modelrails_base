@@ -104,6 +104,29 @@ class ApplicationNotifier < Noticed::Event
     self.class.preferences_for(user)
   end
 
+  # Returns the per-notification STI `type` strings for every Notifier
+  # subclass in the given category — i.e. the values stored in
+  # `noticed_notifications.type` (e.g. "PasswordChangedNotifier::Notification").
+  # Use this when filtering Noticed::Notification scopes by category.
+  #
+  # Returns raw class names without the `::Notification` suffix when you
+  # need the parent Notifier identity instead — see `.notifier_class_names_for`.
+  #
+  # The `::Notification` suffix is the Noticed-internal STI shape produced
+  # by `notification_methods do ... end` — keeping that detail localized
+  # here, near the rest of the Notifier scaffolding.
+  def self.notification_types_for(category)
+    notifier_class_names_for(category).map { |name| "#{name}::Notification" }
+  end
+
+  # Returns raw Notifier class-name strings (no STI suffix) for the given
+  # category. Use this when keying off the parent Notifier (event.type),
+  # e.g. retention floors or analytics rollups.
+  def self.notifier_class_names_for(category)
+    target = category.to_s
+    descendants.select { |c| c.category_name == target }.map(&:name)
+  end
+
   private
 
   # Populates noticed_events.idempotency_key from the polymorphic `record`

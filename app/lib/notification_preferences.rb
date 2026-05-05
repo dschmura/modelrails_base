@@ -23,10 +23,11 @@ class NotificationPreferences
   # Requires that ApplicationNotifier subclasses be loaded. In production
   # eager_load is on; tests reference the Notifier classes explicitly which
   # triggers their autoload.
+  #
+  # Delegates to ApplicationNotifier.notifier_class_names_for so the
+  # category->notifier walk lives in exactly one place.
   def self.security_notifier_types
-    ApplicationNotifier.descendants
-      .select { |klass| klass.category_name == SECURITY_CATEGORY }
-      .map(&:name)
+    ApplicationNotifier.notifier_class_names_for(SECURITY_CATEGORY)
   end
 
   def initialize(jsonb_hash)
