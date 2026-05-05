@@ -3,13 +3,15 @@
 module Account
   class NotificationsController < ApplicationController
     before_action :set_notification, only: [ :update, :destroy ]
+    before_action :authorize_notification, only: [ :update, :destroy ]
 
     def index
+      authorize Noticed::Notification, :index?, policy_class: NotificationPolicy
       scope = policy_scope(Noticed::Notification, policy_scope_class: NotificationPolicy::Scope)
                 .order(created_at: :desc)
       scope = scope.where(read_at: nil) if params[:filter] == "unread"
       if params[:category].present?
-        scope = scope.where(type: notifier_types_in_category(params[:category]))
+        scope = scope.where(type: ApplicationNotifier.notification_types_for(params[:category]))
       end
       @pagy, @notifications = pagy(scope, limit: 25)
       # NOTE: per-row eager-loading (event, event.record, recipient) is not
@@ -22,8 +24,7 @@ module Account
     end
 
     def update
-      authorize @notification, policy_class: NotificationPolicy
-      @notification.update!(read_at: read_value)
+      @notification.update!(read_at: mark_read? ? Time.current : nil)
       respond_to do |format|
         format.turbo_stream
         format.html { redirect_back fallback_location: account_notifications_path }
@@ -31,23 +32,32 @@ module Account
     end
 
     def destroy
-      authorize @notification, policy_class: NotificationPolicy
       @notification.destroy!
       redirect_to account_notifications_path, notice: t("notifications.destroy.success")
     end
 
     def mark_all_read
-      Current.user.notifications.where(read_at: nil).in_batches(of: 100) do |batch|
-        batch.update_all(read_at: Time.current, updated_at: Time.current)
-      end
+      authorize Noticed::Notification, :mark_all_read?, policy_class: NotificationPolicy
+      # Single atomic UPDATE: WHERE clause is evaluated once, rows un-marked
+      # concurrently can't slip past a moving cursor (the in_batches race
+      # the panel flagged), and every row gets the same timestamp instead
+      # of per-batch drift. Per-user volume here is bounded by retention
+      # caps — if it ever grows, route the heavy lift to PR-5's sweep job.
+      now = Time.current
+      Current.user.notifications.where(read_at: nil)
+                                .update_all(read_at: now, updated_at: now)
       redirect_to account_notifications_path,
                   notice: t("notifications.index.mark_all_read.success")
     end
 
     def destroy_all_read
-      Current.user.notifications.where.not(read_at: nil).in_batches(of: 100) do |batch|
-        batch.destroy_all
-      end
+      authorize Noticed::Notification, :destroy_all_read?, policy_class: NotificationPolicy
+      # delete_all (not destroy_all): Noticed::Notification has no
+      # destroy callbacks and no `dependent:` cascades pointing OUT from
+      # it (the only cascade is INTO it from noticed_events via the
+      # `dependent: :delete_all` on Noticed::Event#has_many :notifications).
+      # Single DELETE, no row instantiation, no callback overhead.
+      Current.user.notifications.where.not(read_at: nil).delete_all
       redirect_to account_notifications_path,
                   notice: t("notifications.index.destroy_all_read.success")
     end
@@ -58,26 +68,16 @@ module Account
       @notification = Current.user.notifications.find(params[:id])
     end
 
-    def read_value
-      params[:read_at].present? ? Time.current : nil
+    def authorize_notification
+      authorize @notification, policy_class: NotificationPolicy
     end
 
-    # Maps a category slug back to the set of Notifier subclass names so we can
-    # filter the notifications scope by `type`. Note: noticed_notifications.type
-    # stores the per-notification subclass (e.g. "PasswordChangedNotifier::Notification"),
-    # so we suffix here. We force-load the notifiers directory in development/test
-    # because ApplicationNotifier.descendants is empty until subclasses are
-    # autoloaded — eager_load is only on in CI and production.
-    def notifier_types_in_category(category)
-      ensure_notifiers_loaded
-      ApplicationNotifier.descendants
-                         .select { |c| c.category_name == category.to_s }
-                         .map { |c| "#{c.name}::Notification" }
-    end
-
-    def ensure_notifiers_loaded
-      return if Rails.application.config.eager_load
-      Rails.root.glob("app/notifiers/*.rb").each { |p| require_dependency p.to_s }
+    # Boolean predicate: was the request asking to mark-as-read (any truthy
+    # `read_at` param value) or to unmark? Naming makes the discard explicit
+    # — the user-supplied `read_at` value itself is intentionally NOT used
+    # as a timestamp; we always stamp `Time.current` server-side.
+    def mark_read?
+      params[:read_at].present?
     end
   end
 end
