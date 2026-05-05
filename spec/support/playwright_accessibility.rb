@@ -37,7 +37,55 @@ module PlaywrightAccessibility
     end
   end
 
+  # Run axe in both light and dark mode and AND the results.
+  # Returns true only when both passes have zero violations.
+  def axe_clean_in_both_themes?(options = {})
+    ensure_light_mode
+    light_clean = axe_clean?(options)
+    ensure_dark_mode
+    dark_clean = axe_clean?(options)
+    light_clean && dark_clean
+  end
+
+  # Combined violations from both light and dark mode passes, prefixed with the
+  # active theme so failure output makes the offending mode obvious.
+  def axe_violations_in_both_themes(options = {})
+    ensure_light_mode
+    light = axe_violations(options).map { |v| "[LIGHT]#{v}" }
+    ensure_dark_mode
+    dark = axe_violations(options).map { |v| "[DARK]#{v}" }
+    light + dark
+  end
+
+  # Force the document into light mode by setting the theme controller's value
+  # and removing the .dark class. Mirrors what the theme-toggle controller does
+  # when the user picks "light" but bypasses the cycle/click ergonomics so it
+  # works the same regardless of starting state or cookie value.
+  def ensure_light_mode
+    set_theme("light")
+  end
+
+  # Force the document into dark mode.
+  def ensure_dark_mode
+    set_theme("dark")
+  end
+
   private
+
+  def set_theme(theme)
+    Capybara.current_session.driver.with_playwright_page do |playwright_page|
+      playwright_page.evaluate(<<~JS)
+        (() => {
+          const html = document.documentElement;
+          html.dataset.themeThemeValue = #{theme.to_json};
+          html.classList.toggle("dark", #{(theme == "dark").to_json});
+          document.cookie = "theme=#{theme};path=/;max-age=31536000;SameSite=Lax";
+        })();
+      JS
+      # Force a reflow so axe sees the updated computed styles.
+      playwright_page.evaluate("document.body.offsetHeight")
+    end
+  end
 
   def inject_axe(playwright_page)
     already_loaded = playwright_page.evaluate("typeof axe !== 'undefined'")
