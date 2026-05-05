@@ -306,4 +306,45 @@ RSpec.describe ApplicationNotifier, type: :notifier do
       notification.render_safe_or_placeholder { raise ActiveRecord::RecordNotFound }
     end
   end
+
+  describe ".notification_types_for" do
+    # Reference both stubs explicitly so autoload runs and they appear in
+    # ApplicationNotifier.descendants.
+    before do
+      _ = StubAccountAccessNotifier
+      _ = StubSecurityNotifier
+    end
+
+    it "returns the per-notification STI type strings (suffixed) for the given category" do
+      result = described_class.notification_types_for(:account_access)
+      expect(result).to include("StubAccountAccessNotifier::Notification")
+      expect(result).not_to include("StubSecurityNotifier::Notification")
+    end
+
+    it "accepts a string category" do
+      result = described_class.notification_types_for("security")
+      expect(result).to include("StubSecurityNotifier::Notification")
+    end
+
+    it "returns an empty array when no notifier matches the category" do
+      expect(described_class.notification_types_for(:no_such_category)).to eq([])
+    end
+  end
+
+  describe ".notifier_class_names_for" do
+    # Raw class-name variant (no ::Notification suffix). Used by
+    # NotificationPreferences#security_notifier_types and elsewhere where
+    # the parent Notifier class name is the right thing (e.g. retention
+    # floor enforcement keyed by event type, not the per-notification type).
+    before do
+      _ = StubAccountAccessNotifier
+      _ = StubSecurityNotifier
+    end
+
+    it "returns raw notifier class names (no STI suffix) for the given category" do
+      result = described_class.notifier_class_names_for(:account_access)
+      expect(result).to include("StubAccountAccessNotifier")
+      expect(result).not_to include("StubAccountAccessNotifier::Notification")
+    end
+  end
 end
