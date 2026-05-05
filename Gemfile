@@ -30,7 +30,10 @@ gem "omniauth-rails_csrf_protection"
 gem "pwned"
 gem "pundit"
 gem "pagy"
-gem "markdowndocs"
+# TEMP: path-based bundling for local cross-repo testing of dark-mode templates.
+# Revert to `gem "markdowndocs", "~> 0.5.0"` after the gem 0.5.0 release lands
+# on RubyGems.
+gem "markdowndocs", path: "/Users/dschmura/Documents/code/markdowndocs"
 
 # User-facing notifications (in-app, email, digest) — see `app/notifiers/`.
 gem "noticed", "~> 2.5"
