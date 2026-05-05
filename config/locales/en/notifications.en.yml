@@ -35,6 +35,8 @@ en:
       message: "Your invitation to %{workspace} expires in %{hours_remaining} hours"
     workspace_member_added:
       message: "%{added_user_name} joined %{workspace}"
+    workspace_capacity_approaching:
+      message: "%{workspace} is approaching its %{metric} limit (%{current} of %{limit})"
     project_membership_changed:
       message: "Your access to %{project} changed to %{new_role}"
     password_changed:
@@ -60,6 +62,12 @@ en:
       greeting: "Hi %{name},"
       body: "You've been added to %{workspace} as %{role}."
       action: "Open workspace"
+    workspace_capacity_approaching:
+      subject: "%{workspace} is approaching its %{metric} limit"
+      heading: "%{workspace} is approaching its %{metric} limit"
+      greeting: "Hi %{name},"
+      body: "%{workspace} is using %{current} of %{limit} %{metric}. To avoid hitting the cap, consider upgrading your plan or reviewing existing %{metric}."
+      action: "Manage workspace settings"
     sign_in_from_new_device:
       subject: "New sign-in from %{os}"
       heading: "New sign-in to your account"
