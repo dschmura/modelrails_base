@@ -58,6 +58,10 @@ en:
         billing: "Billing"
       empty_all: "You're all caught up."
       empty_filter: "Nothing matches this filter."
+      item:
+        mark_read: "Mark as read"
+        mark_unread: "Mark as unread"
+        delete: "Delete"
       mark_all_read:
         action: "Mark all as read"
         success: "All notifications marked as read."

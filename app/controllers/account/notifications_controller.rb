@@ -7,6 +7,11 @@ module Account
 
     def index
       authorize Noticed::Notification, :index?, policy_class: NotificationPolicy
+      # `event.record` is the polymorphic notifiable each notifier's `#message`
+      # interpolates into its locale string. Eager-loaded across all subtypes
+      # because the common case interpolates record. SignInFromNewDeviceNotifier
+      # is the lone exception (reads only `event.params`); its unused `:record`
+      # is safelisted in `config/environments/test.rb` to keep Bullet quiet.
       scope = policy_scope(Noticed::Notification, policy_scope_class: NotificationPolicy::Scope)
                 .includes(:recipient, event: :record)
                 .order(created_at: :desc)

@@ -66,5 +66,43 @@ RSpec.describe "Notifications index page", type: :system do
         expect(page).not_to have_css("##{ActionView::RecordIdentifier.dom_id(read_notification)}")
       end
     end
+
+    describe "per-row controls" do
+      it "marks an unread row as read via Turbo Stream and swaps the button" do
+        notification = deliver_security_notification
+
+        visit account_notifications_path
+
+        within "##{ActionView::RecordIdentifier.dom_id(notification)}" do
+          click_button I18n.t("notifications.index.item.mark_read")
+          expect(page).to have_button(I18n.t("notifications.index.item.mark_unread"))
+        end
+        expect(notification.reload.read_at).to be_present
+      end
+
+      it "marks a read row as unread via Turbo Stream" do
+        notification = deliver_security_notification
+        notification.update!(read_at: Time.current)
+
+        visit account_notifications_path
+
+        within "##{ActionView::RecordIdentifier.dom_id(notification)}" do
+          click_button I18n.t("notifications.index.item.mark_unread")
+          expect(page).to have_button(I18n.t("notifications.index.item.mark_read"))
+        end
+        expect(notification.reload.read_at).to be_nil
+      end
+
+      it "deletes a row when Delete is clicked" do
+        notification = deliver_security_notification
+
+        visit account_notifications_path
+        within "##{ActionView::RecordIdentifier.dom_id(notification)}" do
+          click_button I18n.t("notifications.index.item.delete")
+        end
+
+        expect(page).not_to have_css("##{ActionView::RecordIdentifier.dom_id(notification)}")
+      end
+    end
   end
 end
