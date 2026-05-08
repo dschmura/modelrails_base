@@ -1,0 +1,14 @@
+<%# locals: (notification:) -%>
+<li id="<%= dom_id(notification) %>"
+    data-notification-type="<%= notification.type %>"
+    class="px-4 py-4
+           sm:px-6">
+  <p class="text-sm text-text-body">
+    <%= notification.message %>
+  </p>
+  <p class="mt-1 text-xs text-text-muted">
+    <time datetime="<%= notification.created_at.iso8601 %>">
+      <%= time_ago_in_words(notification.created_at) %>
+    </time>
+  </p>
+</li>
