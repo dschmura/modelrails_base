@@ -104,5 +104,39 @@ RSpec.describe "Notifications index page", type: :system do
         expect(page).not_to have_css("##{ActionView::RecordIdentifier.dom_id(notification)}")
       end
     end
+
+    describe "bulk actions" do
+      it "marks every unread notification as read after confirming the bulk modal" do
+        unread_a = deliver_security_notification
+        unread_b = deliver_security_notification
+
+        visit account_notifications_path
+        click_button I18n.t("notifications.index.mark_all_read.action")
+        within "dialog[open]" do
+          click_button I18n.t("notifications.index.mark_all_read.action")
+        end
+
+        expect(page).to have_text(I18n.t("notifications.index.mark_all_read.success"))
+        expect(unread_a.reload.read_at).to be_present
+        expect(unread_b.reload.read_at).to be_present
+      end
+
+      it "deletes every read notification after confirming the bulk modal" do
+        read_a = deliver_security_notification
+        read_a.update!(read_at: Time.current)
+        read_b = deliver_security_notification
+        read_b.update!(read_at: Time.current)
+        read_ids = [ read_a.id, read_b.id ]
+
+        visit account_notifications_path
+        click_button I18n.t("notifications.index.destroy_all_read.action")
+        within "dialog[open]" do
+          click_button I18n.t("notifications.index.destroy_all_read.action")
+        end
+
+        expect(page).to have_text(I18n.t("notifications.index.destroy_all_read.success"))
+        expect(Noticed::Notification.where(id: read_ids).count).to eq(0)
+      end
+    end
   end
 end

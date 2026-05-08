@@ -64,9 +64,12 @@ en:
         delete: "Delete"
       mark_all_read:
         action: "Mark all as read"
+        title: "Mark all as read?"
+        confirm: "Mark all your unread notifications as read?"
         success: "All notifications marked as read."
       destroy_all_read:
         action: "Delete all read"
+        title: "Delete all read notifications?"
         confirm: "Delete all your read notifications?"
         success: "Read notifications deleted."
     destroy:

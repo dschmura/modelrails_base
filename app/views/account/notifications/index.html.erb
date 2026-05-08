@@ -9,6 +9,8 @@
 
   <%= render "filter_chips", current_filter: @current_filter %>
 
+  <%= render "bulk_actions" %>
+
   <% if @notifications.empty? %>
     <p class="text-text-body">
       <%= t("notifications.index.empty_all") %>
