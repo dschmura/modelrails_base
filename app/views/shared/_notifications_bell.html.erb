@@ -1,0 +1,14 @@
+<%# Renders the bell trigger that opens the notifications dropdown. The
+    accompanying Stimulus controller + dropdown panel land in subsequent
+    cycles; this partial currently only ships the trigger button so the
+    user menu has the slot wired and AAA-graded chrome in place. %>
+<button type="button"
+        aria-label="<%= t("notifications.bell.label") %>"
+        aria-haspopup="true"
+        aria-expanded="false"
+        class="btn-touch-target rounded-full text-text-body
+               hover:text-interactive
+               focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus
+               cursor-pointer">
+  <%= icon(:bell, size: :md) %>
+</button>
