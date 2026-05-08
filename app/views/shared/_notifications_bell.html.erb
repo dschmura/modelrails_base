@@ -1,14 +1,33 @@
 <%# Renders the bell trigger that opens the notifications dropdown. The
     accompanying Stimulus controller + dropdown panel land in subsequent
-    cycles; this partial currently only ships the trigger button so the
-    user menu has the slot wired and AAA-graded chrome in place. %>
+    cycles; this partial currently ships the trigger button + a live
+    unread-count badge. %>
+<%
+  unread_count = Current.user.notifications.where(read_at: nil).count
+  badge_text = unread_count > 9 ? "10+" : unread_count.to_s
+  aria_label = if unread_count.zero?
+    t("notifications.bell.label")
+  else
+    "#{t('notifications.bell.label')}: #{t('notifications.bell.unread_count', count: unread_count)}"
+  end
+%>
 <button type="button"
-        aria-label="<%= t("notifications.bell.label") %>"
+        data-notifications-bell-trigger
+        aria-label="<%= aria_label %>"
         aria-haspopup="true"
         aria-expanded="false"
-        class="btn-touch-target rounded-full text-text-body
+        class="btn-touch-target relative rounded-full text-text-body
                hover:text-interactive
                focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus
                cursor-pointer">
   <%= icon(:bell, size: :md) %>
+  <% if unread_count.positive? %>
+    <span data-notifications-bell-badge
+          aria-hidden="true"
+          class="absolute -top-1 -right-1 min-w-[1.25rem] h-5 px-1 inline-flex items-center justify-center
+                 rounded-full text-xs font-semibold
+                 bg-info text-text-on-interactive">
+      <%= badge_text %>
+    </span>
+  <% end %>
 </button>
