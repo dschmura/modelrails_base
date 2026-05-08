@@ -23,20 +23,26 @@ RSpec.describe "Docs (markdowndocs gem)", type: :system do
     # template fixes (containers, headings, links, sidebar) are exercised by the
     # /docs index assertions below and by direct visual inspection of show-page
     # chrome.
+    # The two specs below intentionally re-enable .highlight (Rouge syntax
+    # tokens) by passing a narrowed `exclude:` that only filters out the
+    # biscuit GDPR banner — itself separately deferred. They remain `pending`
+    # because Rouge tokens still don't meet AAA contrast; they exist as
+    # canaries that will start failing-as-pending once the Rouge palette is
+    # tightened, prompting us to remove the deferral.
     it "passes axe-core at WCAG 2.2 AAA in light mode (deferred: Rouge tokens)" do
       visit "/docs/getting-started"
       ensure_light_mode
       pending "Rouge syntax-token AAA tightening — see PR description Deferred section"
-      expect(axe_clean?(axe_options)).to be(true),
-        "Light-mode AAA violations:\n#{axe_violations(axe_options).join("\n")}"
+      expect(axe_clean?(axe_options, exclude: [ ".biscuit-banner" ])).to be(true),
+        "Light-mode AAA violations:\n#{axe_violations(axe_options, exclude: [ ".biscuit-banner" ]).join("\n")}"
     end
 
     it "passes axe-core at WCAG 2.2 AAA in dark mode (deferred: Rouge tokens)" do
       visit "/docs/getting-started"
       ensure_dark_mode
       pending "Rouge syntax-token AAA tightening — see PR description Deferred section"
-      expect(axe_clean?(axe_options)).to be(true),
-        "Dark-mode AAA violations:\n#{axe_violations(axe_options).join("\n")}"
+      expect(axe_clean?(axe_options, exclude: [ ".biscuit-banner" ])).to be(true),
+        "Dark-mode AAA violations:\n#{axe_violations(axe_options, exclude: [ ".biscuit-banner" ]).join("\n")}"
     end
 
     # The mobile sidebar uses a Stimulus action instead of inline onclick so it
