@@ -62,7 +62,7 @@
       <main class="lg:col-span-8">
         <article class="bg-surface-raised rounded-lg shadow-sm p-8">
           <div class="prose prose-indigo dark:prose-invert max-w-none">
-            <%= raw @rendered_content %>
+            <%= safe_html @rendered_content %>
           </div>
         </article>
       </main>
