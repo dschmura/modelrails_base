@@ -81,4 +81,39 @@ RSpec.describe "Notifications bell + dropdown", type: :system do
       expect(bell["aria-label"]).to include("2")
     end
   end
+
+  describe "dropdown panel open/close" do
+    it "opens when the bell is clicked and toggles aria-expanded" do
+      visit root_path
+
+      bell = find("button[data-notifications-bell-trigger]")
+      expect(bell["aria-expanded"]).to eq("false")
+
+      bell.click
+
+      expect(page).to have_css(
+        "[data-notification-dropdown-target='panel']",
+        visible: :visible
+      )
+      expect(bell["aria-expanded"]).to eq("true")
+    end
+
+    it "closes when Escape is pressed" do
+      visit root_path
+      bell = find("button[data-notifications-bell-trigger]")
+      bell.click
+      expect(page).to have_css(
+        "[data-notification-dropdown-target='panel']",
+        visible: :visible
+      )
+
+      page.send_keys(:escape)
+
+      expect(page).to have_no_css(
+        "[data-notification-dropdown-target='panel']",
+        visible: :visible
+      )
+      expect(bell["aria-expanded"]).to eq("false")
+    end
+  end
 end
