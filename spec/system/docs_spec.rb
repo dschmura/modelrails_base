@@ -38,6 +38,21 @@ RSpec.describe "Docs (markdowndocs gem)", type: :system do
       expect(axe_clean?(axe_options)).to be(true),
         "Dark-mode AAA violations:\n#{axe_violations(axe_options).join("\n")}"
     end
+
+    # The mobile sidebar uses a Stimulus action instead of inline onclick so it
+    # works under our strict CSP (script-src :self with nonces, no
+    # unsafe-inline). The gem's upstream template ships the inline-onclick
+    # version; this assertion locks in the host override.
+    # Region is `lg:hidden` so the elements are display:none at desktop test
+    # viewport — assert against the DOM regardless of visibility.
+    it "wires the mobile sidebar via Stimulus (CSP-safe toggle)" do
+      visit "/docs/getting-started"
+      expect(page).to have_css('[data-controller="docs-sidebar"]', visible: :all)
+      expect(page).to have_css('button[data-action="docs-sidebar#toggle"]', visible: :all)
+      expect(page).to have_css('[data-docs-sidebar-target="sidebar"]', visible: :all)
+      expect(page).to have_css('[data-docs-sidebar-target="iconOpen"]', visible: :all)
+      expect(page).to have_css('[data-docs-sidebar-target="iconClose"]', visible: :all)
+    end
   end
 
   describe "/docs (index)" do
