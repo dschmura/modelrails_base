@@ -27,9 +27,11 @@ RSpec.describe "Notifications bell + dropdown", type: :system do
 
   before do
     sign_in_via_form(user)
-    # Sign-in dispatches a SignInFromNewDeviceNotifier; clear it so each
-    # example starts from a known zero-unread baseline.
-    user.notifications.update_all(read_at: Time.current)
+    # Sign-in dispatches a SignInFromNewDeviceNotifier; destroy it so the
+    # dropdown's "recent read" list (5 most recent) doesn't surface the
+    # sign-in noise. Examples that need notifications create them
+    # explicitly via `deliver_n_security_notifications`.
+    user.notifications.destroy_all
   end
 
   describe "bell trigger in user menu" do
@@ -169,6 +171,51 @@ RSpec.describe "Notifications bell + dropdown", type: :system do
       fire_global_shortcut(key: "n", meta_key: true, shift_key: true)
 
       expect(bell["aria-expanded"]).to eq("false")
+    end
+  end
+
+  describe "dropdown content" do
+    let(:expected_message) {
+      I18n.t("notifications.password_changed.message", user_name: user.first_name)
+    }
+
+    it "renders recent notifications inside the panel" do
+      deliver_n_security_notifications(2)
+
+      visit root_path
+      find("button[data-notifications-bell-trigger]").click
+
+      within "[data-notification-dropdown-target='panel']" do
+        items = all("[data-notification-item]")
+        expect(items.size).to eq(2)
+        items.each do |item|
+          expect(item).to have_text(expected_message)
+        end
+      end
+    end
+
+    it "shows the empty state when there are no notifications" do
+      visit root_path
+      find("button[data-notifications-bell-trigger]").click
+
+      within "[data-notification-dropdown-target='panel']" do
+        expect(page).to have_text(I18n.t("notifications.bell.empty"))
+      end
+    end
+
+    it "caps the visible list at 10 unread plus 5 most recent read" do
+      deliver_n_security_notifications(12)
+      # Mark the oldest 6 as read so we have 6 read + 6 unread.
+      user.notifications.order(:created_at).limit(6).update_all(read_at: Time.current)
+
+      visit root_path
+      find("button[data-notifications-bell-trigger]").click
+
+      within "[data-notification-dropdown-target='panel']" do
+        items = all("[data-notification-item]")
+        # 6 unread (under cap of 10) + 5 most recent read (cap of 5) = 11
+        expect(items.size).to eq(11)
+      end
     end
   end
 end
