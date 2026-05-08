@@ -23,6 +23,7 @@ RSpec.describe "Notifications bell + dropdown", type: :system do
         PasswordChangedNotifier.with(record: recipient).deliver(recipient)
       end
     end
+    recipient.notifications.reload.order(created_at: :asc).last(count)
   end
 
   before do
@@ -216,6 +217,23 @@ RSpec.describe "Notifications bell + dropdown", type: :system do
         # 6 unread (under cap of 10) + 5 most recent read (cap of 5) = 11
         expect(items.size).to eq(11)
       end
+    end
+  end
+
+  describe "click an item" do
+    it "marks the notification as read and redirects to the notifier URL" do
+      notification = deliver_n_security_notifications(1).first
+      expect(notification.read_at).to be_nil
+
+      visit root_path
+      find("button[data-notifications-bell-trigger]").click
+      within "##{ActionView::RecordIdentifier.dom_id(notification, :dropdown)}" do
+        find("a").click
+      end
+
+      # PasswordChangedNotifier#url returns account_connected_accounts_path
+      expect(page).to have_current_path(account_connected_accounts_path)
+      expect(notification.reload.read_at).to be_present
     end
   end
 end

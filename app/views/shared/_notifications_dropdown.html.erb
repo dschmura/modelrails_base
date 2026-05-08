@@ -25,16 +25,20 @@
         <li data-notification-item
             data-notification-read="<%= notification.read_at? %>"
             id="<%= dom_id(notification, :dropdown) %>"
-            class="px-4 py-3
-                   <%= "bg-surface-sunken" unless notification.read_at? %>">
-          <p class="text-sm text-text-body">
-            <%= notification.message %>
-          </p>
-          <p class="mt-1 text-xs text-text-muted">
-            <time datetime="<%= notification.created_at.iso8601 %>">
-              <%= time_ago_in_words(notification.created_at) %>
-            </time>
-          </p>
+            class="<%= "bg-surface-sunken" unless notification.read_at? %>">
+          <%= link_to open_account_notification_path(notification),
+                class: "block px-4 py-3 text-text-body
+                        hover:bg-surface focus:bg-surface
+                        focus:outline-none focus:ring-2 focus:ring-inset focus:ring-interactive-focus" do %>
+            <p class="text-sm">
+              <%= notification.message %>
+            </p>
+            <p class="mt-1 text-xs text-text-muted">
+              <time datetime="<%= notification.created_at.iso8601 %>">
+                <%= time_ago_in_words(notification.created_at) %>
+              </time>
+            </p>
+          <% end %>
         </li>
       <% end %>
     </ul>
