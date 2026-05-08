@@ -20,11 +20,17 @@ export default class extends Controller {
   connect() {
     this.handleOutsideClick = this.handleOutsideClick.bind(this)
     this.handleKeydown = this.handleKeydown.bind(this)
+    this.handleGlobalShortcut = this.handleGlobalShortcut.bind(this)
+
+    // Global toggle is bound on connect so it works from anywhere on the
+    // page; outside-click + scoped keydown only attach while open.
+    document.addEventListener("keydown", this.handleGlobalShortcut)
   }
 
   disconnect() {
     document.removeEventListener("click", this.handleOutsideClick, true)
     document.removeEventListener("keydown", this.handleKeydown)
+    document.removeEventListener("keydown", this.handleGlobalShortcut)
   }
 
   toggle() {
@@ -65,5 +71,19 @@ export default class extends Controller {
       event.preventDefault()
       this.close()
     }
+  }
+
+  // Global Cmd/Ctrl + Shift + N toggle. Lowercase comparison covers cases
+  // where Shift modifies the key (some browsers report "N" instead of "n").
+  handleGlobalShortcut(event) {
+    const isShortcut =
+      (event.metaKey || event.ctrlKey) &&
+      event.shiftKey &&
+      event.key.toLowerCase() === "n"
+
+    if (!isShortcut) return
+
+    event.preventDefault()
+    this.toggle()
   }
 }

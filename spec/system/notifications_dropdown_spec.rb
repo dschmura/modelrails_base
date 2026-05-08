@@ -116,4 +116,59 @@ RSpec.describe "Notifications bell + dropdown", type: :system do
       expect(bell["aria-expanded"]).to eq("false")
     end
   end
+
+  describe "global keyboard shortcut" do
+    # Programmatic KeyboardEvent dispatch goes through Playwright's
+    # main-world execution context so the controller's document-level
+    # listener fires. Capybara's `send_keys` doesn't reliably pierce
+    # element focus + modifier-state on every driver — same workaround
+    # the existing user_menu_spec uses for arrow keys.
+    def fire_global_shortcut(key:, meta_key: false, ctrl_key: false, shift_key: false)
+      page.driver.with_playwright_page do |pw_page|
+        pw_page.evaluate(<<~JS)
+          document.dispatchEvent(new KeyboardEvent("keydown", {
+            key: "#{key}",
+            metaKey: #{meta_key},
+            ctrlKey: #{ctrl_key},
+            shiftKey: #{shift_key},
+            bubbles: true
+          }))
+        JS
+      end
+    end
+
+    it "opens the dropdown via Cmd+Shift+N" do
+      visit root_path
+      bell = find("button[data-notifications-bell-trigger]")
+      expect(bell["aria-expanded"]).to eq("false")
+
+      fire_global_shortcut(key: "n", meta_key: true, shift_key: true)
+
+      expect(page).to have_css(
+        "[data-notification-dropdown-target='panel']",
+        visible: :visible
+      )
+      expect(bell["aria-expanded"]).to eq("true")
+    end
+
+    it "opens the dropdown via Ctrl+Shift+N (cross-platform)" do
+      visit root_path
+      bell = find("button[data-notifications-bell-trigger]")
+
+      fire_global_shortcut(key: "n", ctrl_key: true, shift_key: true)
+
+      expect(bell["aria-expanded"]).to eq("true")
+    end
+
+    it "closes the dropdown when toggled while open" do
+      visit root_path
+      bell = find("button[data-notifications-bell-trigger]")
+      bell.click
+      expect(bell["aria-expanded"]).to eq("true")
+
+      fire_global_shortcut(key: "n", meta_key: true, shift_key: true)
+
+      expect(bell["aria-expanded"]).to eq("false")
+    end
+  end
 end
