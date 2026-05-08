@@ -22,6 +22,19 @@ RSpec.describe "Notifications index page", type: :system do
 
   before { sign_in_via_form(user) }
 
+  describe "discoverability from the user menu" do
+    it "exposes a Notifications link in the desktop user-menu dropdown" do
+      visit root_path
+      find("#user-menu-button").click
+      within "#user-menu" do
+        expect(page).to have_link(
+          I18n.t("navigation.notifications"),
+          href: account_notifications_path
+        )
+      end
+    end
+  end
+
   describe "GET /account/notifications" do
     it "renders the heading and a list row containing each notification's message" do
       notification = deliver_security_notification
