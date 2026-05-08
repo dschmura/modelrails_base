@@ -7,6 +7,8 @@
     <%= t("notifications.index.heading") %>
   </h1>
 
+  <%= render "filter_chips", current_filter: @current_filter %>
+
   <% if @notifications.empty? %>
     <p class="text-text-body">
       <%= t("notifications.index.empty_all") %>

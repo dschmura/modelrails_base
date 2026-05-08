@@ -14,6 +14,7 @@ module Account
       if params[:category].present?
         scope = scope.where(type: ApplicationNotifier.notification_types_for(params[:category]))
       end
+      @current_filter = current_filter_key
       @pagy, @notifications = pagy(scope, limit: 25)
     end
 
@@ -72,6 +73,12 @@ module Account
     # as a timestamp; we always stamp `Time.current` server-side.
     def mark_read?
       params[:read_at].present?
+    end
+
+    def current_filter_key
+      return "unread" if params[:filter] == "unread"
+      return params[:category] if params[:category].present?
+      "all"
     end
   end
 end

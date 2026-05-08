@@ -37,5 +37,34 @@ RSpec.describe "Notifications index page", type: :system do
         expect(page).to have_text(expected_message)
       end
     end
+
+    describe "filter chips" do
+      it "marks the All chip as current by default" do
+        deliver_security_notification
+
+        visit account_notifications_path
+
+        within "[aria-label='#{I18n.t('notifications.index.filters_aria')}']" do
+          expect(page).to have_link(
+            I18n.t("notifications.index.filters.all"),
+            href: account_notifications_path
+          )
+          all_chip = find_link(I18n.t("notifications.index.filters.all"))
+          expect(all_chip["aria-current"]).to eq("page")
+        end
+      end
+
+      it "filters to only unread when Unread chip is followed" do
+        read_notification = deliver_security_notification
+        read_notification.update!(read_at: Time.current)
+        unread_notification = deliver_security_notification
+
+        visit account_notifications_path
+        click_link I18n.t("notifications.index.filters.unread")
+
+        expect(page).to have_css("##{ActionView::RecordIdentifier.dom_id(unread_notification)}")
+        expect(page).not_to have_css("##{ActionView::RecordIdentifier.dom_id(read_notification)}")
+      end
+    end
   end
 end

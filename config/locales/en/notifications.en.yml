@@ -47,6 +47,7 @@ en:
       message: "We noticed a new sign-in from %{os}. If this wasn't you, please review your account."
     index:
       heading: "Notifications"
+      filters_aria: "Filter notifications"
       filters:
         all: "All"
         unread: "Unread"
