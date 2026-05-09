@@ -1,0 +1,15 @@
+<%# locals: (user: Current.user) -%>
+<%# Composition: the visible bell button is wrapped in a turbo-frame so the
+    after_create_commit broadcast can replace just the button (cheap COUNT
+    query) without re-rendering the dropdown panel (heavier list query).
+    Both elements share the same `notification-dropdown` Stimulus scope so
+    open/close behavior continues to work after a broadcast. %>
+<% bell_user = local_assigns.fetch(:user) { Current.user } %>
+<div data-controller="notification-dropdown"
+     class="relative">
+  <turbo-frame id="notifications_bell_frame">
+    <%= render "shared/notifications_bell_button", user: bell_user %>
+  </turbo-frame>
+
+  <%= render "shared/notifications_dropdown", user: bell_user %>
+</div>

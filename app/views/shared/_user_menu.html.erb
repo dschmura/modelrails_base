@@ -1,9 +1,11 @@
 <%# locals: (context: :desktop) -%>
 <% if authenticated? %>
   <% if context == :desktop %>
-  <%# Desktop: avatar-triggered dropdown %>
+  <%# Desktop: bell + avatar-triggered dropdown %>
+  <div class="hidden md:flex items-center gap-2">
+    <%= render "shared/notifications_bell" %>
   <div data-controller="dropdown"
-       class="relative hidden md:block">
+       class="relative">
     <button data-dropdown-target="button"
             data-action="click->dropdown#toggle"
             id="user-menu-button"
@@ -39,6 +41,15 @@
       </div>
 
       <div class="border-t border-border">
+        <%= link_to t("navigation.notifications"), main_app.account_notifications_path,
+              role: "menuitem", tabindex: "-1",
+              class: "flex items-center min-h-[var(--form-input-height)] px-4 py-2
+                      text-sm text-text-body
+                      hover:bg-surface hover:text-interactive
+                      focus:outline-none focus:ring-2 focus:ring-interactive-focus focus:text-interactive" %>
+      </div>
+
+      <div class="border-t border-border">
         <%= button_to t("navigation.sign_out"), main_app.session_path, method: :delete,
               role: "menuitem", tabindex: "-1",
               class: "w-full flex items-center min-h-[var(--form-input-height)] px-4 py-2
@@ -48,6 +59,7 @@
                       cursor-pointer" %>
       </div>
     </div>
+  </div>
   </div>
   <% end %>
 
@@ -59,6 +71,10 @@
       <p class="text-sm text-text-muted truncate"><%= Current.user.email_address %></p>
     </div>
     <%= link_to t("navigation.profile"), main_app.edit_account_profile_path,
+          class: "min-h-[var(--form-input-height)] flex items-center px-2 text-text-body
+                  hover:text-interactive-hover rounded
+                  focus:outline-none focus:ring-2 focus:ring-interactive-focus" %>
+    <%= link_to t("navigation.notifications"), main_app.account_notifications_path,
           class: "min-h-[var(--form-input-height)] flex items-center px-2 text-text-body
                   hover:text-interactive-hover rounded
                   focus:outline-none focus:ring-2 focus:ring-interactive-focus" %>

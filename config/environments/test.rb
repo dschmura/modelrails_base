@@ -93,5 +93,29 @@ Rails.application.configure do
     Bullet.add_safelist(type: :n_plus_one_query,
                         class_name: "WorkspaceCapacityApproachingNotifier::Notification",
                         association: :recipient)
+
+    # /account/notifications eager-loads `event.record` for every row (every
+    # other notifier subtype's `#message` interpolates `event.record.<attr>`).
+    # SignInFromNewDeviceNotifier is the lone exception — its `#message` only
+    # reads `event.params` — so when it's the only subtype in the result the
+    # `:record` include is unused and Bullet flags AVOID. Safelist documents
+    # the deliberate trade-off rather than dropping eager-load for all rows.
+    Bullet.add_safelist(type: :unused_eager_loading,
+                        class_name: "SignInFromNewDeviceNotifier",
+                        association: :record)
+
+    # The notifications-bell dropdown renders up to 15 notifications across
+    # mixed notifier subtypes. WorkspaceMemberAddedNotifier traverses
+    # `event.record.user.first_name` (record is a Membership), which Rails'
+    # polymorphic `includes(event: :record)` can't transitively eager-load
+    # without a per-subtype preload step. The query depth is capped at 15
+    # rows by `recent_notifications_for_dropdown`, so accepting the N+1 on
+    # this single chrome surface is the right trade-off.
+    Bullet.add_safelist(type: :n_plus_one_query,
+                        class_name: "Membership",
+                        association: :user)
+    Bullet.add_safelist(type: :n_plus_one_query,
+                        class_name: "Membership",
+                        association: :workspace)
   end
 end
