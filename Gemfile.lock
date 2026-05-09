@@ -303,7 +303,7 @@ GEM
       racc (~> 1.4)
     nokogiri (1.19.3-x86_64-linux-musl)
       racc (~> 1.4)
-    noticed (2.9.3)
+    noticed (3.0.0)
       rails (>= 6.1.0)
     oauth2 (2.0.18)
       faraday (>= 0.17.3, < 4.0)
@@ -598,7 +598,7 @@ DEPENDENCIES
   letter_opener_web
   lexxy (~> 0.9.11.beta)
   markdowndocs (~> 0.5.0)
-  noticed (~> 2.5)
+  noticed (~> 3.0)
   omniauth
   omniauth-github
   omniauth-google-oauth2
@@ -744,7 +744,7 @@ CHECKSUMS
   nokogiri (1.19.3-arm64-darwin) sha256=71b9bd424b1b7abc18b05052a1a3cfd3627abdca62be280854cc411791357e42
   nokogiri (1.19.3-x86_64-linux-gnu) sha256=2f5078620fe12e83669b5b17311b32532a8153d02eee7ad06948b926d6080976
   nokogiri (1.19.3-x86_64-linux-musl) sha256=248c906d2166eca5efb56d52fdee5f9a1f51d69a72e2b64fdac647b4ce39ea3f
-  noticed (2.9.3) sha256=9809d1100edc3ee208fbd88f4fe025a13e3b02e68c865bf705d197239ebcf3db
+  noticed (3.0.0) sha256=cbb28f1624b9034117fbe7e1d36facfe624e9ad53a24aa149e2a676336ff8f98
   oauth2 (2.0.18) sha256=bacf11e470dfb963f17348666d0a75c7b29ca65bc48fd47be9057cf91a403287
   omniauth (2.1.4) sha256=42a05b0496f0d22e1dd85d42aaf602f064e36bb47a6826a27ab55e5ba608763c
   omniauth-github (2.0.1) sha256=8ff8e70ac6d6db9d52485eef52cfa894938c941496e66b52b5e2773ade3ccad4
