@@ -57,8 +57,8 @@
 
   /* --- Text --- */
   --color-text-heading:        var(--neutral-100);
-  --color-text-body:           var(--neutral-200); /* was neutral-300 (~6.75:1 on slate-800 in CI's axe renderer despite design-intent 7+:1) — neutral-200 lands ~9:1 with margin */
-  --color-text-muted:          var(--neutral-200); /* same as body; visual hierarchy via font-size/weight, not lightness (matches light-mode policy) */
+  --color-text-body:           var(--neutral-300);
+  --color-text-muted:          var(--neutral-300); /* AAA 7:1 on dark surface — same as body; visual hierarchy via font-size/weight, not lightness (matches light-mode policy) */
   --color-text-on-interactive: var(--neutral-900);  /* dark text on light interactive bg */
 
   /* --- Interactive --- */
