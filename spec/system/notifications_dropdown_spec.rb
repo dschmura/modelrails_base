@@ -237,6 +237,36 @@ RSpec.describe "Notifications bell + dropdown", type: :system do
     end
   end
 
+  describe "axe-core WCAG 2.2 AAA audit" do
+    let(:axe_options) { { runOnly: { type: "tag", values: [ "wcag2aaa" ] } } }
+
+    it "passes AAA audit when the dropdown is open with notifications visible" do
+      deliver_n_security_notifications(2)
+
+      visit root_path
+      find("button[data-notifications-bell-trigger]").click
+      expect(page).to have_css(
+        "[data-notification-dropdown-target='panel']",
+        visible: :visible
+      )
+
+      expect(axe_clean_in_both_themes?(axe_options)).to be(true),
+        "AAA violations:\n#{axe_violations_in_both_themes(axe_options).join("\n")}"
+    end
+
+    it "passes AAA audit when the dropdown shows the empty state" do
+      visit root_path
+      find("button[data-notifications-bell-trigger]").click
+
+      within "[data-notification-dropdown-target='panel']" do
+        expect(page).to have_text(I18n.t("notifications.bell.empty"))
+      end
+
+      expect(axe_clean_in_both_themes?(axe_options)).to be(true),
+        "AAA violations:\n#{axe_violations_in_both_themes(axe_options).join("\n")}"
+    end
+  end
+
   # The shared header (and therefore the bell + dropdown) renders inside the
   # markdowndocs engine layout when a signed-in user visits /docs/*. Engine
   # views run in their own routing context, so any unprefixed main-app route
