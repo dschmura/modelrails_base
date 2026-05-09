@@ -156,6 +156,16 @@ class ApplicationNotifier < Noticed::Event
         partial: "shared/notifications_bell_button",
         locals: { user: user }
       )
+
+      # Drop the announcement into the page-level aria-live region so the
+      # arrival is narrated by assistive tech without competing for focus.
+      # `polite` + `atomic` (set on the slot itself) re-reads the full
+      # message every time it changes.
+      Turbo::StreamsChannel.broadcast_update_to(
+        [ user, :notifications ],
+        target: "notifications-live",
+        content: I18n.t("notifications.bell.arrival_announcement")
+      )
     end
   rescue StandardError
     # Same rationale as `Broadcastable`: a broadcast adapter outage must

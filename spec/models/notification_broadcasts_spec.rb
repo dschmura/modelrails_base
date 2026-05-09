@@ -44,4 +44,15 @@ RSpec.describe "Notification Turbo Stream broadcasts" do
       PasswordChangedNotifier.with(record: user).deliver(user)
     }.not_to raise_error
   end
+
+  it "broadcasts an aria-live announcement update to the recipient" do
+    allow(Turbo::StreamsChannel).to receive(:broadcast_replace_to)
+    expect(Turbo::StreamsChannel).to receive(:broadcast_update_to).with(
+      [ a_kind_of(User), :notifications ],
+      target: "notifications-live",
+      content: I18n.t("notifications.bell.arrival_announcement")
+    )
+
+    PasswordChangedNotifier.with(record: user).deliver(user)
+  end
 end
