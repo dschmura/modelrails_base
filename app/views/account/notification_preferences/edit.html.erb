@@ -1,0 +1,14 @@
+<%# Placeholder view for the notification-preferences hub. Task 17 (PR-4
+    cycle 2) replaces this with the full master-DND + 5×3 matrix + digest
+    + retention surface. Kept structural-only here so the request specs
+    can verify routing + controller behavior without dragging in the
+    matrix layout. %>
+<section aria-labelledby="notification-preferences-heading"
+         class="max-w-3xl mx-auto px-4 py-8
+                sm:px-6
+                lg:px-8">
+  <h1 id="notification-preferences-heading"
+      class="text-2xl font-semibold text-text-heading mb-6">
+    <%= t("notifications.preferences.heading", default: "Notification preferences") %>
+  </h1>
+</section>
