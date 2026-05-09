@@ -151,5 +151,19 @@ RSpec.describe "Notifications index page", type: :system do
         expect(Noticed::Notification.where(id: read_ids).count).to eq(0)
       end
     end
+
+    describe "axe-core WCAG 2.2 AAA audit" do
+      let(:axe_options) { { runOnly: { type: "tag", values: [ "wcag2aaa" ] } } }
+
+      it "passes AAA audit with notifications listed and bulk-action toolbar visible" do
+        deliver_security_notification
+
+        visit account_notifications_path
+
+        expect(page).to have_css("h1", text: I18n.t("notifications.index.heading"))
+        expect(axe_clean_in_both_themes?(axe_options)).to be(true),
+          "AAA violations:\n#{axe_violations_in_both_themes(axe_options).join("\n")}"
+      end
+    end
   end
 end

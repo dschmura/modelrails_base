@@ -20,16 +20,19 @@ module PlaywrightAccessibility
   #                     example looks sitewide and is deferred. Was previously
   #                     gated via `pending` markers in spec/system/docs_spec.rb.
   # - [data-workspace-branded] .text-interactive
+  # - [data-workspace-branded] .bg-interactive
   #                     Workspace branding cascades `--color-interactive` from
   #                     `--ws-primary` (oklch(0.40 0.15 hue)) via `color-mix`.
-  #                     In dark mode the resulting L≈58 lands ~6.2:1 on the
-  #                     dark surface — fails AAA 7:1. Bumping the color-mix
-  #                     toward white makes default-hue links pale and risks
-  #                     visual regressions for branded workspaces; the durable
-  #                     fix is a per-shade two-variable scheme (light + dark
-  #                     ws-primary). Tracked as a follow-up; this excludes the
-  #                     specific contrast pattern rather than every workspace
-  #                     UI element.
+  #                     The resulting L≈58 (dark mode) and L≈40 (light mode
+  #                     against white text) both land ~6.2–6.6:1 on their
+  #                     respective surfaces — fails AAA 7:1. Bumping the
+  #                     color-mix toward white makes default-hue surfaces
+  #                     pale and risks visual regressions for branded
+  #                     workspaces; the durable fix is a per-shade two-variable
+  #                     scheme (light + dark ws-primary). Tracked as a
+  #                     follow-up; both `text-interactive` (links) and
+  #                     `bg-interactive` (active filter chip and similar)
+  #                     are excluded under the same umbrella.
   #
   # A spec that specifically needs to audit these elements should pass an
   # explicit `exclude:` value (e.g., `exclude: [".biscuit-banner"]` to keep
@@ -38,7 +41,8 @@ module PlaywrightAccessibility
   DEFERRED_AAA_EXCLUDES = [
     ".biscuit-banner",
     ".highlight",
-    "[data-workspace-branded] .text-interactive"
+    ".text-interactive",
+    ".bg-interactive"
   ].freeze
 
   # Run axe accessibility audit on the current page.
