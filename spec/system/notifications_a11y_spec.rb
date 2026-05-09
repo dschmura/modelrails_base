@@ -26,4 +26,20 @@ RSpec.describe "Notifications a11y plumbing", type: :system do
       expect(live.text).to eq("")
     end
   end
+
+  describe "bell frame turbo-stream subscription" do
+    it "renders a turbo-stream-from subscription in the layout for authenticated users" do
+      sign_in_via_form(user)
+      visit root_path
+
+      expect(page).to have_css("turbo-cable-stream-source", visible: :all)
+      expect(page).to have_css("turbo-frame#notifications_bell_frame")
+    end
+
+    it "does NOT render the subscription on unauthenticated pages" do
+      visit new_session_path
+
+      expect(page).to have_no_css("turbo-cable-stream-source")
+    end
+  end
 end
