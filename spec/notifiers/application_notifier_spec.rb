@@ -331,6 +331,27 @@ RSpec.describe ApplicationNotifier, type: :notifier do
     end
   end
 
+  describe "#broadcast_notifications_arrival aria-live announcement" do
+    let(:user) { create(:user) }
+    let(:resource) { create(:user) }
+
+    # The bell broadcast pushes two streams per recipient: a `replace` of the
+    # bell-button (the visible badge) and an `update` of the page-level
+    # `#notifications-live` aria-live region (the SR announcement). Locks in
+    # that the announcement carries the localized arrival text so a future
+    # refactor that drops/swallows the live-region update gets caught here.
+    it "broadcasts the localized arrival_announcement text targeting #notifications-live" do
+      allow(Turbo::StreamsChannel).to receive(:broadcast_replace_to)
+      expect(Turbo::StreamsChannel).to receive(:broadcast_update_to).with(
+        [ user, :notifications ],
+        target: "notifications-live",
+        content: I18n.t("notifications.bell.arrival_announcement")
+      )
+
+      StubAccountAccessNotifier.with(record: resource).deliver(user)
+    end
+  end
+
   describe ".notifier_class_names_for" do
     # Raw class-name variant (no ::Notification suffix). Used by
     # NotificationPreferences#security_notifier_types and elsewhere where
