@@ -6,7 +6,7 @@
   tz_name = @preferences.timezone.presence || "UTC"
 %>
 <section aria-labelledby="notification-preferences-heading"
-         class="max-w-3xl mx-auto px-4 py-8 space-y-10
+         class="max-w-3xl mx-auto px-4 py-8 space-y-6
                 sm:px-6
                 lg:px-8">
   <header>
@@ -16,28 +16,30 @@
     </h1>
   </header>
 
-  <%# === Master DND ============================================== %>
-  <%= form_with url: account_notification_preferences_path,
-        method: :patch,
-        data: { controller: "auto-submit" } do |f| %>
-    <fieldset class="bg-surface-raised border border-border rounded-lg p-6">
-      <legend class="sr-only"><%= t("notifications.preferences.master_section") %></legend>
-      <%= render "shared/toggle",
-            name: "notification_preferences[do_not_disturb]",
-            label: t("notifications.preferences.master_section"),
-            help: t("notifications.preferences.master_help"),
-            checked: prefs_object.do_not_disturb? %>
-    </fieldset>
+  <%# === Master DND =============================================
+      Visual swap: still the same toggle; now wrapped in a rounded-2xl
+      card. PR-3 will replace this with the Quiet Hours card. -%>
+  <%= render layout: "shared/preferences_card",
+        locals: { title: t("notifications.preferences.master_section") } do %>
+    <%= form_with url: account_notification_preferences_path,
+          method: :patch,
+          data: { controller: "auto-submit" } do |f| %>
+      <div class="px-6 py-5">
+        <%= render "shared/toggle",
+              name: "notification_preferences[do_not_disturb]",
+              label: t("notifications.preferences.master_section"),
+              help: t("notifications.preferences.master_help"),
+              checked: prefs_object.do_not_disturb? %>
+      </div>
+    <% end %>
   <% end %>
 
-  <%# === 5×3 matrix ============================================== %>
-  <section aria-labelledby="matrix-heading"
-           class="bg-surface-raised border border-border rounded-lg p-6">
-    <h2 id="matrix-heading"
-        class="text-lg font-semibold text-text-heading mb-4">
-      <%= t("notifications.preferences.matrix_heading") %>
-    </h2>
-    <div class="overflow-x-auto">
+  <%# === 5×3 matrix =============================================
+      Visual swap: matrix table now lives inside a card. PR-3 will
+      replace the matrix with parallel-list rows. -%>
+  <%= render layout: "shared/preferences_card",
+        locals: { title: t("notifications.preferences.matrix_heading") } do %>
+    <div class="px-6 py-5 overflow-x-auto">
       <table class="w-full" aria-label="<%= t("notifications.preferences.matrix_aria") %>">
         <thead>
           <tr>
@@ -66,10 +68,6 @@
                         method: :patch,
                         data: { controller: "auto-submit" },
                         class: "inline-block" do |f| %>
-                    <%# A disabled checkbox doesn't submit, so we hide-field the
-                        always-on value for security cells. NotificationPreferences#allow?
-                        also forces true for security regardless, so the JSONB
-                        value is informational here. %>
                     <%= render "shared/toggle",
                           name: "notification_preferences[categories][#{category}][#{channel}]",
                           label: t("notifications.preferences.categories.#{category}"),
@@ -85,19 +83,17 @@
         </tbody>
       </table>
     </div>
-  </section>
+  <% end %>
 
-  <%# === Digest controls ========================================= %>
-  <section aria-labelledby="digest-heading"
-           class="bg-surface-raised border border-border rounded-lg p-6">
-    <h2 id="digest-heading"
-        class="text-lg font-semibold text-text-heading mb-4">
-      <%= t("notifications.preferences.digest.heading") %>
-    </h2>
+  <%# === Digest controls ========================================
+      Visual swap: digest section wrapped in a card. PR-3 will fold
+      this into the Email channel's frequency selector. -%>
+  <%= render layout: "shared/preferences_card",
+        locals: { title: t("notifications.preferences.digest.heading") } do %>
     <%= form_with url: account_notification_preferences_path,
           method: :patch,
           data: { controller: "auto-submit" },
-          class: "flex flex-wrap items-end gap-6" do |f| %>
+          class: "flex flex-wrap items-end gap-6 px-6 py-5" do |f| %>
       <fieldset>
         <legend class="block text-sm font-medium text-text-heading mb-2">
           <%= t("notifications.preferences.digest.cadence") %>
@@ -136,22 +132,20 @@
                       focus:outline-none focus:ring-2 focus:ring-interactive-focus">
       </div>
     <% end %>
-    <p class="mt-3 text-xs text-text-muted">
+    <p class="px-6 pb-5 text-xs text-text-muted">
       <%= t("notifications.preferences.digest.timezone", timezone: tz_name) %>
     </p>
-  </section>
+  <% end %>
 
-  <%# === Retention =============================================== %>
-  <section aria-labelledby="retention-heading"
-           class="bg-surface-raised border border-border rounded-lg p-6">
-    <h2 id="retention-heading"
-        class="text-lg font-semibold text-text-heading mb-4">
-      <%= t("notifications.preferences.retention.heading") %>
-    </h2>
+  <%# === Retention ==============================================
+      Visual swap: retention dropdown wrapped in a card. PR-3 will
+      move this into an "Advanced" card. -%>
+  <%= render layout: "shared/preferences_card",
+        locals: { title: t("notifications.preferences.retention.heading") } do %>
     <%= form_with url: account_notification_preferences_path,
           method: :patch,
           data: { controller: "auto-submit" },
-          class: "flex items-center gap-3" do |f| %>
+          class: "flex items-center gap-3 px-6 py-5" do |f| %>
       <label for="retention-days"
              class="text-sm text-text-body">
         <%= t("notifications.preferences.retention.label") %>
@@ -174,8 +168,8 @@
         </option>
       </select>
     <% end %>
-    <p class="mt-3 text-xs text-text-muted">
+    <p class="px-6 pb-5 text-xs text-text-muted">
       <%= t("notifications.preferences.retention.help") %>
     </p>
-  </section>
+  <% end %>
 </section>
