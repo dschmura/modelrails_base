@@ -1,0 +1,20 @@
+<%# Stub HTML digest. Task 23 (PR-5 cycle 4) replaces this with the full
+    grouped-by-category layout. Kept minimal here so DigestMailerJob's spec
+    can exercise enqueue + delivery wiring before the visual template lands. %>
+<!DOCTYPE html>
+<html>
+  <body>
+    <h1>
+      <%= @cadence == "weekly" ? t("notification_mailer.digest.heading_weekly") : t("notification_mailer.digest.heading_daily") %>
+    </h1>
+    <p><%= t("notification_mailer.digest.preheader", count: @count) %></p>
+    <ul>
+      <% @notifications.each do |notification| %>
+        <li>
+          <%= notification.render_safe_or_placeholder { notification.message } %>
+        </li>
+      <% end %>
+    </ul>
+    <p><%= t("notification_mailer.digest.footer") %></p>
+  </body>
+</html>

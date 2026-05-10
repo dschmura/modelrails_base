@@ -1,0 +1,9 @@
+<%= @cadence == "weekly" ? t("notification_mailer.digest.heading_weekly") : t("notification_mailer.digest.heading_daily") %>
+
+<%= t("notification_mailer.digest.preheader", count: @count) %>
+
+<% @notifications.each do |notification| %>
+- <%= notification.render_safe_or_placeholder { notification.message } %>
+<% end %>
+
+<%= t("notification_mailer.digest.footer") %>
