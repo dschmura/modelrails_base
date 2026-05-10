@@ -45,9 +45,8 @@ module Account
       # Retention is the only key with a constrained allowlist; validate
       # before merging so an invalid value never lands in the JSONB.
       if changes.key?("retention_days")
-        normalized = normalize_retention(changes["retention_days"])
-        return :rejected if normalized == :invalid
-        changes["retention_days"] = normalized
+        return :rejected unless valid_retention?(changes["retention_days"])
+        changes["retention_days"] = normalize_retention(changes["retention_days"])
       end
 
       coerce_booleans!(changes)
@@ -55,14 +54,18 @@ module Account
       nil
     end
 
-    # Empty string / "never" => nil ("never auto-delete").
-    # Numeric strings allowed only if they're in ALLOWED_RETENTION_DAYS.
+    # Blank / "never" => valid (means "never auto-delete").
+    # Otherwise the integer form must appear in ALLOWED_RETENTION_DAYS.
+    def valid_retention?(value)
+      return true if value.blank? || value.to_s == "never"
+      ALLOWED_RETENTION_DAYS.include?(value.to_i)
+    end
+
+    # Coerce an already-validated retention value to its stored form:
+    # nil for "never auto-delete", Integer for a day count.
     def normalize_retention(value)
       return nil if value.blank? || value.to_s == "never"
-
-      days = value.to_i
-      return :invalid unless ALLOWED_RETENTION_DAYS.include?(days)
-      days
+      value.to_i
     end
 
     # Recursively coerce "true"/"false" strings to actual booleans so the

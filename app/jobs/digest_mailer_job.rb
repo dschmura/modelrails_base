@@ -29,6 +29,10 @@ class DigestMailerJob < ApplicationJob
         .where("user_preferences.digest_next_due_at <= ?", Time.current)
         .find_each do |user|
       send_digest_for(user)
+    # Per-user fault isolation: one user's malformed prefs or transient mail
+    # failure must not abort processing for the other N-1 users in the
+    # cycle. StandardError is the right ceiling — Interrupt and SystemExit
+    # inherit from Exception (not StandardError), so signals still propagate.
     rescue StandardError => e
       Rails.logger.error("DigestMailerJob failed for user #{user.id}: #{e.class}: #{e.message}")
       # Bump next-due forward by an hour so we skip this cycle but retry
@@ -78,6 +82,11 @@ class DigestMailerJob < ApplicationJob
       .update_all(seen_at: Time.current)
   end
 
+  # Skip-callbacks via update_column is intentional: reschedule fires every
+  # 15 minutes for every digest-eligible user, and we don't want to bump
+  # user_preferences.updated_at on each cycle (causes useless cache busts
+  # on any view that reads the row's freshness). UserPreferences has no
+  # after_update_commit hooks that need to fire here.
   def reschedule(user, prefs)
     return unless user.preferences && prefs
 
