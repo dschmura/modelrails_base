@@ -77,6 +77,7 @@ class Membership < ApplicationRecord
       workspace.lock!
       validate_not_last_owner!
       discard!
+      enforce_owner_invariant!
       ProjectMembership.joins(:project)
         .where(projects: { workspace_id: workspace_id }, user_id: user_id)
         .destroy_all
@@ -93,11 +94,22 @@ class Membership < ApplicationRecord
 
     transaction do
       workspace.lock!
+
+      # Atomic conditional demote: only succeeds if we're still the owner at
+      # the moment of the UPDATE. The database serializes us against any
+      # racing transfer; a racer that already demoted us produces 0 affected
+      # rows here, and we abort *before* promoting target — preventing the
+      # workspace from ending up with two owners. update_all skips
+      # after_update_commit on self intentionally; the user initiating the
+      # transfer doesn't need a self-targeted "your role changed" notice.
+      rows = Membership.where(id: id)
+                       .where(role_id: Role.where(slug: "owner").select(:id))
+                       .update_all(role_id: admin_role.id)
+      raise ActiveRecord::RecordInvalid, self if rows.zero?
       reload
-      raise ActiveRecord::RecordInvalid, self unless role.slug == "owner"
+
       target_membership.reload
       target_membership.update!(role: owner_role)
-      update!(role: admin_role)
     end
   end
 
@@ -129,6 +141,24 @@ class Membership < ApplicationRecord
       errors.add(:base, :last_owner)
       raise ActiveRecord::RecordInvalid, self
     end
+  end
+
+  # Race-safety net for validate_not_last_owner!. Runs after self.discard!
+  # inside the same transaction; the database writer lock has already
+  # serialized us against any racing deactivate, so the COUNT here reflects
+  # committed state. If our discard left zero kept owners, raise to roll
+  # back. (Non-owner discards skip this check — they can't break the
+  # invariant.)
+  def enforce_owner_invariant!
+    return unless role&.slug == "owner"
+    remaining = Membership.kept
+                          .joins(:role)
+                          .where(workspace_id: workspace_id)
+                          .where(roles: { slug: "owner" })
+                          .count
+    return if remaining > 0
+    errors.add(:base, :last_owner)
+    raise ActiveRecord::RecordInvalid, self
   end
 
   def notify_role_changed
