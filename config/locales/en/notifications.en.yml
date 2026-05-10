@@ -61,6 +61,7 @@ en:
         help: "Security alerts are kept for at least 1 year regardless of this setting."
       update:
         success: "Saved."
+        saved_announcement: "Preferences saved"
     workspace_invitation_received:
       message: "%{inviter} invited you to %{workspace}"
     workspace_invitation_accepted:
@@ -100,6 +101,9 @@ en:
         mark_read: "Mark as read"
         mark_unread: "Mark as unread"
         delete: "Delete"
+        mark_read_aria: "Mark as read: %{summary}"
+        mark_unread_aria: "Mark as unread: %{summary}"
+        delete_aria: "Delete notification: %{summary}"
       mark_all_read:
         action: "Mark all as read"
         title: "Mark all as read?"

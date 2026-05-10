@@ -126,6 +126,43 @@ RSpec.describe "Account Notifications", type: :request do
           expect(response.body).not_to include(dom_id_fragment(access_notification))
         end
       end
+
+      describe "SR aria-labels on per-row buttons" do
+        # A SR navigating button-to-button on the index would otherwise hear
+        # "Mark as read button … Mark as read button …" with no way to tell
+        # which notification each refers to. aria-label adds the message as
+        # the label so each button announces its target.
+        it "the Mark-as-read button includes the notification's message in its aria-label" do
+          notification = deliver_security_notification
+          get account_notifications_path
+          expected = I18n.t(
+            "notifications.index.item.mark_read_aria",
+            summary: notification.message
+          )
+          expect(response.body).to include(%Q(aria-label="#{expected}"))
+        end
+
+        it "the Delete button includes the notification's message in its aria-label" do
+          notification = deliver_security_notification
+          get account_notifications_path
+          expected = I18n.t(
+            "notifications.index.item.delete_aria",
+            summary: notification.message
+          )
+          expect(response.body).to include(%Q(aria-label="#{expected}"))
+        end
+
+        it "the Mark-as-unread button includes the notification's message when the row is read" do
+          notification = deliver_security_notification
+          notification.update!(read_at: Time.current)
+          get account_notifications_path
+          expected = I18n.t(
+            "notifications.index.item.mark_unread_aria",
+            summary: notification.message
+          )
+          expect(response.body).to include(%Q(aria-label="#{expected}"))
+        end
+      end
     end
 
     describe "PATCH /account/notifications/:id" do
@@ -152,6 +189,25 @@ RSpec.describe "Account Notifications", type: :request do
         expect(response).to have_http_status(:redirect)
         expect(flash[:alert]).to eq(I18n.t("errors.not_found"))
         expect(foreign.reload.read_at).to be_nil
+      end
+
+      # Focus management on Turbo Stream replace: when the row is replaced
+      # in-place, the original button no longer exists in the DOM and focus
+      # is lost. The replaced row autofocuses the now-visible toggle (the
+      # opposite-state button), so keyboard/SR users land back on the same
+      # logical control instead of being thrown to <body>.
+      it "the turbo_stream response autofocuses the toggle button on the replaced row" do
+        patch account_notification_path(notification, read_at: "now"),
+          headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+        # Exactly one autofocus attribute lands in the response — the
+        # opposite-state toggle (Mark-as-unread, since the row is now read).
+        # `autofocus="autofocus"` is Rails' boolean-attribute serialization;
+        # match against the attribute form to avoid double-counting against
+        # the literal string "autofocus" appearing as both name and value.
+        autofocus_count = response.body.scan(/autofocus="autofocus"/).size
+        expect(autofocus_count).to eq(1)
+        expect(response.body).to include(I18n.t("notifications.index.item.mark_unread"))
       end
     end
 

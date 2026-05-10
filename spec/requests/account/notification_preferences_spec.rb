@@ -109,6 +109,19 @@ RSpec.describe "Account Notification Preferences", type: :request do
 
         expect(response.media_type).to eq("text/vnd.turbo-stream.html")
       end
+
+      # SR feedback on auto-submit: previously the turbo_stream body was
+      # empty so screen readers got no signal that the toggle took effect.
+      # The response now updates the page-level aria-live region with a
+      # confirmation announcement.
+      it "the turbo_stream response updates the live region with a save announcement" do
+        patch account_notification_preferences_path,
+          params: { notification_preferences: { do_not_disturb: "true" } },
+          headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+        expect(response.body).to include('target="notifications-live"')
+        expect(response.body).to include(I18n.t("notifications.preferences.update.saved_announcement"))
+      end
     end
   end
 end

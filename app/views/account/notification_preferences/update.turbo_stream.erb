@@ -1,5 +1,5 @@
-<%# Placeholder turbo_stream for preference updates. Task 17 will replace
-    this with row-scoped Turbo Stream responses (a single toggle becomes a
-    `replace` of just its row). For now the response body is empty — the
-    request spec only asserts the media_type, so the controller's
-    `format.turbo_stream` is satisfied. %>
+<%# Auto-submit fires on every toggle change. The response targets the
+    page-level aria-live region (#notifications-live) so screen reader users
+    get an explicit "Preferences saved" announcement after each change —
+    without an announcement, the auto-submit is silent for SR users. %>
+<%= turbo_stream.update "notifications-live" do %><%= t("notifications.preferences.update.saved_announcement") %><% end %>
