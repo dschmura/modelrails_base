@@ -1,0 +1,24 @@
+<%# locals: (title:, description: nil) -%>
+<%# Reusable card surface for user-preferences sections. Sample-faithful
+    rounded-2xl elevated card with optional description sub-heading.
+    Yielded block is the row list. ARIA-wired via stable id derived from
+    the partial's caller frame. -%>
+<% card_id = "preferences-card-#{title.parameterize}" -%>
+<section aria-labelledby="<%= card_id %>-title"
+         class="rounded-2xl bg-surface-raised border border-border shadow-sm overflow-hidden">
+  <header class="px-6 py-5 border-b border-border">
+    <h2 id="<%= card_id %>-title"
+        class="text-lg font-semibold text-text-heading">
+      <%= title %>
+    </h2>
+    <% if description %>
+      <p data-preferences-card-description
+         class="mt-1 text-sm text-text-body">
+        <%= description %>
+      </p>
+    <% end %>
+  </header>
+  <div class="divide-y divide-border">
+    <%= yield %>
+  </div>
+</section>
