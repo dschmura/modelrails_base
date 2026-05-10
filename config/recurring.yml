@@ -36,3 +36,13 @@ production:
     # immediately when DND or digest_enabled? blocks. Each user's individual
     # daily/weekly cadence is honored by next_due_at_in(timezone).
     schedule: every 15 minutes
+
+  notification_cleanup:
+    class: NotificationCleanupJob
+    queue: default
+    # Runs daily at 3am UTC. Per-user batched deletion in chunks of 100 to
+    # release SQLite write lock between transactions, so cleanup never
+    # blocks incoming notifications for more than ~10ms at a time.
+    # Security category protected by NotificationPreferences::RETENTION_FLOORS
+    # ("security" => 365.days) regardless of user preference.
+    schedule: every day at 3am
