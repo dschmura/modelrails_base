@@ -10,6 +10,15 @@ class Membership < ApplicationRecord
   validates :user_id, uniqueness: { scope: :workspace_id }
   validate :workspace_has_member_capacity, on: :create
 
+  # Race-safety net for capacity. Pre-flight validator runs before INSERT and
+  # provides the user-facing error, but its workspace.lock! is silently a
+  # no-op across SQLite connections (per-connection locks). This after_create
+  # check runs inside the create transaction *after* the INSERT, so SQLite's
+  # database-level writer lock has already serialized us against any racing
+  # INSERT — the COUNT here reflects committed state including any racer who
+  # just slipped in. Over-capacity → raise → roll back.
+  after_create :enforce_capacity_invariant
+
   # Notify the affected user whenever their role within the workspace changes.
   # Uses saved_change_to_role_id? rather than role_id_previously_changed? so it
   # also fires correctly under nested transactions where dirty tracking can lag.
@@ -104,6 +113,15 @@ class Membership < ApplicationRecord
     if workspace.memberships.kept.count >= workspace.max_members
       errors.add(:base, :workspace_member_limit)
     end
+  end
+
+  def enforce_capacity_invariant
+    return unless workspace_id
+    count = Membership.where(workspace_id: workspace_id, discarded_at: nil).count
+    limit = Workspace.where(id: workspace_id).pick(:max_members)
+    return unless limit && count > limit
+    errors.add(:base, :workspace_member_limit)
+    raise ActiveRecord::RecordInvalid, self
   end
 
   def validate_not_last_owner!

@@ -103,6 +103,28 @@ RSpec.describe Membership, type: :model do
       expect(workspace).to receive(:lock!).and_call_original
       membership.save
     end
+
+    # Race-safety net: panel review flagged that the pre-flight validator's
+    # workspace.lock! is a no-op across SQLite connections (per-connection
+    # locking), so two concurrent invitation accepts could both pass count==N
+    # and INSERT members N+1 + N+2. The post-create invariant runs inside the
+    # create transaction with the row already inserted; SQLite's writer lock
+    # serializes INSERTs, so by the time we COUNT we see the actual committed
+    # state. Over-capacity → raise → roll back.
+    it "rolls back the create when a racing transaction has filled capacity" do
+      workspace = create(:workspace, max_members: 2)
+      role = Role.find_or_create_by!(slug: "member", workspace_id: nil) { |r| r.name = "Member" }
+      2.times { create(:membership, workspace: workspace) }
+
+      user = create(:user)
+      membership = Membership.new(workspace: workspace, user: user, role: role)
+
+      # save!(validate: false) bypasses the pre-flight validator, simulating a
+      # racing transaction whose validator passed against stale state. The
+      # after_create invariant must catch the violation and roll back.
+      expect { membership.save!(validate: false) }.to raise_error(ActiveRecord::RecordInvalid)
+      expect(Membership.where(workspace: workspace, user: user)).not_to exist
+    end
   end
 
   describe "scopes" do
