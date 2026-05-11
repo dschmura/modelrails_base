@@ -31,8 +31,9 @@
           tabindex="-1"
           class="flex-1"
           <% if Current.workspace %>
+            <% ws_hue = Current.workspace.primary_color || 210 %>
             data-workspace-branded
-            style="--ws-primary: oklch(0.40 0.15 <%= Current.workspace.primary_color || 210 %>);"
+            style="--ws-primary-light: oklch(0.40 0.15 <%= ws_hue %>); --ws-primary-dark: oklch(0.78 0.10 <%= ws_hue %>);"
           <% end %>>
       <%= yield %>
     </main>

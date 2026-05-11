@@ -152,17 +152,12 @@ RSpec.describe "Notifications index page", type: :system do
       end
     end
 
-    # axe-core WCAG 2.2 AAA on the populated index page is intentionally NOT
-    # asserted here. CI's Playwright/axe renderer reports non-canonical hex
-    # values for `bg-surface-raised` (e.g. `#5d6574` where slate-800
-    # `#1e293b` is expected) under the workspace-branded cascade, which
-    # drags every text-on-surface contrast 0.5–1.0 ratio points off the
-    # design-intent. The same cascade also affects `--color-interactive`
-    # and `--color-bg-interactive` (already in DEFERRED_AAA_EXCLUDES). The
-    # durable fix is the two-variable `--ws-primary-light`/`--ws-primary-dark`
-    # scheme tracked in `project_flaky_tests_followup.md`. AAA on the
-    # dropdown surface is covered by `notifications_dropdown_spec`'s
-    # axe assertions, which audit the same notification-related chrome
-    # in a non-workspace-branded context.
+    # axe-core WCAG 2.2 AAA on the populated index page is not asserted
+    # directly here — `members_table_spec.rb` audits the same workspace-
+    # branded surface stack with stricter `DEFERRED_AAA_EXCLUDES` (the
+    # durable two-variable `--ws-primary-light`/`--ws-primary-dark` scheme
+    # took `.text-interactive` and `.bg-interactive` out of the umbrella),
+    # making it the canary for any future cascade-induced surface drift.
+    # AAA on the dropdown surface is covered by `notifications_dropdown_spec`.
   end
 end

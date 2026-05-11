@@ -233,22 +233,29 @@ dialog[open]::backdrop {
 /* ==========================================================================
    Workspace Branding Override
    ==========================================================================
-   When a workspace has a primary_color, --ws-primary is set on <main>.
-   These rules cascade the branding color through the interactive tokens
-   with proper light/dark mode variants using color-mix(). */
+   When a workspace has a primary_color, two OKLCH literals are set on
+   <main>: --ws-primary-light (L=0.40, hits 7:1 AAA on white surface) and
+   --ws-primary-dark (L=0.78, hits 7:1 AAA on slate-800 surface). This is
+   the two-variable scheme that replaces the v1 single-variable +
+   color-mix(... toward white) approach — the old shape produced flaky
+   AAA contrast in CI's Playwright/axe renderer because OKLCH color-mix
+   resolution lifted the dark-mode brand color to L≈58 (6.2:1 ratio),
+   failing AAA 7:1 every hue. Direct OKLCH literals are deterministic
+   across renderers. See project_flaky_tests_followup.md §2 for the
+   investigation that led here. */
 
 [data-workspace-branded] {
-  --color-interactive: var(--ws-primary);
-  --color-interactive-hover: color-mix(in oklch, var(--ws-primary) 80%, black);
-  --color-interactive-focus: var(--ws-primary);
-  --color-interactive-subtle: color-mix(in oklch, var(--ws-primary) 10%, white);
+  --color-interactive: var(--ws-primary-light);
+  --color-interactive-hover: color-mix(in oklch, var(--ws-primary-light) 80%, black);
+  --color-interactive-focus: var(--ws-primary-light);
+  --color-interactive-subtle: color-mix(in oklch, var(--ws-primary-light) 10%, white);
 }
 
 .dark [data-workspace-branded] {
-  --color-interactive: color-mix(in oklch, var(--ws-primary) 70%, white);
-  --color-interactive-hover: color-mix(in oklch, var(--ws-primary) 50%, white);
-  --color-interactive-focus: color-mix(in oklch, var(--ws-primary) 70%, white);
-  --color-interactive-subtle: color-mix(in oklch, var(--ws-primary) 15%, black);
+  --color-interactive: var(--ws-primary-dark);
+  --color-interactive-hover: color-mix(in oklch, var(--ws-primary-dark) 85%, white);
+  --color-interactive-focus: var(--ws-primary-dark);
+  --color-interactive-subtle: color-mix(in oklch, var(--ws-primary-dark) 15%, black);
 }
 
 /* Markdowndocs gem views — required so Tailwind scans the gem's templates.

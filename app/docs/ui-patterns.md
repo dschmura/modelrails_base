@@ -62,24 +62,34 @@ Dark mode uses a class-based toggle (`.dark` on `<html>`) instead of a media que
 
 ### Workspace Branding
 
-Workspace-scoped routes emit a `--ws-primary` CSS custom property and a
+Workspace-scoped routes emit two OKLCH custom properties and a
 `data-workspace-branded` marker on `<main>`, activating a cascade that
 recolors the interactive tokens for that workspace:
 
 ```erb
 <main data-workspace-branded
-      style="--ws-primary: oklch(0.40 0.15 <hue>);">
+      style="--ws-primary-light: oklch(0.40 0.15 <hue>); --ws-primary-dark: oklch(0.78 0.10 <hue>);">
 ```
+
+The two-variable scheme:
+
+- `--ws-primary-light` (L=0.40) — used in light mode; hits 7:1 AAA on white.
+- `--ws-primary-dark` (L=0.78) — used in dark mode; hits 7:1 AAA on slate-800.
 
 The cascade (in `app/assets/tailwind/application.css` under the "Workspace
 Branding Override" block) remaps:
 
-- `--color-interactive` ← `var(--ws-primary)`
-- `--color-interactive-hover` ← `color-mix(in oklch, --ws-primary 80%, black)`
-- `--color-interactive-focus` ← `var(--ws-primary)`
-- `--color-interactive-subtle` ← `color-mix(in oklch, --ws-primary 10%, white)`
+- Light mode: `--color-interactive` ← `var(--ws-primary-light)`, hover/subtle
+  derived via `color-mix(..., black|white)`.
+- Dark mode: `--color-interactive` ← `var(--ws-primary-dark)` directly (no
+  color-mix), hover/subtle derived via `color-mix(..., white|black)`.
 
-Dark-mode variants mix with white instead of black for appropriate contrast.
+Why direct OKLCH literals in dark mode: the previous design used
+`color-mix(--ws-primary, white)` to lighten the dark-mode brand color.
+That produced flaky AAA contrast in CI's Playwright/axe renderer because
+OKLCH color-mix resolution varied across Chromium/Ubuntu builds. Direct
+literals are deterministic. See `project_flaky_tests_followup.md §2`
+for the investigation.
 
 The `primary_color` column on `workspaces` is an integer OKLCH hue (0–360)
 with default `210` (the app's sky base). When the column matches the
