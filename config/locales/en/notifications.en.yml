@@ -68,6 +68,23 @@ en:
         enabled_label: "Enable quiet hours"
         start_label: "From"
         end_label: "Until"
+        active_days_label: "On these days"
+        days:
+          monday: "Mon"
+          tuesday: "Tue"
+          wednesday: "Wed"
+          thursday: "Thu"
+          friday: "Fri"
+          saturday: "Sat"
+          sunday: "Sun"
+        days_full:
+          monday: "Monday"
+          tuesday: "Tuesday"
+          wednesday: "Wednesday"
+          thursday: "Thursday"
+          friday: "Friday"
+          saturday: "Saturday"
+          sunday: "Sunday"
         security_reassurance: "Security alerts will always come through."
       migration_banner:
         message: "We simplified notifications — take a moment to review your preferences."
