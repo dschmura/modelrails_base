@@ -153,8 +153,8 @@
                   class="min-h-[44px] px-3 rounded-md bg-surface text-text-body border border-border-strong
                          focus:outline-none focus:ring-2 focus:ring-interactive-focus">
             <% NotificationPreferences::EMAIL_FREQUENCIES.each do |freq| %>
-              <% selected = prefs.dig("delivery_methods", "email", "frequency") == freq %>
-              <option value="<%= freq %>" <%= "selected" if selected %>>
+              <option value="<%= freq %>"
+                      <% if prefs.dig("delivery_methods", "email", "frequency") == freq %>selected<% end %>>
                 <%= t("notifications.preferences.delivery_methods.frequency.options.#{freq}") %>
               </option>
             <% end %>
