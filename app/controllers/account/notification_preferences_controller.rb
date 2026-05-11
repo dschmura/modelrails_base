@@ -78,6 +78,17 @@ module Account
         qh = changes["quiet_hours"]
         return :rejected if qh["start"].present? && !qh["start"].match?(HH_MM_REGEX)
         return :rejected if qh["end"].present?   && !qh["end"].match?(HH_MM_REGEX)
+        if qh.key?("active_days")
+          days = qh["active_days"]
+          return :rejected unless days.is_a?(Array)
+          # Strip Rails' hidden-empty-sentinel values that the day-picker form
+          # always includes (so the param exists even when zero boxes are
+          # checked). Empty array post-strip = user selected zero days =
+          # quiet hours effectively off (value object treats it as such).
+          days = days.reject(&:blank?)
+          return :rejected unless (days - NotificationPreferences::DAYS_OF_WEEK).empty?
+          qh["active_days"] = days
+        end
       end
 
       coerce_booleans!(changes)

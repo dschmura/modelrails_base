@@ -64,7 +64,7 @@ RSpec.describe "Notification preferences", type: :system do
       end
     end
 
-    it "renders Card 3: Quiet Hours with toggle + start/end time inputs + reassurance text" do
+    it "renders Card 3: Quiet Hours with toggle + start/end time inputs + day picker + reassurance text" do
       expect(page).to have_css("h2", text: I18n.t("notifications.preferences.quiet_hours.heading"))
       expect(page).to have_css(
         'input[type="checkbox"][name="notification_preferences[quiet_hours][enabled]"]',
@@ -78,6 +78,26 @@ RSpec.describe "Notification preferences", type: :system do
         'input[type="time"][name="notification_preferences[quiet_hours][end]"]',
         visible: :all
       )
+      # Per-weekday day picker: 7 checkboxes (one per day) + 1 hidden empty
+      # sentinel so the array param is always submitted = 8 total inputs
+      # under the `active_days[]` name.
+      day_checkboxes = all(
+        'input[name="notification_preferences[quiet_hours][active_days][]"]',
+        visible: :all
+      )
+      expect(day_checkboxes.size).to eq(8)
+      # Hidden sentinel (empty value) ensures unchecking-all submits as [""].
+      expect(page).to have_css(
+        'input[type="hidden"][name="notification_preferences[quiet_hours][active_days][]"][value=""]',
+        visible: :all
+      )
+      # All 7 day-name checkboxes by value.
+      %w[monday tuesday wednesday thursday friday saturday sunday].each do |day|
+        expect(page).to have_css(
+          %Q(input[type="checkbox"][name="notification_preferences[quiet_hours][active_days][]"][value="#{day}"]),
+          visible: :all
+        )
+      end
       # Fixed reassurance text (decision #6: NOT a toggle, just a guarantee).
       expect(page).to have_text(I18n.t("notifications.preferences.quiet_hours.security_reassurance"))
     end
