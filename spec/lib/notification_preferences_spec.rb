@@ -199,6 +199,94 @@ RSpec.describe NotificationPreferences do
         expect { prefs_for(jsonb, timezone: nil).quiet_hours_active? }.not_to raise_error
       end
     end
+
+    # Per-weekday filtering. `active_days` is an optional array of lowercase
+    # day names ("monday"..."sunday"). Missing = legacy / all-7-days for
+    # backward compat. Empty array = no days selected = quiet hours never
+    # active. Day check is applied to the CURRENT day in the user's
+    # timezone; overnight-window users on a day not in active_days fall
+    # outside QH even if the time-of-day is inside the wrap.
+    context "active_days excludes today" do
+      let(:start_t) { "09:00" }
+      let(:end_t)   { "17:00" }
+
+      it "returns false when today's weekday is not in active_days" do
+        # 2026-05-10 is a Sunday in America/New_York; active only Monday-Friday.
+        jsonb = enabled_jsonb.deep_merge(
+          "quiet_hours" => { "active_days" => %w[monday tuesday wednesday thursday friday] }
+        )
+        travel_to(tz.parse("2026-05-10 13:00:00")) do
+          expect(prefs_for(jsonb).quiet_hours_active?).to be false
+        end
+      end
+    end
+
+    context "active_days includes today" do
+      let(:start_t) { "09:00" }
+      let(:end_t)   { "17:00" }
+
+      it "returns true when today's weekday is in active_days and time is in window" do
+        # 2026-05-11 is a Monday in America/New_York; active Monday only.
+        jsonb = enabled_jsonb.deep_merge(
+          "quiet_hours" => { "active_days" => %w[monday] }
+        )
+        travel_to(tz.parse("2026-05-11 13:00:00")) do
+          expect(prefs_for(jsonb).quiet_hours_active?).to be true
+        end
+      end
+    end
+
+    context "active_days empty array" do
+      let(:start_t) { "00:00" }
+      let(:end_t)   { "23:59" }
+
+      it "returns false (no days selected = quiet hours effectively off)" do
+        jsonb = enabled_jsonb.deep_merge(
+          "quiet_hours" => { "active_days" => [] }
+        )
+        travel_to(tz.parse("2026-05-11 13:00:00")) do
+          expect(prefs_for(jsonb).quiet_hours_active?).to be false
+        end
+      end
+    end
+
+    context "active_days missing (legacy data backward compat)" do
+      let(:start_t) { "09:00" }
+      let(:end_t)   { "17:00" }
+
+      it "applies window every day when active_days key is absent" do
+        # No active_days key in jsonb — legacy data shape from pre-PR rows.
+        # Should behave as if all 7 days are active.
+        jsonb = enabled_jsonb # has no active_days key
+        travel_to(tz.parse("2026-05-11 13:00:00")) do
+          expect(prefs_for(jsonb).quiet_hours_active?).to be true
+        end
+      end
+    end
+
+    context "active_days with overnight window" do
+      let(:start_t) { "22:00" }
+      let(:end_t)   { "07:00" }
+      let(:active_only_sunday) do
+        enabled_jsonb.deep_merge("quiet_hours" => { "active_days" => %w[sunday] })
+      end
+
+      it "is active at 23:30 Sunday (day matches, time in window)" do
+        travel_to(tz.parse("2026-05-10 23:30:00")) do
+          expect(prefs_for(active_only_sunday).quiet_hours_active?).to be true
+        end
+      end
+
+      it "is NOT active at 06:00 Monday (time still in overnight wrap, but Monday not in active_days)" do
+        # Documents the chosen semantic: per-weekday check is applied to
+        # the CURRENT day, not the day the window started. Users who want
+        # "Sunday-night sleep through Monday morning" must include Monday
+        # in active_days.
+        travel_to(tz.parse("2026-05-11 06:00:00")) do
+          expect(prefs_for(active_only_sunday).quiet_hours_active?).to be false
+        end
+      end
+    end
   end
 
   describe "#allow? with quiet hours active" do

@@ -23,6 +23,10 @@ class NotificationPreferences
   # Digest is folded into Email channel's frequency selector — no longer a channel.
   CHANNELS   = %w[in_app email].freeze
   EMAIL_FREQUENCIES = %w[instant daily weekly].freeze
+  # Lowercase day names used in quiet_hours.active_days. Matches the output
+  # of `Time#strftime("%A").downcase` so day-membership checks are direct
+  # string comparisons.
+  DAYS_OF_WEEK = %w[monday tuesday wednesday thursday friday saturday sunday].freeze
   SECURITY_CATEGORY = "security"
   # NotificationCleanupJob enforces a 1-year retention floor on security
   # notifications regardless of user preference.
@@ -76,12 +80,27 @@ class NotificationPreferences
   # Whether quiet hours are currently suppressing non-security delivery.
   # Wraps midnight if start > end (e.g., 22:00..07:00). Falls back to
   # Time.zone if the user has no timezone set — never raises.
+  #
+  # Per-weekday filter via `quiet_hours.active_days`:
+  #   - Missing key (legacy data) → behaves as all 7 days active.
+  #   - Empty array → quiet hours never active (no days selected).
+  #   - Non-empty array → only suppress on listed days. Check is against the
+  #     CURRENT calendar day in the user's timezone — overnight windows
+  #     (22:00..07:00) on a non-active day get no suppression in the wrap,
+  #     even if the time-of-day falls inside the window's wrap portion.
   def quiet_hours_active?(now: Time.current)
     qh = @data["quiet_hours"] || {}
     return false unless qh["enabled"] == true
 
     zone_name = @user&.preferences&.timezone
     zone = (zone_name && ActiveSupport::TimeZone[zone_name]) || Time.zone
+
+    active_days = qh["active_days"]
+    if active_days.is_a?(Array)
+      today = zone.now.strftime("%A").downcase
+      return false unless active_days.include?(today)
+    end
+
     cur = zone.now.strftime("%H:%M")
     s = qh["start"] || "22:00"
     e = qh["end"]   || "07:00"

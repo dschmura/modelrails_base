@@ -230,6 +230,38 @@ RSpec.describe "Account Notification Preferences", type: :request do
           expect(response).to have_http_status(:unprocessable_entity)
         end
 
+        it "accepts quiet_hours.active_days when every entry is a valid day name" do
+          patch account_notification_preferences_path, params: {
+            notification_preferences: {
+              quiet_hours: { active_days: %w[monday tuesday wednesday thursday friday] }
+            }
+          }
+
+          expect(response).to have_http_status(:found)
+          expect(user.preferences.reload.notification_preferences.dig("quiet_hours", "active_days"))
+            .to eq(%w[monday tuesday wednesday thursday friday])
+        end
+
+        it "rejects quiet_hours.active_days containing an unknown day with 422" do
+          patch account_notification_preferences_path, params: {
+            notification_preferences: {
+              quiet_hours: { active_days: %w[monday funday] }
+            }
+          }
+
+          expect(response).to have_http_status(:unprocessable_entity)
+        end
+
+        it "rejects quiet_hours.active_days when sent as a non-array shape" do
+          patch account_notification_preferences_path, params: {
+            notification_preferences: {
+              quiet_hours: { active_days: "monday" }
+            }
+          }
+
+          expect(response).to have_http_status(:unprocessable_entity)
+        end
+
         it "leaves the JSONB untouched when validation rejects the request" do
           original = user.preferences.notification_preferences.deep_dup
 

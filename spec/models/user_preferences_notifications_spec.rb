@@ -40,9 +40,15 @@ RSpec.describe UserPreferences, "notification_preferences columns" do
         "email" => { "enabled" => true, "frequency" => "instant" }
       )
       # Quiet hours scheduled but disabled — schedule is the schema default
-      # so toggling enabled is the only step the user needs.
+      # so toggling enabled is the only step the user needs. active_days
+      # defaults to all 7 (added in migration 20260511180000); per-weekday
+      # filtering is opt-in via the UI.
       expect(np["quiet_hours"]).to eq(
-        "enabled" => false, "start" => "22:00", "end" => "07:00", "allow_urgent" => true
+        "enabled" => false,
+        "start" => "22:00",
+        "end" => "07:00",
+        "allow_urgent" => true,
+        "active_days" => %w[monday tuesday wednesday thursday friday saturday sunday]
       )
     end
 
