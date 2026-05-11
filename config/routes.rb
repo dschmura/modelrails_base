@@ -24,7 +24,9 @@ Rails.application.routes.draw do
       get :hub
     end
     resource :theme_preference, only: [ :update ]
-    resource :notification_preferences, only: [ :edit, :update ]
+    resource :notification_preferences, only: [ :edit, :update ] do
+      post :dismiss_banner
+    end
     namespace :preferences do
       resource :timezone, only: [ :update ]
     end
