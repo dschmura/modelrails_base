@@ -324,5 +324,60 @@ RSpec.describe "Account Notifications", type: :request do
         expect { foreign.reload }.not_to raise_error
       end
     end
+
+    # Cross-tab read-state sync: when read_at changes on any of the user's
+    # notifications, the bell-button frame is broadcast to the user's
+    # `[user, :notifications]` Turbo channel. Tab A's direct response also
+    # refreshes its own bell; the broadcast covers Tab B and beyond. The
+    # broadcast uses the same target/partial shape that ApplicationNotifier
+    # uses for new-arrival broadcasts (see `broadcast_notifications_arrival`),
+    # so receiving clients only need one stream subscription.
+    describe "cross-tab read-state sync (bell button broadcast)" do
+      let(:notification) { deliver_security_notification }
+
+      it "broadcasts a bell-button refresh on PATCH (mark single notification read)" do
+        notification # ensure dispatched
+        expect(Turbo::StreamsChannel).to receive(:broadcast_replace_to)
+          .with([ user, :notifications ],
+                target: "notifications_bell_frame",
+                partial: "shared/notifications_bell_button",
+                locals: hash_including(user: user))
+
+        patch account_notification_path(notification), params: { read_at: "now" }
+      end
+
+      it "broadcasts a bell-button refresh on POST mark_all_read" do
+        # Seed an unread notification so mark_all_read has something to flip.
+        notification
+
+        expect(Turbo::StreamsChannel).to receive(:broadcast_replace_to)
+          .with([ user, :notifications ],
+                target: "notifications_bell_frame",
+                partial: "shared/notifications_bell_button",
+                locals: hash_including(user: user))
+
+        post mark_all_read_account_notifications_path
+      end
+
+      it "broadcasts a bell-button refresh on GET /:id/open (bell-dropdown click)" do
+        notification
+
+        expect(Turbo::StreamsChannel).to receive(:broadcast_replace_to)
+          .with([ user, :notifications ],
+                target: "notifications_bell_frame",
+                partial: "shared/notifications_bell_button",
+                locals: hash_including(user: user))
+
+        get open_account_notification_path(notification)
+      end
+
+      it "does NOT broadcast a bell refresh on GET /:id/open when notification is already read (idempotent no-op)" do
+        notification.update!(read_at: 1.hour.ago)
+
+        expect(Turbo::StreamsChannel).not_to receive(:broadcast_replace_to)
+
+        get open_account_notification_path(notification)
+      end
+    end
   end
 end
