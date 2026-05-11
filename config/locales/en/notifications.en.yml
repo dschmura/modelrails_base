@@ -11,19 +11,7 @@ en:
         one:   "1 unread"
         other: "%{count} unread"
       unread_with_dnd: "%{count} unread (%{hidden} hidden by Do Not Disturb)"
-    categories:
-      security: "Security"
-      account_access: "Account & Access"
-      workspace_activity: "Workspace Activity"
-      project_activity: "Project Activity"
-      billing: "Billing"
-    channels:
-      in_app: "In-app notifications"
-      email: "Email"
-      digest: "Digest"
     preferences:
-      do_not_disturb: "Do Not Disturb"
-      do_not_disturb_description: "Pauses most notifications. Security alerts (such as password changes and sign-in events) are always delivered."
       heading: "Notification preferences"
       timezone:
         heading: "Your timezone"
@@ -38,9 +26,6 @@ en:
         workspace_activity: "Workspace activity"
         project_activity: "Project activity"
         billing: "Billing"
-      channels:
-        in_app: "In-app"
-        email: "Email"
       notification_types:
         heading: "Notification types"
         description: "Choose which kinds of notifications you receive."
@@ -84,6 +69,10 @@ en:
         start_label: "From"
         end_label: "Until"
         security_reassurance: "Security alerts will always come through."
+      migration_banner:
+        message: "We simplified notifications — take a moment to review your preferences."
+        dismiss: "Dismiss"
+        dismiss_aria: "Dismiss the notifications-redesign banner"
       advanced:
         heading: "Advanced"
         retention_label: "Auto-delete read notifications after"
