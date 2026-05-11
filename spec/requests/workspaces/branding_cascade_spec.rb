@@ -15,15 +15,24 @@ RSpec.describe "Workspace branding cascade", type: :request do
       expect(response.body).to match(/<main[^>]+data-workspace-branded/)
     end
 
-    it "emits --ws-primary using the workspace's primary_color hue" do
+    it "emits --ws-primary-light at AAA-friendly L=0.40 for the hue" do
       get workspace_path(workspace)
-      expect(response.body).to include("--ws-primary: oklch(0.40 0.15 270)")
+      expect(response.body).to include("--ws-primary-light: oklch(0.40 0.15 270)")
     end
 
-    it "falls back to hue 210 when primary_color is nil" do
+    it "emits --ws-primary-dark at AAA-friendly L=0.78 for dark mode" do
+      # Two-variable scheme: dark-mode brand uses a directly-lighter OKLCH
+      # literal instead of color-mix(... toward white) so contrast is
+      # deterministic across renderers (was a CI/local axe flake source).
+      get workspace_path(workspace)
+      expect(response.body).to include("--ws-primary-dark: oklch(0.78 0.10 270)")
+    end
+
+    it "falls back to hue 210 for both variables when primary_color is nil" do
       workspace.update!(primary_color: nil)
       get workspace_path(workspace)
-      expect(response.body).to include("--ws-primary: oklch(0.40 0.15 210)")
+      expect(response.body).to include("--ws-primary-light: oklch(0.40 0.15 210)")
+      expect(response.body).to include("--ws-primary-dark: oklch(0.78 0.10 210)")
     end
   end
 

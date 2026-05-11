@@ -19,20 +19,15 @@ module PlaywrightAccessibility
   #                     AA. Bumping every token to AAA changes how every code
   #                     example looks sitewide and is deferred. Was previously
   #                     gated via `pending` markers in spec/system/docs_spec.rb.
-  # - [data-workspace-branded] .text-interactive
-  # - [data-workspace-branded] .bg-interactive
-  #                     Workspace branding cascades `--color-interactive` from
-  #                     `--ws-primary` (oklch(0.40 0.15 hue)) via `color-mix`.
-  #                     The resulting L≈58 (dark mode) and L≈40 (light mode
-  #                     against white text) both land ~6.2–6.6:1 on their
-  #                     respective surfaces — fails AAA 7:1. Bumping the
-  #                     color-mix toward white makes default-hue surfaces
-  #                     pale and risks visual regressions for branded
-  #                     workspaces; the durable fix is a per-shade two-variable
-  #                     scheme (light + dark ws-primary). Tracked as a
-  #                     follow-up; both `text-interactive` (links) and
-  #                     `bg-interactive` (active filter chip and similar)
-  #                     are excluded under the same umbrella.
+  # - .text-danger      Danger signal text on default surfaces under specific
+  #                     hue cascades sits below AAA in dark mode. Tracked
+  #                     separately from workspace-branded interactive debt.
+  #
+  # `.text-interactive` and `.bg-interactive` were previously deferred under
+  # the workspace-branded color-mix umbrella; the durable two-variable scheme
+  # (`--ws-primary-light` + `--ws-primary-dark`, see
+  # `app/assets/tailwind/application.css` "Workspace Branding Override")
+  # made them AAA-compliant deterministically, so they are no longer excluded.
   #
   # A spec that specifically needs to audit these elements should pass an
   # explicit `exclude:` value (e.g., `exclude: [".biscuit-banner"]` to keep
@@ -41,8 +36,6 @@ module PlaywrightAccessibility
   DEFERRED_AAA_EXCLUDES = [
     ".biscuit-banner",
     ".highlight",
-    ".text-interactive",
-    ".bg-interactive",
     ".text-danger"
   ].freeze
 
