@@ -94,7 +94,7 @@ RSpec.describe WorkspaceInvitationExpiringSoonNotifier, type: :notifier do
 
     it "suppresses both in-app and email under DND (account_access does NOT bypass)" do
       prefs.update!(notification_preferences:
-        prefs.notification_preferences.merge("do_not_disturb" => true))
+        prefs.notification_preferences.merge("quiet_hours" => { "enabled" => true, "start" => "00:00", "end" => "23:59", "allow_urgent" => true }))
 
       expect {
         described_class.with(record: invitation).deliver(invitee)

@@ -240,7 +240,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_10_212832) do
     t.datetime "dismissed_notifications_redesign_banner_at"
     t.string "docs_mode"
     t.string "locale"
-    t.json "notification_preferences", default: {"do_not_disturb" => false, "digest" => {"enabled" => true, "cadence" => "daily", "hour_local" => 8}, "categories" => {"security" => {"in_app" => true, "email" => true, "digest" => false}, "account_access" => {"in_app" => true, "email" => true, "digest" => false}, "workspace_activity" => {"in_app" => true, "email" => false, "digest" => true}, "project_activity" => {"in_app" => true, "email" => false, "digest" => true}, "billing" => {"in_app" => true, "email" => true, "digest" => false}}, "retention_days" => 90}, null: false
+    t.json "notification_preferences", default: {"notification_types" => {"security" => true, "account_access" => true, "workspace_activity" => true, "project_activity" => true, "billing" => true}, "delivery_methods" => {"in_app" => {"enabled" => true}, "email" => {"enabled" => true, "frequency" => "instant"}}, "quiet_hours" => {"enabled" => false, "start" => "22:00", "end" => "07:00", "allow_urgent" => true}, "retention_days" => 90}, null: false
     t.string "theme", default: "system"
     t.string "timezone"
     t.datetime "updated_at", null: false

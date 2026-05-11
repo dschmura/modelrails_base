@@ -140,7 +140,7 @@ RSpec.describe ApplicationNotifier, type: :notifier do
 
     it "returns false when DND is on for non-security" do
       prefs.update!(notification_preferences:
-        prefs.notification_preferences.merge("do_not_disturb" => true))
+        prefs.notification_preferences.merge("quiet_hours" => { "enabled" => true, "start" => "00:00", "end" => "23:59", "allow_urgent" => true }))
       StubAccountAccessNotifier.with(record: user).deliver(user)
       notification = user.notifications.last
       expect(notification.recipient_pref(:email)).to be false
@@ -148,7 +148,7 @@ RSpec.describe ApplicationNotifier, type: :notifier do
 
     it "still returns true for security under DND" do
       prefs.update!(notification_preferences:
-        prefs.notification_preferences.merge("do_not_disturb" => true))
+        prefs.notification_preferences.merge("quiet_hours" => { "enabled" => true, "start" => "00:00", "end" => "23:59", "allow_urgent" => true }))
       StubSecurityNotifier.with(record: user).deliver(user)
       notification = user.notifications.last
       expect(notification.recipient_pref(:email)).to be true
@@ -195,7 +195,7 @@ RSpec.describe ApplicationNotifier, type: :notifier do
       user = create(:user)
       user_prefs = create(:user_preferences, user: user)
       user_prefs.update!(notification_preferences:
-        user_prefs.notification_preferences.merge("do_not_disturb" => true))
+        user_prefs.notification_preferences.merge("quiet_hours" => { "enabled" => true, "start" => "00:00", "end" => "23:59", "allow_urgent" => true }))
 
       prefs = ApplicationNotifier.new.send(:preferences_for, user.reload)
 

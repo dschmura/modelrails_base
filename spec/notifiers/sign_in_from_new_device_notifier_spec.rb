@@ -90,7 +90,7 @@ RSpec.describe SignInFromNewDeviceNotifier, type: :notifier do
 
     before do
       prefs.update!(notification_preferences:
-        prefs.notification_preferences.merge("do_not_disturb" => true))
+        prefs.notification_preferences.merge("quiet_hours" => { "enabled" => true, "start" => "00:00", "end" => "23:59", "allow_urgent" => true }))
     end
 
     it "still permits in-app under DND" do

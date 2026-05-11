@@ -12,8 +12,36 @@ class ReshapeNotificationPreferencesJsonb < ActiveRecord::Migration[8.1]
   # legacy JSONB values — documented trade-off for an IA migration that
   # accepts the loss in exchange for not maintaining a dual-shape
   # backfill forever.
+  # New-shape JSONB default for the column. Future inserts (via
+  # create_preferences! or factories) start with this shape so callers
+  # don't need to handle the old-shape-vs-new-shape duality.
+  NEW_DEFAULT_JSONB = {
+    "notification_types" => {
+      "security" => true,
+      "account_access" => true,
+      "workspace_activity" => true,
+      "project_activity" => true,
+      "billing" => true
+    },
+    "delivery_methods" => {
+      "in_app" => { "enabled" => true },
+      "email"  => { "enabled" => true, "frequency" => "instant" }
+    },
+    "quiet_hours" => {
+      "enabled" => false,
+      "start" => "22:00",
+      "end" => "07:00",
+      "allow_urgent" => true
+    },
+    "retention_days" => 90
+  }.freeze
+
   def up
     add_column :user_preferences, :dismissed_notifications_redesign_banner_at, :datetime
+
+    # Update the column default to the new shape so future inserts
+    # (factories, create_preferences!) start with the new structure.
+    change_column_default :user_preferences, :notification_preferences, NEW_DEFAULT_JSONB
 
     UserPreferences.reset_column_information
 

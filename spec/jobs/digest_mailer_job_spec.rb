@@ -50,7 +50,7 @@ RSpec.describe DigestMailerJob, type: :job do
           .with(record: invitation)
           .deliver(user)
         prefs = user.preferences.notification_preferences
-        user.preferences.update!(notification_preferences: prefs.merge("do_not_disturb" => true))
+        user.preferences.update!(notification_preferences: prefs.merge("quiet_hours" => { "enabled" => true, "start" => "00:00", "end" => "23:59", "allow_urgent" => true }))
         previous_due = user.preferences.digest_next_due_at
 
         expect {

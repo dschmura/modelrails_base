@@ -65,7 +65,7 @@ RSpec.describe "Notification preferences", type: :system do
     it "shows the unread-with-dnd title on the bell when DND is active and user has unread" do
       # Seed DND on + an unread notification so the tooltip surfaces.
       user.preferences.update!(
-        notification_preferences: user.preferences.notification_preferences.merge("do_not_disturb" => true)
+        notification_preferences: user.preferences.notification_preferences.merge("quiet_hours" => { "enabled" => true, "start" => "00:00", "end" => "23:59", "allow_urgent" => true })
       )
       PasswordChangedNotifier.with(record: user).deliver(user)
 

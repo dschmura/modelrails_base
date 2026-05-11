@@ -211,7 +211,7 @@ RSpec.describe WorkspaceMemberAddedNotifier, type: :notifier do
     it "suppresses both email and in-app for the added user (workspace_activity does NOT bypass DND)" do
       prefs = create(:user_preferences, user: added_user)
       prefs.update!(notification_preferences:
-        prefs.notification_preferences.merge("do_not_disturb" => true))
+        prefs.notification_preferences.merge("quiet_hours" => { "enabled" => true, "start" => "00:00", "end" => "23:59", "allow_urgent" => true }))
 
       expect {
         add_member!
