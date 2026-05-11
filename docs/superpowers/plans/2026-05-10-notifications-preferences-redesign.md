@@ -55,13 +55,17 @@ Implementation: `spec/system/account/notification_preferences_mobile_spec.rb`. U
 
 ---
 
-## PR sequence (3 PRs)
+## PR sequence (4 PRs — PR-3 split during execution)
 
-1. **PR-1 — Phase 0: Visual foundation** (Tasks 1–4): Reusable `_preferences_card` + `_preferences_row` partials. OKLCH token audit. Refactor `edit.html.erb` to render the existing v1 5×3 matrix through the new partials — no behavior change. Component-level partial specs. AAA contrast verified for new layout. **Merge gate:** existing 11 request specs still pass; visual swap complete; partials documented.
+> **Plan revision 2026-05-11:** PR-3 was originally scoped as a single 10-task ship. Mid-flight (Task 9c) the value-object contract change cascaded into ~14 spec files and a fatigue pause was taken. A review panel (DHH / Dave Thomas / Chris Oliver, synthesized through Sandi Metz + Jim Weirich) recommended splitting PR-3 at the Task 12 boundary so the data shape and the UI ship together, with chrome/polish following in a separate PR. See [docs/superpowers/handoff/2026-05-11-pr3-preferences-redesign-handoff.md](../handoff/2026-05-11-pr3-preferences-redesign-handoff.md) for the split decision and resume context.
 
-2. **PR-2 — Phase 0.5: Timezone beacon** (Tasks 5–7): `POST /account/preferences/timezone` endpoint with idempotent write semantics. `timezone_beacon_controller.js` Stimulus controller. "Detected timezone" surface on preferences page with native `<select>` Change action. Timezones helper for the optgroup-structured option list. **Merge gate:** beacon idempotency + auth contract verified; system spec for round-trip; preferences page shows detected zone.
+1. **PR-1 — Phase 0: Visual foundation** (Tasks 1–4): Reusable `_preferences_card` + `_preferences_row` partials. OKLCH token audit. Refactor `edit.html.erb` to render the existing v1 5×3 matrix through the new partials — no behavior change. Component-level partial specs. AAA contrast verified for new layout. **Merge gate:** existing 11 request specs still pass; visual swap complete; partials documented. **Status: shipped (#76).**
 
-3. **PR-3 — Phase 1: JSONB reshape + IA + Quiet Hours** (Tasks 8–17): Data migration reshapes existing JSONB rows per the spec's backfill rules. `NotificationPreferences` value object rewritten for new shape. `quiet_hours_active?` with all 8 test cases. `Account::NotificationPreferencesController#update` rewired for new params shape. Edit view rewritten as four cards. Migration banner + dismiss endpoint + user-menu dot. `DigestMailerJob` driven off new frequency selector. Mobile Playwright spec. Locale keys. **Merge gate:** all spec acceptance criteria pass; full suite green; mobile spec green at 375×667.
+2. **PR-2 — Phase 0.5: Timezone beacon** (Tasks 5–7): `POST /account/preferences/timezone` endpoint with idempotent write semantics. `timezone_beacon_controller.js` Stimulus controller. "Detected timezone" surface on preferences page with native `<select>` Change action. Timezones helper for the optgroup-structured option list. **Merge gate:** beacon idempotency + auth contract verified; system spec for round-trip; preferences page shows detected zone. **Status: shipped (#77).**
+
+3. **PR-3a — Phase 1 core: JSONB reshape + IA + Quiet Hours + view** (Tasks 8–12): Data migration reshapes existing JSONB rows per the spec's backfill rules. `NotificationPreferences` value object rewritten for new shape. `quiet_hours_active?` with all 8 test cases. `ApplicationNotifier` + `DigestMailerJob` rewired for the tri-state `allow?` return (`true` / `false` / `:digest`). `Account::NotificationPreferencesController#update` rewired for new params shape. Edit view rewritten as four cards. `DigestMailerJob` driven off `delivery_methods.email.frequency`. **Merge gate:** all five tasks' acceptance criteria pass; full suite green; migration round-trips against a DB seeded with mixed v1/v2 rows; the new IA is live end-to-end (page renders four cards, quiet hours gates non-security email, digest routing reads frequency). **Status: in flight — Task 8 shipped to `feat/preferences-redesign`; Task 9 code complete on `wip/preferences-redesign-handoff`.**
+
+4. **PR-3b — Phase 1 polish: banner + dot + mobile + cleanup** (Tasks 13–17): Migration banner partial + `dismiss_banner` endpoint. User-menu unread-dot CSS pseudo-element. Mobile Playwright system spec at 375×667. Obsolete locale key removal. Final integration sweep. **Merge gate:** banner appears once and dismisses via Turbo; user-menu dot lifecycle works; mobile spec green; no orphaned i18n keys; full suite green. **Rationale for separation:** these are chrome on top of a working redesign, not acceptance criteria for "the redesign is live." Shipping them separately keeps PR-3a reviewable and lets the core data-shape change land without UI-chrome coupling.
 
 ---
 
@@ -257,10 +261,12 @@ Implementation: `spec/system/account/notification_preferences_mobile_spec.rb`. U
 
 ---
 
-## PR-3: Phase 1 — JSONB reshape + IA + Quiet Hours
+## PR-3a: Phase 1 core — JSONB reshape + IA + Quiet Hours + view
 
-**Branch:** `feat/preferences-redesign`
-**Goal:** Reshape the JSONB column, rewrite the value object + controller + view, add Quiet Hours, fold digest into Email frequency, add migration banner. This is the large PR — split internally into 10 atomic-commit tasks.
+**Branch:** `feat/preferences-redesign` (currently parked behind `wip/preferences-redesign-handoff`)
+**Goal:** Reshape the JSONB column, rewrite the value object + notifier + controller + view, add Quiet Hours, fold digest into Email frequency. **Ships the redesign live, end-to-end.** Five atomic-commit tasks (8–12). Polish tasks (banner / dot / mobile / cleanup) ship in PR-3b after this lands.
+
+**Why this split exists:** The original PR-3 bundled 10 tasks. The first 5 are a coherent unit — they change the data shape and the UI together so production never sees a transitional state where the new JSONB shape is live but no view consumes it. The last 5 (Tasks 13–17) are decoration: banner copy, a CSS dot, mobile coverage, locale hygiene, integration smoke. They don't gate "the redesign works"; they gate "the redesign is polished." Splitting lets PR-3a be reviewable and lets PR-3b ship without re-opening the data-shape conversation.
 
 ### Task 8: Data migration — reshape notification_preferences JSONB
 
@@ -348,6 +354,8 @@ Implementation: `spec/system/account/notification_preferences_mobile_spec.rb`. U
 
 ### Task 10: Rewire `ApplicationNotifier` + `DigestMailerJob` for new contract
 
+> **Contract callout (core logic for resumers):** Task 9 changes `NotificationPreferences#allow?(category:, channel:)` from a binary `true|false` to a tri-state `true | false | :digest`. The `:digest` sentinel means "the user wants email, but on a Daily / Weekly cadence — don't deliver now; let `DigestMailerJob` pick it up." The `ApplicationNotifier`'s `deliver_by :email` `if:` proc MUST distinguish `true` (deliver now) from `:digest` (drop from this delivery cycle). A naive truthy check delivers digest items immediately and breaks the entire frequency feature. The pseudocode below shows the correct guard.
+
 - [ ] **Spec first.** Update `spec/notifiers/application_notifier_spec.rb`:
   - Add three new specs: (1) email is suppressed when `quiet_hours_active?` returns true for a non-security category; (2) email is delivered when `quiet_hours_active?` returns true for security; (3) `:digest` sentinel from `allow?` queues for the digest cycle (asserts the email isn't sent immediately).
   - Update `spec/jobs/digest_mailer_job_spec.rb`: replace `DIGEST_ELIGIBLE_CATEGORIES` references with `delivery_methods.email.frequency != "instant"` driven scoping; assert security emails are NEVER digested (always go instant).
@@ -397,6 +405,30 @@ Implementation: `spec/system/account/notification_preferences_mobile_spec.rb`. U
 - [ ] Update locale: add new keys under `notifications.preferences.notification_types.*`, `notifications.preferences.delivery_methods.*`, `notifications.preferences.quiet_hours.*`, `notifications.preferences.advanced.*`. Remove obsolete keys (digest section, matrix-related).
 - [ ] Run — pass.
 - [ ] **Acceptance:** Four cards render; security row shows always-on badge; quiet-hours card shows fixed reassurance text (not a toggle).
+
+### PR-3a merge checklist
+
+- [ ] All five tasks (8–12) committed atomically per Conventional Commits.
+- [ ] Branch is `feat/preferences-redesign`.
+- [ ] Lefthook pre-push passes (RSpec + Rubocop + Brakeman + tailwind_build).
+- [ ] PR description references the spec doc + this plan + the four resolved open questions + the split decision note (this section + handoff).
+- [ ] CI green.
+- [ ] Migration `20260510212832` round-trips cleanly on a fresh DB **AND** against a database seeded with a representative mix of v1 and v2 rows (added per the panel review's "migration round-trip validation against mixed legacy data" finding).
+- [ ] All notifier specs green; `:digest` sentinel handling verified end-to-end.
+- [ ] Four-card edit view renders at desktop; security row shows "Always on" badge; quiet-hours card shows fixed reassurance text (not a toggle).
+- [ ] No new gems added.
+- [ ] No service objects added.
+- [ ] All UI text uses I18n keys (new ones added; obsolete-key cleanup deferred to PR-3b).
+- [ ] Pundit unchanged (no new policies needed).
+
+---
+
+## PR-3b: Phase 1 polish — banner + dot + mobile + cleanup
+
+**Branch:** `feat/preferences-redesign-polish` (cut from `main` after PR-3a merges)
+**Goal:** Add the migration banner, user-menu unread-dot, mobile Playwright spec, locale cleanup, and final integration sweep. These are polish on top of a working redesign. Five atomic-commit tasks (13–17).
+
+**Why this is a separate PR:** None of Tasks 13–17 is on the critical path for "the redesign works." The banner is a passive nudge; the dot is a CSS pseudo-element; the mobile spec is regression protection; locale cleanup is hygiene; the integration sweep is verification. Bundling them with the data-shape change made PR-3 unreviewable. They share a phase but not a ship gate.
 
 ### Task 13: Migration banner + dismiss endpoint
 
@@ -464,19 +496,20 @@ Implementation: `spec/system/account/notification_preferences_mobile_spec.rb`. U
 - [ ] Manual smoke test in browser: sign in, hit `/account/notification_preferences/edit`, toggle each preference, verify each persists, verify auto-submit announcement still fires (PR #74 work).
 - [ ] **Acceptance:** Full suite green; routes complete; migration round-trips; manual smoke covers happy path.
 
-### PR-3 merge checklist
+### PR-3b merge checklist
 
-- [ ] All ten tasks committed atomically per Conventional Commits.
-- [ ] Branch is `feat/preferences-redesign`.
+- [ ] All five tasks (13–17) committed atomically per Conventional Commits.
+- [ ] Branch is `feat/preferences-redesign-polish`.
 - [ ] Lefthook pre-push passes (RSpec + Rubocop + Brakeman + tailwind_build).
-- [ ] PR description references the spec doc + this plan + the four resolved open questions.
+- [ ] PR description references the spec doc + this plan + PR-3a as the prerequisite that landed the data shape.
 - [ ] CI green.
-- [ ] Mobile system spec passes at 375×667.
-- [ ] Migration runs cleanly on a fresh DB AND round-trips via `db:rollback`.
+- [ ] Mobile system spec passes at 375×667 (no horizontal scroll; axe-clean for AAA).
+- [ ] Migration banner renders once per undismissed user; dismisses via Turbo without page reload; never re-renders for that user.
+- [ ] User-menu dot is present when banner is undismissed; absent after dismissal.
+- [ ] No "translation missing" warnings on the preferences page; no orphaned locale keys.
+- [ ] Full suite green at 1601 + new specs.
 - [ ] No new gems added.
 - [ ] No service objects added.
-- [ ] All UI text uses I18n keys.
-- [ ] Pundit unchanged (no new policies needed).
 
 ---
 

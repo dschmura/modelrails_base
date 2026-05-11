@@ -10,6 +10,21 @@
 
 Mid-PR-3 the plan's expected ripple from rewriting the `NotificationPreferences` value object turned out larger than the plan anticipated — the value object's contract change cascaded into ~14 spec files, including subtle contextual transformations (a sed batch-edit corrupted the migration spec's legacy fixtures because the same string `"do_not_disturb" => true` appeared in both intentional v1 input fixtures and v1-style test setups). Continuing fatigue-deep was risk-positive. Honest pause + clean resume is cheaper than fatigue mistakes in main.
 
+## Split decision (post-pause review panel)
+
+Before resuming, the work was reviewed by a three-reviewer panel (DHH on scope, Dave Thomas on design-intent, Chris Oliver on resumability) synthesized through Sandi Metz + Jim Weirich facilitator lenses. All three independently flagged the same structural issue: **the spec is well-scoped, but PR-3's plan boundary lumped a data-shape refactor (Tasks 8–12) with chrome/polish (Tasks 13–17) into one ship gate.** Splitting at the Task 12 boundary keeps the data shape and UI shipping together while letting banner / dot / mobile / locale cleanup land as a separate, smaller PR.
+
+**The split (now reflected in the plan):**
+
+- **PR-3a** = Tasks 8–12 on branch `feat/preferences-redesign`. Ships "the redesign works end-to-end."
+- **PR-3b** = Tasks 13–17 on branch `feat/preferences-redesign-polish` (cut from `main` after PR-3a merges). Ships "the redesign is polished."
+
+**What this changes for the resume runbook below:**
+
+- Steps 1–4 still apply, but the **finish line moves to Task 12**, not Task 17.
+- After Task 12 ships as PR-3a, this handoff ends. PR-3b is a clean new session on a clean new branch — no handoff doc needed.
+- The PR-3a merge gate adds a "migration round-trip against mixed v1/v2 data" check (panel finding); the PR-3b merge gate is unchanged in substance but separately gated.
+
 ## Phase 1 task progress
 
 - [x] **Task 8** — JSONB reshape migration. Committed atomically as `c7bafe5` on `feat/preferences-redesign`.
@@ -30,7 +45,7 @@ Mid-PR-3 the plan's expected ripple from rewriting the `NotificationPreferences`
 **Modified files (uncommitted)**:
 
 | File | Status | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `app/lib/notification_preferences.rb` | **Done** | Rewritten for new shape. 45/45 unit specs green. |
 | `app/models/user_preferences.rb` | **Done** | `notification_preferences_object` now passes `user:` to the value object. |
 | `db/migrate/20260510212832_*.rb` | **Done** | Added `change_column_default` step so new rows get the new-shape JSONB default. |
@@ -55,32 +70,107 @@ mise exec -- bundle exec rspec spec/notifiers spec/jobs spec/mailers spec/system
 
 Expected: ~30 failures across notifier/system/job specs. Production code is green.
 
-### Step 2: Fix the ripple (Task 9c continued)
+### Step 2: Fix the ripple (Task 9c continued) — per-file, no sed
 
-The remaining failures cluster into three patterns:
+> **Tooling rule (panel finding):** Do not run another sed batch over these spec files. The previous sed pass corrupted `spec/migrations/reshape_notification_preferences_jsonb_spec.rb` because `"do_not_disturb" => true` appears both as intentional v1 input fixture (for testing the v1→v2 reshape) and as v1-style test setup (which needs translation). Sed cannot distinguish. Open each spec file, read the surrounding `let`/`before`/`context`, and translate intent — not strings.
 
-**Pattern A — `recipient_pref(:digest)` assertions in notifier specs.** The `:digest` channel was dropped in v2 (folded into email frequency). Each affected spec needs the assertion replaced:
+The remaining failures cluster into three patterns. For each pattern, the runbook below gives a concrete before/after pulled from a real spec file in this branch.
 
-- Under v2 defaults (`email.frequency = "instant"`): `recipient_pref(:email)` returns `true` for non-security categories. Replace `expect(recipient_pref(:digest)).to be true` with `expect(recipient_pref(:email)).to be true`.
-- Under DND/quiet hours active: both channels return `false`. Drop the `:digest` assertion entirely; keep `:in_app` and `:email` assertions which already check the same outcome.
+---
 
-Affected files:
-- `spec/notifiers/workspace_invitation_accepted_notifier_spec.rb` (lines ~63-77)
-- `spec/notifiers/workspace_invitation_declined_notifier_spec.rb` (lines ~62-76)
-- `spec/notifiers/project_membership_changed_notifier_spec.rb` (already partially done — verify)
+**Pattern A — `recipient_pref(:digest)` assertions in notifier specs.** The `:digest` channel was dropped in v2 (folded into email frequency). The new contract: `recipient_pref(:email)` returns `true` when email is enabled at any frequency (instant/daily/weekly).
 
-**Pattern B — `"categories" => { ... matrix ... }` setups in notifier specs.** These hand-build the v1 matrix to test "disable email for category X" scenarios. Translate each to v2 by deciding intent:
+**Concrete before/after** (from [spec/notifiers/workspace_invitation_accepted_notifier_spec.rb:71-77](spec/notifiers/workspace_invitation_accepted_notifier_spec.rb#L71-L77)):
 
-- "Disable email entirely" → `delivery_methods.email.enabled = false`
+```ruby
+# BEFORE (v1 — what's currently failing):
+it "permits in-app + digest under default preferences (workspace_activity)" do
+  described_class.with(record: invitation).deliver(inviter)
+  notification = inviter.notifications.last
+  expect(notification.recipient_pref(:in_app)).to be true
+  expect(notification.recipient_pref(:digest)).to be true
+  expect(notification.recipient_pref(:email)).to be false
+end
+
+# AFTER (v2 — drops the :digest assertion; v2 defaults email.frequency = "daily"
+# for workspace_activity, so :email is now the relevant assertion):
+it "permits in-app under default preferences (workspace_activity)" do
+  described_class.with(record: invitation).deliver(inviter)
+  notification = inviter.notifications.last
+  expect(notification.recipient_pref(:in_app)).to be true
+  expect(notification.recipient_pref(:email)).to be true  # was :digest in v1
+end
+```
+
+**Translation rules:**
+
+- Under v2 defaults with `email.frequency = "instant"`: replace `expect(recipient_pref(:digest)).to be true` with `expect(recipient_pref(:email)).to be true`.
+- Under quiet hours active (the test at [workspace_invitation_accepted_notifier_spec.rb:62-69](spec/notifiers/workspace_invitation_accepted_notifier_spec.rb#L62-L69)): both `:in_app` and `:email` already return `false` — the `:digest` assertion can simply be deleted; the surrounding two assertions already prove the right outcome.
+
+**Affected files** (run `grep -n "recipient_pref(:digest)" spec/notifiers spec/system` to enumerate):
+
+- `spec/notifiers/workspace_invitation_accepted_notifier_spec.rb` (lines ~63–77 — example shown above)
+- `spec/notifiers/workspace_invitation_declined_notifier_spec.rb` (lines ~62–76 — mirror of accepted)
+- `spec/notifiers/project_membership_changed_notifier_spec.rb` (already partially done — verify with grep)
+
+---
+
+**Pattern B — `"categories" => { ... matrix ... }` setups in notifier specs.** These hand-build the v1 5×3 matrix to test "disable email for category X" scenarios. Translate by *intent*, not by mechanical string swap.
+
+**Concrete before/after** (from [spec/notifiers/workspace_member_added_notifier_spec.rb:105-109](spec/notifiers/workspace_member_added_notifier_spec.rb#L105-L109)):
+
+```ruby
+# BEFORE (v1 — flipping workspace_activity.email = true in the matrix):
+prefs = create(:user_preferences, user: added_user)
+categories = prefs.notification_preferences["categories"].deep_dup
+categories["workspace_activity"]["email"] = true
+prefs.update!(notification_preferences:
+  prefs.notification_preferences.merge("categories" => categories))
+
+# AFTER (v2 — intent was "user opts INTO email for workspace_activity";
+# in v2 that means notification_types[workspace_activity] = true AND
+# delivery_methods.email.enabled = true. Both default true post-migration,
+# so the explicit setup is now a no-op — DELETE it. If the test needs
+# a non-default state, build it with the v2 shape directly):
+prefs = create(:user_preferences, user: added_user)
+# (no override needed — v2 defaults are: workspace_activity on, email on @ "daily")
+```
+
+**Translation rules by original intent:**
+
+- "Disable email entirely" → `delivery_methods` ⇒ `{ "email" => { "enabled" => false, "frequency" => "instant" }, "in_app" => { "enabled" => true } }`
 - "Disable a category entirely" → `notification_types[category] = false`
-- "Mixed channel routing" — v2 doesn't have per-cell granularity. The test's intent needs re-examination; in most cases the assertion can use `notification_types[category] = false` to drop the whole category.
+- "Enable email for category X" → in v2 this is *two* axes (category enabled AND email channel enabled). Both default true post-migration; the explicit setup may be a no-op.
+- "Mixed channel routing" — v2 doesn't have per-cell granularity. Re-read the test's behavioral intent (look at the assertion, not the setup); in most cases dropping the category via `notification_types[category] = false` matches the intent.
 
-Affected files (line numbers from `grep -n "categories" => ...`):
+**Affected files** (run `grep -rn '"categories" =>' spec/notifiers spec/system` to enumerate):
+
 - `spec/notifiers/workspace_member_added_notifier_spec.rb:106, 167, 193`
 - `spec/notifiers/workspace_role_changed_notifier_spec.rb:81`
-- `spec/notifiers/workspace_invitation_expiring_soon_notifier_spec.rb` (check via grep)
+- `spec/notifiers/workspace_invitation_expiring_soon_notifier_spec.rb` (verify with grep)
 
-**Pattern C — `spec/system/notification_preferences_spec.rb`.** System spec hits the actual page. The page is still the Phase 0 card-wrapped v1 5×3 matrix layout. Task 12 will rewrite the view as four cards. Some assertions in this system spec may be testing v1 UI behavior that doesn't survive Task 12 — flag those for Task 12-era updates rather than Task 9c.
+---
+
+**Pattern C — `spec/system/notification_preferences_spec.rb`.** System spec hits the actual page. At the end of Task 9c the page is still the Phase 0 card-wrapped v1 5×3 matrix layout. Task 12 (in PR-3a) will rewrite the view as four cards. Some assertions in this system spec test v1 UI behavior that does not survive Task 12.
+
+**Decision rule for Task 9c (now):**
+
+1. **Fix in 9c** — any assertion that tests *backend behavior visible through the page* (form submits, persistence, redirect targets, flash messages). These are layout-agnostic; the new four-card layout still surfaces the same form behavior.
+2. **Skip in 9c, fix in Task 12** — any assertion that asserts DOM structure of the v1 matrix (e.g., `expect(page).to have_css("table.preferences-matrix")`, `within("tr.security-row")`, references to the v1 digest section). Mark these with a pending tag tied to Task 12:
+
+```ruby
+it "renders v1 matrix structure", pending: "rewritten by Task 12 (four-card layout)" do
+  expect(page).to have_css("table.preferences-matrix")  # v1-only DOM
+end
+```
+
+To enumerate, run from the spec file:
+
+```bash
+grep -n -E "preferences-matrix|matrix_heading|tr\.|digest-section|master-dnd" spec/system/notification_preferences_spec.rb
+```
+
+Any line that matches → skip-with-pending. Any line that doesn't → fix now if failing.
 
 ### Step 3: Once 9c is green, commit Task 9 atomically
 
@@ -106,9 +196,29 @@ Then update `ApplicationNotifier`'s `deliver_by :email` `if:` proc to gate on `p
 
 `DigestMailerJob#digest_scope` switches from `DIGEST_ELIGIBLE_CATEGORIES` to filtering on `delivery_methods.email.frequency != "instant"` with security-category exclusion.
 
-### Step 5: Tasks 11–17
+### Step 5: Tasks 11–12 (the PR-3a finish line)
 
-Continue per the plan. Tasks 11–12 are the user-visible-shift tasks (controller + view rewrite). Tasks 13–14 add the banner + dot. Task 15 is the mobile spec. Task 16 cleans locale. Task 17 is the integration sweep.
+Continue per the plan. **The PR-3a finish line is the end of Task 12, not Task 17.** Tasks 13–17 are now PR-3b, a separate PR cut from `main` after PR-3a merges.
+
+- **Task 11** — `Account::NotificationPreferencesController#update`: rewrite `apply_changes!` for the new params shape. Adds validations for `quiet_hours.start` / `quiet_hours.end` (HH:MM regex), `delivery_methods.email.frequency` (one of `instant|daily|weekly`), and `notification_types` keys (must be in `NotificationPreferences::CATEGORIES`).
+- **Task 12** — Rewrite `app/views/account/notification_preferences/edit.html.erb` as four cards (Notification Types / Delivery Method / Quiet Hours / Advanced) using the Phase 0 partials. Update the AAA system spec to assert the new structure. This is when Pattern C's pending-tagged assertions get rewritten for the four-card DOM.
+
+### Step 6: Land PR-3a
+
+After Task 12 passes:
+
+```bash
+mise exec -- bundle exec rspec  # full suite must be green
+mise exec -- bin/rails db:rollback STEP=1 && mise exec -- bin/rails db:migrate  # round-trip check
+# Mixed v1/v2 fixture check (panel finding — added to PR-3a merge gate):
+# Seed a few legacy rows manually in console, rollback, re-migrate, verify reshape is idempotent.
+git checkout feat/preferences-redesign
+git merge wip/preferences-redesign-handoff  # or rebase, depending on house style
+git push -u origin feat/preferences-redesign
+gh pr create  # title: feat(preferences): JSONB reshape + IA + quiet hours + view (PR-3a)
+```
+
+This handoff document ends here. PR-3b (Tasks 13–17) is a clean new session — no handoff context needed because PR-3a will have shipped a stable foundation.
 
 ## Notable production-state observations
 
@@ -124,12 +234,23 @@ Continue per the plan. Tasks 11–12 are the user-visible-shift tasks (controlle
 
 ## TL;DR for resumption
 
-```
+```text
 git checkout wip/preferences-redesign-handoff
 # Read this HANDOFF.md
-# Fix ~30 spec failures (patterns A + B + C above)
+# Fix ~30 spec failures per-file (NO sed) using Pattern A/B/C examples above
 # Commit Task 9 atomically
-# Continue with Task 10 per plan
+# Continue Task 10 (note the :digest sentinel contract — plan §Task 10 has the guard)
+# Tasks 11–12 finish PR-3a
+# Open PR-3a; do NOT continue into Tasks 13–17 in the same PR
 ```
 
-The hard part (data migration, value object, schema default) is done and tested. What remains is mechanical spec rewrites + plan-driven implementation of tasks 10–17.
+The hard part (data migration, value object, schema default) is done and tested. What remains in PR-3a is:
+
+1. **~30 spec assertions** to translate per-file using the concrete before/after patterns in Step 2 above (Patterns A / B / C). Estimate: 2–3 hours focused work.
+2. **Task 10** — notifier + digest job rewiring. Estimate: 0.5–1 day. The `:digest` sentinel contract is now called out at the top of plan §Task 10.
+3. **Task 11** — controller `apply_changes!` rewrite. Estimate: 0.5 day.
+4. **Task 12** — four-card view rewrite + Pattern C pending-assertions rewritten. Estimate: 1 day.
+
+**Estimated PR-3a remaining effort: 3–5 days** (revised from the plan's original 3-day estimate for all 10 tasks — see the panel finding in the Split decision section).
+
+PR-3b (Tasks 13–17) is a separate session, separate branch, separate PR, and is not blocking. Estimated effort there: 1–2 days.
