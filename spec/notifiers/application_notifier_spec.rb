@@ -154,6 +154,19 @@ RSpec.describe ApplicationNotifier, type: :notifier do
       expect(notification.recipient_pref(:email)).to be true
     end
 
+    it "returns the :digest sentinel for email under non-instant frequency (non-security)" do
+      # v2 tri-state: when email is enabled at "daily"/"weekly" frequency, the
+      # value object returns :digest to signal "queue, don't send now." Each
+      # email-delivery notifier's before_enqueue uses `== true` to abort the
+      # immediate send so DigestMailerJob picks it up later.
+      np = prefs.notification_preferences.deep_dup
+      np["delivery_methods"]["email"]["frequency"] = "daily"
+      prefs.update!(notification_preferences: np)
+      StubAccountAccessNotifier.with(record: user).deliver(user)
+      notification = user.notifications.last
+      expect(notification.recipient_pref(:email)).to eq(:digest)
+    end
+
     it "permits non-security in_app when recipient has no preferences row (schema default)" do
       # When a user has no UserPreferences row, the fallback wraps the JSONB
       # column's schema default — which permits in_app for account_access. This

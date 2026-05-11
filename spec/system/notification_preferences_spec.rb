@@ -23,6 +23,7 @@ RSpec.describe "Notification preferences", type: :system do
 
   describe "page render" do
     it "shows the master DND toggle, 5×3 matrix, digest controls, and retention dropdown" do
+      pending "rewritten by Task 12 (four-card layout): Notification Types / Delivery Method / Quiet Hours / Advanced — v1 form names (master_section, categories[*][in_app|email|digest], digest[cadence|hour_local]) are gone in v2"
       visit edit_account_notification_preferences_path
 
       expect(page).to have_css("h1", text: I18n.t("notifications.preferences.heading"))
@@ -47,6 +48,7 @@ RSpec.describe "Notification preferences", type: :system do
 
   describe "auto-save flow" do
     it "flips DND when the master toggle is clicked and persists" do
+      pending "rewritten by Task 12 (four-card layout): the v1 master-DND boolean is replaced by v2's quiet_hours time-window card — the master toggle this test clicks no longer exists, and notification_preferences[\"do_not_disturb\"] is no longer a JSONB key"
       visit edit_account_notification_preferences_path
 
       expect(user.preferences.notification_preferences["do_not_disturb"]).to eq(false)

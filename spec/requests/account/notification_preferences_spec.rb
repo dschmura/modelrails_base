@@ -52,6 +52,7 @@ RSpec.describe "Account Notification Preferences", type: :request do
 
     describe "PATCH /account/notification_preferences" do
       it "flips the do_not_disturb flag in the JSONB column" do
+        pending "rewritten by Task 11 (apply_changes! for v2 params shape): the v1 do_not_disturb boolean is replaced by v2's quiet_hours sub-object with enabled/start/end/allow_urgent"
         expect(user.preferences.notification_preferences["do_not_disturb"]).to eq(false)
 
         patch account_notification_preferences_path, params: {
@@ -62,6 +63,7 @@ RSpec.describe "Account Notification Preferences", type: :request do
       end
 
       it "deep-merges a single category × channel toggle and preserves siblings" do
+        pending "rewritten by Task 11 (apply_changes! for v2 params shape): v2 has no categories matrix — it's notification_types booleans + delivery_methods enabled/frequency"
         original_categories = user.preferences.notification_preferences["categories"].deep_dup
 
         patch account_notification_preferences_path, params: {

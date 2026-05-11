@@ -77,11 +77,11 @@ RSpec.describe WorkspaceRoleChangedNotifier, type: :notifier do
       expect(notification.recipient_pref(:email)).to be false
     end
 
-    it "fires in-app but skips email when account_access.email is false" do
-      categories = prefs.notification_preferences["categories"].deep_dup
-      categories["account_access"]["email"] = false
+    it "fires in-app but skips email when the email channel is disabled" do
+      delivery_methods = prefs.notification_preferences["delivery_methods"].deep_dup
+      delivery_methods["email"]["enabled"] = false
       prefs.update!(notification_preferences:
-        prefs.notification_preferences.merge("categories" => categories))
+        prefs.notification_preferences.merge("delivery_methods" => delivery_methods))
 
       expect {
         described_class.with(record: membership).deliver(user)
