@@ -25,6 +25,7 @@ module Account
 
     def update
       @notification.update!(read_at: mark_read? ? Time.current : nil)
+      broadcast_bell_refresh
       respond_to do |format|
         format.turbo_stream
         format.html { redirect_back fallback_location: account_notifications_path }
@@ -41,7 +42,10 @@ module Account
     # and redirects to the notifier's `#url`. Each notifier subclass owns its
     # destination via `notification_methods do; def url; ...; end; end`.
     def open
-      @notification.update!(read_at: Time.current) if @notification.read_at.nil?
+      if @notification.read_at.nil?
+        @notification.update!(read_at: Time.current)
+        broadcast_bell_refresh
+      end
       redirect_to @notification.url
     end
 
@@ -55,6 +59,7 @@ module Account
       now = Time.current
       Current.user.notifications.where(read_at: nil)
                                 .update_all(read_at: now, updated_at: now)
+      broadcast_bell_refresh
       redirect_to account_notifications_path,
                   notice: t("notifications.index.mark_all_read.success")
     end
@@ -72,6 +77,23 @@ module Account
     end
 
     private
+
+    # Cross-tab read-state sync: broadcast a bell-button refresh to the
+    # current user's `[user, :notifications]` Turbo channel after any
+    # read-state mutation (single mark/unmark, bulk mark-all-read,
+    # bell-dropdown open). Tab A's direct HTTP response already refreshes
+    # its own bell; this broadcast covers Tab B and any other open
+    # browser tab/window. Uses the SAME target + partial shape that
+    # ApplicationNotifier#broadcast_notifications_arrival uses for new
+    # arrivals, so a receiving client needs only one stream subscription.
+    def broadcast_bell_refresh
+      Turbo::StreamsChannel.broadcast_replace_to(
+        [ Current.user, :notifications ],
+        target: "notifications_bell_frame",
+        partial: "shared/notifications_bell_button",
+        locals: { user: Current.user }
+      )
+    end
 
     def set_notification
       @notification = Current.user.notifications.find(params[:id])
