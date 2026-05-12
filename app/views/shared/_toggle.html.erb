@@ -1,21 +1,16 @@
 <%# locals: (name:, label:, checked: false, disabled: false, value: "true", help: nil, hidden_value: nil) -%>
 <%# Switch-style toggle. Wraps a hidden checkbox inside a styled label so
     screen readers get the proper input semantics + the visual is a sliding
-    pill. Used by the notifications-preferences UI; could be reused
-    anywhere else once the project has more toggle surfaces (single
-    callsite for v1, so it stays a partial per project convention). %>
+    pill. The pill's visual state is driven entirely by CSS via Tailwind's
+    group-has-[:checked]: and group-has-[:disabled]: variants — clicks
+    update the visual instantly without waiting for the auto-submit
+    round-trip. The server remains the source of truth on next render. %>
 <%
   toggle_id = "toggle-#{name.to_s.parameterize.tr('_', '-')}-#{SecureRandom.hex(2)}"
-  knob_classes = checked ? "translate-x-5 bg-surface-raised" : "translate-x-0 bg-surface-raised"
-  track_classes = if disabled
-    checked ? "bg-interactive opacity-50 cursor-not-allowed" : "bg-surface-sunken opacity-50 cursor-not-allowed"
-  else
-    checked ? "bg-interactive" : "bg-surface-sunken"
-  end
 %>
 <label for="<%= toggle_id %>"
-       class="inline-flex items-center gap-3 cursor-pointer
-              <%= "cursor-not-allowed" if disabled %>">
+       class="inline-flex items-center gap-3 cursor-pointer group
+              has-[:disabled]:cursor-not-allowed">
   <input type="checkbox"
          id="<%= toggle_id %>"
          name="<%= name %>"
@@ -32,13 +27,15 @@
   <% end %>
   <span aria-hidden="true"
         class="relative inline-block w-11 h-6 rounded-full transition-colors
-               <%= track_classes %>
+               bg-surface-sunken group-has-[:checked]:bg-interactive
+               group-has-[:disabled]:opacity-50
                peer-focus-visible:ring-2 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-interactive-focus">
-    <span class="absolute top-0.5 left-0.5 inline-block w-5 h-5 rounded-full shadow transition-transform
-                 <%= knob_classes %>"></span>
+    <span class="absolute top-0.5 left-0.5 inline-block w-5 h-5 rounded-full shadow
+                 bg-surface-raised transition-transform
+                 translate-x-0 group-has-[:checked]:translate-x-5"></span>
   </span>
   <span class="flex flex-col">
-    <span class="text-sm <%= disabled ? "text-text-muted" : "text-text-body" %>">
+    <span class="text-sm text-text-body group-has-[:disabled]:text-text-muted">
       <%= label %>
     </span>
     <% if help.present? %>
