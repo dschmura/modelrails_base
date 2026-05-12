@@ -3,21 +3,28 @@ require "rails_helper"
 RSpec.describe "Notification Turbo Stream broadcasts" do
   let(:user) { create(:user) }
 
-  it "broadcasts a bell-frame replace to each recipient on event commit" do
+  it "broadcasts bell-frame + dropdown-frame replaces to each recipient on event commit" do
     expect(Turbo::StreamsChannel).to receive(:broadcast_replace_to).with(
       [ a_kind_of(User), :notifications ],
       target: "notifications_bell_frame",
       partial: "shared/notifications_bell_button",
       locals: { user: a_kind_of(User) }
     )
+    expect(Turbo::StreamsChannel).to receive(:broadcast_replace_to).with(
+      [ a_kind_of(User), :notifications ],
+      target: "notifications_dropdown_frame",
+      partial: "shared/notifications_dropdown_list",
+      locals: { user: a_kind_of(User) }
+    )
 
     PasswordChangedNotifier.with(record: user).deliver(user)
   end
 
-  it "broadcasts once per recipient when fanned out" do
+  it "broadcasts both frames once per recipient when fanned out" do
+    # 2 recipients × 2 frames (bell-button + dropdown-list) = 4 total replaces.
     other = create(:user)
 
-    expect(Turbo::StreamsChannel).to receive(:broadcast_replace_to).twice
+    expect(Turbo::StreamsChannel).to receive(:broadcast_replace_to).exactly(4).times
 
     PasswordChangedNotifier.with(record: user).deliver([ user, other ])
   end
