@@ -54,3 +54,9 @@
 
 # Superpowers brainstorm artifacts
 /.superpowers
+
+# Local Claude Code settings (per-user, not project config)
+/.claude/settings.json
+
+# context-mode hook config (per-user tooling)
+/.github/hooks/
