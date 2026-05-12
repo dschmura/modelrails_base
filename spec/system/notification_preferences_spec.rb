@@ -127,6 +127,41 @@ RSpec.describe "Notification preferences", type: :system do
     end
   end
 
+  describe "toggle visual feedback" do
+    # The bug this guards: prior to using peer-checked: variants, the pill's
+    # knob position was computed in Ruby at render time. Clicks updated the
+    # invisible checkbox but the track/knob classes never refreshed, so the
+    # pill appeared frozen even though the data was saved correctly. We
+    # measure the knob's bounding-rect to be CSS-implementation-agnostic.
+    it "moves the pill's knob horizontally when the toggle is clicked" do
+      visit edit_account_notification_preferences_path
+
+      toggle_label = find(
+        'label[for^="toggle-notification-preferences-quiet-hours-enabled"]',
+        visible: :all
+      )
+      toggle_id = toggle_label[:for]
+
+      knob_left_js = <<~JS
+        document.getElementById('#{toggle_id}')
+                .closest('label')
+                .querySelector('span > span')
+                .getBoundingClientRect().left
+      JS
+
+      initial_x = page.evaluate_script(knob_left_js)
+
+      toggle_label.click
+
+      moved = false
+      Timeout.timeout(2) do
+        sleep 0.05 until (moved = page.evaluate_script(knob_left_js) != initial_x)
+      end
+
+      expect(moved).to eq(true), "Toggle pill knob did not move after click — visual feedback is broken"
+    end
+  end
+
   describe "bell tooltip when DND is on" do
     it "shows the unread-with-dnd title on the bell when DND is active and user has unread" do
       # Seed DND on + an unread notification so the tooltip surfaces.
