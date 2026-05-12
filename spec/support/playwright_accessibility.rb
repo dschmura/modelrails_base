@@ -222,15 +222,26 @@ module PlaywrightAccessibility
   def set_theme(theme)
     Capybara.current_session.driver.with_playwright_page do |playwright_page|
       playwright_page.evaluate(<<~JS)
-        (() => {
+        (async () => {
           const html = document.documentElement;
           html.dataset.themeThemeValue = #{theme.to_json};
           html.classList.toggle("dark", #{(theme == "dark").to_json});
           document.cookie = "theme=#{theme};path=/;max-age=31536000;SameSite=Lax";
+          // Force reflow so the cascade recomputes.
+          document.body.offsetHeight;
+          // The flip triggers `transition-colors` on many elements (150ms).
+          // Axe samples computed styles, so without awaiting these transitions
+          // we capture mid-flight interpolations and get phantom AAA failures
+          // (the §2b "surface drift" symptom). Filter to CSSTransition so we
+          // never wait on infinite CSSAnimations (e.g. animate-spin). 500ms
+          // cap is defense-in-depth against runaway transitions.
+          const transitions = document.getAnimations().filter(a => a instanceof CSSTransition);
+          await Promise.race([
+            Promise.allSettled(transitions.map(t => t.finished)),
+            new Promise(r => setTimeout(r, 500))
+          ]);
         })();
       JS
-      # Force a reflow so axe sees the updated computed styles.
-      playwright_page.evaluate("document.body.offsetHeight")
     end
   end
 
