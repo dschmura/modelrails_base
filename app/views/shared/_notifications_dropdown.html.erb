@@ -1,10 +1,11 @@
 <%# locals: (user: Current.user) -%>
 <%# Bell-dropdown panel. Hidden by default; the parent Stimulus controller
     toggles `hidden` via the `panel` target. `user:` is passed by the bell
-    partial so broadcasts (Task 14) can render with `recipient` instead of
-    relying on `Current.user`. %>
+    partial so broadcasts can render with `recipient` instead of relying on
+    `Current.user`. The recent-list lives inside `notifications_dropdown_frame`
+    so broadcasts can replace it without re-rendering the panel chrome
+    (header + see-all link) or disturbing the Stimulus open/closed state. %>
 <% dropdown_user = local_assigns.fetch(:user) { Current.user } %>
-<% recent = recent_notifications_for_dropdown(dropdown_user) %>
 <div data-notification-dropdown-target="panel"
      role="region"
      aria-labelledby="notifications-dropdown-heading"
@@ -22,32 +23,11 @@
                   focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-interactive-focus rounded" %>
   </div>
 
-  <% if recent.any? %>
-    <ul class="divide-y divide-border max-h-96 overflow-y-auto">
-      <% recent.each do |notification| %>
-        <li data-notification-item
-            data-notification-read="<%= notification.read_at? %>"
-            id="<%= dom_id(notification, :dropdown) %>"
-            class="<%= "bg-surface-sunken" unless notification.read_at? %>">
-          <%= link_to main_app.open_account_notification_path(notification),
-                class: "block px-4 py-3 text-text-body
-                        hover:bg-surface focus:bg-surface
-                        focus:outline-none focus:ring-2 focus:ring-inset focus:ring-interactive-focus" do %>
-            <p class="text-sm">
-              <%= notification.message %>
-            </p>
-            <p class="mt-1 text-xs text-text-muted">
-              <time datetime="<%= notification.created_at.iso8601 %>">
-                <%= time_ago_in_words(notification.created_at) %>
-              </time>
-            </p>
-          <% end %>
-        </li>
-      <% end %>
-    </ul>
-  <% else %>
-    <div class="p-4 text-sm text-text-body">
-      <%= t("notifications.bell.empty") %>
-    </div>
-  <% end %>
+  <%# `target="_top"` so clicking a notification link breaks out of the frame
+      and navigates the whole page (each item's destination is the notifier's
+      `#url`, which is always a top-level page). Without this the click would
+      try to load the destination INSIDE the frame and silently fail. %>
+  <turbo-frame id="notifications_dropdown_frame" target="_top">
+    <%= render "shared/notifications_dropdown_list", user: dropdown_user %>
+  </turbo-frame>
 </div>

@@ -1,0 +1,35 @@
+<%# locals: (user:) -%>
+<%# Recent-notifications list for the bell dropdown panel. Extracted from
+    _notifications_dropdown so it can be broadcast-replaced via Turbo Stream
+    on new arrivals and cross-tab read-state changes without disturbing the
+    panel's outer structure (header, see-all link) or Stimulus open/closed
+    state — both of which live OUTSIDE the inner broadcast frame. %>
+<% recent = recent_notifications_for_dropdown(user) %>
+<% if recent.any? %>
+  <ul class="divide-y divide-border max-h-96 overflow-y-auto">
+    <% recent.each do |notification| %>
+      <li data-notification-item
+          data-notification-read="<%= notification.read_at? %>"
+          id="<%= dom_id(notification, :dropdown) %>"
+          class="<%= "bg-surface-sunken" unless notification.read_at? %>">
+        <%= link_to main_app.open_account_notification_path(notification),
+              class: "block px-4 py-3 text-text-body
+                      hover:bg-surface focus:bg-surface
+                      focus:outline-none focus:ring-2 focus:ring-inset focus:ring-interactive-focus" do %>
+          <p class="text-sm">
+            <%= notification.message %>
+          </p>
+          <p class="mt-1 text-xs text-text-muted">
+            <time datetime="<%= notification.created_at.iso8601 %>">
+              <%= time_ago_in_words(notification.created_at) %>
+            </time>
+          </p>
+        <% end %>
+      </li>
+    <% end %>
+  </ul>
+<% else %>
+  <div class="p-4 text-sm text-text-body">
+    <%= t("notifications.bell.empty") %>
+  </div>
+<% end %>

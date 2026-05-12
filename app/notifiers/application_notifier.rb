@@ -157,6 +157,19 @@ class ApplicationNotifier < Noticed::Event
         locals: { user: user }
       )
 
+      # Also refresh the dropdown-panel list so users with the bell panel
+      # OPEN see the new item without close-and-reopen. The dropdown frame
+      # is independent of `notifications_bell_frame` — the button is in its
+      # own frame so it updates even when the panel is hidden. Splitting the
+      # two frames keeps each broadcast cheap (button is a COUNT, dropdown
+      # is a short recent-list query).
+      Turbo::StreamsChannel.broadcast_replace_to(
+        [ user, :notifications ],
+        target: "notifications_dropdown_frame",
+        partial: "shared/notifications_dropdown_list",
+        locals: { user: user }
+      )
+
       # Drop the announcement into the page-level aria-live region so the
       # arrival is narrated by assistive tech without competing for focus.
       # `polite` + `atomic` (set on the slot itself) re-reads the full
