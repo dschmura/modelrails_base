@@ -42,6 +42,11 @@ module PlaywrightAccessibility
   # Run axe accessibility audit on the current page.
   # `exclude` defaults to DEFERRED_AAA_EXCLUDES so tests don't fail on tracked
   # debt. Pass an explicit array (or `[]`) to override.
+  #
+  # Color-contrast violations are enriched with a `_debug` payload (ancestor
+  # chain computed styles, theme state, in-flight animations) so failure
+  # messages reveal the cascade reality at scan time. See §2b flake
+  # investigation for the motivating case.
   def run_axe_audit(options = {}, exclude: DEFERRED_AAA_EXCLUDES)
     Capybara.current_session.driver.with_playwright_page do |playwright_page|
       inject_axe(playwright_page)
@@ -52,10 +57,64 @@ module PlaywrightAccessibility
         (async () => {
           const options = #{options.to_json};
           const exclude = #{exclude_list.to_json};
-          if (exclude.length > 0) {
-            return await axe.run({ exclude }, options);
+          const results = exclude.length > 0
+            ? await axe.run({ exclude }, options)
+            : await axe.run(options);
+
+          const findNode = (target) => {
+            try { return document.querySelector(target[target.length - 1]); }
+            catch (_) { return null; }
+          };
+
+          const captureAncestors = (el) => {
+            const chain = [];
+            let current = el;
+            while (current && current !== document.documentElement) {
+              const cs = getComputedStyle(current);
+              const transition = cs.transition && cs.transition !== "all 0s ease 0s" ? cs.transition : "none";
+              chain.push({
+                tag: current.tagName,
+                classes: Array.from(current.classList).join(" "),
+                backgroundColor: cs.backgroundColor,
+                opacity: cs.opacity,
+                transition: transition
+              });
+              current = current.parentElement;
+            }
+            return chain;
+          };
+
+          const captureAnimations = () => {
+            try {
+              return document.getAnimations().map(a => ({
+                type: a.constructor.name,
+                currentTime: a.currentTime,
+                effectTargetTag: a.effect && a.effect.target ? a.effect.target.tagName : null,
+                effectTargetClass: a.effect && a.effect.target ? a.effect.target.className : null
+              }));
+            } catch (_) { return []; }
+          };
+
+          const captureTheme = () => ({
+            htmlClasses: Array.from(document.documentElement.classList).join(" "),
+            cookieTheme: (document.cookie.match(/theme=(\\w+)/) || [])[1] || null
+          });
+
+          for (const v of (results.violations || [])) {
+            if (!v.id || !v.id.includes("color-contrast")) continue;
+            for (const node of (v.nodes || [])) {
+              const el = findNode(node.target || []);
+              node._debug = {
+                ancestorChain: el ? captureAncestors(el) : [],
+                theme: captureTheme(),
+                animations: captureAnimations(),
+                timestamp: Date.now(),
+                elementFound: !!el
+              };
+            }
           }
-          return await axe.run(options);
+
+          return results;
         })();
       JAVASCRIPT
     end
@@ -67,16 +126,62 @@ module PlaywrightAccessibility
     results["violations"].empty?
   end
 
-  # Get formatted violation messages
+  # Get formatted violation messages. Color-contrast violations include the
+  # ancestor-chain / theme / animation debug payload captured by `run_axe_audit`.
   def axe_violations(options = {}, exclude: DEFERRED_AAA_EXCLUDES)
     results = run_axe_audit(options, exclude: exclude)
+    Array(results["violations"]).map { |v| format_violation(v) }
+  end
 
-    results["violations"].map do |violation|
-      nodes = violation["nodes"].map { |node| node["html"] }.join("\n  ")
-      "\n#{violation["id"]}: #{violation["help"]}\n" \
-      "  Impact: #{violation["impact"]}\n" \
-      "  Affected elements:\n  #{nodes}"
+  # Render a single violation as a multi-line string. Color-contrast violations
+  # surface the diagnostic payload (`_debug` on each node) so the cascade and
+  # theme state at scan time are visible in CI logs.
+  def format_violation(violation)
+    id     = violation["id"].to_s
+    help   = violation["help"]
+    impact = violation["impact"]
+    nodes  = Array(violation["nodes"])
+
+    lines = []
+    lines << "\n#{id}: #{help}"
+    lines << "  Impact: #{impact}"
+    lines << "  Affected elements:"
+
+    nodes.each do |node|
+      lines << "  #{node["html"]}"
+      summary = node["failureSummary"].to_s
+      lines << "      #{summary.gsub("\n", "\n      ")}" unless summary.empty?
+      next unless id.include?("color-contrast")
+
+      debug = node["_debug"]
+      if debug.nil?
+        lines << "    (no diagnostic payload captured)"
+        next
+      end
+
+      lines << "    Ancestor chain:"
+      Array(debug["ancestorChain"]).each_with_index do |a, i|
+        indent  = "      " + ("  " * i)
+        tag     = a["tag"]
+        classes = a["classes"].to_s.empty? ? "" : ".#{a["classes"]}"
+        lines << "#{indent}#{tag}#{classes}  bg=#{a["backgroundColor"]}  opacity=#{a["opacity"]}  transition=#{a["transition"]}"
+      end
+
+      theme = debug["theme"] || {}
+      lines << "    Theme: html=#{theme["htmlClasses"].inspect} cookie=#{theme["cookieTheme"].inspect}"
+
+      animations = Array(debug["animations"])
+      if animations.empty?
+        lines << "    Animations: none"
+      else
+        lines << "    Animations:"
+        animations.each do |a|
+          lines << "      #{a["type"]} target=#{a["effectTargetTag"] || "?"} class=#{a["effectTargetClass"].inspect} t=#{a["currentTime"]}"
+        end
+      end
     end
+
+    lines.join("\n")
   end
 
   # Run axe in both light and dark mode and AND the results.
@@ -117,15 +222,26 @@ module PlaywrightAccessibility
   def set_theme(theme)
     Capybara.current_session.driver.with_playwright_page do |playwright_page|
       playwright_page.evaluate(<<~JS)
-        (() => {
+        (async () => {
           const html = document.documentElement;
           html.dataset.themeThemeValue = #{theme.to_json};
           html.classList.toggle("dark", #{(theme == "dark").to_json});
           document.cookie = "theme=#{theme};path=/;max-age=31536000;SameSite=Lax";
+          // Force reflow so the cascade recomputes.
+          document.body.offsetHeight;
+          // The flip triggers `transition-colors` on many elements (150ms).
+          // Axe samples computed styles, so without awaiting these transitions
+          // we capture mid-flight interpolations and get phantom AAA failures
+          // (the §2b "surface drift" symptom). Filter to CSSTransition so we
+          // never wait on infinite CSSAnimations (e.g. animate-spin). 500ms
+          // cap is defense-in-depth against runaway transitions.
+          const transitions = document.getAnimations().filter(a => a instanceof CSSTransition);
+          await Promise.race([
+            Promise.allSettled(transitions.map(t => t.finished)),
+            new Promise(r => setTimeout(r, 500))
+          ]);
         })();
       JS
-      # Force a reflow so axe sees the updated computed styles.
-      playwright_page.evaluate("document.body.offsetHeight")
     end
   end
 
@@ -182,13 +298,7 @@ RSpec.configure do |config|
       results = run_axe_audit(options)
       violations = results["violations"] || []
 
-      formatted = violations.map do |v|
-        node_details = (v["nodes"] || []).map do |n|
-          summary = n["failureSummary"] || ""
-          "  #{n["html"]}\n      #{summary.gsub("\n", "\n      ")}"
-        end.join("\n")
-        "\n#{v["id"]}: #{v["help"]}\n  Impact: #{v["impact"]}\n  Affected elements:\n#{node_details}"
-      end
+      formatted = violations.map { |v| format_violation(v) }
 
       expect(violations).to be_empty,
         "Accessibility violations found:#{formatted.join("\n")}"
