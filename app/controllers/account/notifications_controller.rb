@@ -84,19 +84,27 @@ module Account
 
     private
 
-    # Cross-tab read-state sync: broadcast a bell-button refresh to the
-    # current user's `[user, :notifications]` Turbo channel after any
-    # read-state mutation (single mark/unmark, bulk mark-all-read,
-    # bell-dropdown open). Tab A's direct HTTP response already refreshes
-    # its own bell; this broadcast covers Tab B and any other open
-    # browser tab/window. Uses the SAME target + partial shape that
-    # ApplicationNotifier#broadcast_notifications_arrival uses for new
-    # arrivals, so a receiving client needs only one stream subscription.
+    # Cross-tab read-state sync: broadcast a refresh of BOTH the bell-button
+    # frame (badge count) and the dropdown-list frame (recent items, read-state
+    # styling) to the current user's `[user, :notifications]` Turbo channel
+    # after any read-state mutation (single mark/unmark, bulk mark-all-read,
+    # bell-dropdown open). Tab A's direct HTTP response already refreshes its
+    # own surfaces; these broadcasts cover Tab B and any other open browser
+    # tab/window. Uses the SAME target + partial shape that
+    # ApplicationNotifier#broadcast_notifications_arrival uses for new arrivals,
+    # so a receiving client only needs one stream subscription.
     def broadcast_bell_refresh
       Turbo::StreamsChannel.broadcast_replace_to(
         [ Current.user, :notifications ],
         target: "notifications_bell_frame",
         partial: "shared/notifications_bell_button",
+        locals: { user: Current.user }
+      )
+
+      Turbo::StreamsChannel.broadcast_replace_to(
+        [ Current.user, :notifications ],
+        target: "notifications_dropdown_frame",
+        partial: "shared/notifications_dropdown_list",
         locals: { user: Current.user }
       )
     end

@@ -365,6 +365,33 @@ RSpec.describe ApplicationNotifier, type: :notifier do
     end
   end
 
+  describe "#broadcast_notifications_arrival dropdown panel refresh" do
+    let(:user) { create(:user) }
+    let(:resource) { create(:user) }
+
+    # The dropdown panel sits next to the bell-button in shared/_notifications_bell.
+    # When the panel is open and a new notification arrives, the panel must
+    # re-render its list so the user sees the new item without closing and
+    # reopening. The bell-button frame and the dropdown-list frame are
+    # broadcast as two separate `replace` operations to keep frames
+    # independent — the button updates even when the panel is closed
+    # and not visible.
+    it "broadcasts a dropdown-list refresh targeting notifications_dropdown_frame" do
+      allow(Turbo::StreamsChannel).to receive(:broadcast_update_to)
+      # Allow any broadcast_replace_to call (the bell-button one is tested above),
+      # then expect the specific dropdown-frame broadcast.
+      allow(Turbo::StreamsChannel).to receive(:broadcast_replace_to)
+      expect(Turbo::StreamsChannel).to receive(:broadcast_replace_to).with(
+        [ user, :notifications ],
+        target: "notifications_dropdown_frame",
+        partial: "shared/notifications_dropdown_list",
+        locals: hash_including(user: user)
+      )
+
+      StubAccountAccessNotifier.with(record: resource).deliver(user)
+    end
+  end
+
   describe ".notifier_class_names_for" do
     # Raw class-name variant (no ::Notification suffix). Used by
     # NotificationPreferences#security_notifier_types and elsewhere where
