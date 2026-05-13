@@ -155,7 +155,12 @@
           title: t("notifications.preferences.quiet_hours.heading"),
           description: t("notifications.preferences.quiet_hours.description")
         } do %>
-    <div class="px-6 py-5 space-y-4">
+    <%# `quiet-hours-warning` Stimulus controller watches the enabled toggle
+        + day chips inside this scope; surfaces the empty-days warning <p>
+        when QH is enabled but no days are checked (a deceptive state — the
+        value object treats it as quiet-hours-never-active). -%>
+    <div class="px-6 py-5 space-y-4"
+         data-controller="quiet-hours-warning">
       <%= form_with url: account_notification_preferences_path,
             method: :patch,
             data: { controller: "auto-submit" } do |f| %>
@@ -242,6 +247,16 @@
           <% end %>
         <% end %>
       </fieldset>
+
+      <%# Deceptive-state warning: surfaced by `quiet-hours-warning` Stimulus
+          controller when QH is enabled but no days are checked. Initial
+          `hidden` class is removed on connect() if the server-rendered
+          state is already deceptive. -%>
+      <p class="text-xs text-warning hidden"
+         data-quiet-hours-warning-target="warning"
+         role="status">
+        <%= t("notifications.preferences.quiet_hours.empty_days_warning") %>
+      </p>
 
       <p class="text-xs text-text-muted">
         <%= t("notifications.preferences.quiet_hours.security_reassurance") %>
