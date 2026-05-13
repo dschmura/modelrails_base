@@ -149,49 +149,13 @@ class ApplicationNotifier < Noticed::Event
                       .pluck(:recipient_id)
     return if recipient_ids.empty?
 
+    # NotificationBroadcaster handles the three-broadcast trio (bell-button
+    # frame, dropdown frame, aria-live announcement) AND the swallow-log-
+    # report contract for adapter outages. Per-user iteration so one bad
+    # broadcast doesn't poison the rest — each call is self-rescuing.
     User.where(id: recipient_ids).find_each do |user|
-      Turbo::StreamsChannel.broadcast_replace_to(
-        [ user, :notifications ],
-        target: "notifications_bell_frame",
-        partial: "shared/notifications_bell_button",
-        locals: { user: user }
-      )
-
-      # Also refresh the dropdown-panel list so users with the bell panel
-      # OPEN see the new item without close-and-reopen. The dropdown frame
-      # is independent of `notifications_bell_frame` — the button is in its
-      # own frame so it updates even when the panel is hidden. Splitting the
-      # two frames keeps each broadcast cheap (button is a COUNT, dropdown
-      # is a short recent-list query).
-      Turbo::StreamsChannel.broadcast_replace_to(
-        [ user, :notifications ],
-        target: "notifications_dropdown_frame",
-        partial: "shared/notifications_dropdown_list",
-        locals: { user: user }
-      )
-
-      # Drop the announcement into the page-level aria-live region so the
-      # arrival is narrated by assistive tech without competing for focus.
-      # `polite` + `atomic` (set on the slot itself) re-reads the full
-      # message every time it changes.
-      Turbo::StreamsChannel.broadcast_update_to(
-        [ user, :notifications ],
-        target: "notifications-live",
-        content: I18n.t("notifications.bell.arrival_announcement")
-      )
+      NotificationBroadcaster.refresh_for(user, announcement_key: "notifications.bell.arrival_announcement")
     end
-  rescue StandardError => e
-    # Same rationale as `Broadcastable`: a broadcast adapter outage must
-    # never block notification creation. The notification rows still
-    # persist; the user picks up the new badge on next page load.
-    #
-    # Swallowing the error is intentional, but logging + error-reporting
-    # it is not optional — a NoMethodError in the partial introduced by a
-    # refactor would otherwise vanish without trace. Use Rails.error so
-    # whatever subscriber the app has (Sentry, Honeybadger, etc.) picks
-    # this up as a handled exception, not a crash.
-    Rails.logger.warn("notification broadcast failed: #{e.class}: #{e.message}")
-    Rails.error.report(e, handled: true, severity: :warning, context: { source: "ApplicationNotifier#broadcast_notifications_arrival" })
   end
 
   # Populates noticed_events.idempotency_key from the polymorphic `record`

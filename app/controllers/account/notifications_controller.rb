@@ -84,41 +84,16 @@ module Account
 
     private
 
-    # Cross-tab read-state sync: broadcast a refresh of BOTH the bell-button
-    # frame (badge count) and the dropdown-list frame (recent items, read-state
-    # styling) to the current user's `[user, :notifications]` Turbo channel
+    # Cross-tab read-state sync: refresh the current user's notification
+    # surfaces (bell-button frame, dropdown-list frame, aria-live region)
     # after any read-state mutation (single mark/unmark, bulk mark-all-read,
-    # bell-dropdown open). Tab A's direct HTTP response already refreshes its
-    # own surfaces; these broadcasts cover Tab B and any other open browser
-    # tab/window. Uses the SAME target + partial shape that
-    # ApplicationNotifier#broadcast_notifications_arrival uses for new arrivals,
-    # so a receiving client only needs one stream subscription.
+    # bell-dropdown open, destroy-when-unread). Tab A's direct HTTP response
+    # already refreshes its own surfaces; this broadcast covers Tab B and
+    # any other open browser tab/window. The actual three-broadcast trio
+    # lives in NotificationBroadcaster so the notifier callback path and
+    # this controller path share one implementation.
     def broadcast_bell_refresh
-      Turbo::StreamsChannel.broadcast_replace_to(
-        [ Current.user, :notifications ],
-        target: "notifications_bell_frame",
-        partial: "shared/notifications_bell_button",
-        locals: { user: Current.user }
-      )
-
-      Turbo::StreamsChannel.broadcast_replace_to(
-        [ Current.user, :notifications ],
-        target: "notifications_dropdown_frame",
-        partial: "shared/notifications_dropdown_list",
-        locals: { user: Current.user }
-      )
-
-      # SR parity with ApplicationNotifier#broadcast_notifications_arrival:
-      # without an aria-live update, screen-reader users in Tab B receive
-      # the visual frame replacements but no audible signal that anything
-      # changed. Same target (#notifications-live) the arrival announcement
-      # uses, so the page-level live region is the single SR signal source
-      # for any notification state change.
-      Turbo::StreamsChannel.broadcast_update_to(
-        [ Current.user, :notifications ],
-        target: "notifications-live",
-        content: I18n.t("notifications.bell.read_state_announcement")
-      )
+      NotificationBroadcaster.refresh_for(Current.user, announcement_key: "notifications.bell.read_state_announcement")
     end
 
     def set_notification
