@@ -440,4 +440,106 @@ RSpec.describe NotificationPreferences do
       expect(prefs_for(default_jsonb).do_not_disturb?).to be false
     end
   end
+
+  # Validation + coerce + deep_merge moved here from
+  # Account::NotificationPreferencesController#apply_changes! per panel
+  # review should-fix #7 (DHH + Chris Oliver + Dave Thomas). The controller
+  # was carrying schema validation that belongs on the value object —
+  # half-Result pattern (`:rejected` sentinel) made return semantics fuzzy
+  # and coupled the controller to JSONB shape decisions.
+  describe "#merge (validation + coercion of partial changes)" do
+    it "returns a new value object with the changes deep-merged in" do
+      prefs = prefs_for(default_jsonb)
+      merged = prefs.merge("quiet_hours" => { "enabled" => "true" })
+
+      expect(merged).to be_a(described_class)
+      expect(merged.to_h.dig("quiet_hours", "enabled")).to eq(true)
+      # Sibling keys preserved (deep_merge, not overwrite).
+      expect(merged.to_h.dig("quiet_hours", "start")).to eq("22:00")
+    end
+
+    it "leaves the receiver untouched (immutability — no half-applied state)" do
+      prefs = prefs_for(default_jsonb)
+      original = prefs.to_h
+
+      prefs.merge("quiet_hours" => { "enabled" => "true" })
+
+      expect(prefs.to_h).to eq(original)
+    end
+
+    it "returns self when changes are blank" do
+      prefs = prefs_for(default_jsonb)
+      expect(prefs.merge({})).to equal(prefs)
+    end
+
+    it "coerces 'true'/'false' strings to booleans before merging" do
+      merged = prefs_for(default_jsonb).merge(
+        "delivery_methods" => { "email" => { "enabled" => "false" } }
+      )
+      expect(merged.to_h.dig("delivery_methods", "email", "enabled")).to eq(false)
+    end
+
+    it "normalizes retention_days='never' to nil" do
+      merged = prefs_for(default_jsonb).merge("retention_days" => "never")
+      expect(merged.to_h["retention_days"]).to be_nil
+    end
+
+    it "coerces retention_days integer-strings to Integer" do
+      merged = prefs_for(default_jsonb).merge("retention_days" => "60")
+      expect(merged.to_h["retention_days"]).to eq(60)
+    end
+
+    it "raises InvalidChange for retention_days outside the allowed list" do
+      expect {
+        prefs_for(default_jsonb).merge("retention_days" => "999")
+      }.to raise_error(NotificationPreferences::InvalidChange)
+    end
+
+    it "raises InvalidChange for an unknown notification_types category" do
+      expect {
+        prefs_for(default_jsonb).merge("notification_types" => { "moon_phase" => true })
+      }.to raise_error(NotificationPreferences::InvalidChange)
+    end
+
+    it "raises InvalidChange for an unknown email.frequency value" do
+      expect {
+        prefs_for(default_jsonb).merge("delivery_methods" => { "email" => { "frequency" => "fortnightly" } })
+      }.to raise_error(NotificationPreferences::InvalidChange)
+    end
+
+    it "raises InvalidChange for an invalid quiet_hours.start format" do
+      expect {
+        prefs_for(default_jsonb).merge("quiet_hours" => { "start" => "25:00" })
+      }.to raise_error(NotificationPreferences::InvalidChange)
+    end
+
+    it "strips Rails' empty-array sentinel from active_days" do
+      merged = prefs_for(default_jsonb).merge(
+        "quiet_hours" => { "active_days" => [ "", "monday", "wednesday" ] }
+      )
+      expect(merged.to_h.dig("quiet_hours", "active_days")).to eq([ "monday", "wednesday" ])
+    end
+
+    it "raises InvalidChange when active_days contains an unknown day" do
+      expect {
+        prefs_for(default_jsonb).merge("quiet_hours" => { "active_days" => [ "yesterday" ] })
+      }.to raise_error(NotificationPreferences::InvalidChange)
+    end
+  end
+
+  describe "#digest_changed_by?" do
+    let(:prefs) { prefs_for(default_jsonb) }
+
+    it "is true when changes include delivery_methods.email.frequency" do
+      expect(prefs.digest_changed_by?("delivery_methods" => { "email" => { "frequency" => "daily" } })).to eq(true)
+    end
+
+    it "is false when changes do not touch email frequency" do
+      expect(prefs.digest_changed_by?("quiet_hours" => { "enabled" => "true" })).to eq(false)
+    end
+
+    it "is false for empty changes" do
+      expect(prefs.digest_changed_by?({})).to eq(false)
+    end
+  end
 end

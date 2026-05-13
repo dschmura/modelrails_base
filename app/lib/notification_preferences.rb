@@ -31,6 +31,14 @@ class NotificationPreferences
   # NotificationCleanupJob enforces a 1-year retention floor on security
   # notifications regardless of user preference.
   RETENTION_FLOORS = { "security" => 365.days }.freeze
+  # Validation constants used by #merge. Live on the value object (not the
+  # controller) because they describe schema semantics.
+  HH_MM_REGEX = /\A([01]\d|2[0-3]):([0-5]\d)\z/
+  ALLOWED_RETENTION_DAYS = [ 30, 60, 90, 180, 365 ].freeze
+
+  # Raised by #merge when a partial-change hash violates the JSONB schema.
+  # Caller catches and responds 422 — see Account::NotificationPreferencesController#update.
+  class InvalidChange < StandardError; end
 
   # Computed from ApplicationNotifier subclasses; consumed by
   # NotificationCleanupJob to look up which notifier classes carry the
@@ -158,4 +166,99 @@ class NotificationPreferences
   end
 
   def to_h = @data.deep_dup
+
+  # Returns a new NotificationPreferences with `changes` validated,
+  # coerced, and deep-merged into the underlying JSONB hash. The receiver
+  # is unchanged — no half-applied state if validation raises mid-way.
+  #
+  # `changes` is the parameter shape posted from the preferences form:
+  # nested string-keyed hash with values that may need type coercion
+  # (the form submits strings; the JSONB column wants booleans / ints /
+  # nil for "never" retention).
+  #
+  # Raises NotificationPreferences::InvalidChange on:
+  #   - retention_days not in ALLOWED_RETENTION_DAYS (and not "never"/blank)
+  #   - notification_types key outside CATEGORIES
+  #   - delivery_methods.email.frequency outside EMAIL_FREQUENCIES
+  #   - quiet_hours.start/end not matching HH:MM
+  #   - quiet_hours.active_days not an Array, or containing unknown days
+  def merge(changes)
+    return self if changes.blank?
+
+    prepared = changes.deep_stringify_keys.deep_dup
+    validate_and_coerce!(prepared)
+
+    self.class.new(@data.deep_dup.deep_merge!(prepared), user: @user)
+  end
+
+  # Whether the given changes would alter digest scheduling (email cadence).
+  # Drives the recompute_digest_due_at decision in the controller.
+  def digest_changed_by?(changes)
+    changes&.dig("delivery_methods", "email", "frequency").present? ||
+      changes&.dig(:delivery_methods, :email, :frequency).present?
+  end
+
+  private
+
+  def validate_and_coerce!(changes)
+    if changes.key?("retention_days")
+      raise InvalidChange unless valid_retention?(changes["retention_days"])
+      changes["retention_days"] = normalize_retention(changes["retention_days"])
+    end
+
+    if changes.key?("notification_types")
+      unknown = changes["notification_types"].keys - CATEGORIES
+      raise InvalidChange if unknown.any?
+    end
+
+    if (freq = changes.dig("delivery_methods", "email", "frequency"))
+      raise InvalidChange unless EMAIL_FREQUENCIES.include?(freq)
+    end
+
+    if changes.key?("quiet_hours")
+      qh = changes["quiet_hours"]
+      raise InvalidChange if qh["start"].present? && !qh["start"].match?(HH_MM_REGEX)
+      raise InvalidChange if qh["end"].present?   && !qh["end"].match?(HH_MM_REGEX)
+      if qh.key?("active_days")
+        days = qh["active_days"]
+        raise InvalidChange unless days.is_a?(Array)
+        # Strip Rails' hidden-empty-sentinel that the day-picker form always
+        # includes so active_days is submitted as an array even when zero
+        # boxes are checked. Empty array post-strip = user selected zero
+        # days = quiet hours effectively off (value object treats it so).
+        days = days.reject(&:blank?)
+        raise InvalidChange unless (days - DAYS_OF_WEEK).empty?
+        qh["active_days"] = days
+      end
+    end
+
+    coerce_booleans!(changes)
+  end
+
+  # Blank / "never" => valid (means "never auto-delete").
+  # Otherwise the integer form must appear in ALLOWED_RETENTION_DAYS.
+  def valid_retention?(value)
+    return true if value.blank? || value.to_s == "never"
+    ALLOWED_RETENTION_DAYS.include?(value.to_i)
+  end
+
+  def normalize_retention(value)
+    return nil if value.blank? || value.to_s == "never"
+    value.to_i
+  end
+
+  # Recursively coerce "true"/"false" strings to actual booleans so the
+  # JSONB column doesn't get string values for boolean toggles. Also
+  # coerces digest.hour_local to integer if numeric-string.
+  def coerce_booleans!(hash)
+    hash.each do |key, value|
+      case value
+      when "true"  then hash[key] = true
+      when "false" then hash[key] = false
+      when Hash    then coerce_booleans!(value)
+      else
+        hash[key] = value.to_i if key == "hour_local" && value.is_a?(String) && value.match?(/\A\d+\z/)
+      end
+    end
+  end
 end
