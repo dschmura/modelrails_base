@@ -29,14 +29,23 @@ Markdowndocs.configure do |config|
   # Adds a search bar that filters docs by title, description, and content
   config.search_enabled = true
 
-  # Optional: Resolve current user's mode preference from database
-  # Return nil to fall back to cookie/default
-  # config.user_mode_resolver = ->(controller) {
-  #   controller.send(:current_user)&.preferences&.docs_mode
-  # }
+  # Resolve the current user's mode preference from the database.
+  # `user_preferences.docs_mode` is the canonical source of truth; cookie
+  # fallback (handled by the gem) covers signed-out visitors and first-time
+  # users. Returning nil lets the gem fall back to cookie → default.
+  config.user_mode_resolver = ->(controller) {
+    controller.send(:current_user)&.preferences&.docs_mode
+  }
 
-  # Optional: Save user's mode preference to database
-  # config.user_mode_saver = ->(controller, mode) {
-  #   controller.send(:current_user)&.preferences&.update!(docs_mode: mode)
-  # }
+  # Persist the user's mode pick to the same column. The
+  # `preferences || create_preferences!` pattern guarantees the saver works
+  # even for users who don't have a preferences row yet (first-time
+  # mode-switchers) — without this the update! call would silently no-op
+  # via the `&.` safe-navigation, leaving the choice cookie-only.
+  config.user_mode_saver = ->(controller, mode) {
+    user = controller.send(:current_user)
+    next unless user
+    prefs = user.preferences || user.create_preferences!
+    prefs.update!(docs_mode: mode)
+  }
 end
