@@ -194,6 +194,54 @@ RSpec.describe "Notification preferences", type: :system do
     end
   end
 
+  describe "quiet hours: deceptive enabled-with-zero-days warning" do
+    # The value object treats active_days: [] as "quiet hours never active"
+    # (see app/lib/notification_preferences.rb:99-102). When the user has
+    # the QH toggle enabled BUT no day chips checked, the runtime is
+    # silently off — the toggle is misleading. A warning surfaces the
+    # contradiction so the user can either re-check a day or disable QH.
+    def set_quiet_hours(enabled:, active_days:)
+      user.preferences.update!(
+        notification_preferences: user.preferences.notification_preferences.merge(
+          "quiet_hours" => { "enabled" => enabled, "active_days" => active_days }
+        )
+      )
+    end
+
+    it "shows the warning when quiet hours are enabled with zero active days" do
+      set_quiet_hours(enabled: true, active_days: [])
+      visit edit_account_notification_preferences_path
+
+      expect(page).to have_text(I18n.t("notifications.preferences.quiet_hours.empty_days_warning"))
+    end
+
+    it "hides the warning when quiet hours are enabled with at least one active day" do
+      set_quiet_hours(enabled: true, active_days: %w[monday wednesday friday])
+      visit edit_account_notification_preferences_path
+
+      expect(page).not_to have_text(I18n.t("notifications.preferences.quiet_hours.empty_days_warning"))
+    end
+
+    it "hides the warning when quiet hours are disabled regardless of days" do
+      set_quiet_hours(enabled: false, active_days: [])
+      visit edit_account_notification_preferences_path
+
+      expect(page).not_to have_text(I18n.t("notifications.preferences.quiet_hours.empty_days_warning"))
+    end
+
+    it "live: clicking the last checked day to uncheck it reveals the warning without reload" do
+      set_quiet_hours(enabled: true, active_days: %w[monday])
+      visit edit_account_notification_preferences_path
+
+      expect(page).not_to have_text(I18n.t("notifications.preferences.quiet_hours.empty_days_warning"))
+
+      # Click the Monday chip label to uncheck the underlying sr-only checkbox.
+      find('label[for="quiet-hours-active-day-monday"]').click
+
+      expect(page).to have_text(I18n.t("notifications.preferences.quiet_hours.empty_days_warning"))
+    end
+  end
+
   describe "bell tooltip when DND is on" do
     it "shows the unread-with-dnd title on the bell when DND is active and user has unread" do
       # Seed DND on + an unread notification so the tooltip surfaces.
