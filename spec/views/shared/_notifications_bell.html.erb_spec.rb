@@ -14,13 +14,14 @@ RSpec.describe "shared/_notifications_bell.html.erb", type: :view do
     render partial: "shared/notifications_bell", locals: { user: user }
     expect(rendered).to include('text-danger')
     expect(rendered).to include('data-bell-severity="danger"')
-    expect(rendered).to include('motion-safe:animate-pulse-danger')
     expect(rendered).to include('aria-hidden="true"')
     # The chip is gone — the bell itself is the indicator.
     expect(rendered).not_to include('bg-danger')
+    # No opacity-modulating animation on any severity.
+    expect(rendered).not_to include('animate-pulse-danger')
   end
 
-  it "renders a warning-colored bell without the pulse class" do
+  it "renders a warning-colored bell" do
     workspace = create(:workspace)
     owner_role = Role.find_or_create_by!(slug: "owner", workspace_id: nil) do |role|
       role.name = "Owner"
