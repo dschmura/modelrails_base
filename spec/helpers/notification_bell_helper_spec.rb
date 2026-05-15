@@ -106,5 +106,39 @@ RSpec.describe NotificationBellHelper, type: :helper do
       label = helper.avatar_button_aria_label(user)
       expect(label).to include("3 unread notifications")
     end
+
+    # Pins the explicit-summary contract used by the view partials and by
+    # NotificationBroadcaster. When the caller has already computed the
+    # summary, we MUST NOT re-query the user's unread breakdown.
+    it "accepts an explicit summary argument (skips the re-query)" do
+      precomputed = { count: 0, severity: nil }
+      expect(user).not_to receive(:unread_notification_breakdown)
+      expect(helper.avatar_button_aria_label(user, precomputed)).to eq("User menu for #{user.full_name}")
+    end
+
+    it "uses the explicit summary's severity phrase when unread > 0" do
+      precomputed = { count: 5, severity: :warning }
+      expect(user).not_to receive(:unread_notification_breakdown)
+      label = helper.avatar_button_aria_label(user, precomputed)
+      expect(label).to include("5 unread notifications")
+      expect(label).to include("an important update")
+    end
+  end
+
+  # Pins the module-level entry points used by callers outside the view
+  # context (currently NotificationBroadcaster, which has no view-helper
+  # mixin and must call NotificationBellHelper.<method> directly).
+  describe "module-level entry points (for NotificationBroadcaster)" do
+    let(:summary_user) { create(:user) }
+
+    it "exposes unread_notification_summary as a module method" do
+      expect(NotificationBellHelper.unread_notification_summary(summary_user)).to eq(count: 0, severity: nil)
+    end
+
+    it "exposes notification_bell_classes as a module method" do
+      expect(NotificationBellHelper.notification_bell_classes(:danger)).to eq(
+        bg: "bg-danger", icon: "text-text-on-interactive"
+      )
+    end
   end
 end

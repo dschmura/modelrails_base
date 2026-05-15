@@ -10,16 +10,23 @@
 <turbo-frame id="notifications_bell_indicator_frame">
   <% if summary[:severity] %>
     <% colors = notification_bell_classes(summary[:severity]) %>
+    <%# Windows High Contrast / forced-colors: active overrides author
+        colors with system colors, which can collapse the chip bg and
+        the bell glyph into the same color (invisible). The
+        `forced-colors:` variant scopes a system-color border on the
+        chip and a system foreground on the glyph, preserving WCAG
+        1.4.11 non-text contrast under that accommodation. %>
     <span class="<%= class_names(
             "absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center",
             "rounded-full ring-2 ring-surface-raised",
             "motion-safe:transition-opacity motion-safe:duration-150",
+            "forced-colors:border forced-colors:border-[CanvasText]",
             colors[:bg],
             "motion-safe:animate-pulse-danger" => summary[:severity] == :danger
           ) %>"
           data-bell-severity="<%= summary[:severity] %>"
           aria-hidden="true">
-      <%= icon(:bell, style: :solid, class: "w-2.5 h-2.5 #{colors[:icon]}") %>
+      <%= icon(:bell, style: :solid, class: "w-2.5 h-2.5 forced-colors:text-[ButtonText] #{colors[:icon]}") %>
     </span>
   <% end %>
 </turbo-frame>

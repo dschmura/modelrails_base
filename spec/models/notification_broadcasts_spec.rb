@@ -8,19 +8,19 @@ RSpec.describe "Notification Turbo Stream broadcasts" do
       [ a_kind_of(User), :notifications ],
       target: "notifications_avatar_button_frame",
       partial: "shared/user_menu_avatar_button",
-      locals: { user: a_kind_of(User) }
+      locals: hash_including(user: a_kind_of(User), summary: hash_including(:count, :severity))
     )
     expect(Turbo::StreamsChannel).to receive(:broadcast_replace_to).with(
       [ a_kind_of(User), :notifications ],
       target: "notifications_bell_indicator_frame",
       partial: "shared/notifications_bell",
-      locals: { user: a_kind_of(User) }
+      locals: hash_including(user: a_kind_of(User), summary: hash_including(:count, :severity))
     )
     expect(Turbo::StreamsChannel).to receive(:broadcast_replace_to).with(
       [ a_kind_of(User), :notifications ],
       target: "notifications_menu_count_frame",
       partial: "shared/notifications_menu_count_span",
-      locals: { user: a_kind_of(User) }
+      locals: hash_including(user: a_kind_of(User), summary: hash_including(:count, :severity))
     )
 
     PasswordChangedNotifier.with(record: user).deliver(user)

@@ -15,13 +15,21 @@ module NotificationBellHelper
     success: { bg: "bg-success", icon: "text-text-on-interactive" }
   }.freeze
 
+  # `extend self` makes every method below callable BOTH as a module
+  # method (e.g. `NotificationBellHelper.unread_notification_summary(user)`,
+  # used by NotificationBroadcaster which has no view-helper context) AND
+  # as a public instance method when the module is mixed into a view (the
+  # normal ActionView helper path). Unlike `module_function`, instance-mixed
+  # methods remain public — so `helper.foo` works in specs.
+  extend self
+
   def unread_notification_summary(user)
     breakdown = user.unread_notification_breakdown
     return { count: 0, severity: nil } if breakdown.empty?
 
     count = breakdown.values.sum
     severity = breakdown.keys
-      .map { resolve_severity_for(_1) }
+      .map { _resolve_severity_for(_1) }
       .max_by { SEVERITY_RANK.fetch(_1) }
 
     { count: count, severity: severity }
@@ -42,9 +50,7 @@ module NotificationBellHelper
     end
   end
 
-  private
-
-  def resolve_severity_for(notifier_class_name)
+  def _resolve_severity_for(notifier_class_name)
     case notifier_class_name.safe_constantize
     in nil
       Rails.logger.warn("Stale notifier class in unread notifications: #{notifier_class_name}")
