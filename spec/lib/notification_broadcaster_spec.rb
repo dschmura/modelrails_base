@@ -4,17 +4,23 @@ RSpec.describe NotificationBroadcaster do
   let(:user) { create(:user) }
 
   describe ".refresh_for" do
-    it "broadcasts the bell-button frame, dropdown frame, and aria-live update for the given user" do
+    it "broadcasts the avatar button, bell indicator, menu count, and aria-live quartet for the given user" do
       expect(Turbo::StreamsChannel).to receive(:broadcast_replace_to).with(
         [ user, :notifications ],
-        target: "notifications_bell_frame",
-        partial: "shared/notifications_bell_button",
+        target: "notifications_avatar_button_frame",
+        partial: "shared/user_menu_avatar_button",
         locals: { user: user }
       )
       expect(Turbo::StreamsChannel).to receive(:broadcast_replace_to).with(
         [ user, :notifications ],
-        target: "notifications_dropdown_frame",
-        partial: "shared/notifications_dropdown_list",
+        target: "notifications_bell_indicator_frame",
+        partial: "shared/notifications_bell",
+        locals: { user: user }
+      )
+      expect(Turbo::StreamsChannel).to receive(:broadcast_replace_to).with(
+        [ user, :notifications ],
+        target: "notifications_menu_count_frame",
+        partial: "shared/notifications_menu_count_span",
         locals: { user: user }
       )
       expect(Turbo::StreamsChannel).to receive(:broadcast_update_to).with(
