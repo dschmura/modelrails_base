@@ -26,6 +26,7 @@ RSpec.describe "shared/_user_menu_avatar_button.html.erb", type: :view do
     PasswordChangedNotifier.with(record: user).deliver(user)
     render partial: "shared/user_menu_avatar_button", locals: { user: user }
     expect(rendered).to include('notifications_bell_indicator_frame')
-    expect(rendered).to include('bg-danger')
+    expect(rendered).to include('text-danger')
+    expect(rendered).to include('data-bell-severity="danger"')
   end
 end

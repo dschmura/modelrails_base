@@ -6,17 +6,18 @@ RSpec.describe "shared/_notifications_bell.html.erb", type: :view do
   it "renders an empty turbo-frame when there are no unread notifications" do
     render partial: "shared/notifications_bell", locals: { user: user }
     expect(rendered).to include('<turbo-frame id="notifications_bell_indicator_frame">')
-    expect(rendered).not_to include('<span')
+    expect(rendered).not_to include('data-bell-severity')
   end
 
   it "renders a danger-colored bell when the highest severity is :danger" do
     PasswordChangedNotifier.with(record: user).deliver(user)
     render partial: "shared/notifications_bell", locals: { user: user }
-    expect(rendered).to include('bg-danger')
-    expect(rendered).to include('text-text-on-interactive')
+    expect(rendered).to include('text-danger')
     expect(rendered).to include('data-bell-severity="danger"')
     expect(rendered).to include('motion-safe:animate-pulse-danger')
     expect(rendered).to include('aria-hidden="true"')
+    # The chip is gone — the bell itself is the indicator.
+    expect(rendered).not_to include('bg-danger')
   end
 
   it "renders a warning-colored bell without the pulse class" do
@@ -31,8 +32,8 @@ RSpec.describe "shared/_notifications_bell.html.erb", type: :view do
     ).deliver(user)
 
     render partial: "shared/notifications_bell", locals: { user: user }
-    expect(rendered).to include('bg-warning')
-    expect(rendered).to include('text-text-on-interactive')
+    expect(rendered).to include('text-warning')
+    expect(rendered).to include('data-bell-severity="warning"')
     expect(rendered).not_to include('animate-pulse-danger')
   end
 
@@ -40,8 +41,8 @@ RSpec.describe "shared/_notifications_bell.html.erb", type: :view do
     invitation = create(:invitation, email: user.email_address)
     WorkspaceInvitationReceivedNotifier.with(record: invitation).deliver(user)
     render partial: "shared/notifications_bell", locals: { user: user }
-    expect(rendered).to include('bg-info')
-    expect(rendered).to include('text-text-on-interactive')
+    expect(rendered).to include('text-info')
+    expect(rendered).to include('data-bell-severity="info"')
     expect(rendered).not_to include('animate-pulse-danger')
   end
 
@@ -50,8 +51,8 @@ RSpec.describe "shared/_notifications_bell.html.erb", type: :view do
     membership = create(:membership, user: user, workspace: workspace)
     WorkspaceMemberAddedNotifier.with(record: membership).deliver(user)
     render partial: "shared/notifications_bell", locals: { user: user }
-    expect(rendered).to include('bg-success')
-    expect(rendered).to include('text-text-on-interactive')
+    expect(rendered).to include('text-success')
+    expect(rendered).to include('data-bell-severity="success"')
     expect(rendered).not_to include('animate-pulse-danger')
   end
 end

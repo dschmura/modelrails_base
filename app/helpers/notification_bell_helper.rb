@@ -1,18 +1,18 @@
 module NotificationBellHelper
   SEVERITY_RANK = { danger: 4, warning: 3, info: 2, success: 1 }.freeze
 
-  # Bell pairs a SATURATED severity background with an INVERSE-text glyph
-  # color (white in light mode, near-black in dark mode). This is the same
-  # pairing .btn-danger uses (bg-danger + text-text-on-interactive) and
-  # delivers AAA-grade non-text contrast against all four severity chips.
-  # Don't pair bg-{severity} with text-{severity}-icon — in dark mode they
-  # resolve to the same OKLCH value (invisible glyph); in light mode the
-  # ratio is ~2:1 (fails WCAG 1.4.11).
+  # The bell IS the indicator — no chip. Each severity uses its saturated
+  # `--color-{severity}` token (registered as a Tailwind utility in
+  # application.css's `@theme inline` block), so `text-danger` /
+  # `text-warning` / `text-info` / `text-success` compile to the same AAA
+  # foreground tokens used elsewhere (e.g. flash messages, link colors).
+  # The partial pairs these with a stacked white drop-shadow outline for
+  # legibility on arbitrary avatar backgrounds.
   SEVERITY_CLASSES = {
-    danger:  { bg: "bg-danger",  icon: "text-text-on-interactive" },
-    warning: { bg: "bg-warning", icon: "text-text-on-interactive" },
-    info:    { bg: "bg-info",    icon: "text-text-on-interactive" },
-    success: { bg: "bg-success", icon: "text-text-on-interactive" }
+    danger:  { icon: "text-danger"  },
+    warning: { icon: "text-warning" },
+    info:    { icon: "text-info"    },
+    success: { icon: "text-success" }
   }.freeze
 
   # `extend self` makes every method below callable BOTH as a module

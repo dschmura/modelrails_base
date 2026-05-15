@@ -32,7 +32,7 @@ RSpec.describe "Notifications avatar indicator", type: :system do
     PasswordChangedNotifier.with(record: user).deliver(user)
     visit root_path
     expect(page).to have_css('[data-bell-severity="danger"]')
-    expect(page).to have_css('.bg-danger')
+    expect(page).to have_css('.text-danger')
   end
 
   it "renders a warning overlay for billing notifications" do
@@ -43,7 +43,7 @@ RSpec.describe "Notifications avatar indicator", type: :system do
     ).deliver(user)
     visit root_path
     expect(page).to have_css('[data-bell-severity="warning"]')
-    expect(page).to have_css('.bg-warning')
+    expect(page).to have_css('.text-warning')
   end
 
   it "shows highest-severity color when mixed categories are unread" do

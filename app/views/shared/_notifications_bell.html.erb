@@ -1,8 +1,10 @@
 <%# locals: (user: Current.user, summary: nil) -%>
-<%# Slim overlay partial: rendered inside the user-avatar button. Shows a
-    solid bell glyph in a severity-colored chip when there are unread
-    notifications; renders an empty turbo-frame otherwise. Broadcast target
-    is `notifications_bell_indicator_frame`. The `summary:` local lets a
+<%# Slim overlay partial: rendered inside the user-avatar button. Renders
+    a solid bell icon (severity-colored) at the bottom-right of the avatar
+    when there are unread notifications; renders an empty turbo-frame
+    otherwise. White-outline drop-shadow keeps the bell visible against
+    arbitrary avatar backgrounds. Broadcast target is
+    `notifications_bell_indicator_frame`. The `summary:` local lets a
     parent partial (e.g., _user_menu_avatar_button) pass a pre-computed
     summary to avoid a duplicate query. %>
 <% bell_user = local_assigns.fetch(:user) { Current.user } %>
@@ -11,22 +13,23 @@
   <% if summary[:severity] %>
     <% colors = notification_bell_classes(summary[:severity]) %>
     <%# Windows High Contrast / forced-colors: active overrides author
-        colors with system colors, which can collapse the chip bg and
-        the bell glyph into the same color (invisible). The
-        `forced-colors:` variant scopes a system-color border on the
-        chip and a system foreground on the glyph, preserving WCAG
-        1.4.11 non-text contrast under that accommodation. %>
-    <span class="<%= class_names(
-            "absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center",
-            "rounded-full ring-2 ring-surface-raised",
-            "motion-safe:transition-opacity motion-safe:duration-150",
-            "forced-colors:border forced-colors:border-[CanvasText]",
-            colors[:bg],
-            "motion-safe:animate-pulse-danger" => summary[:severity] == :danger
-          ) %>"
-          data-bell-severity="<%= summary[:severity] %>"
-          aria-hidden="true">
-      <%= icon(:bell, style: :solid, class: "w-2.5 h-2.5 forced-colors:text-[ButtonText] #{colors[:icon]}") %>
-    </span>
+        colors with system colors, so the bell's severity fill collapses
+        to a system color. We force `ButtonText` to keep the glyph
+        visible (WCAG 1.4.11 non-text contrast under that accommodation).
+        Drop-shadow stacks two 1px white shadows to fake a ~1-2px white
+        outline so the bell stays legible on arbitrary avatar backgrounds;
+        dark mode swaps to a black outline. %>
+    <%= icon(:bell, style: :solid,
+             class: class_names(
+               "absolute -bottom-1 -right-1 w-5 h-5",
+               "motion-safe:transition-opacity motion-safe:duration-150",
+               "[filter:drop-shadow(0_0_1px_white)_drop-shadow(0_0_1px_white)]",
+               "dark:[filter:drop-shadow(0_0_1px_black)_drop-shadow(0_0_1px_black)]",
+               "forced-colors:text-[ButtonText]",
+               colors[:icon],
+               "motion-safe:animate-pulse-danger" => summary[:severity] == :danger
+             ),
+             data: { bell_severity: summary[:severity] },
+             aria_label: nil) %>
   <% end %>
 </turbo-frame>

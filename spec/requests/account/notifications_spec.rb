@@ -330,8 +330,8 @@ RSpec.describe "Account Notifications", type: :request do
     # `[user, :notifications]` Turbo channel:
     #   1. `notifications_avatar_button_frame` — the user-menu avatar trigger,
     #      whose aria-label embeds the unread count + severity phrase.
-    #   2. `notifications_bell_indicator_frame` — the severity-colored chip
-    #      overlay rendered on top of the avatar.
+    #   2. `notifications_bell_indicator_frame` — the severity-colored bell
+    #      icon overlay rendered on top of the avatar.
     #   3. `notifications_menu_count_frame` — the count text in the user-menu
     #      Notifications link (e.g. "(3)").
     # Tab A's direct response also refreshes all three; the broadcasts cover
