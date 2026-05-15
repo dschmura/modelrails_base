@@ -8,6 +8,7 @@
 # opt-out skips the job entirely rather than enqueueing-then-discarding.
 class SignInFromNewDeviceNotifier < ApplicationNotifier
   category :security
+  severity :danger
 
   required_param :user_agent, :os
 

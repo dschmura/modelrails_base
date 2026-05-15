@@ -2,6 +2,7 @@
 
 class ProjectMembershipChangedNotifier < ApplicationNotifier
   category :project_activity
+  severity :info
 
   notification_methods do
     def message
