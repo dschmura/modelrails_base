@@ -1,15 +1,24 @@
-<%# locals: (user: Current.user) -%>
-<%# Composition: the visible bell button is wrapped in a turbo-frame so the
-    after_create_commit broadcast can replace just the button (cheap COUNT
-    query) without re-rendering the dropdown panel (heavier list query).
-    Both elements share the same `notification-dropdown` Stimulus scope so
-    open/close behavior continues to work after a broadcast. %>
+<%# locals: (user: Current.user, summary: nil) -%>
+<%# Slim overlay partial: rendered inside the user-avatar button. Shows a
+    solid bell glyph in a severity-colored chip when there are unread
+    notifications; renders an empty turbo-frame otherwise. Broadcast target
+    is `notifications_bell_indicator_frame`. The `summary:` local lets a
+    parent partial (e.g., _user_menu_avatar_button) pass a pre-computed
+    summary to avoid a duplicate query. %>
 <% bell_user = local_assigns.fetch(:user) { Current.user } %>
-<div data-controller="notification-dropdown"
-     class="relative">
-  <turbo-frame id="notifications_bell_frame">
-    <%= render "shared/notifications_bell_button", user: bell_user %>
-  </turbo-frame>
-
-  <%= render "shared/notifications_dropdown", user: bell_user %>
-</div>
+<% summary ||= unread_notification_summary(bell_user) %>
+<turbo-frame id="notifications_bell_indicator_frame">
+  <% if summary[:severity] %>
+    <% colors = notification_bell_classes(summary[:severity]) %>
+    <span class="absolute -bottom-0.5 -right-0.5
+                 flex size-4 items-center justify-center
+                 rounded-full ring-2 ring-surface-raised
+                 motion-safe:transition-opacity motion-safe:duration-150
+                 <%= colors[:bg] %>
+                 <%= "motion-safe:animate-pulse-danger" if summary[:severity] == :danger %>"
+          data-bell-severity="<%= summary[:severity] %>"
+          aria-hidden="true">
+      <%= icon(:bell, style: :solid, class: "size-2.5 #{colors[:icon]}") %>
+    </span>
+  <% end %>
+</turbo-frame>
