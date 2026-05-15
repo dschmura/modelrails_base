@@ -470,4 +470,43 @@ RSpec.describe User, type: :model do
       expect(user).to be_valid
     end
   end
+
+  describe "#unread_notification_breakdown" do
+    let(:user) { create(:user) }
+    # SignInFromNewDeviceNotifier requires :user_agent and :os params.
+    let(:user_agent) { "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_2) AppleWebKit/605.1.15" }
+    let(:os) { "Macintosh" }
+
+    it "returns an empty hash when there are no notifications" do
+      expect(user.unread_notification_breakdown).to eq({})
+    end
+
+    it "returns an empty hash when all notifications are read" do
+      PasswordChangedNotifier.with(record: user).deliver(user)
+      user.notifications.update_all(read_at: Time.current)
+      expect(user.unread_notification_breakdown).to eq({})
+    end
+
+    it "groups unread notifications by notifier event type with counts" do
+      PasswordChangedNotifier.with(record: user).deliver(user)
+      PasswordChangedNotifier.with(record: user, idempotency_key: "another").deliver(user)
+      SignInFromNewDeviceNotifier.with(record: user, user_agent: user_agent, os: os).deliver(user)
+
+      expect(user.unread_notification_breakdown).to eq(
+        "PasswordChangedNotifier"     => 2,
+        "SignInFromNewDeviceNotifier" => 1
+      )
+    end
+
+    it "ignores read notifications when counting unread" do
+      PasswordChangedNotifier.with(record: user).deliver(user)
+      SignInFromNewDeviceNotifier.with(record: user, user_agent: user_agent, os: os).deliver(user)
+      user.notifications.where(type: "PasswordChangedNotifier::Notification")
+          .update_all(read_at: Time.current)
+
+      expect(user.unread_notification_breakdown).to eq(
+        "SignInFromNewDeviceNotifier" => 1
+      )
+    end
+  end
 end
