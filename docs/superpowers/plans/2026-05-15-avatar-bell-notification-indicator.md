@@ -613,21 +613,21 @@ git commit -m "feat(notifications): replace bell tooltip i18n with severity phra
 
 This will be covered by the partial spec in Task 8. No standalone spec for the keyframes themselves (CSS animation can't be unit-tested meaningfully).
 
-- [ ] **Step 2: Append the keyframes + utility to `app/assets/tailwind/application.css`.**
+- [ ] **Step 2: Add the animation via `@theme` + `@keyframes` to `app/assets/tailwind/application.css`.**
 
-Add at the bottom of the file (or in a clearly-marked "Animations" section if there's a convention):
+This is the canonical v4 pattern Tailwind itself uses for `animate-pulse`, `animate-spin`, etc. Defining `--animate-pulse-danger` inside a `@theme` block automatically generates the `animate-pulse-danger` utility. Add at the bottom of the file (or in a clearly-marked "Animations" section if there's a convention):
 
 ```css
 /* Subtle attention pulse for danger-severity notification bells.
    3s opacity cycle (100% → 70% → 100%). Wrapped via `motion-safe:`
    in the partial so it's suppressed under prefers-reduced-motion. */
+@theme {
+  --animate-pulse-danger: pulse-danger 3s ease-in-out infinite;
+}
+
 @keyframes pulse-danger {
   0%, 100% { opacity: 1; }
   50%      { opacity: 0.7; }
-}
-
-@utility animate-pulse-danger {
-  animation: pulse-danger 3s ease-in-out infinite;
 }
 ```
 

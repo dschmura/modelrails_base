@@ -237,18 +237,20 @@ The overlay partial. Renders empty when severity is nil.
 
 The `motion-safe:animate-pulse-danger` is a subtle attention signal restricted to `:danger`. A 3-second opacity cycle (100% → 70% → 100%). Suppressed under `prefers-reduced-motion: reduce`.
 
-Custom keyframes added to the Tailwind utilities layer (e.g. `app/assets/tailwind/utilities.css`):
+Custom animation registered via `@theme` (the canonical v4 pattern Tailwind itself uses for `animate-pulse`, `animate-spin`, etc.). Lives in `app/assets/tailwind/application.css`:
 
 ```css
+@theme {
+  --animate-pulse-danger: pulse-danger 3s ease-in-out infinite;
+}
+
 @keyframes pulse-danger {
   0%, 100% { opacity: 1; }
   50%      { opacity: 0.7; }
 }
-
-@utility animate-pulse-danger {
-  animation: pulse-danger 3s ease-in-out infinite;
-}
 ```
+
+Tailwind auto-generates the `animate-pulse-danger` utility from the `--animate-*` theme variable. No separate `@utility` declaration needed.
 
 #### `app/views/shared/_user_menu_avatar_button.html.erb` (new slim partial)
 
