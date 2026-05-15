@@ -10,15 +10,16 @@
 <turbo-frame id="notifications_bell_indicator_frame">
   <% if summary[:severity] %>
     <% colors = notification_bell_classes(summary[:severity]) %>
-    <span class="absolute -bottom-0.5 -right-0.5
-                 flex size-4 items-center justify-center
-                 rounded-full ring-2 ring-surface-raised
-                 motion-safe:transition-opacity motion-safe:duration-150
-                 <%= colors[:bg] %>
-                 <%= "motion-safe:animate-pulse-danger" if summary[:severity] == :danger %>"
+    <span class="<%= class_names(
+            "absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center",
+            "rounded-full ring-2 ring-surface-raised",
+            "motion-safe:transition-opacity motion-safe:duration-150",
+            colors[:bg],
+            "motion-safe:animate-pulse-danger" => summary[:severity] == :danger
+          ) %>"
           data-bell-severity="<%= summary[:severity] %>"
           aria-hidden="true">
-      <%= icon(:bell, style: :solid, class: "size-2.5 #{colors[:icon]}") %>
+      <%= icon(:bell, style: :solid, class: "w-2.5 h-2.5 #{colors[:icon]}") %>
     </span>
   <% end %>
 </turbo-frame>

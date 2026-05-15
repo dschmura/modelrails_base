@@ -42,6 +42,7 @@ RSpec.describe "shared/_notifications_bell.html.erb", type: :view do
     render partial: "shared/notifications_bell", locals: { user: user }
     expect(rendered).to include('bg-info')
     expect(rendered).to include('text-info-icon')
+    expect(rendered).not_to include('animate-pulse-danger')
   end
 
   it "renders a success-colored bell for workspace_activity notifications" do
@@ -51,5 +52,6 @@ RSpec.describe "shared/_notifications_bell.html.erb", type: :view do
     render partial: "shared/notifications_bell", locals: { user: user }
     expect(rendered).to include('bg-success')
     expect(rendered).to include('text-success-icon')
+    expect(rendered).not_to include('animate-pulse-danger')
   end
 end
