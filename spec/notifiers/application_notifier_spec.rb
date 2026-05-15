@@ -36,6 +36,34 @@ RSpec.describe ApplicationNotifier, type: :notifier do
     end
   end
 
+  describe ".severity" do
+    it "defaults to :info when not declared" do
+      klass = Class.new(ApplicationNotifier)
+      expect(klass.severity_name).to eq(:info)
+    end
+
+    it "stores the declared severity as a symbol" do
+      klass = Class.new(ApplicationNotifier) do
+        severity :danger
+      end
+      expect(klass.severity_name).to eq(:danger)
+    end
+
+    it "accepts string arguments and stores as symbol" do
+      klass = Class.new(ApplicationNotifier) do
+        severity "warning"
+      end
+      expect(klass.severity_name).to eq(:warning)
+    end
+
+    it "does not leak between subclasses" do
+      a = Class.new(ApplicationNotifier) { severity :danger }
+      b = Class.new(ApplicationNotifier) { severity :success }
+      expect(a.severity_name).to eq(:danger)
+      expect(b.severity_name).to eq(:success)
+    end
+  end
+
   describe "automatic idempotency-key population (column)" do
     let(:user) { create(:user) }
     let(:resource) { create(:user) }

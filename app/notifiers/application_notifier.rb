@@ -2,9 +2,14 @@
 
 class ApplicationNotifier < Noticed::Event
   class_attribute :category_name, instance_accessor: false
+  class_attribute :severity_name, instance_accessor: false, default: :info
 
   def self.category(name)
     self.category_name = name.to_s
+  end
+
+  def self.severity(name)
+    self.severity_name = name.to_sym
   end
 
   before_create :populate_idempotency_key
