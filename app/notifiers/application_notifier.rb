@@ -2,6 +2,14 @@
 
 class ApplicationNotifier < Noticed::Event
   class_attribute :category_name, instance_accessor: false
+
+  # Severity stores as a Symbol (unlike `category`, which stores as a String)
+  # because its consumers index into symbol-keyed config tables in
+  # NotificationBellHelper (SEVERITY_RANK, SEVERITY_CLASSES). `category`,
+  # by contrast, is compared against string keys in the JSONB
+  # notification_preferences blob. Keep both DSLs aware of this asymmetry —
+  # comparing severity_name to a string (or category_name to a symbol) will
+  # silently return false.
   class_attribute :severity_name, instance_accessor: false, default: :info
 
   def self.category(name)

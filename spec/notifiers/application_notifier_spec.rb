@@ -62,6 +62,13 @@ RSpec.describe ApplicationNotifier, type: :notifier do
       expect(a.severity_name).to eq(:danger)
       expect(b.severity_name).to eq(:success)
     end
+
+    it "stores the value as a Symbol (the storage contract relied on by NotificationBellHelper)" do
+      klass = Class.new(ApplicationNotifier) do
+        severity :danger
+      end
+      expect(klass.severity_name).to be_a(Symbol)
+    end
   end
 
   describe "automatic idempotency-key population (column)" do
