@@ -93,8 +93,17 @@ RSpec.describe NotificationBellHelper, type: :helper do
       PasswordChangedNotifier.with(record: user).deliver(user)
 
       label = helper.avatar_button_aria_label(user)
-      expect(label).to include("1 unread notifications")
+      expect(label).to include("1 unread notification")
       expect(label).to include("a security alert")
+    end
+
+    it "uses the plural form when unread > 1" do
+      3.times do |i|
+        PasswordChangedNotifier.with(record: user, idempotency_key: "k_#{i}").deliver(user)
+      end
+
+      label = helper.avatar_button_aria_label(user)
+      expect(label).to include("3 unread notifications")
     end
   end
 end
