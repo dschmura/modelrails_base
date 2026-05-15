@@ -61,22 +61,22 @@ RSpec.describe NotificationBellHelper, type: :helper do
   end
 
   describe "#notification_bell_classes" do
-    it "returns bg-danger and text-danger-icon for :danger" do
+    it "returns bg-danger and text-text-on-interactive for :danger" do
       expect(helper.notification_bell_classes(:danger)).to eq(
-        bg: "bg-danger", icon: "text-danger-icon"
+        bg: "bg-danger", icon: "text-text-on-interactive"
       )
     end
 
     it "returns the info classes for an unknown severity" do
       expect(helper.notification_bell_classes(:unknown)).to eq(
-        bg: "bg-info", icon: "text-info-icon"
+        bg: "bg-info", icon: "text-text-on-interactive"
       )
     end
 
     {
-      warning: { bg: "bg-warning", icon: "text-warning-icon" },
-      info:    { bg: "bg-info",    icon: "text-info-icon"    },
-      success: { bg: "bg-success", icon: "text-success-icon" }
+      warning: { bg: "bg-warning", icon: "text-text-on-interactive" },
+      info:    { bg: "bg-info",    icon: "text-text-on-interactive" },
+      success: { bg: "bg-success", icon: "text-text-on-interactive" }
     }.each do |severity, classes|
       it "returns the expected classes for #{severity.inspect}" do
         expect(helper.notification_bell_classes(severity)).to eq(classes)

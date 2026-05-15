@@ -13,7 +13,7 @@ RSpec.describe "shared/_notifications_bell.html.erb", type: :view do
     PasswordChangedNotifier.with(record: user).deliver(user)
     render partial: "shared/notifications_bell", locals: { user: user }
     expect(rendered).to include('bg-danger')
-    expect(rendered).to include('text-danger-icon')
+    expect(rendered).to include('text-text-on-interactive')
     expect(rendered).to include('data-bell-severity="danger"')
     expect(rendered).to include('motion-safe:animate-pulse-danger')
     expect(rendered).to include('aria-hidden="true"')
@@ -32,7 +32,7 @@ RSpec.describe "shared/_notifications_bell.html.erb", type: :view do
 
     render partial: "shared/notifications_bell", locals: { user: user }
     expect(rendered).to include('bg-warning')
-    expect(rendered).to include('text-warning-icon')
+    expect(rendered).to include('text-text-on-interactive')
     expect(rendered).not_to include('animate-pulse-danger')
   end
 
@@ -41,7 +41,7 @@ RSpec.describe "shared/_notifications_bell.html.erb", type: :view do
     WorkspaceInvitationReceivedNotifier.with(record: invitation).deliver(user)
     render partial: "shared/notifications_bell", locals: { user: user }
     expect(rendered).to include('bg-info')
-    expect(rendered).to include('text-info-icon')
+    expect(rendered).to include('text-text-on-interactive')
     expect(rendered).not_to include('animate-pulse-danger')
   end
 
@@ -51,7 +51,7 @@ RSpec.describe "shared/_notifications_bell.html.erb", type: :view do
     WorkspaceMemberAddedNotifier.with(record: membership).deliver(user)
     render partial: "shared/notifications_bell", locals: { user: user }
     expect(rendered).to include('bg-success')
-    expect(rendered).to include('text-success-icon')
+    expect(rendered).to include('text-text-on-interactive')
     expect(rendered).not_to include('animate-pulse-danger')
   end
 end

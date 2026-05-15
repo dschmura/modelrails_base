@@ -1,13 +1,16 @@
-<%# locals: (user:) -%>
+<%# locals: (user:, summary: nil) -%>
 <%# Slim partial: the avatar trigger button. Used both inline by
     `_user_menu.html.erb` and as the broadcast target for
     `notifications_avatar_button_frame`. Holds the state-aware
     aria-label (refreshes via broadcast) and nests the bell overlay
     inside the button so there's a single 44x44 focus + touch target.
 
-    Computes the unread summary ONCE and passes it down to the bell
-    partial AND the aria-label helper to avoid duplicate DB queries. %>
-<% summary = unread_notification_summary(user) %>
+    Accepts an optional pre-computed `summary:` local so a parent
+    partial (e.g. `_user_menu.html.erb`) can share ONE
+    `unread_notification_breakdown` query across the avatar button,
+    the bell, and the menu count span. Falls back to its own query
+    when rendered standalone (e.g. via Turbo Stream broadcast). %>
+<% summary ||= unread_notification_summary(user) %>
 <button data-dropdown-target="button"
         data-action="click->dropdown#toggle"
         id="user-menu-button"
