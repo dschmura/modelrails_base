@@ -401,7 +401,7 @@ Phrase reads naturally: *"User menu for Dave. 3 unread notifications, including 
 
 7. **Severity phrasing is i18n-driven.** The aria-label uses natural-language phrases (`"a security alert"`) rather than developer-facing tokens (`"danger"`). Defaults ship in English; localizers override per-locale.
 
-8. **DND surfaced via aria-label.** See "DND open question" below — tentative resolution is to append `"; do not disturb is active"` to the aria-label when DND + unread coincide. Sighted users see the overlay; AT users hear the full state.
+8. **DND is not surfaced on the bell.** Do Not Disturb governs *delivery channels* (email, push) — it does not suppress in-app bell appearance, severity color, count, or live-region announcement. Since DND doesn't change what the bell does, the bell doesn't mention it. The notification preferences page is the canonical home for DND state. (See "Resolved decisions" below.)
 
 ---
 
@@ -448,15 +448,17 @@ Phrase reads naturally: *"User menu for Dave. 3 unread notifications, including 
 
 ---
 
-## Open questions
+## Resolved decisions
 
-### DND surface
+### DND is not surfaced on the bell
 
-The current bell shows a `title=` tooltip when DND is active and there are unread. With the bell collapsed into an overlay, the tooltip surface goes away.
+The current bell shows a `title=` tooltip when DND is active and there are unread. **That behavior does not carry over.**
 
-**Tentative resolution (per panel feedback from Léonie):** include DND in the avatar's `aria-label` — *"User menu for Dave. 3 unread notifications, including a security alert; do not disturb is active."* Lowest scope; preserves DND signal for AT users; doesn't pollute the visible menu.
+Rationale: DND governs delivery channels (email, push), not in-app bell appearance. The bell still shows severity, count, and live-region announcement under DND. Since DND doesn't change what the bell does in the new design, adding a "DND is on" surface to the bell would be noise about a preference the user already set. The notification preferences page is the canonical home.
 
-Confirm before implementation.
+If a future change makes DND actually suppress something on the bell (e.g., silencing the live-region announcement for non-security categories), revisit this decision.
+
+Removed from i18n: `notifications.bell.unread_with_dnd` (already listed in the I18n removal section).
 
 ---
 
