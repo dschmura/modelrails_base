@@ -2,6 +2,7 @@
 
 class WorkspaceInvitationAcceptedNotifier < ApplicationNotifier
   category :workspace_activity
+  severity :success
 
   notification_methods do
     def message

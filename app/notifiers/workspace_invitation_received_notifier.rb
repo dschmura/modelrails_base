@@ -2,6 +2,7 @@
 
 class WorkspaceInvitationReceivedNotifier < ApplicationNotifier
   category :account_access
+  severity :info
 
   notification_methods do
     def message

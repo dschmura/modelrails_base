@@ -11,6 +11,7 @@
 # a "recently sent" flash instead of a duplicate "sent" flash.
 class WorkspaceInvitationResentNotifier < ApplicationNotifier
   category :account_access
+  severity :info
 
   notification_methods do
     def message

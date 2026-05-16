@@ -4,18 +4,24 @@ RSpec.describe NotificationBroadcaster do
   let(:user) { create(:user) }
 
   describe ".refresh_for" do
-    it "broadcasts the bell-button frame, dropdown frame, and aria-live update for the given user" do
+    it "broadcasts the avatar button, bell indicator, menu count, and aria-live quartet for the given user" do
       expect(Turbo::StreamsChannel).to receive(:broadcast_replace_to).with(
         [ user, :notifications ],
-        target: "notifications_bell_frame",
-        partial: "shared/notifications_bell_button",
-        locals: { user: user }
+        target: "notifications_avatar_button_frame",
+        partial: "shared/user_menu_avatar_button",
+        locals: hash_including(user: user, summary: hash_including(:count, :severity))
       )
       expect(Turbo::StreamsChannel).to receive(:broadcast_replace_to).with(
         [ user, :notifications ],
-        target: "notifications_dropdown_frame",
-        partial: "shared/notifications_dropdown_list",
-        locals: { user: user }
+        target: "notifications_bell_indicator_frame",
+        partial: "shared/notifications_bell",
+        locals: hash_including(user: user, summary: hash_including(:count, :severity))
+      )
+      expect(Turbo::StreamsChannel).to receive(:broadcast_replace_to).with(
+        [ user, :notifications ],
+        target: "notifications_menu_count_frame",
+        partial: "shared/notifications_menu_count_span",
+        locals: hash_including(user: user, summary: hash_including(:count, :severity))
       )
       expect(Turbo::StreamsChannel).to receive(:broadcast_update_to).with(
         [ user, :notifications ],
@@ -37,6 +43,18 @@ RSpec.describe NotificationBroadcaster do
       described_class.refresh_for(user, announcement_key: "notifications.bell.read_state_announcement")
     end
 
+    # Performance contract: the unread breakdown query must fire EXACTLY
+    # ONCE per refresh, even though four partials/broadcasts need the
+    # summary. The broadcaster pre-computes it and passes it as a local.
+    it "queries the unread breakdown only once and shares the summary across broadcasts" do
+      allow(Turbo::StreamsChannel).to receive(:broadcast_replace_to)
+      allow(Turbo::StreamsChannel).to receive(:broadcast_update_to)
+
+      expect(user).to receive(:unread_notification_breakdown).once.and_call_original
+
+      described_class.refresh_for(user, announcement_key: "notifications.bell.arrival_announcement")
+    end
+
     # Inherits the same swallow-log-report contract documented on the
     # original broadcast site (PR #97). A broadcast adapter outage must
     # never propagate back to the caller (notifier callback or controller
@@ -47,6 +65,36 @@ RSpec.describe NotificationBroadcaster do
 
       expect(Rails.logger).to receive(:warn).with(/cable down/).at_least(:once)
       expect(Rails.error).to receive(:report).with(error, hash_including(handled: true)).at_least(:once)
+
+      expect {
+        described_class.refresh_for(user, announcement_key: "notifications.bell.arrival_announcement")
+      }.not_to raise_error
+    end
+
+    # Per-broadcast rescue: each surface is independent. A failure on the
+    # FIRST broadcast must NOT abort the other three. Prevents the bell +
+    # count + aria-live region from silently going stale when only the
+    # avatar button partial fails to render.
+    it "continues other broadcasts when one fails (per-broadcast rescue)" do
+      # First broadcast (avatar button) raises; subsequent broadcasts must
+      # still attempt.
+      expect(Turbo::StreamsChannel).to receive(:broadcast_replace_to).with(
+        anything, hash_including(target: "notifications_avatar_button_frame")
+      ).and_raise(StandardError, "simulated cable failure")
+
+      expect(Turbo::StreamsChannel).to receive(:broadcast_replace_to).with(
+        anything, hash_including(target: "notifications_bell_indicator_frame")
+      ).at_least(:once)
+
+      expect(Turbo::StreamsChannel).to receive(:broadcast_replace_to).with(
+        anything, hash_including(target: "notifications_menu_count_frame")
+      ).at_least(:once)
+
+      expect(Turbo::StreamsChannel).to receive(:broadcast_update_to).with(
+        anything, hash_including(target: "notifications-live")
+      ).at_least(:once)
+
+      expect(Rails.logger).to receive(:warn).with(/notification broadcast failed.*avatar_button/)
 
       expect {
         described_class.refresh_for(user, announcement_key: "notifications.bell.arrival_announcement")

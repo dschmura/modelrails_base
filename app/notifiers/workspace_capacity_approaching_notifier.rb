@@ -25,6 +25,7 @@
 # in-app gating MUST happen here.
 class WorkspaceCapacityApproachingNotifier < ApplicationNotifier
   category :billing
+  severity :warning
 
   required_param :metric, :current, :limit
 

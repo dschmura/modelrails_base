@@ -2,6 +2,7 @@
 
 class WorkspaceInvitationExpiringSoonNotifier < ApplicationNotifier
   category :account_access
+  severity :warning
 
   # Email is gated by the recipient's account_access.email preference (default: true).
   # before_enqueue throws :abort to skip the email job entirely when the recipient

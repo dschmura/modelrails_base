@@ -4,7 +4,6 @@ en:
     bell:
       label: "Notifications"
       empty: "You're all caught up."
-      see_all: "See all notifications"
       arrival_announcement: "New notification"
       read_state_announcement: "Notifications updated"
       unread_sr_label: "Unread"
@@ -12,7 +11,11 @@ en:
         zero:  "No new notifications"
         one:   "1 unread"
         other: "%{count} unread"
-      unread_with_dnd: "%{count} unread (%{hidden} hidden by Do Not Disturb)"
+    severity_phrase:
+      danger: "a security alert"
+      warning: "an important update"
+      info: "an account update"
+      success: "a workspace update"
     preferences:
       heading: "Notification preferences"
       timezone:

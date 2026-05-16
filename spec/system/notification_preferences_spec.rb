@@ -281,27 +281,9 @@ RSpec.describe "Notification preferences", type: :system do
     end
   end
 
-  describe "bell tooltip when DND is on" do
-    it "shows the unread-with-dnd title on the bell when DND is active and user has unread" do
-      # Seed DND on + an unread notification so the tooltip surfaces.
-      user.preferences.update!(
-        notification_preferences: user.preferences.notification_preferences.merge("quiet_hours" => { "enabled" => true, "start" => "00:00", "end" => "23:59", "allow_urgent" => true })
-      )
-      PasswordChangedNotifier.with(record: user).deliver(user)
-
-      visit root_path
-
-      bell = find("button[data-notifications-bell-trigger]")
-      expect(bell["title"]).to include("hidden")
-    end
-
-    it "omits the tooltip title when DND is off" do
-      PasswordChangedNotifier.with(record: user).deliver(user)
-
-      visit root_path
-
-      bell = find("button[data-notifications-bell-trigger]")
-      expect(bell["title"]).to be_nil.or eq("")
-    end
-  end
+  # Bell-tooltip DND tests removed: the new avatar-bell design surfaces
+  # only severity on the bell overlay (which is aria-hidden). DND state is
+  # canonical on the preferences page; the bell never surfaces it. See
+  # docs/superpowers/specs/2026-05-15-avatar-bell-notification-indicator-design.md
+  # ("Resolved decisions: DND is not surfaced on the bell").
 end

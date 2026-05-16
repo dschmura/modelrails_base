@@ -696,3 +696,28 @@ body.a11y-sim-cataract     { filter: blur(1.5px) contrast(0.8) brightness(1.1); 
 .biscuit-manage-link {
   display: none !important;
 }
+
+/* ==========================================================================
+   Animations
+   ==========================================================================
+   Tailwind v4 generates `animate-*` utilities from `--animate-*` theme
+   variables. We use a non-inline @theme block here because animation
+   values are static (no var() references that swap under .dark).
+   ========================================================================== */
+
+/* Attention pulse for danger-severity notification bells.
+   2s scale cycle (1 → 1.15 → 1) — communicates "active signal" via
+   motion rather than the previous opacity fade (which read as a
+   broken/loading state). Uses standalone `scale` CSS property so it
+   composes cleanly with the bell's standalone `rotate: -20deg`.
+   Wrapped via `motion-safe:` in the partial — suppressed under
+   prefers-reduced-motion. */
+@theme {
+  --animate-pulse-danger: pulse-danger 2s ease-in-out infinite;
+}
+
+@keyframes pulse-danger {
+  0%, 100% { scale: 1; }
+  50%      { scale: 1.15; }
+}
+
