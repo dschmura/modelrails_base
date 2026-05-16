@@ -1,4 +1,7 @@
 module NotificationBellHelper
+  # Higher rank wins when multiple severities are unread.
+  # `max_by { SEVERITY_RANK.fetch(_1) }` in #unread_notification_summary
+  # uses this to select the dominant severity for the bell.
   SEVERITY_RANK = { danger: 4, warning: 3, info: 2, success: 1 }.freeze
 
   # The bell IS the indicator — no chip. Each severity uses its saturated
