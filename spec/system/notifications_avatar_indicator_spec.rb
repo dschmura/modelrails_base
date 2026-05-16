@@ -98,4 +98,54 @@ RSpec.describe "Notifications avatar indicator", type: :system do
     expect(page.find("#user-menu-button")["aria-label"]).to include("1 unread notification")
     expect(page.find("#user-menu-button")["aria-label"]).to include("a security alert")
   end
+
+  # The dropdown controller's keydown handler doesn't fire reliably for
+  # programmatic KeyboardEvent dispatch in Playwright's isolated context, so
+  # we invoke the handler directly. Mirrors the pattern in user_menu_spec.rb.
+  def send_dropdown_key(key)
+    page.driver.with_playwright_page do |pw_page|
+      pw_page.evaluate(<<~JS)
+        (function() {
+          var el = document.querySelector('[data-controller~="dropdown"]');
+          var c = window.Stimulus.getControllerForElementAndIdentifier(el, 'dropdown');
+          if (c) c.handleKeydown(new KeyboardEvent('keydown', { key: '#{key}', bubbles: true }));
+        })()
+      JS
+    end
+  end
+
+  it "updates the count inside an open menu without closing it or shifting focus" do
+    visit root_path
+    find("#user-menu-button").click
+    expect(page).to have_css("#user-menu", visible: :visible)
+
+    # Move focus from the first menu item (Profile) to Notifications (second
+    # item) so we can verify focus retention on a non-default target. The
+    # Notifications link's textContent prefix is stable even when the inline
+    # count span re-renders.
+    send_dropdown_key("ArrowDown")
+    notifications_label = I18n.t("navigation.notifications")
+    expect(
+      page.evaluate_script("document.activeElement?.textContent?.trim()")
+    ).to start_with(notifications_label)
+
+    perform_enqueued_jobs do
+      PasswordChangedNotifier.with(record: user).deliver(user)
+    end
+
+    # Menu stays open after the broadcast lands.
+    expect(page).to have_css("#user-menu", visible: :visible, wait: 5)
+    # Count text inside the menu (rendered in the notifications_menu_count_frame)
+    # updates in-place.
+    expect(page).to have_text("(1)", wait: 5)
+    # Avatar overlay updates too (cross-check that the trio of broadcasts fired).
+    expect(page).to have_css('[data-bell-severity="danger"]', wait: 5)
+    # Focus stays on the Notifications menu item — the menu-count frame swap
+    # happens INSIDE the link's child <turbo-frame>, not on the focused
+    # ancestor. If a future refactor moves the frame upward (or replaces the
+    # whole link), this assertion will catch the resulting focus loss.
+    expect(
+      page.evaluate_script("document.activeElement?.textContent?.trim()")
+    ).to start_with(notifications_label)
+  end
 end
