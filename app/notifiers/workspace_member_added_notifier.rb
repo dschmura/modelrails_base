@@ -23,6 +23,7 @@
 # user, or (b) the added user opted out of workspace_activity.email.
 class WorkspaceMemberAddedNotifier < ApplicationNotifier
   category :workspace_activity
+  severity :success
 
   recipients do
     added_user = record.user

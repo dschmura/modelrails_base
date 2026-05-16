@@ -33,7 +33,12 @@ RSpec.describe "Notifications a11y plumbing", type: :system do
       visit root_path
 
       expect(page).to have_css("turbo-cable-stream-source", visible: :all)
-      expect(page).to have_css("turbo-frame#notifications_bell_frame")
+      # The new avatar-bell design exposes three broadcast targets that
+      # `NotificationBroadcaster.refresh_for` replaces, plus the live region
+      # (asserted in its own example above).
+      expect(page).to have_css("turbo-frame#notifications_avatar_button_frame")
+      expect(page).to have_css("turbo-frame#notifications_bell_indicator_frame", visible: :all)
+      expect(page).to have_css("turbo-frame#notifications_menu_count_frame", visible: :all)
     end
 
     it "does NOT render the subscription on unauthenticated pages" do

@@ -1,5 +1,11 @@
 <%# locals: (context: :desktop) -%>
 <% if authenticated? %>
+  <%# Compute the unread summary ONCE per page render and pass it down to
+      every partial that needs it (avatar button, bell, menu count span).
+      Each downstream partial accepts `summary:` as an optional local and
+      falls back to its own query when rendered standalone (e.g. via
+      Turbo Stream broadcast). -%>
+  <% summary = unread_notification_summary(Current.user) %>
   <%# Unread-dot decoration for the Preferences link — surfaces in both
       desktop and mobile contexts until the user dismisses the migration
       banner. Pure CSS via Tailwind `after:` pseudo-element so screen
@@ -16,76 +22,71 @@
     prefs_dot_data = prefs_unread ? { unread_dot: "true" } : {}
   %>
   <% if context == :desktop %>
-  <%# Desktop: bell + avatar-triggered dropdown %>
+  <%# Desktop: avatar with notification overlay; bell + count broadcast targets %>
   <div class="hidden md:flex items-center gap-2">
-    <%= render "shared/notifications_bell" %>
-  <div data-controller="dropdown"
-       class="relative">
-    <button data-dropdown-target="button"
-            data-action="click->dropdown#toggle"
-            id="user-menu-button"
-            aria-haspopup="true"
-            aria-expanded="false"
-            aria-controls="user-menu"
-            aria-label="<%= t("navigation.user_menu_label", name: Current.user.full_name) %>"
-            class="btn-touch-target rounded-full
-                   focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus
-                   cursor-pointer">
-      <span id="user_avatar_header"><%= avatar_for(Current.user, size: :md) %></span>
-    </button>
+    <div data-controller="dropdown"
+         class="relative">
+      <turbo-frame id="notifications_avatar_button_frame">
+        <%= render "shared/user_menu_avatar_button", user: Current.user, summary: summary %>
+      </turbo-frame>
 
-    <div data-dropdown-target="menu"
-         id="user-menu"
-         role="menu"
-         aria-orientation="vertical"
-         aria-labelledby="user-menu-button"
-         class="hidden absolute right-0 mt-2 w-64 rounded-lg
-                bg-surface-raised border border-border shadow-lg z-50">
-      <div class="px-4 py-3">
-        <p class="text-sm font-semibold text-text-heading"><%= Current.user.full_name %></p>
-        <p class="text-sm text-text-muted truncate"><%= Current.user.email_address %></p>
-      </div>
+      <div data-dropdown-target="menu"
+           id="user-menu"
+           role="menu"
+           aria-orientation="vertical"
+           aria-labelledby="user-menu-button"
+           class="hidden absolute right-0 mt-2 w-64 rounded-lg
+                  bg-surface-raised border border-border shadow-lg z-50">
+        <div class="px-4 py-3">
+          <p class="text-sm font-semibold text-text-heading"><%= Current.user.full_name %></p>
+          <p class="text-sm text-text-muted truncate"><%= Current.user.email_address %></p>
+        </div>
 
-      <div class="border-t border-border">
-        <%= link_to t("navigation.profile"), main_app.edit_account_profile_path,
-              role: "menuitem", tabindex: "-1",
-              class: "flex items-center min-h-[var(--form-input-height)] px-4 py-2
-                      text-sm text-text-body
-                      hover:bg-surface hover:text-interactive
-                      focus:outline-none focus:ring-2 focus:ring-interactive-focus focus:text-interactive" %>
-      </div>
+        <div class="border-t border-border">
+          <%= link_to t("navigation.profile"), main_app.edit_account_profile_path,
+                role: "menuitem", tabindex: "-1",
+                class: "flex items-center min-h-[var(--form-input-height)] px-4 py-2
+                        text-sm text-text-body
+                        hover:bg-surface hover:text-interactive
+                        focus:outline-none focus:ring-2 focus:ring-interactive-focus focus:text-interactive" %>
+        </div>
 
-      <div class="border-t border-border">
-        <%= link_to t("navigation.notifications"), main_app.account_notifications_path,
-              role: "menuitem", tabindex: "-1",
-              class: "flex items-center min-h-[var(--form-input-height)] px-4 py-2
-                      text-sm text-text-body
-                      hover:bg-surface hover:text-interactive
-                      focus:outline-none focus:ring-2 focus:ring-interactive-focus focus:text-interactive" %>
-      </div>
+        <div class="border-t border-border">
+          <%= link_to main_app.account_notifications_path,
+                role: "menuitem", tabindex: "-1",
+                class: "flex items-center min-h-[var(--form-input-height)] px-4 py-2
+                        text-sm text-text-body
+                        hover:bg-surface hover:text-interactive
+                        focus:outline-none focus:ring-2 focus:ring-interactive-focus focus:text-interactive" do %>
+            <%= t("navigation.notifications") %>
+            <turbo-frame id="notifications_menu_count_frame">
+              <%= render "shared/notifications_menu_count_span", user: Current.user, summary: summary %>
+            </turbo-frame>
+          <% end %>
+        </div>
 
-      <div class="border-t border-border">
-        <%= link_to t("navigation.notification_preferences"), main_app.edit_account_notification_preferences_path,
-              role: "menuitem", tabindex: "-1",
-              data: prefs_dot_data,
-              class: "flex items-center min-h-[var(--form-input-height)] px-4 py-2
-                      text-sm text-text-body
-                      hover:bg-surface hover:text-interactive
-                      focus:outline-none focus:ring-2 focus:ring-interactive-focus focus:text-interactive
-                      #{prefs_dot_classes}" %>
-      </div>
+        <div class="border-t border-border">
+          <%= link_to t("navigation.notification_preferences"), main_app.edit_account_notification_preferences_path,
+                role: "menuitem", tabindex: "-1",
+                data: prefs_dot_data,
+                class: "flex items-center min-h-[var(--form-input-height)] px-4 py-2
+                        text-sm text-text-body
+                        hover:bg-surface hover:text-interactive
+                        focus:outline-none focus:ring-2 focus:ring-interactive-focus focus:text-interactive
+                        #{prefs_dot_classes}" %>
+        </div>
 
-      <div class="border-t border-border">
-        <%= button_to t("navigation.sign_out"), main_app.session_path, method: :delete,
-              role: "menuitem", tabindex: "-1",
-              class: "w-full flex items-center min-h-[var(--form-input-height)] px-4 py-2
-                      text-sm text-text-body
-                      hover:bg-surface hover:text-interactive
-                      focus:outline-none focus:ring-2 focus:ring-interactive-focus focus:text-interactive
-                      cursor-pointer" %>
+        <div class="border-t border-border">
+          <%= button_to t("navigation.sign_out"), main_app.session_path, method: :delete,
+                role: "menuitem", tabindex: "-1",
+                class: "w-full flex items-center min-h-[var(--form-input-height)] px-4 py-2
+                        text-sm text-text-body
+                        hover:bg-surface hover:text-interactive
+                        focus:outline-none focus:ring-2 focus:ring-interactive-focus focus:text-interactive
+                        cursor-pointer" %>
+        </div>
       </div>
     </div>
-  </div>
   </div>
   <% end %>
 
@@ -100,10 +101,13 @@
           class: "min-h-[var(--form-input-height)] flex items-center px-2 text-text-body
                   hover:text-interactive-hover rounded
                   focus:outline-none focus:ring-2 focus:ring-interactive-focus" %>
-    <%= link_to t("navigation.notifications"), main_app.account_notifications_path,
+    <%= link_to main_app.account_notifications_path,
           class: "min-h-[var(--form-input-height)] flex items-center px-2 text-text-body
                   hover:text-interactive-hover rounded
-                  focus:outline-none focus:ring-2 focus:ring-interactive-focus" %>
+                  focus:outline-none focus:ring-2 focus:ring-interactive-focus" do %>
+      <%= t("navigation.notifications") %>
+      <%= render "shared/notifications_menu_count_span", user: Current.user, summary: summary %>
+    <% end %>
     <%= link_to t("navigation.notification_preferences"), main_app.edit_account_notification_preferences_path,
           data: prefs_dot_data,
           class: "min-h-[var(--form-input-height)] flex items-center px-2 text-text-body

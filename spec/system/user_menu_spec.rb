@@ -68,8 +68,11 @@ RSpec.describe "User menu dropdown", type: :system do
 
     it "ArrowDown moves focus to next item" do
       send_dropdown_key("ArrowDown")
+      # The Notifications link inlines an unread count span, so its textContent
+      # may include trailing whitespace and "(N)". Assert on the link label
+      # prefix to keep the test resilient to count format changes.
       focused_text = page.evaluate_script("document.activeElement?.textContent?.trim()")
-      expect(focused_text).to eq(I18n.t("navigation.notifications"))
+      expect(focused_text).to start_with(I18n.t("navigation.notifications"))
     end
 
     it "ArrowDown wraps from last to first item" do

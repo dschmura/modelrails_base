@@ -2,6 +2,7 @@
 
 class PasswordChangedNotifier < ApplicationNotifier
   category :security
+  severity :danger
 
   notification_methods do
     def message

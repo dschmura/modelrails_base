@@ -174,6 +174,16 @@ class User < ApplicationRecord
     update_column(:last_known_browsers, browsers)
   end
 
+  # Returns { notifier_class_name => unread_count, ... } for the user.
+  # Used by NotificationBellHelper to compute count and severity in one DB hit.
+  def unread_notification_breakdown
+    notifications
+      .where(read_at: nil)
+      .joins("INNER JOIN noticed_events ON noticed_events.id = noticed_notifications.event_id")
+      .group("noticed_events.type")
+      .count
+  end
+
   private
 
   def check_gravatar_later

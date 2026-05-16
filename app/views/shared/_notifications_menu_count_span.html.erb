@@ -1,0 +1,5 @@
+<%# locals: (user:, summary: nil) -%>
+<% summary ||= unread_notification_summary(user) %>
+<% if summary[:count].positive? %>
+  <span class="ml-1 text-text-muted">(<%= summary[:count] > 9 ? "10+" : summary[:count] %>)</span>
+<% end %>

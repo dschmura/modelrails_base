@@ -167,6 +167,5 @@ RSpec.describe "Notifications index page", type: :system do
     # durable two-variable `--ws-primary-light`/`--ws-primary-dark` scheme
     # took `.text-interactive` and `.bg-interactive` out of the umbrella),
     # making it the canary for any future cascade-induced surface drift.
-    # AAA on the dropdown surface is covered by `notifications_dropdown_spec`.
   end
 end

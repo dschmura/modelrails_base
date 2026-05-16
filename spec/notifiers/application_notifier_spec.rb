@@ -36,6 +36,41 @@ RSpec.describe ApplicationNotifier, type: :notifier do
     end
   end
 
+  describe ".severity" do
+    it "defaults to :info when not declared" do
+      klass = Class.new(ApplicationNotifier)
+      expect(klass.severity_name).to eq(:info)
+    end
+
+    it "stores the declared severity as a symbol" do
+      klass = Class.new(ApplicationNotifier) do
+        severity :danger
+      end
+      expect(klass.severity_name).to eq(:danger)
+    end
+
+    it "accepts string arguments and stores as symbol" do
+      klass = Class.new(ApplicationNotifier) do
+        severity "warning"
+      end
+      expect(klass.severity_name).to eq(:warning)
+    end
+
+    it "does not leak between subclasses" do
+      a = Class.new(ApplicationNotifier) { severity :danger }
+      b = Class.new(ApplicationNotifier) { severity :success }
+      expect(a.severity_name).to eq(:danger)
+      expect(b.severity_name).to eq(:success)
+    end
+
+    it "stores the value as a Symbol (the storage contract relied on by NotificationBellHelper)" do
+      klass = Class.new(ApplicationNotifier) do
+        severity :danger
+      end
+      expect(klass.severity_name).to be_a(Symbol)
+    end
+  end
+
   describe "automatic idempotency-key population (column)" do
     let(:user) { create(:user) }
     let(:resource) { create(:user) }
@@ -365,26 +400,24 @@ RSpec.describe ApplicationNotifier, type: :notifier do
     end
   end
 
-  describe "#broadcast_notifications_arrival dropdown panel refresh" do
+  describe "#broadcast_notifications_arrival menu count refresh" do
     let(:user) { create(:user) }
     let(:resource) { create(:user) }
 
-    # The dropdown panel sits next to the bell-button in shared/_notifications_bell.
-    # When the panel is open and a new notification arrives, the panel must
-    # re-render its list so the user sees the new item without closing and
-    # reopening. The bell-button frame and the dropdown-list frame are
-    # broadcast as two separate `replace` operations to keep frames
-    # independent — the button updates even when the panel is closed
-    # and not visible.
-    it "broadcasts a dropdown-list refresh targeting notifications_dropdown_frame" do
+    # The Notifications menu link surfaces the unread count next to the
+    # avatar's user menu. The avatar-button frame, bell-indicator frame,
+    # and menu-count frame are broadcast as separate `replace` operations
+    # so each surface updates independently — e.g. the menu-count refreshes
+    # even when the avatar overlay re-renders.
+    it "broadcasts a menu-count refresh targeting notifications_menu_count_frame" do
       allow(Turbo::StreamsChannel).to receive(:broadcast_update_to)
-      # Allow any broadcast_replace_to call (the bell-button one is tested above),
-      # then expect the specific dropdown-frame broadcast.
+      # Allow other broadcast_replace_to calls (avatar button + bell indicator
+      # are tested above), then expect the specific menu-count broadcast.
       allow(Turbo::StreamsChannel).to receive(:broadcast_replace_to)
       expect(Turbo::StreamsChannel).to receive(:broadcast_replace_to).with(
         [ user, :notifications ],
-        target: "notifications_dropdown_frame",
-        partial: "shared/notifications_dropdown_list",
+        target: "notifications_menu_count_frame",
+        partial: "shared/notifications_menu_count_span",
         locals: hash_including(user: user)
       )
 
