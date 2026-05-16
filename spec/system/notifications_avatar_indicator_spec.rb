@@ -95,7 +95,43 @@ RSpec.describe "Notifications avatar indicator", type: :system do
     end
 
     expect(page).to have_css('[data-bell-severity="danger"]', wait: 5)
-    expect(page.find("#user-menu-button")["aria-label"]).to include("1 unread notification")
-    expect(page.find("#user-menu-button")["aria-label"]).to include("a security alert")
+    # Accessible name is now delegated via aria-labelledby to the sr-only
+    # #user_menu_button_label span (visually clipped, so use visible: :all).
+    # Reading the span's text is the SR-equivalent traversal that AT performs
+    # for aria-labelledby resolution.
+    expect(page.find("#user-menu-button")["aria-labelledby"]).to eq("user_menu_button_label")
+    label_text = page.find("#user_menu_button_label", visible: :all).text(:all)
+    expect(label_text).to include("1 unread notification")
+    expect(label_text).to include("a security alert")
+  end
+
+  it "keeps the avatar button DOM node stable across broadcasts (only the label is replaced)" do
+    visit root_path
+    expect(page).not_to have_css('[data-bell-severity]')
+
+    # Tag the button + label nodes with sentinels we control, so we can prove
+    # which one survives a broadcast. Turbo replaces an element by ID; any
+    # attribute (including data-*) added BEFORE the broadcast disappears with
+    # the replaced node and persists on the stable one.
+    page.execute_script(<<~JS)
+      document.getElementById("user-menu-button").setAttribute("data-stability-probe", "button-pre");
+      document.getElementById("user_menu_button_label").setAttribute("data-stability-probe", "label-pre");
+    JS
+
+    perform_enqueued_jobs do
+      PasswordChangedNotifier.with(record: user).deliver(user)
+    end
+
+    # Label must be replaced (new content) — probe disappears.
+    expect(page).to have_css(
+      "#user_menu_button_label",
+      visible: :all,
+      text: "1 unread notification",
+      wait: 5
+    )
+    expect(page.find("#user_menu_button_label", visible: :all)["data-stability-probe"]).to be_nil
+
+    # Button must NOT be replaced — probe persists.
+    expect(page.find("#user-menu-button")["data-stability-probe"]).to eq("button-pre")
   end
 end
