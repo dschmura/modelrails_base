@@ -101,6 +101,20 @@ RSpec.describe NotificationBellHelper, type: :helper do
     end
   end
 
+  describe "#canonical_severity" do
+    it "returns the severity unchanged when it's canonical" do
+      %i[danger warning info success].each do |sev|
+        expect(helper.canonical_severity(sev)).to eq(sev)
+      end
+    end
+
+    it "falls back to :info for off-canonical severities" do
+      expect(helper.canonical_severity(:critical)).to eq(:info)
+      expect(helper.canonical_severity(nil)).to eq(:info)
+      expect(helper.canonical_severity(:made_up)).to eq(:info)
+    end
+  end
+
   describe "#avatar_button_aria_label" do
     it "returns the plain label when there are no unread notifications" do
       expect(helper.avatar_button_aria_label(user)).to eq("User menu for #{user.full_name}")
