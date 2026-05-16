@@ -407,6 +407,28 @@ Phrase reads naturally: *"User menu for Dave. 3 unread notifications, including 
 
 ---
 
+## Known limitations
+
+### aria-live coalescing under burst
+
+The notifications live region is `aria-live="polite" aria-atomic="true"`.
+Under rapid arrival (e.g., 5 notifications in 2 seconds), the polite queue
+does NOT enqueue each `broadcast_update_to` call separately — the
+attribute change rapidly overwrites itself, and AT will read only the
+final state when it next gets a chance.
+
+Practical effect: a burst of 5 arrivals likely produces 1–2 SR
+announcements ("New notification"), not 5. The visual surfaces (bell
+color, count text) and the avatar's `aria-label` still reflect all 5
+events, so users with sight still see the accurate count and severity.
+
+If precise per-event SR signaling becomes important, coalesce into a
+counted announcement ("5 new notifications") instead of repeating
+"New notification" verbatim — or move to `aria-live="assertive"` with a
+debounced message (more interruptive but more reliable for high
+volumes). Today's tradeoff favors the non-disruptive polite queue
+because the visual surfaces already convey volume.
+
 ## Edge cases
 
 |Case|Behavior|
