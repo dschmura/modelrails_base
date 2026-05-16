@@ -29,4 +29,15 @@ RSpec.describe "shared/_user_menu_avatar_button.html.erb", type: :view do
     expect(rendered).to include('text-danger')
     expect(rendered).to include('data-bell-severity="danger"')
   end
+
+  it "ensures the button is positioned relative so the bell overlay anchors correctly" do
+    PasswordChangedNotifier.with(record: user).deliver(user)
+    render partial: "shared/user_menu_avatar_button", locals: { user: user }
+    # The bell uses `absolute -bottom-0.5 right-0.5`. Its nearest
+    # positioned ancestor must be the button itself, not <body>. The
+    # button's class list must contain `relative`. (Regex tolerates
+    # multi-line class attrs and `>` chars in other attribute values
+    # like `data-action="click->dropdown#toggle"`.)
+    expect(rendered).to match(%r{<button\b[\s\S]*?\bclass="[^"]*\brelative\b[^"]*"[\s\S]*?>})
+  end
 end
