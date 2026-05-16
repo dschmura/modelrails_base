@@ -42,6 +42,17 @@ module NotificationBellHelper
     SEVERITY_CLASSES.fetch(severity, SEVERITY_CLASSES[:info])
   end
 
+  # Normalizes any severity input to one of the four canonical values.
+  # Used by the bell partial so `data-bell-severity` always reads as one
+  # of [danger, warning, info, success], even if a notifier class slips
+  # through with an off-canonical severity. Production paths are already
+  # guarded by ApplicationNotifier's `severity` DSL validation, so this
+  # is defensive coverage for test stubs, library injection, and other
+  # non-production cases.
+  def canonical_severity(severity)
+    SEVERITY_RANK.key?(severity) ? severity : :info
+  end
+
   def avatar_button_aria_label(user, summary = unread_notification_summary(user))
     if summary[:count].zero?
       t("navigation.user_menu_label", name: user.full_name)
