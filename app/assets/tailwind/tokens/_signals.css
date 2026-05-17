@@ -40,9 +40,9 @@
 
 .dark {
   /* --- Danger (red) --- */
-  --color-danger:          oklch(80.8% 0.16 17);        /* L=0.808 preserves AAA 7:1 on slate-950; chroma 0.16 (was 0.114) + hue 17 (was 19.5) push away from coral toward a more saturated true red */
+  --color-danger:          oklch(80.8% 0.16 22);        /* L=0.808 preserves AAA 7:1 on slate-950; hue 22 leans toward light-mode danger's warm-red character (light is hue 26.9) without re-entering the coral zone */
   --color-danger-surface:  oklch(25.8% 0.092 26.042);   /* ~red-950 */
-  --color-danger-icon:     oklch(80.8% 0.16 17);        /* matches --color-danger for AAA + redness — keep both in sync */
+  --color-danger-icon:     oklch(80.8% 0.16 22);        /* matches --color-danger for AAA + warm-red character — keep both in sync */
   --color-danger-hover:    oklch(29.6% 0.093 25.166);   /* ~red-900 */
   --color-danger-progress: oklch(63.7% 0.237 25.331);   /* ~red-500 */
   --color-danger-border:   oklch(44.4% 0.177 26.899);   /* ~red-700 */
