@@ -35,6 +35,7 @@ en:
         filter_by_role: "All roles"
         filter_by_status: "All statuses"
         status_active: "Active"
+        status_pending: "Pending"
         status_deactivated: "Deactivated"
         name: "Name"
         email: "Email"

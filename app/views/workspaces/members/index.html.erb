@@ -42,6 +42,7 @@
               options_for_select(
                 [[t("workspaces.members.index.filter_by_status"), ""],
                  [t("workspaces.members.index.status_active"), "active"],
+                 [t("workspaces.members.index.status_pending"), "pending"],
                  [t("workspaces.members.index.status_deactivated"), "deactivated"]],
                 params[:status]
               ),
@@ -54,8 +55,8 @@
       <%= hidden_field_tag :direction, params[:direction] if params[:direction].present? %>
     <% end %>
 
-    <%# Results table %>
-    <% if @memberships.any? %>
+    <%# Results table — paginated, mixed rows (active members + pending invitations) %>
+    <% if @rows.any? %>
       <div class="mt-6 bg-surface-raised rounded-lg border border-border shadow-sm overflow-hidden">
         <table class="w-full" aria-label="<%= t('workspaces.members.index.table_label') %>">
           <thead>
@@ -93,16 +94,14 @@
             </tr>
           </thead>
           <tbody>
-            <% @memberships.each do |membership| %>
-              <%= render "workspaces/members/member_row", membership: membership, workspace: @workspace %>
-            <% end %>
-            <%# Pending invitations interleave in the same tbody so the page
-                presents a single source of truth for "who's in this workspace
-                or about to be." Only on page 1 — pending invitations aren't
-                part of the paginated memberships scope. %>
-            <% if @pagy.page == 1 %>
-              <% @pending_invitations.each do |invitation| %>
-                <%= render "workspaces/members/invitation_row", workspace: @workspace, invitation: invitation %>
+            <%# Rows are a mix of Membership and Invitation, pre-paginated by
+                the controller via pagy(:array, combined). Type detection picks
+                the right partial. %>
+            <% @rows.each do |row| %>
+              <% if row.is_a?(Invitation) %>
+                <%= render "workspaces/members/invitation_row", workspace: @workspace, invitation: row %>
+              <% else %>
+                <%= render "workspaces/members/member_row", membership: row, workspace: @workspace %>
               <% end %>
             <% end %>
           </tbody>
