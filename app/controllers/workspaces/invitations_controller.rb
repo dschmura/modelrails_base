@@ -9,6 +9,7 @@ module Workspaces
     def index
       authorize Invitation
       @invitations = @workspace.invitations.includes(:role).order(created_at: :desc)
+      @roles = @workspace.effective_roles
     end
 
     def new
