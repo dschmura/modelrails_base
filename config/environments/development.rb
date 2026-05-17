@@ -58,6 +58,10 @@ Rails.application.configure do
   # Highlight code that enqueued background job in logs.
   config.active_job.verbose_enqueue_logs = true
 
+  # Route Solid Queue's models to the dedicated queue database
+  # (mirrors production so deliver_later jobs land where bin/jobs polls).
+  config.solid_queue.connects_to = { database: { writing: :queue } }
+
   # Highlight code that triggered redirect in logs.
   config.action_dispatch.verbose_redirect_logs = true
 
