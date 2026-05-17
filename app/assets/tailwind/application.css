@@ -43,6 +43,7 @@
 
   /* Signals — Danger */
   --color-danger: var(--color-danger);
+  --color-danger-strong: var(--color-danger-strong);
   --color-danger-surface: var(--color-danger-surface);
   --color-danger-icon: var(--color-danger-icon);
   --color-danger-hover: var(--color-danger-hover);

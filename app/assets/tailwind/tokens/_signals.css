@@ -8,6 +8,7 @@
 :root {
   /* --- Danger (red) --- */
   --color-danger:          oklch(44.4% 0.177 26.899);   /* ~red-800 (AAA 7:1 on red-50 + on white surface) */
+  --color-danger-strong:   var(--color-danger);          /* Aliased to --color-danger in light mode — the AAA warm red already reads as "true red," no divergence needed. Diverges in dark mode where AAA-readable reds (L≥0.808) look pinkish. Designed for small graphic accents (bell-style indicators, status pills on tinted surfaces) — NOT for general text content. NEVER pair `bg-danger-strong` with a text descendant: the dark fill compounds text-contrast risk. DO NOT extend this `-strong` pattern to other severities; only red has the high-lightness identity-shift problem (amber/green/sky stay recognizably themselves at AAA lightness). */
   --color-danger-surface:  oklch(97.1% 0.013 17.38);    /* ~red-50 */
   --color-danger-icon:     oklch(63.7% 0.237 25.331);   /* ~red-500 */
   --color-danger-hover:    oklch(93.6% 0.032 17.717);   /* ~red-100 */
@@ -40,9 +41,10 @@
 
 .dark {
   /* --- Danger (red) --- */
-  --color-danger:          oklch(80.8% 0.114 19.571);   /* ~red-300 — was red-400 (6.18:1 on slate-950) — red-300 reaches AAA 7:1 */
+  --color-danger:          oklch(80.8% 0.16 22);        /* L=0.808 preserves AAA 7:1 on slate-950; hue 22 leans toward light-mode danger's warm-red character (light is hue 26.9) without re-entering the coral zone */
+  --color-danger-strong:   oklch(65% 0.22 25);          /* Fire-engine red for graphics + opt-in elements. L=0.65 sits below the AAA text threshold (~4-5:1 on slate-950, AA only) — DO NOT use for general text content. Designed for the avatar bell + similar graphic indicators where 1.4.11 (3:1) is the applicable spec. */
   --color-danger-surface:  oklch(25.8% 0.092 26.042);   /* ~red-950 */
-  --color-danger-icon:     oklch(80.8% 0.114 19.571);   /* ~red-300 — same AAA bump as text */
+  --color-danger-icon:     oklch(80.8% 0.16 22);        /* matches --color-danger for AAA + warm-red character — keep both in sync */
   --color-danger-hover:    oklch(29.6% 0.093 25.166);   /* ~red-900 */
   --color-danger-progress: oklch(63.7% 0.237 25.331);   /* ~red-500 */
   --color-danger-border:   oklch(44.4% 0.177 26.899);   /* ~red-700 */

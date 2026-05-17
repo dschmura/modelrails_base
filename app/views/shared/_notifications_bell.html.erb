@@ -1,12 +1,14 @@
 <%# locals: (user: Current.user, summary: nil) -%>
 <%# Slim overlay partial: rendered inside the user-avatar button. Renders
-    a solid bell icon (severity-colored) at the bottom-right of the avatar
-    when there are unread notifications; renders an empty turbo-frame
-    otherwise. White-outline drop-shadow keeps the bell visible against
-    arbitrary avatar backgrounds. Broadcast target is
-    `notifications_bell_indicator_frame`. The `summary:` local lets a
-    parent partial (e.g., _user_menu_avatar_button) pass a pre-computed
-    summary to avoid a duplicate query. %>
+    a solid severity-colored bell at the bottom-right of the avatar when
+    there are unread notifications; renders an empty turbo-frame otherwise.
+    Solid in both modes — outline rendering loses too much pigment area
+    in dark mode and reads as pinkish/coral regardless of the OKLCH point.
+    White drop-shadow halo in light mode, black halo in dark mode keeps
+    the glyph legible on arbitrary avatar backgrounds.
+    Broadcast target is `notifications_bell_indicator_frame`. The
+    `summary:` local lets a parent partial (e.g., _user_menu_avatar_button)
+    pass a pre-computed summary to avoid a duplicate query. %>
 <% bell_user = local_assigns.fetch(:user) { Current.user } %>
 <% summary ||= unread_notification_summary(bell_user) %>
 <turbo-frame id="notifications_bell_indicator_frame">
@@ -15,10 +17,7 @@
     <%# Windows High Contrast / forced-colors: active overrides author
         colors with system colors, so the bell's severity fill collapses
         to a system color. We force `ButtonText` to keep the glyph
-        visible (WCAG 1.4.11 non-text contrast under that accommodation).
-        Drop-shadow stacks three 2px white shadows to fake a pronounced
-        white outline so the bell stays legible on arbitrary avatar
-        backgrounds; dark mode swaps to a black outline. %>
+        visible (WCAG 1.4.11 non-text contrast under that accommodation). %>
     <%= icon(:bell, style: :solid,
              class: class_names(
                "absolute -bottom-0.5 right-0.5 w-5 h-5 -rotate-[20deg]",

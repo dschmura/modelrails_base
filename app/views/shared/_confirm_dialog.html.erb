@@ -3,7 +3,7 @@
   cancel_label = cancel_text || t("modals.cancel")
 
   confirm_icon = variant == :danger ? :exclamation_triangle : :information_circle
-  icon_color = variant == :danger ? "text-danger-icon" : "text-info-icon"
+  icon_color = variant == :danger ? "text-danger-icon dark:text-danger-strong" : "text-info-icon"
   confirm_class = variant == :danger ? "btn-danger" : "btn-primary"
 %>
 <%= render "shared/modal", title: title, id: id, size: :sm do %>

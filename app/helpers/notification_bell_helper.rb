@@ -11,8 +11,14 @@ module NotificationBellHelper
   # foreground tokens used elsewhere (e.g. flash messages, link colors).
   # The partial pairs these with a stacked white drop-shadow outline for
   # legibility on arbitrary avatar backgrounds.
+  # `dark:text-danger-strong` on danger ONLY: the AAA-readable dark
+  # `--color-danger` (L=0.808) reads as coral/pink on the bell-sized
+  # graphic at high lightness. The `-strong` variant (L=0.65) restores
+  # the fire-engine red character. Other severities stay on their
+  # AAA tokens — only red has the high-lightness identity-shift
+  # problem (see `_signals.css` for the rule).
   SEVERITY_CLASSES = {
-    danger:  { icon: "text-danger"  },
+    danger:  { icon: "text-danger dark:text-danger-strong" },
     warning: { icon: "text-warning" },
     info:    { icon: "text-info"    },
     success: { icon: "text-success" }
