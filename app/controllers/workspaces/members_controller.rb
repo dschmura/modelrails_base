@@ -27,7 +27,12 @@ module Workspaces
       authorize @membership
       role = @workspace.effective_roles.find(membership_params[:role_id])
       @membership.change_role!(role)
-      redirect_to workspace_members_path(@workspace), notice: t(".success")
+      # Frame request → swap just the role cell. Non-Turbo clients → full redirect.
+      if request.headers["Turbo-Frame"].present?
+        render partial: "role_cell", locals: { membership: @membership }
+      else
+        redirect_to workspace_members_path(@workspace), notice: t(".success")
+      end
     end
 
     def destroy
