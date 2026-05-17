@@ -81,6 +81,10 @@ en:
         max_projects_label: "Maximum projects"
         plan_label: "Plan"
         submit: "Save settings"
+        sections:
+          name_title: "Name"
+          capacity_title: "Capacity"
+          branding_title: "Branding"
       update:
         success: "Settings updated."
     brandings:

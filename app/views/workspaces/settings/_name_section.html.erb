@@ -1,0 +1,14 @@
+<%# locals: (workspace:) %>
+<section class="space-y-4" aria-labelledby="settings-name-heading">
+  <h2 id="settings-name-heading" class="text-lg font-semibold text-text-heading">
+    <%= t("workspaces.settings.edit.sections.name_title") %>
+  </h2>
+  <%= form_with model: workspace, url: workspace_path(workspace), method: :patch,
+        class: "space-y-4" do |form| %>
+    <%= form.error_summary %>
+    <%= form.text_field :name,
+          label: t("workspaces.edit.name_label"),
+          required: true %>
+    <%= form.submit t("workspaces.edit.submit"), class: "btn-primary" %>
+  <% end %>
+</section>
