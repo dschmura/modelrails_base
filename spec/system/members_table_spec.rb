@@ -165,6 +165,38 @@ RSpec.describe "Members table", type: :system do
       expect(page).to have_text(I18n.t("workspaces.members.index.pending_invitations.pending"))
     end
 
+    it "filters to only invitations when status=pending (URL-driven)" do
+      visit workspace_members_path(workspace, status: "pending")
+      # Scope assertions to the members table — "Owner User" also appears
+      # in the global user-menu chrome which we don't care about here.
+      within("table") do
+        expect(page).to have_text("invited@example.com")
+        expect(page).not_to have_text("Owner User")
+      end
+    end
+
+    it "filters to only active members when status=active (URL-driven)" do
+      visit workspace_members_path(workspace, status: "active")
+      within("table") do
+        expect(page).to have_text("Owner User")
+        expect(page).not_to have_text("invited@example.com")
+      end
+    end
+
+    it "filters via the dropdown control (interactive — exercises the form submit path)" do
+      visit workspace_members_path(workspace)
+      within("table") do
+        expect(page).to have_text("Owner User")
+        expect(page).to have_text("invited@example.com")
+      end
+      select I18n.t("workspaces.members.index.status_pending"),
+        from: I18n.t("workspaces.members.index.filter_by_status")
+      within("table") do
+        expect(page).to have_text("invited@example.com")
+        expect(page).not_to have_text("Owner User")
+      end
+    end
+
     it "shows pending badge" do
       visit workspace_members_path(workspace)
       expect(page).to have_text(I18n.t("workspaces.members.index.pending_invitations.pending"))

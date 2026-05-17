@@ -17,7 +17,7 @@
     <%# Filter bar — a plain GET form inside the Turbo Frame %>
     <%= form_with url: workspace_members_path(@workspace),
           method: :get,
-          data: { controller: "search-form", turbo_frame: "members_results" },
+          data: { controller: "search-form", turbo_frame: "members_results", turbo_action: "advance" },
           class: "mt-6 flex flex-col gap-3 sm:flex-row sm:items-end" do |form| %>
       <div class="flex-1">
         <%= form.search_field :q,
