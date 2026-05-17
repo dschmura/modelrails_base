@@ -65,16 +65,8 @@
                         text-sm text-text-body
                         hover:bg-surface hover:text-interactive
                         focus:outline-none focus:ring-2 focus:ring-interactive-focus focus:text-interactive" do %>
-            <%# Solid bell in light mode (bolder); outline bell in dark mode
-                (softer — saturated severity fill on a dark surface reads as
-                visual noise, outline communicates color without overload). %>
             <%= icon(:bell, style: :solid, class: class_names(
-                  "w-4 h-4 mr-2 dark:hidden",
-                  "forced-colors:text-[ButtonText]",
-                  summary[:severity] && notification_bell_classes(summary[:severity])[:icon]
-                )) %>
-            <%= icon(:bell, style: :outline, class: class_names(
-                  "w-4 h-4 mr-2 hidden dark:inline-block stroke-2",
+                  "w-4 h-4 mr-2",
                   "forced-colors:text-[ButtonText]",
                   summary[:severity] && notification_bell_classes(summary[:severity])[:icon]
                 )) %>
@@ -126,12 +118,7 @@
                   hover:text-interactive-hover rounded
                   focus:outline-none focus:ring-2 focus:ring-interactive-focus" do %>
       <%= icon(:bell, style: :solid, class: class_names(
-            "w-4 h-4 mr-2 dark:hidden",
-            "forced-colors:text-[ButtonText]",
-            summary[:severity] && notification_bell_classes(summary[:severity])[:icon]
-          )) %>
-      <%= icon(:bell, style: :outline, class: class_names(
-            "w-4 h-4 mr-2 hidden dark:inline-block stroke-2",
+            "w-4 h-4 mr-2",
             "forced-colors:text-[ButtonText]",
             summary[:severity] && notification_bell_classes(summary[:severity])[:icon]
           )) %>

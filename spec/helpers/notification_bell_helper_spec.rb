@@ -82,8 +82,8 @@ RSpec.describe NotificationBellHelper, type: :helper do
   end
 
   describe "#notification_bell_classes" do
-    it "returns text-danger for :danger" do
-      expect(helper.notification_bell_classes(:danger)).to eq(icon: "text-danger")
+    it "returns text-danger with dark:text-danger-strong override for :danger" do
+      expect(helper.notification_bell_classes(:danger)).to eq(icon: "text-danger dark:text-danger-strong")
     end
 
     it "returns the info classes for an unknown severity" do
@@ -167,7 +167,7 @@ RSpec.describe NotificationBellHelper, type: :helper do
     end
 
     it "exposes notification_bell_classes as a module method" do
-      expect(NotificationBellHelper.notification_bell_classes(:danger)).to eq(icon: "text-danger")
+      expect(NotificationBellHelper.notification_bell_classes(:danger)).to eq(icon: "text-danger dark:text-danger-strong")
     end
   end
 end

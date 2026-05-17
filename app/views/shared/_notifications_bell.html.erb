@@ -1,12 +1,11 @@
 <%# locals: (user: Current.user, summary: nil) -%>
 <%# Slim overlay partial: rendered inside the user-avatar button. Renders
-    a severity-colored bell at the bottom-right of the avatar when there
-    are unread notifications; renders an empty turbo-frame otherwise.
-    Solid bell in light mode (bolder against the OKLCH initials avatar);
-    outline bell in dark mode (softer — saturated severity fill on the
-    lighter dark-mode avatar reads as visual noise). White-outline
-    drop-shadow halo in light mode, black halo in dark mode keeps the
-    glyph legible on arbitrary avatar backgrounds.
+    a solid severity-colored bell at the bottom-right of the avatar when
+    there are unread notifications; renders an empty turbo-frame otherwise.
+    Solid in both modes — outline rendering loses too much pigment area
+    in dark mode and reads as pinkish/coral regardless of the OKLCH point.
+    White drop-shadow halo in light mode, black halo in dark mode keeps
+    the glyph legible on arbitrary avatar backgrounds.
     Broadcast target is `notifications_bell_indicator_frame`. The
     `summary:` local lets a parent partial (e.g., _user_menu_avatar_button)
     pass a pre-computed summary to avoid a duplicate query. %>
@@ -21,21 +20,10 @@
         visible (WCAG 1.4.11 non-text contrast under that accommodation). %>
     <%= icon(:bell, style: :solid,
              class: class_names(
-               "absolute -bottom-0.5 right-0.5 w-5 h-5 -rotate-[20deg] dark:hidden",
+               "absolute -bottom-0.5 right-0.5 w-5 h-5 -rotate-[20deg]",
                "motion-safe:transition-opacity motion-safe:duration-150",
                "[filter:drop-shadow(0_0_2px_white)_drop-shadow(0_0_2px_white)_drop-shadow(0_0_2px_white)]",
-               "forced-colors:text-[ButtonText]",
-               colors[:icon],
-               "motion-safe:animate-pulse-danger" => summary[:severity] == :danger
-             ),
-             data: { bell_severity: canonical_severity(summary[:severity]) },
-             aria_label: nil) %>
-    <%= icon(:bell, style: :outline,
-             class: class_names(
-               "absolute -bottom-0.5 right-0.5 w-5 h-5 -rotate-[20deg] hidden dark:inline-block",
-               "stroke-2",
-               "motion-safe:transition-opacity motion-safe:duration-150",
-               "[filter:drop-shadow(0_0_2px_black)_drop-shadow(0_0_2px_black)_drop-shadow(0_0_2px_black)]",
+               "dark:[filter:drop-shadow(0_0_2px_black)_drop-shadow(0_0_2px_black)_drop-shadow(0_0_2px_black)]",
                "forced-colors:text-[ButtonText]",
                colors[:icon],
                "motion-safe:animate-pulse-danger" => summary[:severity] == :danger
