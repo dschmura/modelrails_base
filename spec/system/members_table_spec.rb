@@ -159,10 +159,10 @@ RSpec.describe "Members table", type: :system do
              invited_by: user)
     end
 
-    it "shows pending invitations" do
+    it "shows pending invitations interleaved in the unified members table" do
       visit workspace_members_path(workspace)
-      expect(page).to have_text(I18n.t("workspaces.members.index.pending_invitations.title"))
       expect(page).to have_text("invited@example.com")
+      expect(page).to have_text(I18n.t("workspaces.members.index.pending_invitations.pending"))
     end
 
     it "shows pending badge" do
