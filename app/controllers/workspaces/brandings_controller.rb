@@ -122,7 +122,7 @@ module Workspaces
               locals: { type: :error, message: error_message }),
                    status: :unprocessable_content
           end
-          format.html { render :edit, status: :unprocessable_content }
+          format.html { render "workspaces/settings/edit", status: :unprocessable_content }
         end
       end
     end
@@ -143,7 +143,10 @@ module Workspaces
     private
 
     def branding_params
-      params.fetch(:workspace, {}).permit(:primary_color)
+      # Workspace identity (name + primary_color) lives in this form. The
+      # logo is handled separately via direct attachment in #update, not
+      # through strong params. BrandingPolicy gates the whole concern.
+      params.fetch(:workspace, {}).permit(:name, :primary_color)
     end
   end
 end

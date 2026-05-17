@@ -82,9 +82,9 @@ en:
         plan_label: "Plan"
         submit: "Save settings"
         sections:
-          name_title: "Name"
+          identity_title: "Identity"
+          identity_submit: "Save identity"
           capacity_title: "Capacity"
-          branding_title: "Branding"
       update:
         success: "Settings updated."
     brandings:

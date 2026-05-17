@@ -1,10 +1,18 @@
-<%# locals: (workspace:) %>
-<section class="space-y-4" aria-labelledby="settings-branding-heading">
-  <h2 id="settings-branding-heading" class="text-lg font-semibold text-text-heading">
-    <%= t("workspaces.settings.edit.sections.branding_title") %>
+<%# locals: (workspace:)
+    Identity section — workspace name, logo, and primary color in one form.
+    Posts to brandings#update (BrandingPolicy gates the whole concern). %>
+<section class="space-y-4" aria-labelledby="settings-identity-heading">
+  <h2 id="settings-identity-heading" class="text-lg font-semibold text-text-heading">
+    <%= t("workspaces.settings.edit.sections.identity_title") %>
   </h2>
   <%= form_with model: workspace, url: workspace_branding_path(workspace), method: :patch,
-        class: "space-y-4" do |form| %>
+        class: "space-y-6" do |form| %>
+    <%= form.error_summary %>
+
+    <%= form.text_field :name,
+          label: t("workspaces.edit.name_label"),
+          required: true %>
+
     <div class="space-y-2">
       <p class="block text-sm font-medium text-text-body">
         <%= t("workspaces.brandings.edit.logo_label") %>
@@ -42,6 +50,7 @@
         <% end %>
       </div>
     </div>
-    <%= form.submit t("workspaces.brandings.edit.submit"), class: "btn-primary" %>
+
+    <%= form.submit t("workspaces.settings.edit.sections.identity_submit"), class: "btn-primary" %>
   <% end %>
 </section>
