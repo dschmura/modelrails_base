@@ -4,7 +4,7 @@
     <%= t("workspaces.projects.invitations.new.title") %>
   </h1>
 
-  <%= form_with url: workspace_project_invitations_path(@workspace, @project), method: :post, class: "mt-8 space-y-6" do |form| %>
+  <%= form_with model: @invitation, url: workspace_project_invitations_path(@workspace, @project), class: "mt-8 space-y-6" do |form| %>
     <%= form.email_field :email,
           label: t("workspaces.projects.invitations.new.email_label"),
           required: true %>
