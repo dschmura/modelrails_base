@@ -30,11 +30,14 @@ production:
 
   digest_mailer:
     class: DigestMailerJob
-    queue: default
+    queue: mailers
     # Polls every 15 minutes against the digest_next_due_at indexed range.
     # Single SELECT scan regardless of user count; per-user logic skips
     # immediately when DND or digest_enabled? blocks. Each user's individual
     # daily/weekly cadence is honored by next_due_at_in(timezone).
+    #
+    # Routed to the `mailers` queue (declared in queue.yml) so SMTP-bound
+    # mailer work is observable separately from DB sweeps on `default`.
     schedule: every 15 minutes
 
   notification_cleanup:
