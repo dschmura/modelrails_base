@@ -36,7 +36,7 @@
                 params[:role]
               ),
               { label: t("workspaces.members.index.filter_by_role") },
-              { onchange: "this.form.requestSubmit()" } %>
+              { data: { action: "change->search-form#submit" } } %>
 
         <%= form.select :status,
               options_for_select(
@@ -47,7 +47,7 @@
                 params[:status]
               ),
               { label: t("workspaces.members.index.filter_by_status") },
-              { onchange: "this.form.requestSubmit()" } %>
+              { data: { action: "change->search-form#submit" } } %>
       </div>
 
       <%# Preserve sort params through filter changes %>
