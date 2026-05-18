@@ -1,4 +1,7 @@
-<%# locals: (membership:) %>
-<%= turbo_frame_tag dom_id(membership, :role) do %>
+<%# locals: (membership:)
+    aria-live="polite" + aria-atomic announces the swap to screen-reader
+    users when Turbo replaces the frame contents (e.g. after Edit role
+    submit). Polite (not assertive) so it doesn't interrupt other speech. %>
+<%= turbo_frame_tag dom_id(membership, :role), "aria-live": "polite", "aria-atomic": "true" do %>
   <%= membership.role.name %>
 <% end %>

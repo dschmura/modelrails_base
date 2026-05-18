@@ -52,6 +52,9 @@ en:
         showing: "Showing %{from}-%{to} of %{count} members"
         invite_member: "Invite member"
         table_label: "Workspace members"
+        results_summary:
+          one: "Showing 1 result"
+          other: "Showing %{count} results"
         pending_invitations:
           title: "Pending invitations"
           invitee: "Invitee"
@@ -60,6 +63,7 @@ en:
           actions: "Actions"
           pending: "Pending"
           magic_link: "Magic link"
+          no_name_yet: "Pending invitation, no name yet"
           resend: "Resend"
           revoke: "Revoke"
       edit:

@@ -55,6 +55,13 @@
       <%= hidden_field_tag :direction, params[:direction] if params[:direction].present? %>
     <% end %>
 
+    <%# Live region announces filter changes to assistive tech when the
+        Turbo Frame swaps. Count + active filters give SR users the same
+        feedback sighted users get from seeing the table update. %>
+    <p class="sr-only" role="status" aria-live="polite" aria-atomic="true">
+      <%= t("workspaces.members.index.results_summary", count: @pagy.count) %>
+    </p>
+
     <%# Results table — paginated, mixed rows (active members + pending invitations) %>
     <% if @rows.any? %>
       <div class="mt-6 bg-surface-raised rounded-lg border border-border shadow-sm overflow-hidden">
@@ -119,8 +126,13 @@
   <%# Magic-link generation — separate surface from the email invite button
       above (Jason Fried: kill the "one form pretending to be two" pattern). %>
   <% if policy(Invitation).create? && @roles.present? %>
+    <%# data-turbo-frame="_top" targets the whole page rather than the
+        members_results frame the form sits next to. Without this, Turbo
+        would frame the POST response into members_results and silently
+        reset filtering/pagination on submit. %>
     <%= form_with model: Invitation.new, url: workspace_invitations_path(@workspace),
-          method: :post, class: "mt-8 p-4 bg-surface-sunken rounded-lg" do |form| %>
+          method: :post, data: { turbo_frame: "_top" },
+          class: "mt-8 p-4 bg-surface-sunken rounded-lg" do |form| %>
       <%= form.hidden_field :magic_link, value: "1" %>
       <h2 class="text-base font-semibold text-text-heading">
         <%= t("workspaces.invitations.index.magic_link_section_title") %>
