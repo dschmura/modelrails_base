@@ -68,6 +68,19 @@ class Membership < ApplicationRecord
     end
   }
 
+  # Composed scope used by Workspaces::MembersController#index. Memberships
+  # are excluded entirely when the status filter is "pending" — that filter
+  # value selects pending invitations only, which live on Invitation.
+  scope :for_members_index, ->(q:, role:, status:, sort:, direction:) {
+    return none if status == "pending"
+
+    includes(:user, :role)
+      .search(q)
+      .filter_by_role(role)
+      .filter_by_status(status)
+      .sorted_by(sort, direction)
+  }
+
   def change_role!(new_role)
     update!(role: new_role)
   end
