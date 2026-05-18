@@ -4,10 +4,35 @@ service: modelrails_base
 # Name of the container image (use your-user/app-name on external registries).
 image: modelrails_base
 
+# === SQLite single-host constraint ===
+# This template defaults to SQLite (with Solid Queue/Cache/Cable in-process).
+# SQLite is single-writer and single-host by design — it cannot be shared
+# across machines. That shapes everything below:
+#   - servers.web runs on exactly one host (max-replicas: 1 enforces this)
+#   - The commented `job:` role below is a TRAP for SQLite users; only enable
+#     it after migrating to a network-attached database
+# When you outgrow SQLite, see the "Graduation checklist" in the env block.
+
 # Deploy to these servers.
 servers:
   web:
-    - 192.168.0.1
+    hosts:
+      - 192.168.0.1
+    options:
+      # Required for SQLite: ensures Kamal stops the old container BEFORE
+      # starting the new one during deploys. Two containers writing to the
+      # same SQLite file is corruption territory. Remove only after migrating
+      # to a networked database (see Graduation checklist below).
+      max-replicas: 1
+
+  # === TRAP for SQLite users ===
+  # The job: role below runs a separate `bin/jobs` Solid Queue supervisor.
+  # It is intentionally commented out because it CANNOT share a SQLite file
+  # across hosts — SQLite is single-host by design. Uncomment ONLY after:
+  #   (1) Adding a database accessory (Postgres/MySQL) — see `accessories:` below
+  #   (2) Setting DB_HOST in env.clear to point at the accessory
+  #   (3) Flipping SOLID_QUEUE_IN_PUMA: false in env.clear
+  #
   # job:
   #   hosts:
   #     - 192.168.0.1
@@ -36,19 +61,38 @@ registry:
   # password:
   #   - KAMAL_REGISTRY_PASSWORD
 
+# Give Solid Queue's in-Puma supervisor enough time to drain in-flight jobs
+# during deploy. Kamal's default (30s) is too tight when SOLID_QUEUE_IN_PUMA
+# is true — jobs get SIGKILL'd mid-execution. 45s covers typical drain time.
+stop_wait_time: 45
+
 # Inject ENV variables into containers (secrets come from .kamal/secrets).
 env:
   secret:
     - RAILS_MASTER_KEY
   clear:
-    # Run the Solid Queue Supervisor inside the web server's Puma process to do jobs.
-    # When you start using multiple servers, you should split out job processing to a dedicated machine.
+    # === Solid Queue topology ===
+    # Run the Solid Queue Supervisor inside the web server's Puma process.
+    # This is the right default for the SQLite/one-box deploy this template
+    # ships with. The supervisor + worker share GVL with HTTP requests — fine
+    # for low/moderate job volume; problematic at scale.
+    #
+    # Graduation checklist (when you outgrow this default):
+    #   (1) Add a database accessory (uncomment the `accessories:` block at
+    #       the bottom of this file — Postgres or MySQL) and migrate data.
+    #   (2) Set DB_HOST below to point at the accessory.
+    #   (3) Flip SOLID_QUEUE_IN_PUMA to false.
+    #   (4) Uncomment the `servers.job:` block above and deploy a separate
+    #       bin/jobs supervisor on its own host.
     SOLID_QUEUE_IN_PUMA: true
 
-    # Set number of processes dedicated to Solid Queue (default: 1)
+    # Set number of processes dedicated to Solid Queue (default: 1).
+    # Only meaningful when SOLID_QUEUE_IN_PUMA is false (separate `bin/jobs` host).
     # JOB_CONCURRENCY: 3
 
     # Set number of cores available to the application on each server (default: 1).
+    # Note: with SOLID_QUEUE_IN_PUMA=true, only one Puma worker should host the
+    # supervisor — confirm puma-plugin-solid_queue's behavior before raising this.
     # WEB_CONCURRENCY: 2
 
     # Match this to any external database server to configure Active Record correctly

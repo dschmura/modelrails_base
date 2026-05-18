@@ -311,4 +311,81 @@ RSpec.describe "Template invariants" do
         "(without it, every PR pays the full 3-5 min cold build cost)"
     end
   end
+
+  describe "Production topology safety (Rosa Gutiérrez + Ops panel, #130)" do
+    # SQLite-on-Rails templates have non-obvious deploy hazards: rolling deploys
+    # can race two containers on the same SQLite file; recurring jobs running in
+    # Puma can be SIGKILL'd before draining; mailer jobs head-of-line-block
+    # sweep jobs when they share a queue. These assertions encode the panel's
+    # consensus decisions so forkers inherit safe defaults.
+    let(:deploy_yml_raw) { File.read(root.join("config/deploy.yml")) }
+    let(:deploy_yml) { YAML.safe_load(deploy_yml_raw, aliases: true, permitted_classes: [ Symbol ]) }
+    let(:queue_yml_raw) { File.read(root.join("config/queue.yml")) }
+    let(:recurring_yml_raw) { File.read(root.join("config/recurring.yml")) }
+
+    it "servers.web declares max-replicas: 1 (SQLite is single-writer, single-host)" do
+      web_options = deploy_yml.dig("servers", "web", "options") || {}
+      expect(web_options["max-replicas"]).to eq(1),
+        "expected `servers.web.options.max-replicas: 1` so Kamal stops the old container " \
+        "before starting the new one. Two containers writing to the same SQLite file is " \
+        "corruption territory. (Donal McBreen)"
+    end
+
+    it "deploy.yml sets stop_wait_time so Solid Queue can drain gracefully on deploy" do
+      expect(deploy_yml).to have_key("stop_wait_time"),
+        "expected `stop_wait_time` at top level of deploy.yml. Default Kamal 30s isn't " \
+        "enough for Solid Queue's on_worker_shutdown to drain in-flight jobs. (Rosa Gutiérrez)"
+      expect(deploy_yml["stop_wait_time"]).to be >= 45,
+        "expected stop_wait_time >= 45s for SK drain (got #{deploy_yml['stop_wait_time']})"
+    end
+
+    it "deploy.yml documents the SOLID_QUEUE_IN_PUMA graduation checklist for forkers" do
+      # The default stays true (correct for one-box SQLite forks). The comment
+      # must make the graduation path unmissable so forkers know when to flip it.
+      # We just check both signals are present in the file — co-location is
+      # enforced by being in the same env.clear block in practice.
+      expect(deploy_yml_raw).to include("SOLID_QUEUE_IN_PUMA"),
+        "expected SOLID_QUEUE_IN_PUMA referenced in deploy.yml"
+      expect(deploy_yml_raw).to match(/[Gg]raduation\s+checklist|when\s+you\s+outgrow/),
+        "expected deploy.yml to include an explicit graduation checklist explaining when to " \
+        "flip SOLID_QUEUE_IN_PUMA and what else changes. The default propagates to every fork " \
+        "— the comment is the documentation. (Donal McBreen)"
+    end
+
+    it "deploy.yml warns that the job: block requires migrating off SQLite" do
+      # The currently-commented `servers.job:` block is a SQLite trap: SQLite is
+      # single-host, so a separate job role can't share the DB file across
+      # machines. The deploy.yml as a whole must warn forkers before they
+      # uncomment that block.
+      expect(deploy_yml_raw).to match(/^\s*#\s*job:/m),
+        "expected a commented `# job:` block in deploy.yml"
+      expect(deploy_yml_raw).to match(/SQLite.*(?:single-host|cannot.*share|trap|networked)|networked.*database.*job/im),
+        "expected deploy.yml to warn that uncommenting the `job:` block requires a networked " \
+        "DB (Postgres/MySQL accessory) — SQLite cannot be shared across hosts. " \
+        "(Donal McBreen + Rosa Gutiérrez)"
+    end
+
+    it "queue.yml uses named queues for observability, not the queues: \"*\" wildcard" do
+      queue = YAML.safe_load(queue_yml_raw, aliases: true)
+      workers = queue.dig("default", "workers") || []
+      expect(workers).not_to be_empty, "expected default.workers in queue.yml"
+
+      queues_value = workers.first["queues"]
+      expect(queues_value).to be_an(Array),
+        "expected queues to be an explicit array (e.g., [default, mailers, low]) instead of " \
+        "the \"*\" wildcard — named queues give clear operational signals when one backs up. " \
+        "Got: #{queues_value.inspect}"
+      expect(queues_value).to include("mailers"),
+        "expected `mailers` queue declared explicitly so mailer jobs are routable separately"
+    end
+
+    it "recurring.yml routes digest_mailer to the mailers queue" do
+      recurring = YAML.safe_load(recurring_yml_raw, aliases: true)
+      digest_mailer = recurring.dig("production", "digest_mailer") || {}
+
+      expect(digest_mailer["queue"]).to eq("mailers"),
+        "expected digest_mailer to be routed to the `mailers` queue so it shows up in " \
+        "queue-level observability (was on `default` — sharing with DB sweep jobs)"
+    end
+  end
 end
