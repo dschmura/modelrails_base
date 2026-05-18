@@ -16,10 +16,14 @@
       <%= form_with model: @membership, url: workspace_member_path(@workspace, @membership),
             method: :patch, class: "flex items-end gap-3" do |form| %>
         <div class="flex-1">
+          <%# autofocus: the user just clicked "Edit role" specifically to
+              edit, so focusing the select on frame-load matches intent
+              (not the "unexpected focus jump" the a11y-no-autofocus rule
+              guards against). %>
           <%= form.select :role_id,
                 @roles.map { |r| [r.name, r.id] },
                 { label: t("workspaces.members.edit.role_label"), selected: @membership.role_id },
-                {} %>
+                { autofocus: true } %>
         </div>
 
         <%= form.submit t("workspaces.members.edit.submit"), class: "btn-primary" %>

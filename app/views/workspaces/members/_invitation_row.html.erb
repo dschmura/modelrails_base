@@ -3,7 +3,13 @@
     Columns mirror _member_row.html.erb (Name, Email, Role, Status, Actions)
     so invitation and member rows interleave in a single <tbody>. %>
 <tr id="<%= dom_id(invitation) %>" class="border-b border-border">
-  <td class="py-3 px-2 text-text-muted italic">—</td>
+  <%# Name column is N/A for pending invitations (no user yet). The em-dash
+      is the visual marker; the sr-only label gives assistive tech the same
+      "no name yet" context sighted users infer from the dash. %>
+  <td class="py-3 px-2 text-text-muted italic">
+    <span aria-hidden="true">—</span>
+    <span class="sr-only"><%= t("workspaces.members.index.pending_invitations.no_name_yet") %></span>
+  </td>
   <td class="py-3 px-2 text-text-muted">
     <%= invitation.magic_link? ?
           t("workspaces.members.index.pending_invitations.magic_link") :
