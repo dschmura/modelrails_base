@@ -135,9 +135,15 @@ RSpec.describe "Workspaces", type: :request do
       end
     end
 
-    describe "PATCH /workspaces/:slug with invalid params" do
-      let(:workspace) { create(:workspace) }
+    describe "PATCH /workspaces/:slug" do
+      let(:workspace) { create(:workspace, name: "Old Name") }
       let!(:membership) { create(:membership, :owner, user: user, workspace: workspace) }
+
+      it "updates the workspace name and redirects to the unified settings page" do
+        patch workspace_path(workspace), params: { workspace: { name: "New Name" } }
+        expect(workspace.reload.name).to eq("New Name")
+        expect(response).to redirect_to(edit_workspace_settings_path(workspace))
+      end
 
       it "returns unprocessable entity for blank name" do
         patch workspace_path(workspace), params: { workspace: { name: "" } }
