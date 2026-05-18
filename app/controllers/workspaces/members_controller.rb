@@ -6,12 +6,17 @@ module Workspaces
       authorize Membership
       @roles = @workspace.effective_roles
 
-      memberships = filtered_memberships
-      invitations = filtered_invitations
+      memberships = @workspace.memberships.for_members_index(
+        q: params[:q], role: params[:role], status: params[:status],
+        sort: params[:sort], direction: params[:direction]
+      )
+      invitations = @workspace.invitations.for_members_index(
+        q: params[:q], role: params[:role], status: params[:status]
+      )
 
       # Invitations first — they're actionable (pending), members are settled.
-      # Pagy's array adapter paginates the combined collection so long lists
-      # of either kind don't blow the page open.
+      # Pagy's offset paginator accepts arrays so the combined list paginates
+      # together; long lists of either kind don't blow the page open.
       combined = invitations.to_a + memberships.to_a
       @pagy, @rows = pagy(:offset, combined)
     end
@@ -63,32 +68,6 @@ module Workspaces
 
     def membership_params
       params.require(:membership).permit(:role_id)
-    end
-
-    # Memberships filtered by the index page's search/role/status/sort params.
-    # When the status filter is "pending", memberships are excluded entirely
-    # (pending = invitations only).
-    def filtered_memberships
-      return Membership.none if params[:status] == "pending"
-
-      @workspace.memberships
-        .includes(:user, :role)
-        .search(params[:q])
-        .filter_by_role(params[:role])
-        .filter_by_status(params[:status])
-        .sorted_by(params[:sort], params[:direction])
-    end
-
-    # Pending invitations filtered by the same search/role params as members.
-    # Hidden when status filter selects an exclusively-membership state
-    # (active or deactivated). Invitations have no full_name/sort_by.
-    def filtered_invitations
-      return Invitation.none if %w[active deactivated].include?(params[:status])
-
-      scope = @workspace.invitations.pending.includes(:role)
-      scope = scope.where("LOWER(email) LIKE ?", "%#{params[:q].to_s.downcase}%") if params[:q].present?
-      scope = scope.joins(:role).where(roles: { slug: params[:role] }) if params[:role].present?
-      scope
     end
   end
 end

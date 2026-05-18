@@ -27,6 +27,20 @@ class Invitation < ApplicationRecord
   scope :pending, -> { where(status: "pending").where("expires_at > ?", Time.current) }
   scope :expired, -> { where(status: "pending").where("expires_at <= ?", Time.current) }
 
+  # Composed scope used by Workspaces::MembersController#index. Pending
+  # invitations are excluded entirely when the status filter selects a
+  # membership-only state (active or deactivated). Sort direction comes
+  # from the page's column-sort UI but invitations have no full_name,
+  # so the email column carries the sort if any.
+  scope :for_members_index, ->(q:, role:, status:) {
+    return none if %w[active deactivated].include?(status)
+
+    scope = pending.includes(:role)
+    scope = scope.where("LOWER(email) LIKE ?", "%#{q.to_s.downcase}%") if q.present?
+    scope = scope.joins(:role).where(roles: { slug: role }) if role.present?
+    scope
+  }
+
   def self.bulk_invite!(workspace:, emails:, role:, invited_by:)
     sent = 0
     skipped = 0
