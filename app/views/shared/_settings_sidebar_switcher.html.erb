@@ -1,5 +1,5 @@
 <%# locals: (workspaces:, current_workspace:) -%>
-<nav aria-label="<%= t("settings.sidebar.aria_label") %>"
+<nav aria-label="<%= t("settings.sidebar.switcher_aria_label") %>"
      class="mb-4 pb-4 border-b border-border">
   <ul role="list" class="flex flex-col gap-1">
     <% workspaces.each do |workspace| %>
@@ -8,7 +8,7 @@
       <li>
         <%= link_to workspace_path(workspace),
               aria: { current: ("true" if is_current),
-                      label: "#{workspace.name}#{', personal workspace' if workspace.personal?}" },
+                      label: (t("settings.sidebar.workspace_link_aria_label.personal", name: workspace.name) if workspace.personal?) },
               data: { turbo_prefetch: "true" },
               class: [
                 "min-h-[44px] flex items-center gap-3 px-3 py-2 rounded-md",
