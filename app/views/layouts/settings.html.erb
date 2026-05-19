@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="<%= I18n.locale %>"
+      data-controller="theme"
+      data-theme-theme-value="<%= current_user_theme %>">
+  <head>
+    <title><%= content_for(:title) || t("application.name") %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="description" content="<%= content_for(:description) || t("application.description") %>">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <%= render "shared/theme_script" %>
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= stylesheet_link_tag "biscuit/biscuit", "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+    <%= turbo_refreshes_with method: :morph %>
+  </head>
+
+  <body class="min-h-screen flex flex-col bg-surface-raised text-text-heading">
+    <a href="#main-content"
+       class="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-surface-raised focus:text-interactive focus:underline">
+      <%= t("application.skip_to_content") %>
+    </a>
+
+    <%# Polite aria-live region for settings context-change announcements
+        (WCAG 4.1.3). Visually hidden via sr-only — do NOT use hidden,
+        which removes the node from the accessibility tree. %>
+    <div id="settings-aria-live"
+         role="status"
+         aria-live="polite"
+         aria-atomic="true"
+         class="sr-only"
+         data-controller="settings-announcer">
+    </div>
+
+    <%= render "shared/header" %>
+    <%= render "shared/toasts" %>
+
+    <div class="flex-1 flex min-h-[calc(100vh-4rem)]"
+         data-settings-context-kind="<%= settings_context_kind %>">
+      <%= render "shared/settings_sidebar",
+            workspaces: Current.user.workspaces.kept.includes(:roles, memberships: :role),
+            current_workspace: Current.workspace %>
+
+      <main id="main-content"
+            tabindex="-1"
+            class="flex-1 px-6 py-8"
+            <% if Current.workspace %>
+              <% ws_hue = Current.workspace.primary_color || 210 %>
+              data-workspace-branded
+              style="--ws-primary-light: oklch(0.40 0.15 <%= ws_hue %>); --ws-primary-dark: oklch(0.78 0.10 <%= ws_hue %>);"
+            <% end %>>
+        <%= yield %>
+      </main>
+    </div>
+
+    <%= render "shared/footer" %>
+    <%= biscuit_banner %>
+
+    <% if authenticated? %>
+      <%# Subscribe to the recipient's notifications stream. After-create
+          callback on Noticed::Notification broadcasts a turbo-stream that
+          replaces the bell frame and (cycle C) updates the live region. %>
+      <%= turbo_stream_from [Current.user, :notifications] %>
+
+      <%# Timezone beacon: reads the browser's IANA timezone via
+          Intl.DateTimeFormat on Stimulus connect and PATCHes it to the
+          server. Idempotent server-side — never clobbers an explicit
+          user choice. Authenticated-only. %>
+      <div data-controller="timezone-beacon"
+           data-timezone-beacon-url-value="<%= account_preferences_timezone_path %>"
+           data-timezone-beacon-token-value="<%= form_authenticity_token %>"
+           hidden></div>
+    <% end %>
+
+    <%# Screen-reader announcement slot for real-time notification arrivals.
+        Empty by default; broadcasts (Task 14 cycle C) update its content,
+        and the polite-atomic combo causes assistive tech to re-read the
+        full message each time it changes. %>
+    <div id="notifications-live"
+         aria-live="polite"
+         aria-atomic="true"
+         class="sr-only"></div>
+  </body>
+</html>
