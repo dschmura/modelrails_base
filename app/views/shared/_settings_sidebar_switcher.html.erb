@@ -1,0 +1,34 @@
+<%# locals: (workspaces:, current_workspace:) -%>
+<nav aria-label="<%= t("settings.sidebar.aria_label") %>"
+     class="mb-4 pb-4 border-b border-border">
+  <ul role="list" class="flex flex-col gap-1">
+    <% workspaces.each do |workspace| %>
+      <% is_current = workspace == current_workspace %>
+      <% role_slug = workspace.memberships.detect { |m| m.user_id == Current.user.id }&.role&.slug %>
+      <li>
+        <%= link_to workspace_path(workspace),
+              aria: { current: ("true" if is_current),
+                      label: "#{workspace.name}#{', personal workspace' if workspace.personal?}" },
+              data: { turbo_prefetch: "true" },
+              class: [
+                "min-h-[44px] flex items-center gap-3 px-3 py-2 rounded-md",
+                "text-text-body",
+                "hover:bg-surface-sunken",
+                "focus:outline-none focus:ring-2 focus:ring-interactive-focus",
+                ("bg-surface-sunken font-semibold text-text-heading" if is_current)
+              ].compact do %>
+          <%# Avatar shape: circle = personal, rounded square = org (WCAG 1.4.1: not color-alone) %>
+          <span class="<%= workspace.personal? ? "rounded-full" : "rounded-md" %> shrink-0">
+            <%= workspace_icon_for(workspace, size: :sm) %>
+          </span>
+          <span class="flex-1 min-w-0">
+            <span class="block truncate"><%= workspace.name %></span>
+            <% if role_slug %>
+              <span class="block text-xs text-text-muted"><%= role_slug.titleize %></span>
+            <% end %>
+          </span>
+        <% end %>
+      </li>
+    <% end %>
+  </ul>
+</nav>
