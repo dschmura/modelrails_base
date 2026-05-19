@@ -174,6 +174,10 @@ class User < ApplicationRecord
     update_column(:last_known_browsers, browsers)
   end
 
+  def personal_workspace
+    workspaces.kept.find_by(personal: true)
+  end
+
   # Returns { notifier_class_name => unread_count, ... } for the user.
   # Used by NotificationBellHelper to compute count and severity in one DB hit.
   def unread_notification_breakdown

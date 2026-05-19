@@ -509,4 +509,18 @@ RSpec.describe User, type: :model do
       )
     end
   end
+
+  describe "#personal_workspace" do
+    let(:user) { create(:user) }
+
+    it "returns the kept workspace flagged personal: true" do
+      personal = user.workspaces.find_by!(personal: true)
+      expect(user.personal_workspace).to eq(personal)
+    end
+
+    it "returns nil if the personal workspace has been soft-deleted" do
+      user.workspaces.find_by!(personal: true).discard!
+      expect(user.personal_workspace).to be_nil
+    end
+  end
 end
