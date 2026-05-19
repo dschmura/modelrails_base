@@ -18,7 +18,7 @@
                 ("bg-surface-sunken font-semibold text-text-heading" if is_current)
               ].compact do %>
           <%# Avatar shape: circle = personal, rounded square = org (WCAG 1.4.1: not color-alone) %>
-          <span class="<%= workspace.personal? ? "rounded-full" : "rounded-md" %> shrink-0">
+          <span class="<%= workspace.personal? ? "rounded-full" : "rounded-md overflow-hidden" %> shrink-0">
             <%= workspace_icon_for(workspace, size: :sm) %>
           </span>
           <span class="flex-1 min-w-0">
