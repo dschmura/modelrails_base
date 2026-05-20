@@ -23,6 +23,11 @@
           <span class="<%= workspace.personal? ? "rounded-full" : "rounded-md overflow-hidden" %> shrink-0">
             <%= workspace_icon_for(workspace, size: :sm) %>
           </span>
+          <% unless workspace.personal? %>
+            <span class="w-1 h-6 rounded-full shrink-0"
+                  style="background: oklch(0.55 0.18 <%= workspace.primary_color || 210 %>);"
+                  aria-hidden="true"></span>
+          <% end %>
           <span class="flex-1 min-w-0">
             <span class="block truncate"><%= workspace.name %></span>
             <% if role_slug %>
