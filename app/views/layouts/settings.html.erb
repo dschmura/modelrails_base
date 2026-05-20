@@ -45,10 +45,10 @@
 
     <%# Sidebar is hidden below md (768px). Mobile drawer pattern is deferred
         to a later phase; for now the page stacks with main-content occupying
-        full width. The data-settings-context-kind hook stays on the wrapper
+        full width. The data-workspace-kind hook stays on the wrapper
         so JS/CSS dependents see it at all viewports. %>
     <div class="flex-1 flex flex-col md:flex-row min-h-[calc(100vh-4rem)]"
-         data-settings-context-kind="<%= settings_context_kind %>">
+         data-workspace-kind="<%= settings_context_kind %>">
       <div class="hidden md:block">
         <%= render "shared/settings_sidebar",
               workspaces: Current.user.workspaces.kept.includes(:logo_attachment, memberships: [ :role, { user: :avatar_attachment } ]),

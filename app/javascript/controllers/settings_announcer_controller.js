@@ -23,10 +23,10 @@ export default class extends Controller {
   }
 
   onRender() {
-    const main = document.querySelector("[data-settings-context-kind]")
+    const main = document.querySelector("[data-workspace-kind]")
     if (!main) return
 
-    const kind = main.dataset.settingsContextKind
+    const kind = main.dataset.workspaceKind
     const template = this[`${kind}Value`]
     if (!template) return
 

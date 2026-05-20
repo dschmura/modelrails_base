@@ -24,7 +24,7 @@ RSpec.describe "Settings hub — personal context", type: :system do
 
   it "exposes the personal context via data attribute" do
     visit edit_account_profile_path
-    expect(page).to have_css("[data-settings-context-kind='personal']")
+    expect(page).to have_css("[data-workspace-kind='personal']")
   end
 
   it "marks the current page in the sidebar with aria-current" do

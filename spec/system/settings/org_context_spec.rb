@@ -33,7 +33,7 @@ RSpec.describe "Settings hub — org context", type: :system do
 
     it "exposes the org context via data attribute" do
       visit edit_workspace_path(workspace)
-      expect(page).to have_css("[data-settings-context-kind='org']")
+      expect(page).to have_css("[data-workspace-kind='org']")
     end
 
     it "passes axe-core at WCAG 2.2 AAA in light and dark modes" do
