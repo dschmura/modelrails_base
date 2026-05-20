@@ -295,24 +295,6 @@ dialog[open]::backdrop {
   --color-accent: var(--neutral-400);
 }
 
-/* ==========================================================================
-   Settings Hub Mobile Drawer — open-state transforms
-   ==========================================================================
-   The drawer panel and overlay key off the parent data-controller's
-   data-drawer-state attribute, set by the Stimulus controller on toggle.
-   Below md only; desktop bypasses (panel always translated to 0 via
-   md:translate-x-0). Keeping this in CSS avoids Tailwind 4 arbitrary-variant
-   gymnastics and keeps the class lists in the layout readable. */
-@media (max-width: 767px) {
-  [data-controller="settings-drawer"][data-drawer-state="open"] [data-settings-drawer-target="panel"] {
-    transform: translateX(0);
-  }
-  [data-controller="settings-drawer"][data-drawer-state="open"] [data-settings-drawer-target="overlay"] {
-    opacity: 1;
-    pointer-events: auto;
-  }
-}
-
 /* Markdowndocs gem views — required so Tailwind scans the gem's templates.
    Symlink created by: ln -sf $(bundle show markdowndocs)/app/views vendor/markdowndocs_views */
 @source "../../../vendor/markdowndocs_views/**/*.erb";

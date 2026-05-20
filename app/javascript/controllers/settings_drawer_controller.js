@@ -38,6 +38,13 @@ export default class extends Controller {
     this.toggleTarget.setAttribute("aria-expanded", "true")
     this.panelTarget.removeAttribute("inert")
     this.panelTarget.removeAttribute("aria-hidden")
+    // Swap Tailwind transform utilities directly so the panel slides in.
+    // CSS-rule overrides of Tailwind utilities are fragile under Tailwind 4's
+    // utility cascade; class swaps win every time.
+    this.panelTarget.classList.remove("-translate-x-full")
+    this.panelTarget.classList.add("translate-x-0")
+    this.overlayTarget.classList.remove("opacity-0", "pointer-events-none")
+    this.overlayTarget.classList.add("opacity-100", "pointer-events-auto")
     document.body.style.overflow = "hidden"
     document.addEventListener("keydown", this.boundFocusTrap)
     requestAnimationFrame(() => this.focusFirstElement())
@@ -46,6 +53,10 @@ export default class extends Controller {
   close() {
     this.element.dataset.drawerState = "closed"
     this.toggleTarget.setAttribute("aria-expanded", "false")
+    this.panelTarget.classList.remove("translate-x-0")
+    this.panelTarget.classList.add("-translate-x-full")
+    this.overlayTarget.classList.remove("opacity-100", "pointer-events-auto")
+    this.overlayTarget.classList.add("opacity-0", "pointer-events-none")
     document.body.style.overflow = ""
     document.removeEventListener("keydown", this.boundFocusTrap)
     this.updateInert()

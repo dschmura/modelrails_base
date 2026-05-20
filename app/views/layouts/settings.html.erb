@@ -62,7 +62,7 @@
                 data-action="click->settings-drawer#toggle"
                 aria-expanded="false"
                 aria-controls="settings-drawer-panel"
-                class="md:hidden fixed top-4 left-4 z-30 inline-flex items-center justify-center w-11 h-11 rounded-md bg-surface border border-border text-text-heading shadow-md focus:outline-none focus:ring-2 focus:ring-interactive-focus">
+                class="md:hidden fixed top-20 left-4 z-50 inline-flex items-center justify-center w-11 h-11 rounded-md bg-surface border border-border text-text-heading shadow-md focus:outline-none focus:ring-2 focus:ring-interactive-focus">
           <span class="sr-only"><%= t("settings.mobile_drawer.open") %></span>
           <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24"
                stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -74,7 +74,7 @@
         <div data-settings-drawer-target="overlay"
              data-action="click->settings-drawer#close"
              aria-hidden="true"
-             class="md:hidden fixed inset-0 z-30 bg-black/50 opacity-0 pointer-events-none transition-opacity duration-200"></div>
+             class="md:hidden fixed inset-0 z-50 bg-black/50 opacity-0 pointer-events-none transition-opacity duration-200"></div>
 
         <%# Drawer panel: contains the sidebar. Below md, slides from the
             left. At md+, becomes part of the normal flex layout via
@@ -84,7 +84,7 @@
                role="dialog"
                aria-modal="true"
                aria-label="<%= t("settings.mobile_drawer.aria_label") %>"
-               class="fixed top-0 left-0 z-40 h-full w-72 bg-surface shadow-xl -translate-x-full transition-transform duration-200
+               class="fixed top-0 left-0 z-50 h-full w-72 bg-surface shadow-xl -translate-x-full transition-transform duration-200
                       md:relative md:z-auto md:h-auto md:w-auto md:shadow-none md:translate-x-0
                       motion-safe:transition-transform">
           <%= render "shared/settings_sidebar",
