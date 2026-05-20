@@ -24,6 +24,12 @@
             <%= workspace_icon_for(workspace, size: :sm) %>
           </span>
           <% unless workspace.personal? %>
+            <%# Chroma-boosted color swatch: L=0.55 (medium lightness), C=0.18
+                (saturation just under the project's max). Per the spec's
+                "Workspace switcher" subsection — a chroma boost reserved for
+                switcher-list contexts so org workspaces differentiate at a
+                glance even at small avatar size. Default hue 210 (blue) if
+                primary_color is unset. %>
             <span class="w-1 h-6 rounded-full shrink-0"
                   style="background: oklch(0.55 0.18 <%= workspace.primary_color || 210 %>);"
                   aria-hidden="true"></span>

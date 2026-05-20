@@ -94,7 +94,7 @@ class WorkspacesController < ApplicationController
 
     if @workspace.update(profile_params)
       respond_to do |format|
-        format.turbo_stream { render "workspaces/brandings/update" }
+        format.turbo_stream
         format.html { redirect_to edit_workspace_path(@workspace), notice: t(".success") }
       end
     else
