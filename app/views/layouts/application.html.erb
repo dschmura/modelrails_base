@@ -27,17 +27,72 @@
     <%= render "shared/header" %>
     <%= render "shared/toasts" %>
 
-    <main id="main-content"
-          tabindex="-1"
-          class="flex-1"
-          <% if Current.workspace %>
-            <% ws_hue = Current.workspace.primary_color || 210 %>
-            data-workspace-branded
-            style="--ws-primary-light: oklch(0.40 0.15 <%= ws_hue %>); --ws-primary-dark: oklch(0.78 0.10 <%= ws_hue %>);"
-          <% end %>>
-      <%= render "shared/workspace_back_link" %>
-      <%= yield %>
-    </main>
+    <% if Current.workspace %>
+      <%# Workspace-scoped pages get a sidebar (Path Y Phase B). The
+          mobile drawer pattern mirrors the settings layout so users have
+          a consistent context-switch surface on small screens. The
+          settings layout has its own sidebar for settings pages — this
+          branch never fires inside settings (settings.html.erb is its
+          own layout). %>
+      <div class="flex-1 flex flex-col md:flex-row min-h-[calc(100vh-4rem)]">
+        <div data-controller="settings-drawer"
+             data-drawer-state="closed"
+             class="contents">
+          <%# Hamburger toggle — visible only below md %>
+          <button type="button"
+                  data-settings-drawer-target="toggle"
+                  data-action="click->settings-drawer#toggle"
+                  aria-expanded="false"
+                  aria-controls="workspace-drawer-panel"
+                  class="md:hidden fixed top-20 left-4 z-50 inline-flex items-center justify-center w-11 h-11 rounded-md bg-surface border border-border text-text-heading shadow-md focus:outline-none focus:ring-2 focus:ring-interactive-focus">
+            <span class="sr-only"><%= t("workspaces.mobile_drawer.open") %></span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24"
+                 stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+
+          <%# Overlay — covers the page when drawer is open. Clicking closes. %>
+          <div data-settings-drawer-target="overlay"
+               data-action="click->settings-drawer#close"
+               aria-hidden="true"
+               class="md:hidden fixed inset-0 z-50 bg-black/50 opacity-0 pointer-events-none transition-opacity duration-200"></div>
+
+          <%# Drawer panel: contains the workspace sidebar. Below md,
+              slides from the left. At md+, becomes part of the normal
+              flex layout via md:relative + md:translate-x-0. %>
+          <aside data-settings-drawer-target="panel"
+                 id="workspace-drawer-panel"
+                 role="dialog"
+                 aria-modal="true"
+                 aria-label="<%= t("workspaces.mobile_drawer.aria_label") %>"
+                 class="fixed top-0 left-0 z-50 h-full w-72 bg-surface shadow-xl -translate-x-full transition-transform duration-200
+                        md:relative md:z-auto md:h-auto md:w-auto md:shadow-none md:translate-x-0
+                        motion-safe:transition-transform">
+            <%= render "shared/workspace_sidebar",
+                  workspaces: Current.user.workspaces.kept.includes(:logo_attachment, memberships: [ :role, { user: :avatar_attachment } ]),
+                  current_workspace: Current.workspace %>
+          </aside>
+        </div>
+
+        <main id="main-content"
+              tabindex="-1"
+              class="flex-1 min-w-0"
+              <% ws_hue = Current.workspace.primary_color || 210 %>
+              data-workspace-branded
+              style="--ws-primary-light: oklch(0.40 0.15 <%= ws_hue %>); --ws-primary-dark: oklch(0.78 0.10 <%= ws_hue %>);">
+          <%= render "shared/workspace_back_link" %>
+          <%= yield %>
+        </main>
+      </div>
+    <% else %>
+      <main id="main-content"
+            tabindex="-1"
+            class="flex-1">
+        <%= render "shared/workspace_back_link" %>
+        <%= yield %>
+      </main>
+    <% end %>
 
     <%= render "shared/footer" %>
     <%= biscuit_banner %>

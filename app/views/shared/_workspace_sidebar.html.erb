@@ -1,0 +1,38 @@
+<%# locals: (workspaces:, current_workspace:) -%>
+<%# Workspace-scoped sidebar — rendered on non-settings workspace pages
+    (workspace dashboard, projects). Mirrors the agent_os Notion/Linear
+    pattern: switcher at top, workspace nav in the middle, settings link
+    at bottom. The Settings hub has its own sidebar (_settings_sidebar)
+    with destination-specific nav items.
+
+    The switcher partial (shared/_settings_sidebar_switcher) is shared
+    with the settings sidebar — same compact trigger+dropdown row sits
+    above both sidebars so the workspace context-switch affordance is
+    identical app-wide (Path Y Phase B).
+-%>
+<aside aria-label="<%= t("workspaces.sidebar.aria_label") %>"
+       class="w-64 shrink-0 px-4 py-6 border-r border-border bg-surface">
+  <%= render "shared/settings_sidebar_switcher",
+        workspaces: workspaces,
+        current_workspace: current_workspace %>
+
+  <ul role="list" class="flex flex-col gap-1">
+    <%= render "shared/settings_sidebar_item",
+          label: t("workspaces.sidebar.overview"),
+          href: workspace_path(current_workspace),
+          active: current_page?(workspace_path(current_workspace)) %>
+
+    <%= render "shared/settings_sidebar_item",
+          label: t("workspaces.sidebar.projects"),
+          href: workspace_projects_path(current_workspace),
+          active: current_page?(workspace_projects_path(current_workspace)) %>
+
+    <%# Settings link routes to workspaces#edit (Profile) which is the
+        entry point of the Settings hub. The hub's own sidebar takes
+        over once the user lands inside. %>
+    <%= render "shared/settings_sidebar_item",
+          label: t("workspaces.sidebar.settings"),
+          href: edit_workspace_path(current_workspace),
+          active: false %>
+  </ul>
+</aside>

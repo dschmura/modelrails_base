@@ -1,4 +1,7 @@
 <% content_for(:title) { @workspace.name } %>
+<%# 3-button nav (Members / Projects / Settings) was retired in Path Y
+    Phase B — the sidebar replaces it. Members lives under the Settings
+    hub; Projects and Settings are sidebar nav items. %>
 <div class="max-w-4xl mx-auto px-4 py-16">
   <%= turbo_stream_from @workspace %>
   <div class="flex items-center gap-4">
@@ -12,29 +15,6 @@
       <p class="text-sm text-text-muted"><%= @workspace.plan.titleize %></p>
     </div>
   </div>
-
-  <nav aria-label="<%= @workspace.name %>" class="mt-8 flex flex-wrap gap-3">
-    <%= link_to t("workspaces.show.members"),
-          workspace_members_path(@workspace),
-          class: "min-h-[var(--form-input-height)] flex items-center px-4 py-2 rounded-md
-                  border border-border text-text-body font-medium
-                  hover:bg-surface-sunken
-                  focus:outline-none focus:ring-2 focus:ring-interactive-focus" %>
-    <%= link_to t("workspaces.show.projects"),
-          workspace_projects_path(@workspace),
-          class: "min-h-[var(--form-input-height)] flex items-center px-4 py-2 rounded-md
-                  border border-border text-text-body font-medium
-                  hover:bg-surface-sunken
-                  focus:outline-none focus:ring-2 focus:ring-interactive-focus" %>
-    <% if policy(@workspace).update? %>
-      <%= link_to t("workspaces.show.settings"),
-            edit_workspace_settings_path(@workspace),
-            class: "min-h-[var(--form-input-height)] flex items-center px-4 py-2 rounded-md
-                    border border-border text-text-body font-medium
-                    hover:bg-surface-sunken
-                    focus:outline-none focus:ring-2 focus:ring-interactive-focus" %>
-    <% end %>
-  </nav>
 
   <%= render "shared/activity_feed", activities: ActivityLog.visible.for_workspace(@workspace).recent.includes(:actor) %>
 </div>

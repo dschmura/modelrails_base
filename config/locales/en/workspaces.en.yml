@@ -2,6 +2,15 @@ en:
   workspaces:
     not_found: "Workspace not found."
     unauthorized: "You don't have permission to do that."
+    sidebar:
+      aria_label: "Workspace navigation"
+      overview: "Overview"
+      projects: "Projects"
+      settings: "Settings"
+    mobile_drawer:
+      open: "Open workspace menu"
+      close: "Close workspace menu"
+      aria_label: "Workspace menu"
     index:
       title: "Your workspaces"
       new_workspace: "New workspace"
