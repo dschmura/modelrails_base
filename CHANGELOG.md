@@ -25,6 +25,12 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 - Account Profile, Notification Preferences, Connected Accounts (Security), Workspace Settings, and Workspace Members destinations now use the shared settings page header for consistent chrome.
 - Smooth motion-safe color transitions on sidebar items and switcher; settings layout's context attribute renamed `data-settings-context-kind` → `data-workspace-kind`; hover prefetch added to header user-menu settings links and header workspace dropdown.
+- Route consolidation: `workspaces#edit` now serves the workspace Profile (identity — name, logo, primary_color); `workspaces/settings#edit` narrows to Limits & Plan. Admin sees Profile in sidebar (capability expansion vs pre-consolidation when sidebar gated on Owner-only `WorkspacePolicy#update?`; now gated on `Workspaces::ProfilePolicy#update?` = `manage_settings`).
+
+### Removed
+
+- `Workspaces::BrandingsController` and its routes (`/workspaces/:slug/branding/*`). Identity picker hub moved to `WorkspacesController#identity_picker_hub` (`/workspaces/:slug/identity_picker_hub`).
+- `Workspaces::BrandingPolicy` (replaced by `Workspaces::ProfilePolicy` on workspaces#edit/update).
 
 ### Bug fixes
 
