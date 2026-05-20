@@ -16,7 +16,7 @@ module SettingsNavigationHelper
   # action. By consulting the *same* policy/action the destination controller
   # authorizes against, we keep sidebar visibility and controller authorization
   # in lockstep — no separate SidebarPolicy to drift from the source of truth.
-  def nav_item_if_permitted(record, action:, &block)
+  def render_nav_item_if_permitted(record, action:, &block)
     return nil unless block_given?
 
     policy = Pundit.policy(current_user, record)

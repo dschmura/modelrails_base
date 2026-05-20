@@ -16,7 +16,7 @@ RSpec.describe "Settings hub — demotion while viewing", type: :system do
   # Current.workspace) and Membership broadcasts via Broadcastable on update.
   # When an admin in another tab demotes this user, the broadcast fires a
   # refresh that Turbo morphs into the open tab — re-evaluating
-  # nav_item_if_permitted against the new role. The Limits & Plan link is the
+  # render_nav_item_if_permitted against the new role. The Limits & Plan link is the
   # cleanest assertion target: it gates on Workspaces::SettingsPolicy#update?
   # (manage_settings), which Admin has and Viewer does not. Members link
   # gates on membership.present?, which doesn't flip across the demotion.

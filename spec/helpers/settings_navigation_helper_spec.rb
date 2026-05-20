@@ -20,7 +20,7 @@ RSpec.describe SettingsNavigationHelper, type: :helper do
     end
   end
 
-  describe "#nav_item_if_permitted" do
+  describe "#render_nav_item_if_permitted" do
     let(:user) { create(:user) }
     let(:workspace) { create(:workspace) }
 
@@ -34,7 +34,7 @@ RSpec.describe SettingsNavigationHelper, type: :helper do
       allow(WorkspacePolicy).to receive(:new)
         .with(user, workspace).and_return(instance_double(WorkspacePolicy, edit?: true))
 
-      output = helper.nav_item_if_permitted(workspace, action: :edit?) { "RENDERED" }
+      output = helper.render_nav_item_if_permitted(workspace, action: :edit?) { "RENDERED" }
       expect(output).to eq("RENDERED")
     end
 
@@ -42,7 +42,7 @@ RSpec.describe SettingsNavigationHelper, type: :helper do
       allow(WorkspacePolicy).to receive(:new)
         .with(user, workspace).and_return(instance_double(WorkspacePolicy, edit?: false))
 
-      output = helper.nav_item_if_permitted(workspace, action: :edit?) { "RENDERED" }
+      output = helper.render_nav_item_if_permitted(workspace, action: :edit?) { "RENDERED" }
       expect(output).to be_nil
     end
 
@@ -51,7 +51,7 @@ RSpec.describe SettingsNavigationHelper, type: :helper do
       allow(MembershipPolicy).to receive(:new)
         .with(user, membership).and_return(instance_double(MembershipPolicy, index?: true))
 
-      output = helper.nav_item_if_permitted(membership, action: :index?) { "RENDERED" }
+      output = helper.render_nav_item_if_permitted(membership, action: :index?) { "RENDERED" }
       expect(output).to eq("RENDERED")
     end
   end
