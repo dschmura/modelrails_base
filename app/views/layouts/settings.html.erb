@@ -87,9 +87,7 @@
                class="fixed top-0 left-0 z-50 h-full w-72 bg-surface shadow-xl -translate-x-full transition-transform duration-200
                       md:relative md:z-auto md:h-auto md:w-auto md:shadow-none md:translate-x-0
                       motion-safe:transition-transform">
-          <%= render "shared/settings_sidebar",
-                workspaces: Current.user.workspaces.kept.includes(:logo_attachment, memberships: [ :role, { user: :avatar_attachment } ]),
-                current_workspace: Current.workspace %>
+          <%= render "shared/settings_sidebar", current_workspace: Current.workspace %>
         </aside>
       </div>
 

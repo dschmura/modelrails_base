@@ -1,4 +1,4 @@
-<%# locals: (workspaces:, current_workspace:) -%>
+<%# locals: (current_workspace:) -%>
 <%# Adding a new sidebar item:
     1. Add i18n keys in config/locales/en/settings.en.yml:
        - settings.sidebar.items.<key>      (visible label)
@@ -7,15 +7,16 @@
        workspace context changes, add it to SettingsNavigationHelper#visible_org_sidebar_items
        with the same Pundit policy/action used to gate it here.
     3. Add a render block below in the matching context branch (personal or org).
-       Org items wrap in render_render_nav_item_if_permitted; personal items render unconditionally.
+       Org items wrap in render_nav_item_if_permitted; personal items render unconditionally.
     The sidebar's source of truth for visibility IS the destination controller's Pundit
-    policy — never introduce a separate SidebarPolicy. -%>
+    policy — never introduce a separate SidebarPolicy.
+
+    NOTE: Workspace switching happens via the header dropdown (shared/_workspace_switcher.html.erb),
+    NOT here. Settings sidebar is a navigation index for the CURRENT workspace's options
+    only. Retired via 6-0 panel review consensus (Jason Fried-led) after the prior
+    embedded switcher created visual + IA conflict with the header dropdown on mobile. -%>
 <aside aria-label="<%= t("settings.sidebar.aria_label") %>"
        class="w-64 shrink-0 px-4 py-6 border-r border-border bg-surface">
-  <%= render "shared/settings_sidebar_switcher",
-        workspaces: workspaces,
-        current_workspace: current_workspace %>
-
   <ul role="list" class="flex flex-col gap-1">
     <% if settings_context_kind == :personal %>
       <%= render "shared/settings_sidebar_item",
