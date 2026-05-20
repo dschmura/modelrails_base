@@ -23,7 +23,7 @@ Rails.application.routes.draw do
     resource :avatar, only: [ :update, :destroy ] do
       get :hub
     end
-    resource :theme_preference, only: [ :update ]
+    resource :theme_preference, only: [ :edit, :update ]
     resource :notification_preferences, only: [ :edit, :update ] do
       post :dismiss_banner
     end

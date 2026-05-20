@@ -36,8 +36,8 @@
 
       <%= render "shared/settings_sidebar_item",
             label: t("settings.sidebar.items.appearance"),
-            href: account_theme_preference_path,
-            active: current_page?(account_theme_preference_path) %>
+            href: edit_account_theme_preference_path,
+            active: current_page?(edit_account_theme_preference_path) %>
     <% else %>
       <%= render_nav_item_if_permitted(current_workspace, action: :update?) do %>
         <%= render "shared/settings_sidebar_item",
