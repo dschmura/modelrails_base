@@ -1,4 +1,10 @@
-<% if authenticated? && Current.user.workspaces.kept.any? %>
+<%# Header workspace switcher — org workspaces only. Personal workspaces
+    intentionally do NOT appear here so solo users feel single-tenant in
+    the header; the personal workspace remains accessible through the
+    Settings hub sidebar switcher, which is the explicit IA surface for
+    workspace-context switching (including personal). %>
+<% header_workspaces = authenticated? ? Current.user.workspaces.kept.reject(&:personal?) : [] %>
+<% if header_workspaces.any? %>
   <div data-controller="dropdown"
        class="relative">
     <button data-dropdown-target="button"
@@ -22,7 +28,7 @@
          aria-labelledby="workspace-menu-button"
          class="hidden absolute right-0 mt-2 w-56 rounded-md bg-surface-overlay
                 border border-border shadow-lg z-50">
-      <% Current.user.workspaces.kept.each do |workspace| %>
+      <% header_workspaces.each do |workspace| %>
         <%= link_to workspace_path(workspace), role: "menuitem", tabindex: "-1",
               data: { turbo_prefetch: "true" },
               class: "flex items-center gap-3 px-4 py-3 text-sm text-text-body

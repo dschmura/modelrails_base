@@ -1,5 +1,11 @@
 en:
   account:
+    appearance:
+      timezone:
+        heading: "Time zone"
+        description: "Used to display dates and times in your local zone. Your browser auto-detects this when the field is blank; submitting here saves an explicit choice that the auto-detect will not overwrite."
+        label: "Time zone"
+        save: "Save time zone"
     profiles:
       edit:
         title: "Edit profile"

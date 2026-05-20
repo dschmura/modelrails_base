@@ -10,6 +10,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Added
 
+- Appearance destination time-zone picker — explicit `override=true` submit to `Account::Preferences::TimezonesController#update`; the existing browser beacon's write-on-blank guard preserves the explicit choice on subsequent visits (closes #154).
 - Settings hub destinations: disambiguated H1s + descriptions on each sidebar destination, shared `shared/_settings_page_header.html.erb` partial, and Appearance page (closes #150 — sidebar link no longer 405s).
 - Settings hub mobile drawer: hamburger toggle below 768px slides the sidebar in as an off-canvas drawer with overlay, focus trap, ESC + click-outside dismiss, and auto-close on sidebar navigation (closes #148).
 - Settings hub shell: sidebar-equipped layout (`layouts/settings.html.erb`) for account- and workspace-tier settings, with context-adaptive item list, Pundit-gated visibility, polite aria-live region, and site-wide Turbo morph.
@@ -24,6 +25,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- Header workspace switcher hides personal workspaces — solo users feel single-tenant in the header; the personal workspace remains accessible through the Settings hub sidebar switcher, which is the explicit IA surface for workspace-context switching (closes #145).
 - Account Profile, Notification Preferences, Connected Accounts (Security), Workspace Settings, and Workspace Members destinations now use the shared settings page header for consistent chrome.
 - Smooth motion-safe color transitions on sidebar items and switcher; settings layout's context attribute renamed `data-settings-context-kind` → `data-workspace-kind`; hover prefetch added to header user-menu settings links and header workspace dropdown.
 - Route consolidation: `workspaces#edit` now serves the workspace Profile (identity — name, logo, primary_color); `workspaces/settings#edit` narrows to Limits & Plan. Admin sees Profile in sidebar (capability expansion vs pre-consolidation when sidebar gated on Owner-only `WorkspacePolicy#update?`; now gated on `Workspaces::ProfilePolicy#update?` = `manage_settings`).
