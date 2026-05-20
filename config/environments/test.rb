@@ -130,5 +130,19 @@ Rails.application.configure do
     Bullet.add_safelist(type: :n_plus_one_query,
                         class_name: "Invitation",
                         association: :invitable)
+
+    # The settings sidebar switcher preloads `memberships: { user: :avatar_attachment }`
+    # so `workspace_icon_for` can fall back to the personal-workspace owner's avatar
+    # without N+1ing across rows. The fallback is conditional — when a workspace
+    # has its own logo attached, `workspace_icon_for` short-circuits before reading
+    # `workspace.owner`, leaving the user preload "unused" for that row. The N+1
+    # cost without the preload is worse than Bullet's false-positive here, so
+    # safelist both legs of the conditional preload chain.
+    Bullet.add_safelist(type: :unused_eager_loading,
+                        class_name: "Membership",
+                        association: :user)
+    Bullet.add_safelist(type: :unused_eager_loading,
+                        class_name: "User",
+                        association: :avatar_attachment)
   end
 end

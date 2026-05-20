@@ -56,7 +56,12 @@ RSpec.describe "Workspace branding — identity picker", type: :system do
       # Workspace now has has_color_picker: true — color slider should be visible
       expect(page).to have_css("[data-identity-picker-target='colorSlider']", wait: 3)
 
-      click_button I18n.t("identity_picker.save")
+      # Scope the click inside the open dialog. The settings layout uses
+      # turbo morph refreshes, which can detach element handles between
+      # button resolution and click. Re-resolve within the dialog.
+      within("dialog[open]") do
+        click_button I18n.t("identity_picker.save")
+      end
 
       # Modal closes
       expect(page).to have_no_css("dialog[open]", wait: 3)

@@ -2,6 +2,8 @@ class WorkspacesController < ApplicationController
   include WorkspaceScoped
   skip_before_action :set_workspace, only: [ :index, :new, :create ]
 
+  layout "settings", only: [ :edit, :update ]
+
   def index
     authorize Workspace
     @workspaces = Current.user.workspaces.kept

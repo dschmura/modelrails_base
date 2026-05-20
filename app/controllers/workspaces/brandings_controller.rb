@@ -3,6 +3,8 @@ module Workspaces
     include WorkspaceScoped
     include CropCoordinatable
 
+    layout "settings"
+
     def hub
       authorize @workspace, :update?, policy_class: Workspaces::BrandingPolicy
 
