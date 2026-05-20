@@ -10,6 +10,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Added
 
+- Settings hub shell: sidebar-equipped layout (`layouts/settings.html.erb`) for account- and workspace-tier settings, with context-adaptive item list, Pundit-gated visibility, polite aria-live region, and site-wide Turbo morph.
 - Notifications v1 — in-app bell + dropdown, dedicated `/account/notifications` triage page, real-time arrival broadcasts, preferences UI (DND, 5×3 category/channel matrix, digest cadence, retention), email digests every 15 minutes, and 10 wired notifier types covering workspace, project, billing, and security events (#48, #53–#56, #64–#71).
 - Optional VS Code Dev Container that matches the production image (#129).
 - `.env.example` documenting required environment variables (#129).
