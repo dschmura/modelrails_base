@@ -1,20 +1,26 @@
 <%# locals: (workspaces:, current_workspace:) -%>
 <nav aria-label="<%= t("settings.sidebar.switcher_aria_label") %>"
-     class="mb-4 pb-4 border-b border-border"
+     class="mb-4 pb-4 border-b border-border/50"
      data-controller="settings-switcher">
   <ul role="list" class="flex flex-col gap-1">
     <% workspaces.each do |workspace| %>
       <% is_current = workspace == current_workspace %>
       <% role_slug = workspace.memberships.detect { |m| m.user_id == Current.user.id }&.role&.slug %>
+      <% aria_label = if workspace.personal?
+                        t("settings.sidebar.workspace_link_aria_label.personal", name: workspace.name)
+                      elsif role_slug.present?
+                        "#{workspace.name}, #{role_slug.titleize}"
+                      else
+                        workspace.name
+                      end %>
       <li>
         <%= link_to workspace_path(workspace),
-              aria: { current: ("true" if is_current),
-                      label: (t("settings.sidebar.workspace_link_aria_label.personal", name: workspace.name) if workspace.personal?) },
+              aria: { current: ("true" if is_current), label: aria_label },
               data: { turbo_prefetch: "true" },
               class: [
                 "min-h-[44px] flex items-center gap-3 px-3 py-2 rounded-md",
                 "text-text-body",
-                "hover:bg-surface-sunken",
+                "hover:text-text-heading",
                 "focus:outline-none focus:ring-2 focus:ring-interactive-focus",
                 "motion-safe:transition-colors motion-safe:duration-150",
                 ("bg-surface-sunken font-semibold text-text-heading" if is_current)
@@ -34,12 +40,7 @@
                   style="background: oklch(0.55 0.18 <%= workspace.primary_color || 210 %>);"
                   aria-hidden="true"></span>
           <% end %>
-          <span class="flex-1 min-w-0">
-            <span class="block truncate"><%= workspace.name %></span>
-            <% if role_slug %>
-              <span class="block text-xs text-text-muted"><%= role_slug.titleize %></span>
-            <% end %>
-          </span>
+          <span class="flex-1 min-w-0 truncate"><%= workspace.name %></span>
         <% end %>
       </li>
     <% end %>
