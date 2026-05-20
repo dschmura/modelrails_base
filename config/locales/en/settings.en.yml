@@ -22,6 +22,9 @@ en:
         members: "Members of %{workspace_name}"
         invitations: "Invitations for %{workspace_name}"
         limits_and_plan: "Limits and plan for %{workspace_name}"
+      switcher:
+        switch_workspace: "Switch workspace"
+        create_workspace: "Create workspace"
     pages:
       profile_personal:
         h1: "Your personal profile"
