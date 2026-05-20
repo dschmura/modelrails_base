@@ -3,9 +3,9 @@
     the appropriate controller (workspaces#update, settings#update, brandings#update).
     Replaces the previous three standalone edit pages. %>
 <div class="max-w-2xl mx-auto px-4 py-16">
-  <h1 class="text-3xl font-bold text-text-heading">
-    <%= t("workspaces.settings.edit.title") %>
-  </h1>
+  <%= render "shared/settings_page_header",
+        title_html: t("settings.pages.workspace_settings.h1_html", name: ERB::Util.html_escape(@workspace.name)),
+        description: t("settings.pages.workspace_settings.description") %>
 
   <div class="mt-8 space-y-12">
     <%= render "workspaces/settings/branding_section", workspace: @workspace %>
