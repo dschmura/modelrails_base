@@ -22,3 +22,22 @@ en:
         members: "Members of %{workspace_name}"
         invitations: "Invitations for %{workspace_name}"
         limits_and_plan: "Limits and plan for %{workspace_name}"
+    pages:
+      profile_personal:
+        h1: "Your personal profile"
+        description: "Visible in every workspace. Only you can edit this."
+      notifications:
+        h1: "Notifications"
+        description: "Choose how and when you hear from this app."
+      security:
+        h1: "Security"
+        description: "Manage your sign-in methods and connected accounts."
+      appearance:
+        h1: "Appearance"
+        description: "Theme and visual preferences for this device."
+      workspace_settings:
+        h1_html: "<span class='text-text-muted font-normal'>%{name}</span> settings"
+        description: "Workspace identity, capacity, and plan."
+      workspace_members:
+        h1_html: "<span class='text-text-muted font-normal'>%{name}</span> members"
+        description: "Invite teammates, manage roles, deactivate access."
