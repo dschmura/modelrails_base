@@ -9,10 +9,11 @@
       footer action.
 
     Implementation notes:
-    - Reuses the project's existing `dropdown` Stimulus controller
-      (same as shared/_workspace_switcher.html.erb in the header).
-      The controller handles outside-click + Esc close, arrow-key
-      navigation, and aria-expanded toggling.
+    - Reuses the project's existing `dropdown` Stimulus controller,
+      which handles outside-click + Esc close, arrow-key navigation,
+      and aria-expanded toggling. (Path Y Phase C deleted the former
+      header dropdown — this sidebar trigger is now the single
+      workspace-switching surface.)
     - Avatar shape differentiation per WCAG 1.4.1: circle for
       personal workspaces, rounded-square for org workspaces. The
       workspace_icon_for helper renders rounded-full, so we wrap it

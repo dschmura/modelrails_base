@@ -34,6 +34,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 - `Workspaces::BrandingsController` and its routes (`/workspaces/:slug/branding/*`). Identity picker hub moved to `WorkspacesController#identity_picker_hub` (`/workspaces/:slug/identity_picker_hub`).
 - `Workspaces::BrandingPolicy` (replaced by `Workspaces::ProfilePolicy` on workspaces#edit/update).
+- Orphan header dropdown partials (`shared/_workspace_switcher.html.erb`, `shared/_navigation.html.erb`) and the unused `navigation.new_workspace` locale key — completes Path Y; the sidebar switcher is the canonical workspace-switching surface.
 
 ### Bug fixes
 
