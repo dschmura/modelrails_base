@@ -42,7 +42,7 @@
     <div class="flex-1 flex min-h-[calc(100vh-4rem)]"
          data-settings-context-kind="<%= settings_context_kind %>">
       <%= render "shared/settings_sidebar",
-            workspaces: Current.user.workspaces.kept.includes(:roles, memberships: :role),
+            workspaces: Current.user.workspaces.kept.includes(:roles, :logo_attachment, memberships: [ :role, { user: :avatar_attachment } ]),
             current_workspace: Current.workspace %>
 
       <main id="main-content"
