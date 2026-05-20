@@ -1,6 +1,7 @@
 <%# locals: (workspaces:, current_workspace:) -%>
 <nav aria-label="<%= t("settings.sidebar.switcher_aria_label") %>"
-     class="mb-4 pb-4 border-b border-border">
+     class="mb-4 pb-4 border-b border-border"
+     data-controller="settings-switcher">
   <ul role="list" class="flex flex-col gap-1">
     <% workspaces.each do |workspace| %>
       <% is_current = workspace == current_workspace %>
