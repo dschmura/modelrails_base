@@ -39,7 +39,11 @@
             href: edit_account_theme_preference_path,
             active: current_page?(edit_account_theme_preference_path) %>
     <% else %>
-      <%= render_nav_item_if_permitted(current_workspace, action: :update?) do %>
+      <%# Profile routes to workspaces#edit which authorizes via
+          Workspaces::ProfilePolicy (manage_settings permission). Consult
+          ProfilePolicy directly so sidebar visibility matches the
+          destination controller's authorize call. %>
+      <% if Workspaces::ProfilePolicy.new(Current.user, current_workspace).update? %>
         <%= render "shared/settings_sidebar_item",
               label: t("settings.sidebar.items.profile"),
               href: edit_workspace_path(current_workspace),

@@ -51,6 +51,9 @@ Rails.application.routes.draw do
   end
 
   resources :workspaces, param: :slug do
+    member do
+      get :identity_picker_hub
+    end
     scope module: :workspaces do
       resources :members, only: [ :index, :edit, :update, :destroy ] do
         member do

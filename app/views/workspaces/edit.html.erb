@@ -1,16 +1,12 @@
-<% content_for(:title) { t("workspaces.edit.title") } %>
-<div class="max-w-md mx-auto px-4 py-16">
-  <h1 class="text-3xl font-bold text-text-heading">
-    <%= t("workspaces.edit.title") %>
-  </h1>
+<% content_for(:title) { t("workspaces.edit.title", workspace: @workspace.name) } %>
+<%# Workspace Profile destination — identity (name, logo, primary_color).
+    Operational config (capacity, plan) lives on Workspaces::SettingsController. %>
+<div class="max-w-2xl mx-auto px-4 py-16">
+  <%= render "shared/settings_page_header",
+        title_html: t("settings.pages.workspace_profile.h1_html", name: ERB::Util.html_escape(@workspace.name)),
+        description: t("settings.pages.workspace_profile.description") %>
 
-  <%= form_with model: @workspace, url: workspace_path(@workspace), method: :patch, class: "mt-8 space-y-6" do |form| %>
-    <%= form.error_summary %>
-
-    <%= form.text_field :name,
-          label: t("workspaces.edit.name_label"),
-          required: true %>
-
-    <%= form.submit t("workspaces.edit.submit"), class: "w-full" %>
-  <% end %>
+  <div class="mt-8">
+    <%= render "workspaces/profile_section", workspace: @workspace %>
+  </div>
 </div>

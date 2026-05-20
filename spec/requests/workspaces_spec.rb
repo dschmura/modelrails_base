@@ -111,14 +111,15 @@ RSpec.describe "Workspaces", type: :request do
       let(:workspace) { create(:workspace) }
       let!(:membership) { create(:membership, :owner, user: user, workspace: workspace) }
 
-      it "redirects to the unified settings page" do
+      it "renders the workspace Profile destination" do
         get edit_workspace_path(workspace)
-        expect(response).to redirect_to(edit_workspace_settings_path(workspace))
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include(workspace.name)
       end
     end
 
     describe "GET /workspaces/:slug/edit authorization" do
-      it "denies members without manage_workspace" do
+      it "denies plain members without manage_settings" do
         workspace = create(:workspace)
         member = create(:user)
         create(:membership, user: member, workspace: workspace)
@@ -139,10 +140,10 @@ RSpec.describe "Workspaces", type: :request do
       let(:workspace) { create(:workspace, name: "Old Name") }
       let!(:membership) { create(:membership, :owner, user: user, workspace: workspace) }
 
-      it "updates the workspace name and redirects to the unified settings page" do
+      it "updates the workspace name and redirects to the Profile destination" do
         patch workspace_path(workspace), params: { workspace: { name: "New Name" } }
         expect(workspace.reload.name).to eq("New Name")
-        expect(response).to redirect_to(edit_workspace_settings_path(workspace))
+        expect(response).to redirect_to(edit_workspace_path(workspace))
       end
 
       it "returns unprocessable entity for blank name" do

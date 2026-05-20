@@ -18,10 +18,9 @@ RSpec.describe "Settings layout workspace stream subscription", type: :request d
     let!(:membership) { create(:membership, :owner, user: user, workspace: workspace) }
 
     it "subscribes the page to the workspace stream so membership broadcasts re-render the layout" do
-      # /workspaces/:slug/edit 302-redirects to the unified settings page;
-      # follow it so the response body is the rendered settings layout.
+      # /workspaces/:slug/edit now renders the Profile destination directly
+      # (no redirect) after the settings hub route consolidation.
       get edit_workspace_path(workspace), headers: { "HTTP_ACCEPT" => "text/html" }
-      follow_redirect! while response.redirect?
 
       # Settings layout uses `turbo_stream_from` which renders a
       # <turbo-cable-stream-source> custom element with a signed channel name.

@@ -53,7 +53,9 @@ module SettingsNavigationHelper
     workspace = Current.workspace
     items = []
 
-    items << I18n.t("settings.sidebar.items.profile") if Pundit.policy(current_user, workspace).update?
+    if Workspaces::ProfilePolicy.new(current_user, workspace).update?
+      items << I18n.t("settings.sidebar.items.profile")
+    end
     if Pundit.policy(current_user, Membership.new(workspace: workspace)).index?
       items << I18n.t("settings.sidebar.items.members")
     end

@@ -89,7 +89,11 @@ RSpec.describe SettingsNavigationHelper, type: :helper do
       expect(result).to include("Limits & Plan")
     end
 
-    it "omits Profile (manage_workspace-gated) for an Admin but includes Members, Invitations, and Limits & Plan" do
+    it "includes Profile (manage_settings-gated) for an Admin alongside Members, Invitations, and Limits & Plan" do
+      # Post route-consolidation, Profile is gated by Workspaces::ProfilePolicy
+      # which checks manage_settings (held by Admin). Admins formerly edited
+      # workspace identity via the branding route; ProfilePolicy preserves that
+      # capability surface intentionally — see ProfilePolicy class comment.
       workspace = create(:workspace, name: "Beta LLC", personal: false)
       create(:membership, :admin, user: user, workspace: workspace)
       allow(Current).to receive(:workspace).and_return(workspace)
@@ -97,7 +101,7 @@ RSpec.describe SettingsNavigationHelper, type: :helper do
       result = helper.current_workspace_announcement_for_aria_live
       expect(result).to include("Beta LLC")
       expect(result).to include("Admin")
-      expect(result).not_to include("Profile")
+      expect(result).to include("Profile")
       expect(result).to include("Members")
       expect(result).to include("Invitations")
       expect(result).to include("Limits & Plan")
