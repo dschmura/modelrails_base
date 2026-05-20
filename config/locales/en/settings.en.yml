@@ -47,3 +47,7 @@ en:
       workspace_members:
         h1_html: "<span class='text-text-muted font-normal'>%{name}</span> members"
         description: "Invite teammates, manage roles, deactivate access."
+    mobile_drawer:
+      open: "Open settings menu"
+      close: "Close settings menu"
+      aria_label: "Settings menu"
