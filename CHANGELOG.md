@@ -11,6 +11,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 ### Added
 
 - Settings hub destinations: disambiguated H1s + descriptions on each sidebar destination, shared `shared/_settings_page_header.html.erb` partial, and Appearance page (closes #150 — sidebar link no longer 405s).
+- Settings hub mobile drawer: hamburger toggle below 768px slides the sidebar in as an off-canvas drawer with overlay, focus trap, ESC + click-outside dismiss, and auto-close on sidebar navigation (closes #148).
 - Settings hub shell: sidebar-equipped layout (`layouts/settings.html.erb`) for account- and workspace-tier settings, with context-adaptive item list, Pundit-gated visibility, polite aria-live region, and site-wide Turbo morph.
 - Personal-workspace OKLCH context ramp via `[data-workspace-kind="personal"]` — desaturated slate treatment so solo users see a deliberate visual identity rather than unstyled-org defaults.
 - Chroma-boosted color swatch on org workspaces in the sidebar switcher — small vertical chip beside each workspace name using its `primary_color` for at-a-glance differentiation.
