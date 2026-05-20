@@ -14,16 +14,12 @@
     "billing"            => { name: "information_circle",   color: :info }
   }
 %>
-<section aria-labelledby="notification-preferences-heading"
-         class="max-w-3xl mx-auto px-4 py-8 space-y-6
+<section class="max-w-3xl mx-auto px-4 py-8 space-y-6
                 sm:px-6
                 lg:px-8">
-  <header>
-    <h1 id="notification-preferences-heading"
-        class="text-2xl font-semibold text-text-heading">
-      <%= t("notifications.preferences.heading") %>
-    </h1>
-  </header>
+  <%= render "shared/settings_page_header",
+        title: t("settings.pages.notifications.h1"),
+        description: t("settings.pages.notifications.description") %>
 
   <%# Migration banner — renders only until the user dismisses it once.
       Turbo replaces this frame with an empty body on dismiss, so the

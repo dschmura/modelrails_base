@@ -34,7 +34,7 @@ RSpec.describe "Notification preferences — mobile viewport", type: :system, js
 
   it "renders without horizontal scroll at 375x667 (iPhone SE)" do
     visit edit_account_notification_preferences_path
-    expect(page).to have_text(I18n.t("notifications.preferences.heading"))
+    expect(page).to have_text(I18n.t("settings.pages.notifications.h1"))
 
     doc_width    = page.evaluate_script("document.documentElement.scrollWidth")
     client_width = page.evaluate_script("document.documentElement.clientWidth")
@@ -46,7 +46,7 @@ RSpec.describe "Notification preferences — mobile viewport", type: :system, js
 
   it "passes AAA audit at mobile viewport in both light + dark themes" do
     visit edit_account_notification_preferences_path
-    expect(page).to have_text(I18n.t("notifications.preferences.heading"))
+    expect(page).to have_text(I18n.t("settings.pages.notifications.h1"))
 
     expect(axe_clean_in_both_themes?(axe_options)).to be(true),
       "Mobile AAA violations:\n#{axe_violations_in_both_themes(axe_options).join("\n")}"

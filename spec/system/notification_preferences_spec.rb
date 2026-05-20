@@ -25,7 +25,7 @@ RSpec.describe "Notification preferences", type: :system do
     before { visit edit_account_notification_preferences_path }
 
     it "renders the page heading" do
-      expect(page).to have_css("h1", text: I18n.t("notifications.preferences.heading"))
+      expect(page).to have_css("h1", text: I18n.t("settings.pages.notifications.h1"))
     end
 
     it "renders Card 1: Notification Types with 5 rows + security 'Always on' badge" do
