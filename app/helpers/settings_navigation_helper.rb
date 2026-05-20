@@ -25,7 +25,47 @@ module SettingsNavigationHelper
     capture(&block)
   end
 
+  # Returns a localized announcement string for the polite aria-live region
+  # when an org workspace is active. The string interpolates the workspace
+  # name, the viewer's role, and the list of sidebar items they can actually
+  # see (so the announcement matches what's rendered). Returns nil for the
+  # personal-workspace and unauthenticated cases — the layout uses the
+  # static personal template instead.
+  def current_workspace_announcement_for_aria_live
+    workspace = Current.workspace
+    return nil if workspace.nil? || workspace.personal?
+
+    membership = workspace.memberships.detect { |m| m.user_id == Current.user&.id }
+    role_name = membership&.role&.name || Role.find_by(slug: "member", workspace_id: nil)&.name || "Member"
+
+    I18n.t("settings.sidebar.aria_live_template.org",
+           name: workspace.name,
+           role: role_name,
+           items: visible_org_sidebar_items.join(", "))
+  end
+
   private
+
+  # Builds the comma-joined list of org-sidebar item labels the current user is
+  # authorized to see. Mirrors the policy gates in shared/_settings_sidebar so
+  # the aria-live announcement reflects the rendered sidebar exactly.
+  def visible_org_sidebar_items
+    workspace = Current.workspace
+    items = []
+
+    items << I18n.t("settings.sidebar.items.profile") if Pundit.policy(current_user, workspace).update?
+    if Pundit.policy(current_user, Membership.new(workspace: workspace)).index?
+      items << I18n.t("settings.sidebar.items.members")
+    end
+    if Pundit.policy(current_user, Invitation.new(invitable: workspace)).index?
+      items << I18n.t("settings.sidebar.items.invitations")
+    end
+    if Workspaces::SettingsPolicy.new(current_user, workspace).update?
+      items << I18n.t("settings.sidebar.items.limits_and_plan")
+    end
+
+    items
+  end
 
   # ActionController exposes #current_user as a private controller method, not
   # a view helper. Define a thin shim here so the helper is callable from any
