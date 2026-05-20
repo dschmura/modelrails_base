@@ -274,6 +274,27 @@ dialog[open]::backdrop {
   --color-interactive-subtle: color-mix(in oklch, var(--ws-primary-dark) 15%, black);
 }
 
+/* Personal workspace context — solo users spend most of their time
+   here, so it deserves an intentional treatment rather than the
+   "unstyled org" defaults. The desaturated slate ramp (sourced from
+   our existing --neutral-* primitives) is AAA-verified and matches
+   the spec's "deliberate desaturated slate/zinc" guidance. */
+[data-workspace-kind="personal"] {
+  --color-interactive: var(--neutral-700);
+  --color-interactive-hover: var(--neutral-900);
+  --color-interactive-focus: var(--neutral-700);
+  --color-interactive-subtle: var(--neutral-100);
+  --color-accent: var(--neutral-600);
+}
+
+.dark [data-workspace-kind="personal"] {
+  --color-interactive: var(--neutral-300);
+  --color-interactive-hover: var(--neutral-100);
+  --color-interactive-focus: var(--neutral-300);
+  --color-interactive-subtle: var(--neutral-800);
+  --color-accent: var(--neutral-400);
+}
+
 /* Markdowndocs gem views — required so Tailwind scans the gem's templates.
    Symlink created by: ln -sf $(bundle show markdowndocs)/app/views vendor/markdowndocs_views */
 @source "../../../vendor/markdowndocs_views/**/*.erb";
