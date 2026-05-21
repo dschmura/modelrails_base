@@ -85,7 +85,9 @@
             <%# Current workspace gets a left-border accent + background so it
                 stays visually distinct even when a non-current row is being
                 hovered (both use bg-surface-sunken otherwise). border-l-4 +
-                adjusted px-3→pl-2 keeps the icon column aligned. %>
+                adjusted px-3→pl-2 keeps the icon column aligned.
+                No turbo_prefetch on workspace rows — opening the dropdown
+                would otherwise prefetch every workspace's dashboard on hover. %>
             <%= link_to workspace_path(workspace),
                   role: "menuitem",
                   tabindex: "-1",

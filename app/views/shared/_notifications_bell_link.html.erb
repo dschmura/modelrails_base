@@ -12,10 +12,11 @@
     + any other notification-aware surface. Falls back to its own query
     when rendered standalone (e.g., via Turbo Stream broadcast). -%>
 <% summary ||= unread_notification_summary(user) %>
+<%# No turbo_prefetch on the bell — the notifications triage index is a
+    paginated query + Pundit + N notification renders, not a free hover. %>
 <%= link_to main_app.account_notifications_path,
       id: "notifications-bell-link",
       "aria-labelledby": "notifications_bell_label",
-      data: { turbo_prefetch: "true" },
       class: "btn-touch-target relative inline-flex items-center justify-center rounded-full
               text-text-body
               motion-safe:transition-colors motion-safe:duration-150
