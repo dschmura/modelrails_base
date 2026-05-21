@@ -1,20 +1,28 @@
 # frozen_string_literal: true
 
-# Refreshes a user's four independent notification surfaces:
-#   - avatar button LABEL frame (sr-only aria-label text — sibling of the
-#                                button, NOT the button itself; replacing
-#                                the label keeps the focusable button stable
-#                                so clicks landing mid-broadcast still hit
-#                                a live target)
-#   - bell indicator frame (severity-colored chip overlay on the avatar)
-#   - menu count frame     (Notifications menu-link count text, e.g. "(3)")
-#   - aria-live region     (SR announcement)
+# Refreshes a user's three independent notification surfaces (D1):
+#   - bell LABEL frame      (sr-only aria-label text — sibling of the bell
+#                            link, NOT the link itself; replacing the label
+#                            keeps the focusable link stable so clicks
+#                            landing mid-broadcast still hit a live target)
+#   - bell indicator frame  (severity-colored chip overlay rendered inside
+#                            the bell link)
+#   - aria-live region      (SR announcement)
 #
 # Each broadcast runs in its own rescue scope: a failure on ONE surface
-# must NOT abort the other three. Real failure mode this prevents: a
-# transient cable adapter hiccup or a partial-rendering exception on the
-# first broadcast used to silently drop the bell + count + aria-live
-# refresh, leaving the UI stale.
+# must NOT abort the others. Real failure mode this prevents: a transient
+# cable adapter hiccup or a partial-rendering exception on the first
+# broadcast used to silently drop the indicator + aria-live refresh,
+# leaving the UI stale.
+#
+# D1 dropped the `notifications_menu_count_frame` broadcast: the user
+# menu no longer carries a Notifications link with an inline count (the
+# bell is now a standalone header affordance with the count baked into
+# its aria-label).
+#
+# D1 renamed the label frame: `notifications_avatar_button_label_frame`
+# → `notifications_bell_label_frame`, matching its new home on the bell
+# rather than the avatar.
 #
 # `announcement_key` is an I18n key passed straight to `I18n.t`. Two
 # canonical values exist today:
@@ -34,8 +42,8 @@
 #
 # Performance: the unread breakdown summary is computed ONCE at the top of
 # refresh_for and passed to each receiving partial as a `summary:` local.
-# This avoids 3 redundant `unread_notification_breakdown` queries that
-# would otherwise fire (one per partial that needs it).
+# This avoids redundant `unread_notification_breakdown` queries that would
+# otherwise fire (one per partial that needs it).
 module NotificationBroadcaster
   module_function
 
@@ -43,11 +51,11 @@ module NotificationBroadcaster
     stream_key = [ user, :notifications ]
     summary = NotificationBellHelper.unread_notification_summary(user)
 
-    safe_broadcast(stream_key, source: "avatar_button_label") do
+    safe_broadcast(stream_key, source: "bell_label") do
       Turbo::StreamsChannel.broadcast_replace_to(
         stream_key,
-        target: "notifications_avatar_button_label_frame",
-        partial: "shared/user_menu_avatar_button_label",
+        target: "notifications_bell_label_frame",
+        partial: "shared/notifications_bell_label",
         locals: { user: user, summary: summary }
       )
     end
@@ -57,15 +65,6 @@ module NotificationBroadcaster
         stream_key,
         target: "notifications_bell_indicator_frame",
         partial: "shared/notifications_bell",
-        locals: { user: user, summary: summary }
-      )
-    end
-
-    safe_broadcast(stream_key, source: "menu_count") do
-      Turbo::StreamsChannel.broadcast_replace_to(
-        stream_key,
-        target: "notifications_menu_count_frame",
-        partial: "shared/notifications_menu_count_span",
         locals: { user: user, summary: summary }
       )
     end

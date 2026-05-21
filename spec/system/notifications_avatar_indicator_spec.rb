@@ -87,6 +87,7 @@ RSpec.describe "Notifications avatar indicator", type: :system do
   end
 
   it "live-updates overlay and aria-label when a notification arrives via broadcast" do
+    skip "D1: avatar-button broadcast updates obsoleted; replaced by bell-link arrival coverage in Task 5"
     visit root_path
     expect(page).not_to have_css('[data-bell-severity]')
 
@@ -106,6 +107,7 @@ RSpec.describe "Notifications avatar indicator", type: :system do
   end
 
   it "keeps the avatar button DOM node stable across broadcasts (only the label is replaced)" do
+    skip "D1: avatar-button stability obsoleted; bell-link stability covered in Task 5"
     visit root_path
     expect(page).not_to have_css('[data-bell-severity]')
 
@@ -151,6 +153,7 @@ RSpec.describe "Notifications avatar indicator", type: :system do
   end
 
   it "updates the count inside an open menu without closing it or shifting focus" do
+    skip "D1: menu-count broadcast removed (no menu items); replaced by bell-label refresh coverage in Task 5"
     visit root_path
     find("#user-menu-button").click
     expect(page).to have_css("#user-menu", visible: :visible)

@@ -418,25 +418,21 @@ RSpec.describe ApplicationNotifier, type: :notifier do
     end
   end
 
-  describe "#broadcast_notifications_arrival menu count refresh" do
+  describe "#broadcast_notifications_arrival menu count refresh (D1: removed)" do
     let(:user) { create(:user) }
     let(:resource) { create(:user) }
 
-    # The Notifications menu link surfaces the unread count next to the
-    # avatar's user menu. The avatar-button frame, bell-indicator frame,
-    # and menu-count frame are broadcast as separate `replace` operations
-    # so each surface updates independently — e.g. the menu-count refreshes
-    # even when the avatar overlay re-renders.
-    it "broadcasts a menu-count refresh targeting notifications_menu_count_frame" do
+    # D1 deleted the menu-count broadcast: the user-menu dropdown no longer
+    # carries a Notifications link with an inline count. Lock that change
+    # in so a regression that re-adds the broadcast (or restores the
+    # corresponding partial) fails this spec.
+    it "does NOT broadcast a menu-count refresh (the frame and consumer were removed)" do
       allow(Turbo::StreamsChannel).to receive(:broadcast_update_to)
-      # Allow other broadcast_replace_to calls (avatar button + bell indicator
-      # are tested above), then expect the specific menu-count broadcast.
       allow(Turbo::StreamsChannel).to receive(:broadcast_replace_to)
-      expect(Turbo::StreamsChannel).to receive(:broadcast_replace_to).with(
-        [ user, :notifications ],
-        target: "notifications_menu_count_frame",
-        partial: "shared/notifications_menu_count_span",
-        locals: hash_including(user: user)
+
+      expect(Turbo::StreamsChannel).not_to receive(:broadcast_replace_to).with(
+        anything,
+        hash_including(target: "notifications_menu_count_frame")
       )
 
       StubAccountAccessNotifier.with(record: resource).deliver(user)

@@ -22,9 +22,7 @@
               hover:bg-surface-sunken hover:text-interactive
               focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus" do %>
   <turbo-frame id="notifications_bell_label_frame">
-    <span id="notifications_bell_label" class="sr-only">
-      <%= bell_link_aria_label(user, summary) %>
-    </span>
+    <%= render "shared/notifications_bell_label", user: user, summary: summary %>
   </turbo-frame>
   <%= icon(:bell, size: :md, aria_label: nil) %>
   <%= render "shared/notifications_bell", user: user, summary: summary %>
