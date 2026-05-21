@@ -68,7 +68,7 @@
 
 **Steps:**
 
-- [ ] **Step 1: Failing spec.** Write a system spec that signs in as a user with at least one unread notification (use the existing factory pattern from `spec/system/notifications/*` for setup), renders the partial directly via `render` in a request spec OR visits a page that includes the new bell (after Task 5), and asserts:
+- [x] **Step 1: Failing spec.** Write a system spec that signs in as a user with at least one unread notification (use the existing factory pattern from `spec/system/notifications/*` for setup), renders the partial directly via `render` in a request spec OR visits a page that includes the new bell (after Task 5), and asserts:
   - A `<a>` element with `href` matching `account_notifications_path`
   - An aria-label/labelledby with text describing unread count (e.g., "Notifications, 1 unread" or similar via the existing `avatar_button_aria_label` helper adapted for bell context)
   - `min-h-[44px] min-w-[44px]` touch target
@@ -76,9 +76,9 @@
 
   Since the partial isn't rendered anywhere yet, write the spec as a **view spec** or **partial render spec** to keep it focused: `spec/views/shared/_notifications_bell_link.html.erb_spec.rb` using `render partial: "shared/notifications_bell_link", locals: { user: user }`.
 
-- [ ] **Step 2: Run the spec.** Expected: FAILS because the partial doesn't exist.
+- [x] **Step 2: Run the spec.** Expected: FAILS because the partial doesn't exist.
 
-- [ ] **Step 3: Create the partial.**
+- [x] **Step 3: Create the partial.**
 
 ```erb
 <%# locals: (user:, summary: nil) -%>
@@ -111,7 +111,7 @@
 
 `bell_link_aria_label(user, summary)` is a new helper (or rename `avatar_button_aria_label` to be bell-focused). Implementation parallels the existing helper but says "Notifications, N unread including 'subject'" instead of "User menu for Name. N unread...".
 
-- [ ] **Step 4: Add the helper** in `app/helpers/notification_helper.rb` (or wherever `avatar_button_aria_label` lives):
+- [x] **Step 4: Add the helper** in `app/helpers/notification_helper.rb` (or wherever `avatar_button_aria_label` lives):
 
 ```ruby
 def bell_link_aria_label(user, summary)
@@ -140,11 +140,11 @@ bell:
     other: "Notifications, %{count} unread including %{phrase}"
 ```
 
-- [ ] **Step 5: Re-run the partial spec.** Expected: PASSES.
+- [x] **Step 5: Re-run the partial spec.** Expected: PASSES.
 
-- [ ] **Step 6: Run FULL suite.** Expected: 1898 / 0 / 0 (no behavior change — partial exists but no layout consumes it yet).
+- [x] **Step 6: Run FULL suite.** Expected: 1898 / 0 / 0 (no behavior change — partial exists but no layout consumes it yet).
 
-- [ ] **Step 7: Commit.**
+- [x] **Step 7: Commit.**
 
 ```bash
 git add app/views/shared/_notifications_bell_link.html.erb app/helpers/notification_helper.rb config/locales/en/application.en.yml spec/views/shared/_notifications_bell_link.html.erb_spec.rb
@@ -169,14 +169,14 @@ Not yet wired into the header — see Task 5."
 
 **Steps:**
 
-- [ ] **Step 1: Failing spec.** In `spec/lib/notification_broadcaster_spec.rb`, add an example asserting the broadcaster targets `notifications_bell_label_frame` (not `notifications_avatar_button_label_frame`) for the label broadcast, AND that it no longer issues a `notifications_menu_count_frame` broadcast. Run — expect failures.
+- [x] **Step 1: Failing spec.** In `spec/lib/notification_broadcaster_spec.rb`, add an example asserting the broadcaster targets `notifications_bell_label_frame` (not `notifications_avatar_button_label_frame`) for the label broadcast, AND that it no longer issues a `notifications_menu_count_frame` broadcast. Run — expect failures.
 
-- [ ] **Step 2: Update broadcaster.** In `app/lib/notification_broadcaster.rb`:
+- [x] **Step 2: Update broadcaster.** In `app/lib/notification_broadcaster.rb`:
   - Rename `target: "notifications_avatar_button_label_frame"` → `target: "notifications_bell_label_frame"`.
   - Update the `partial:` reference if it points to `_user_menu_avatar_button_label`; new target partial is `_notifications_bell_link` (or a new dedicated `_notifications_bell_label.html.erb` if the label needs to be broadcast standalone). Recommended: split the sr-only span into its own micro-partial `_notifications_bell_label.html.erb` so the broadcast replaces just that span, not the whole bell link.
   - Delete the entire broadcast block that targets `notifications_menu_count_frame` + renders `shared/notifications_menu_count_span`.
 
-- [ ] **Step 3: Create `_notifications_bell_label.html.erb`** (the micro-partial):
+- [x] **Step 3: Create `_notifications_bell_label.html.erb`** (the micro-partial):
 
 ```erb
 <%# locals: (user:, summary: nil) -%>
@@ -196,11 +196,11 @@ Update the `_notifications_bell_link.html.erb` partial from Task 1 to render thi
 
 This way the broadcaster targets a specific partial render, matching the existing pattern with `_notifications_menu_count_span`.
 
-- [ ] **Step 4: Re-run broadcaster spec.** Expected: PASSES.
+- [x] **Step 4: Re-run broadcaster spec.** Expected: PASSES.
 
-- [ ] **Step 5: Run FULL suite.** Expected: 1898 / 0 / 0 — broadcaster still works, just targets different frames.
+- [x] **Step 5: Run FULL suite.** Expected: 1898 / 0 / 0 — broadcaster still works, just targets different frames.
 
-- [ ] **Step 6: Commit.**
+- [x] **Step 6: Commit.**
 
 ```bash
 git add app/lib/notification_broadcaster.rb app/views/shared/_notifications_bell_label.html.erb app/views/shared/_notifications_bell_link.html.erb spec/lib/notification_broadcaster_spec.rb
@@ -225,13 +225,13 @@ go away in Task 3's user-menu simplification."
 
 **Steps:**
 
-- [ ] **Step 1: Failing spec.** In an existing user_menu spec (or new `spec/system/shared/user_menu_simplified_spec.rb`):
+- [x] **Step 1: Failing spec.** In an existing user_menu spec (or new `spec/system/shared/user_menu_simplified_spec.rb`):
   - **Desktop:** sign in, click avatar, assert the dropdown contains exactly: a clickable identity block with avatar + full_name + email_address linking to `edit_account_profile_path`, and a sign-out button. Assert it does NOT contain a separate Profile link, Notifications link, or Notification preferences link.
   - **Mobile:** at 375×667 viewport, expand the header accordion, assert the user section inside contains the same 2-item shape.
 
-- [ ] **Step 2: Run the spec.** Expected: FAILS.
+- [x] **Step 2: Run the spec.** Expected: FAILS.
 
-- [ ] **Step 3: Rewrite the desktop branch** (lines 24-105 currently) to:
+- [x] **Step 3: Rewrite the desktop branch** (lines 24-105 currently) to:
 
 ```erb
 <% if context == :desktop %>
@@ -276,7 +276,7 @@ go away in Task 3's user-menu simplification."
 <% end %>
 ```
 
-- [ ] **Step 4: Rewrite the mobile branch** (lines 107-143 currently) to the same 2-item shape, no `md:hidden` wrapper differences other than visibility class:
+- [x] **Step 4: Rewrite the mobile branch** (lines 107-143 currently) to the same 2-item shape, no `md:hidden` wrapper differences other than visibility class:
 
 ```erb
 <% if context == :mobile %>
@@ -305,15 +305,15 @@ go away in Task 3's user-menu simplification."
 
 Delete the `summary = unread_notification_summary(Current.user)` line at the top of the partial — no longer needed since neither item uses summary state.
 
-- [ ] **Step 5: Re-run spec.** Expected: PASSES.
+- [x] **Step 5: Re-run spec.** Expected: PASSES.
 
-- [ ] **Step 6: Update upstream specs** that assert on the old menu structure:
+- [x] **Step 6: Update upstream specs** that assert on the old menu structure:
   - `spec/system/notifications/...` specs that click "Notifications" inside the user menu — they need a different path now. The bell partial will be where those interactions happen (after Task 5 wires the bell in). Mark them pending if needed; un-pend after Task 5.
   - Specs asserting `have_link(I18n.t("navigation.profile"))` inside the menu — update target/expectation.
 
-- [ ] **Step 7: Run FULL suite.** Some failures expected from Step 6 pendings. Net: confirm only expected breaks.
+- [x] **Step 7: Run FULL suite.** Some failures expected from Step 6 pendings. Net: confirm only expected breaks.
 
-- [ ] **Step 8: Commit.**
+- [x] **Step 8: Commit.**
 
 ```bash
 git add app/views/shared/_user_menu.html.erb spec/...
@@ -340,14 +340,14 @@ navigation surface."
 
 **Steps:**
 
-- [ ] **Step 1: Failing spec.** Assert in a system spec that:
+- [x] **Step 1: Failing spec.** Assert in a system spec that:
   - The avatar button's aria-label is `t("navigation.user_menu_label_simple")` (a new static key — "Open user menu") or stays with the existing `user_menu_label` (parameterized by name but no notification info).
   - The avatar button does NOT contain a bell icon child (visually-rendered or otherwise).
   - The bell-indicator broadcast frame is NOT inside the avatar button anymore.
 
-- [ ] **Step 2: Run spec.** Expected: FAILS.
+- [x] **Step 2: Run spec.** Expected: FAILS.
 
-- [ ] **Step 3: Simplify the avatar button:**
+- [x] **Step 3: Simplify the avatar button:**
 
 ```erb
 <%# locals: (user:) -%>
@@ -367,9 +367,9 @@ navigation surface."
 
 Add `navigation.user_menu_label_simple: "Open user menu for %{name}"` to the locale (or keep the existing `user_menu_label`).
 
-- [ ] **Step 4: Delete `_user_menu_avatar_button_label.html.erb`** — the sr-only label moved into the new bell partial.
+- [x] **Step 4: Delete `_user_menu_avatar_button_label.html.erb`** — the sr-only label moved into the new bell partial.
 
-- [ ] **Step 5: Verify no orphaned references.**
+- [x] **Step 5: Verify no orphaned references.**
 
 ```bash
 grep -rn "_user_menu_avatar_button_label\|user_menu_avatar_button_label" app/ spec/
@@ -377,11 +377,11 @@ grep -rn "_user_menu_avatar_button_label\|user_menu_avatar_button_label" app/ sp
 
 Expected: zero matches.
 
-- [ ] **Step 6: Re-run spec.** Expected: PASSES.
+- [x] **Step 6: Re-run spec.** Expected: PASSES.
 
-- [ ] **Step 7: Full suite.** Expected: still has the Task 3 / Task 5 pending blocks, no new failures.
+- [x] **Step 7: Full suite.** Expected: still has the Task 3 / Task 5 pending blocks, no new failures.
 
-- [ ] **Step 8: Commit.**
+- [x] **Step 8: Commit.**
 
 ```bash
 git add app/views/shared/_user_menu_avatar_button.html.erb app/views/shared/_user_menu_avatar_button_label.html.erb config/locales/en/application.en.yml
@@ -404,11 +404,11 @@ into the new _notifications_bell_link partial in Task 1)."
 
 **Steps:**
 
-- [ ] **Step 1: Failing spec.** Assert the header renders the bell partial at both viewports:
+- [x] **Step 1: Failing spec.** Assert the header renders the bell partial at both viewports:
   - At ≥md (default desktop): bell button is visible to the left of the avatar, in the desktop right-side block.
   - At <md (375×667): bell button is visible to the left of the hamburger.
 
-- [ ] **Step 2: Add the bell render to both blocks:**
+- [x] **Step 2: Add the bell render to both blocks:**
 
 Desktop block:
 ```erb
@@ -436,17 +436,17 @@ Mobile button area (between theme toggle area and hamburger):
 
 Note: on mobile the bell sits in the top header row (always visible), NOT inside the accordion panel. The user can reach notifications from any mobile page without expanding the accordion.
 
-- [ ] **Step 3: Un-pend** any specs from Task 3 that were waiting on the bell wiring.
+- [x] **Step 3: Un-pend** any specs from Task 3 that were waiting on the bell wiring.
 
-- [ ] **Step 4: Run FULL suite.** Expected: green at 1898+ examples, 0 failures, 0 pending.
+- [x] **Step 4: Run FULL suite.** Expected: green at 1898+ examples, 0 failures, 0 pending.
 
-- [ ] **Step 5: Manual smoke test (browser):**
+- [x] **Step 5: Manual smoke test (browser):**
   - `bin/dev`, sign in
   - Desktop (≥md): bell visible left of avatar. Click bell → routes to triage. Click avatar → dropdown opens with identity + sign-out only.
   - Mobile (<md, e.g. iPhone SE simulator): bell visible left of hamburger. Click bell → routes to triage. Click hamburger → accordion expands with workspace switcher + workspace nav + identity block + sign out.
   - Trigger an unread notification (use rails console: `user.notifications.create!(...)` or send via existing factory): bell shows severity dot, aria-label updates without re-render.
 
-- [ ] **Step 6: Commit.**
+- [x] **Step 6: Commit.**
 
 ```bash
 git add app/views/shared/_header.html.erb
@@ -471,11 +471,11 @@ broadcasted into stable frames inside the bell."
 
 **Steps:**
 
-- [ ] **Step 1: Verify orphaned partial.** `grep -rn "notifications_menu_count_span" app/ spec/`. Expected: zero matches (Task 2 dropped the broadcast; Task 3 dropped the in-menu renders).
+- [x] **Step 1: Verify orphaned partial.** `grep -rn "notifications_menu_count_span" app/ spec/`. Expected: zero matches (Task 2 dropped the broadcast; Task 3 dropped the in-menu renders).
 
-- [ ] **Step 2: Delete `_notifications_menu_count_span.html.erb`.**
+- [x] **Step 2: Delete `_notifications_menu_count_span.html.erb`.**
 
-- [ ] **Step 3: Check for other orphans:**
+- [x] **Step 3: Check for other orphans:**
 
 ```bash
 grep -rn "notifications_menu_count_frame\|notifications_avatar_button_label_frame\|user_menu_avatar_button_label" app/ spec/ config/
@@ -483,22 +483,22 @@ grep -rn "notifications_menu_count_frame\|notifications_avatar_button_label_fram
 
 Expected: zero matches.
 
-- [ ] **Step 4: CHANGELOG entry under Changed:**
+- [x] **Step 4: CHANGELOG entry under Changed:**
 
 ```markdown
 - Notifications bell is now a standalone header affordance (sibling to the avatar on desktop, sibling to the hamburger on mobile) routing directly to the triage page. The user-menu dropdown collapses to two items: a clickable identity block (avatar + name + email → personal-workspace profile) and sign-out. Notification preferences remains accessible via the Settings hub sidebar's personal-context Notifications item. Removes `notifications_menu_count_span` partial, `_user_menu_avatar_button_label` partial, and the `notifications_menu_count_frame` broadcast. Renames `notifications_avatar_button_label_frame` → `notifications_bell_label_frame` to match its new home.
 ```
 
-- [ ] **Step 5: Run FULL suite once more.** Expected: green.
+- [x] **Step 5: Run FULL suite once more.** Expected: green.
 
-- [ ] **Step 6: Commit.**
+- [x] **Step 6: Commit.**
 
 ```bash
 git add CHANGELOG.md app/views/shared/_notifications_menu_count_span.html.erb
 git commit -m "chore: dead-code sweep + changelog for D1 bell split"
 ```
 
-- [ ] **Step 7: Fast-forward into `docs/settings-hub-spec`.**
+- [x] **Step 7: Fast-forward into `docs/settings-hub-spec`.**
 
 ```bash
 git checkout docs/settings-hub-spec
