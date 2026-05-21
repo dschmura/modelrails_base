@@ -133,12 +133,9 @@ RSpec.describe "Members table", type: :system do
       regular = create(:user, first_name: "Regular", last_name: "Member", password: "SecureP@ssw0rd123!")
       create(:membership, user: regular, workspace: workspace)
       # Sign out the owner first via user menu dropdown.
-      # The avatar button is now stable across broadcasts:
-      # NotificationBroadcaster replaces only the sr-only label span
-      # (#notifications_avatar_button_label_frame), not the button itself.
-      # Clicks landing during a notification arrival still hit a live
-      # #user-menu-button, so the retry-on-detach workaround is no longer
-      # needed here. See PR fixing the broadcast frame swap race.
+      # The avatar button is stable: D1 moved notifications off the avatar
+      # entirely, so the button never re-renders on notification arrival.
+      # Clicks always hit a live #user-menu-button.
       find("#user-menu-button").click
       click_button I18n.t("navigation.sign_out")
       expect(page).to have_text(I18n.t("sessions.new.title"))
