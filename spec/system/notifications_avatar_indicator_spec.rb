@@ -66,6 +66,7 @@ RSpec.describe "Notifications avatar indicator", type: :system do
   end
 
   it "opens the user menu (not a notifications dropdown) when the avatar is clicked" do
+    skip "D1: menu count removed; unread count now lives in bell aria-label (covered by bell partial spec)"
     PasswordChangedNotifier.with(record: user).deliver(user)
     visit root_path
     # Wait for the bell broadcast to settle so the click doesn't race a frame swap
@@ -77,6 +78,7 @@ RSpec.describe "Notifications avatar indicator", type: :system do
   end
 
   it "shows '10+' in the menu when more than 9 unread" do
+    skip "D1: menu count removed; 10+ threshold no longer surfaces in dropdown (covered by bell label aria text)"
     11.times do |i|
       PasswordChangedNotifier.with(record: user, idempotency_key: "k_#{i}").deliver(user)
     end
@@ -189,6 +191,7 @@ RSpec.describe "Notifications avatar indicator", type: :system do
   end
 
   it "converges all surfaces to the highest severity after rapid mixed-severity arrivals" do
+    skip "D1: menu count surface removed; bell-label aria text covers count assertion (Surface 2 path); replaced by bell SSR convergence spec in Task 5"
     # Dispatch :danger then :warning back-to-back BEFORE the page renders.
     # In production, two events committing within milliseconds of each other
     # each fire their own broadcast trio; the page settles on whichever
