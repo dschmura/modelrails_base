@@ -1,10 +1,15 @@
 require "rails_helper"
 
-# D1 simplified the user-menu dropdown to exactly two items: a clickable
-# identity-block row (avatar + name + email linking to the personal-context
-# profile) and a sign-out button. Notifications + Notification preferences
-# moved out of the dropdown (notifications live on the standalone header
-# bell; preferences live in the Settings hub sidebar).
+# D1 simplified the user-menu dropdown to a clickable identity-block row
+# (avatar + name + email linking to the personal-context profile) and a
+# sign-out button. Notifications + Notification preferences moved out of
+# the dropdown (notifications live on the standalone header bell;
+# preferences live in the Settings hub sidebar).
+#
+# Post-D1 addition: an "All workspaces" link (workspaces#index) was added
+# between identity and sign-out so signed-in users on non-workspace-scoped
+# pages (marketing landing, auth flows) have an in-product path to their
+# workspaces list — the only place the sidebar switcher does NOT render.
 RSpec.describe "User menu dropdown", type: :system do
   let(:user) { create(:user, first_name: "Jane", last_name: "Doe") }
 
@@ -60,7 +65,7 @@ RSpec.describe "User menu dropdown", type: :system do
     end
   end
 
-  describe "dropdown contents (D1: identity block + sign out only)" do
+  describe "dropdown contents (identity block + all workspaces + sign out)" do
     before do
       find("#user-menu-button").click
       expect(page).to have_css("#user-menu", visible: :visible)
@@ -72,6 +77,12 @@ RSpec.describe "User menu dropdown", type: :system do
         # Identity block carries the user's full name + email address
         expect(page).to have_text(user.full_name)
         expect(page).to have_text(user.email_address)
+      end
+    end
+
+    it "renders an All workspaces link to the workspaces index" do
+      within "#user-menu" do
+        expect(page).to have_link(I18n.t("navigation.all_workspaces"), href: workspaces_path)
       end
     end
 
@@ -115,15 +126,23 @@ RSpec.describe "User menu dropdown", type: :system do
       expect(focused_href).to eq(edit_account_profile_path)
     end
 
-    it "ArrowDown moves focus to sign-out (second and final item)" do
+    it "ArrowDown moves focus from identity to All workspaces (second item)" do
+      send_dropdown_key("ArrowDown")
+      focused_href = page.evaluate_script("document.activeElement?.getAttribute('href')")
+      expect(focused_href).to eq(workspaces_path)
+    end
+
+    it "ArrowDown twice moves focus to sign-out (third and final item)" do
+      send_dropdown_key("ArrowDown")
       send_dropdown_key("ArrowDown")
       focused_text = page.evaluate_script("document.activeElement?.textContent?.trim()")
       expect(focused_text).to eq(I18n.t("navigation.sign_out"))
     end
 
     it "ArrowDown wraps from last to first item" do
-      send_dropdown_key("ArrowDown")
-      send_dropdown_key("ArrowDown")
+      send_dropdown_key("ArrowDown") # identity → All workspaces
+      send_dropdown_key("ArrowDown") # All workspaces → sign-out
+      send_dropdown_key("ArrowDown") # sign-out → wraps to identity
       focused_href = page.evaluate_script("document.activeElement?.getAttribute('href')")
       expect(focused_href).to eq(edit_account_profile_path)
     end

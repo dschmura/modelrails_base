@@ -17,6 +17,7 @@ en:
     notifications: "Notifications"
     notification_preferences: "Notification preferences"
     connected_accounts: "Accounts"
+    all_workspaces: "All workspaces"
     back_to_workspace: "Back to %{workspace}"
     workspace_context_label: "%{workspace} workspace navigation"
     toggle_menu: "Toggle navigation menu"
