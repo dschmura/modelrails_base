@@ -67,9 +67,9 @@
 
 **Steps:**
 
-- [ ] **Step 1: Failing spec.** Write a system spec at 375×667 that authenticates a user, taps the hamburger in `_header.html.erb`, clicks any link inside the expanded panel, and asserts the panel is hidden after navigation completes. Location: `spec/system/shared/header_mobile_menu_spec.rb`. Title: "auto-closes when a link inside the panel is clicked." Run with `mise exec -- bundle exec rspec spec/system/shared/header_mobile_menu_spec.rb` and verify it FAILS for the right reason (panel still visible / aria-expanded still true after nav).
+- [x] **Step 1: Failing spec.** Write a system spec at 375×667 that authenticates a user, taps the hamburger in `_header.html.erb`, clicks any link inside the expanded panel, and asserts the panel is hidden after navigation completes. Location: `spec/system/shared/header_mobile_menu_spec.rb`. Title: "auto-closes when a link inside the panel is clicked." Run with `mise exec -- bundle exec rspec spec/system/shared/header_mobile_menu_spec.rb` and verify it FAILS for the right reason (panel still visible / aria-expanded still true after nav).
 
-- [ ] **Step 2: Add the action.** Append `closeOnLinkClick` to the controller:
+- [x] **Step 2: Add the action.** Append `closeOnLinkClick` to the controller:
 
 ```javascript
 closeOnLinkClick(event) {
@@ -82,11 +82,11 @@ closeOnLinkClick(event) {
 
 The action is wired at the partial level in Task 3 via `data-action="click->mobile-menu#closeOnLinkClick"` on the menu element. (Wiring it in Task 1 would orphan the action — postpone to header partial work in Task 3.)
 
-- [ ] **Step 3: Run targeted spec.** Expected: still FAILS — wiring is in Task 3. Mark spec as `pending: "wiring in Task 3"` to keep the suite green between tasks. **Do not delete the failing assertion.**
+- [x] **Step 3: Run targeted spec.** Expected: still FAILS — wiring is in Task 3. Mark spec as `pending: "wiring in Task 3"` to keep the suite green between tasks. **Do not delete the failing assertion.**
 
-- [ ] **Step 4: Run FULL suite.** Expected: 1894/0/1 pending.
+- [x] **Step 4: Run FULL suite.** Expected: 1894/0/1 pending.
 
-- [ ] **Step 5: Commit.**
+- [x] **Step 5: Commit.**
 
 ```bash
 git add app/javascript/controllers/mobile_menu_controller.js spec/system/shared/header_mobile_menu_spec.rb
@@ -111,7 +111,7 @@ Pending spec records the wiring expectation."
 
 ### Settings accordion spec
 
-- [ ] **Step 1: Author the spec.** Mirror the drawer spec's coverage profile — hamburger visible at 375px, opens on tap (assert `aria-expanded="true"` on the header toggle, panel `hidden` class removed), navigation closes the panel, axe AAA both themes both states. Critical difference: assertions target the header's `mobile-menu-target="menu"` panel, NOT a separate drawer panel. No `[data-drawer-state]` selectors. No `role="dialog"`. No `aria-modal`. Use `have_button(I18n.t("navigation.mobile_menu.open"))` for the toggle (key landed in Task 5).
+- [x] **Step 1: Author the spec.** Mirror the drawer spec's coverage profile — hamburger visible at 375px, opens on tap (assert `aria-expanded="true"` on the header toggle, panel `hidden` class removed), navigation closes the panel, axe AAA both themes both states. Critical difference: assertions target the header's `mobile-menu-target="menu"` panel, NOT a separate drawer panel. No `[data-drawer-state]` selectors. No `role="dialog"`. No `aria-modal`. Use `have_button(I18n.t("navigation.mobile_menu.open"))` for the toggle (key landed in Task 5).
 
 ```ruby
 # spec/system/settings/mobile_accordion_spec.rb
@@ -169,7 +169,7 @@ end
 
 ### Workspace accordion spec
 
-- [ ] **Step 2: Author the workspace spec.** Same shape, but visits `workspace_members_path(workspace)` and asserts the workspace sidebar items appear in the panel. Owner membership required for Members link.
+- [x] **Step 2: Author the workspace spec.** Same shape, but visits `workspace_members_path(workspace)` and asserts the workspace sidebar items appear in the panel. Owner membership required for Members link.
 
 ```ruby
 # spec/system/workspaces/mobile_accordion_spec.rb
@@ -217,9 +217,9 @@ RSpec.describe "Workspace pages — mobile accordion", type: :system, js: true d
 end
 ```
 
-- [ ] **Step 3: Run both new specs.** Expected: ALL fail (no accordion yet; locale keys don't exist yet). Failures should be for the *right* reasons: missing key, missing toggle, etc. — NOT syntax errors.
+- [x] **Step 3: Run both new specs.** Expected: ALL fail (no accordion yet; locale keys don't exist yet). Failures should be for the *right* reasons: missing key, missing toggle, etc. — NOT syntax errors.
 
-- [ ] **Step 4: Mark both as pending with reason.**
+- [x] **Step 4: Mark both as pending with reason.**
 
 ```ruby
 # At top of each describe block:
@@ -228,9 +228,9 @@ pending "Path Z Task 5: locale keys + Task 3/4: layout migration"
 
 This keeps the suite green between Task 2 and Task 5. The pending list becomes the punch list.
 
-- [ ] **Step 5: Run FULL suite.** Expected: 1894/0/N pending (N = original pending + 7 new). Spec count rises.
+- [x] **Step 5: Run FULL suite.** Expected: 1894/0/N pending (N = original pending + 7 new). Spec count rises.
 
-- [ ] **Step 6: Commit.**
+- [x] **Step 6: Commit.**
 
 ```bash
 git add spec/system/settings/mobile_accordion_spec.rb spec/system/workspaces/mobile_accordion_spec.rb
@@ -252,11 +252,11 @@ mobile-menu-target='menu' panel directly."
 
 **Steps:**
 
-- [ ] **Step 1: Locate the mobile-menu panel** (currently around line 41 — `<div data-mobile-menu-target="menu" class="hidden md:hidden pb-4">`). This is where the new sidebar slot lands.
+- [x] **Step 1: Locate the mobile-menu panel** (currently around line 41 — `<div data-mobile-menu-target="menu" class="hidden md:hidden pb-4">`). This is where the new sidebar slot lands.
 
-- [ ] **Step 2: Add `data-action="click->mobile-menu#closeOnLinkClick"` to the menu element** so anchor clicks inside auto-dismiss. The action delegates via event bubbling to any `<a>` descendant; no per-link wiring needed.
+- [x] **Step 2: Add `data-action="click->mobile-menu#closeOnLinkClick"` to the menu element** so anchor clicks inside auto-dismiss. The action delegates via event bubbling to any `<a>` descendant; no per-link wiring needed.
 
-- [ ] **Step 3: Render the `content_for(:mobile_menu_sidebar)` slot** at the top of the panel, before the existing nav links. The slot shows when a layout provides it (settings or application-workspace context) and is invisible when nothing is injected:
+- [x] **Step 3: Render the `content_for(:mobile_menu_sidebar)` slot** at the top of the panel, before the existing nav links. The slot shows when a layout provides it (settings or application-workspace context) and is invisible when nothing is injected:
 
 ```erb
 <div data-mobile-menu-target="menu"
@@ -271,13 +271,13 @@ mobile-menu-target='menu' panel directly."
 </div>
 ```
 
-- [ ] **Step 4: Update header toggle button labels.** Change the hamburger button's `aria-label` from `t("navigation.toggle_menu")` to the more specific open/close pair (added in Task 5). For now wire `t("navigation.toggle_menu")` as the placeholder; Task 5 swaps to the dedicated keys.
+- [x] **Step 4: Update header toggle button labels.** Change the hamburger button's `aria-label` from `t("navigation.toggle_menu")` to the more specific open/close pair (added in Task 5). For now wire `t("navigation.toggle_menu")` as the placeholder; Task 5 swaps to the dedicated keys.
 
-- [ ] **Step 5: Run accordion specs.** Expected: still pending (Tasks 4 + 5 remain). Don't un-pend yet.
+- [x] **Step 5: Run accordion specs.** Expected: still pending (Tasks 4 + 5 remain). Don't un-pend yet.
 
-- [ ] **Step 6: Run FULL suite.** Expected: 1894 + pending count unchanged, 0 failures. Existing header behavior unchanged because no layout injects the slot yet.
+- [x] **Step 6: Run FULL suite.** Expected: 1894 + pending count unchanged, 0 failures. Existing header behavior unchanged because no layout injects the slot yet.
 
-- [ ] **Step 7: Commit.**
+- [x] **Step 7: Commit.**
 
 ```bash
 git add app/views/shared/_header.html.erb
@@ -298,7 +298,7 @@ injecting yet, the header behaves identically to before."
 
 **Steps:**
 
-- [ ] **Step 1: Remove the drawer wrapper.** Delete lines 56-94 (the `data-controller="settings-drawer"` div, hamburger button, overlay, and aside-drawer panel). Replace with a desktop-only sidebar column:
+- [x] **Step 1: Remove the drawer wrapper.** Delete lines 56-94 (the `data-controller="settings-drawer"` div, hamburger button, overlay, and aside-drawer panel). Replace with a desktop-only sidebar column:
 
 ```erb
 <%# Desktop sidebar — hidden on mobile where the header accordion
@@ -310,7 +310,7 @@ injecting yet, the header behaves identically to before."
 </div>
 ```
 
-- [ ] **Step 2: Inject the same sidebar into the header accordion via `content_for`.** Top of `settings.html.erb`, before the `<!DOCTYPE>` is invalid Ruby; put it inside a `<% content_for :mobile_menu_sidebar do %> ... <% end %>` block after the `<head>` and before `<body>` opens (or anywhere in the layout body before `<%= render "shared/header" %>`):
+- [x] **Step 2: Inject the same sidebar into the header accordion via `content_for`.** Top of `settings.html.erb`, before the `<!DOCTYPE>` is invalid Ruby; put it inside a `<% content_for :mobile_menu_sidebar do %> ... <% end %>` block after the `<head>` and before `<body>` opens (or anywhere in the layout body before `<%= render "shared/header" %>`):
 
 ```erb
 <% content_for :mobile_menu_sidebar do %>
@@ -322,7 +322,7 @@ injecting yet, the header behaves identically to before."
 
 Place it before `<%= render "shared/header" %>` so the slot is populated when the header renders.
 
-- [ ] **Step 3: Verify N+1 protection.** Bullet is enabled in test env. The eager-loads on `Current.user.workspaces.kept.includes(...)` already prevent N+1 for the existing desktop render; sharing the same scope across both renders is intentional. **Do not** call the workspace scope twice with different `.includes` chains — define a local once and pass it to both renders if Rails fails to memoize:
+- [x] **Step 3: Verify N+1 protection.** Bullet is enabled in test env. The eager-loads on `Current.user.workspaces.kept.includes(...)` already prevent N+1 for the existing desktop render; sharing the same scope across both renders is intentional. **Do not** call the workspace scope twice with different `.includes` chains — define a local once and pass it to both renders if Rails fails to memoize:
 
 ```erb
 <% workspaces_scope = Current.user.workspaces.kept.includes(:logo_attachment, memberships: [ :role, { user: :avatar_attachment } ]) %>
@@ -336,11 +336,11 @@ Place it before `<%= render "shared/header" %>` so the slot is populated when th
 </div>
 ```
 
-- [ ] **Step 4: Remove the comment block referencing the drawer** (lines 46-50 currently — `"Settings hub layout. The data-workspace-kind hook stays..."`). Update it to describe the accordion pattern.
+- [x] **Step 4: Remove the comment block referencing the drawer** (lines 46-50 currently — `"Settings hub layout. The data-workspace-kind hook stays..."`). Update it to describe the accordion pattern.
 
-- [ ] **Step 5: Un-pend `mobile_accordion_spec.rb` for settings.** Run it. Expected: still partially failing on locale keys (Task 5).
+- [x] **Step 5: Un-pend `mobile_accordion_spec.rb` for settings.** Run it. Expected: still partially failing on locale keys (Task 5).
 
-- [ ] **Step 6: Run FULL suite.** Expected: 1894 + new accordion examples; failures only on locale-key lookups. Drawer spec STILL passes (we haven't deleted it yet — its assertions are against drawer markup which is now gone… wait, that's a problem).
+- [x] **Step 6: Run FULL suite.** Expected: 1894 + new accordion examples; failures only on locale-key lookups. Drawer spec STILL passes (we haven't deleted it yet — its assertions are against drawer markup which is now gone… wait, that's a problem).
 
   **REVISED:** Delete `spec/system/settings/mobile_drawer_spec.rb` in this same task — it will fail otherwise because its assertions reference removed markup. If you delete here, also delete `settings_drawer_controller.js` (no consumer left in settings; application layout still has it until Task 5).
 
@@ -351,7 +351,7 @@ Place it before `<%= render "shared/header" %>` so the slot is populated when th
   pending "superseded by Path Z mobile_accordion_spec — deleted in Task 6"
   ```
 
-- [ ] **Step 7: Commit.**
+- [x] **Step 7: Commit.**
 
 ```bash
 git add app/views/layouts/settings.html.erb spec/system/settings/mobile_drawer_spec.rb
@@ -376,7 +376,7 @@ mobile_accordion_spec remains pended for locale keys (Task 5)."
 
 **Steps:**
 
-- [ ] **Step 1: Remove the drawer wrapper.** Delete the `data-controller="settings-drawer"` block (around lines 38-72) and replace with desktop-only column:
+- [x] **Step 1: Remove the drawer wrapper.** Delete the `data-controller="settings-drawer"` block (around lines 38-72) and replace with desktop-only column:
 
 ```erb
 <% if Current.workspace.present? %>
@@ -386,7 +386,7 @@ mobile_accordion_spec remains pended for locale keys (Task 5)."
 <% end %>
 ```
 
-- [ ] **Step 2: Inject workspace sidebar via content_for.** Before `render "shared/header"`:
+- [x] **Step 2: Inject workspace sidebar via content_for.** Before `render "shared/header"`:
 
 ```erb
 <% if Current.workspace.present? %>
@@ -396,13 +396,13 @@ mobile_accordion_spec remains pended for locale keys (Task 5)."
 <% end %>
 ```
 
-- [ ] **Step 3: Verify the flex layout still works.** The main content wrapper needs to handle "no sidebar" gracefully when `Current.workspace` is nil (root, marketing pages). Check that `<main>` still renders full-width when no sidebar column is present. If the existing flex-row wrapper needs adjustment, do it here.
+- [x] **Step 3: Verify the flex layout still works.** The main content wrapper needs to handle "no sidebar" gracefully when `Current.workspace` is nil (root, marketing pages). Check that `<main>` still renders full-width when no sidebar column is present. If the existing flex-row wrapper needs adjustment, do it here.
 
-- [ ] **Step 4: Un-pend `mobile_accordion_spec.rb` for workspace.** Run it. Expected: partially failing on locale keys; pass on structural assertions.
+- [x] **Step 4: Un-pend `mobile_accordion_spec.rb` for workspace.** Run it. Expected: partially failing on locale keys; pass on structural assertions.
 
-- [ ] **Step 5: Run FULL suite.** Expected: 1894 + accordion examples; failures only on locale keys.
+- [x] **Step 5: Run FULL suite.** Expected: 1894 + accordion examples; failures only on locale keys.
 
-- [ ] **Step 6: Commit.**
+- [x] **Step 6: Commit.**
 
 ```bash
 git add app/views/layouts/application.html.erb
@@ -431,7 +431,7 @@ Awaiting locale-key cleanup (Task 6) for full spec pass."
 
 **Steps:**
 
-- [ ] **Step 1: Add the new locale keys.** Under `navigation:` in `config/locales/en/application.en.yml`:
+- [x] **Step 1: Add the new locale keys.** Under `navigation:` in `config/locales/en/application.en.yml`:
 
 ```yaml
 mobile_menu:
@@ -442,9 +442,9 @@ mobile_menu:
 
 Keep `navigation.toggle_menu: "Toggle navigation menu"` for now; it may still be referenced. Verify via grep before deciding to delete.
 
-- [ ] **Step 2: Update header partial.** Swap the hamburger button's `aria-label` to use `t("navigation.mobile_menu.open")` (closed state) — Stimulus toggles `aria-expanded` but the underlying label can stay "Open menu" since AT will announce expanded/collapsed via the attribute.
+- [x] **Step 2: Update header partial.** Swap the hamburger button's `aria-label` to use `t("navigation.mobile_menu.open")` (closed state) — Stimulus toggles `aria-expanded` but the underlying label can stay "Open menu" since AT will announce expanded/collapsed via the attribute.
 
-- [ ] **Step 3: Remove `settings.mobile_drawer.*`.** Verify no remaining references:
+- [x] **Step 3: Remove `settings.mobile_drawer.*`.** Verify no remaining references:
 
 ```bash
 grep -rn "mobile_drawer" app/ config/ spec/
@@ -454,9 +454,9 @@ Expect zero matches after the layout edits in Tasks 4 + 5. If matches exist, fix
 
 Then delete the `mobile_drawer:` block from `config/locales/en/settings.en.yml`.
 
-- [ ] **Step 4: Remove `workspaces.mobile_drawer.*`** the same way.
+- [x] **Step 4: Remove `workspaces.mobile_drawer.*`** the same way.
 
-- [ ] **Step 5: Delete `settings_drawer_controller.js`.**
+- [x] **Step 5: Delete `settings_drawer_controller.js`.**
 
 ```bash
 rm app/javascript/controllers/settings_drawer_controller.js
@@ -470,18 +470,18 @@ grep -rn "settings-drawer\|settings_drawer\|data-settings-drawer" app/ spec/
 
 Expect zero matches.
 
-- [ ] **Step 6: Delete `spec/system/settings/mobile_drawer_spec.rb`.**
+- [x] **Step 6: Delete `spec/system/settings/mobile_drawer_spec.rb`.**
 
-- [ ] **Step 7: Un-pend the two accordion specs.** Remove the `pending` blocks; the specs should now pass in full.
+- [x] **Step 7: Un-pend the two accordion specs.** Remove the `pending` blocks; the specs should now pass in full.
 
-- [ ] **Step 8: Run FULL suite.** Expected: 1894 + 7 (4 settings accordion + 3 workspace accordion) − 4 (drawer spec deletion) + 1 (header mobile menu spec) = 1898 examples, 0 failures, 0 pending. Adjust counts based on exact assertions added.
+- [x] **Step 8: Run FULL suite.** Expected: 1894 + 7 (4 settings accordion + 3 workspace accordion) − 4 (drawer spec deletion) + 1 (header mobile menu spec) = 1898 examples, 0 failures, 0 pending. Adjust counts based on exact assertions added.
 
-- [ ] **Step 9: Manual browser verification.** Run `bin/dev`, visit at three viewports in both themes:
+- [x] **Step 9: Manual browser verification.** Run `bin/dev`, visit at three viewports in both themes:
   - 375×667 (iPhone SE): accordion opens, sidebar contents visible, link tap navigates + auto-closes
   - 768×1024 (iPad portrait): below md breakpoint? If yes, accordion still shows. If no, desktop sidebar shows. Verify which side of the boundary the tablet falls on.
   - 1280×800 (desktop): inline sidebar, no hamburger visible
 
-- [ ] **Step 10: Commit.**
+- [x] **Step 10: Commit.**
 
 ```bash
 git add app/javascript/controllers/settings_drawer_controller.js app/views/shared/_header.html.erb config/locales/en/settings.en.yml config/locales/en/workspaces.en.yml config/locales/en/application.en.yml spec/system/settings/mobile_drawer_spec.rb spec/system/settings/mobile_accordion_spec.rb spec/system/workspaces/mobile_accordion_spec.rb
@@ -504,7 +504,7 @@ workspace-scoped and settings-scoped layouts."
 
 **Steps:**
 
-- [ ] **Step 1: Update CHANGELOG.** Under `### Changed`, add one lean-format entry (per `feedback_lean_changelog.md`):
+- [x] **Step 1: Update CHANGELOG.** Under `### Changed`, add one lean-format entry (per `feedback_lean_changelog.md`):
 
 ```markdown
 - Mobile shell: header now expands accordion-style on mobile to surface the active sidebar's contents inline. Replaces the off-canvas drawer pattern shipped earlier this cycle (#148) — one navigation paradigm across breakpoints, no overlay/focus-trap/dialog ARIA, same axe AAA coverage. Workspace-scoped pages and settings pages both use the unified pattern.
@@ -518,16 +518,16 @@ Under `### Removed`, append:
 
 Optionally annotate the existing drawer entry (`feat #148`) with a `[superseded]` marker, but a clean Changed/Removed pair is enough to tell the story.
 
-- [ ] **Step 2: Run FULL suite once more.** Expected: clean.
+- [x] **Step 2: Run FULL suite once more.** Expected: clean.
 
-- [ ] **Step 3: Commit.**
+- [x] **Step 3: Commit.**
 
 ```bash
 git add CHANGELOG.md
 git commit -m "docs(changelog): note Path Z header accordion supersedes mobile drawer"
 ```
 
-- [ ] **Step 4: Fast-forward merge into `docs/settings-hub-spec`.**
+- [x] **Step 4: Fast-forward merge into `docs/settings-hub-spec`.**
 
 ```bash
 git checkout docs/settings-hub-spec
