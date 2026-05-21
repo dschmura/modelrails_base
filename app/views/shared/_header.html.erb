@@ -9,14 +9,11 @@
         <%= render "shared/site_logo", size: :small, show_name: true %>
       <% end %>
 
-      <%# Desktop navigation %>
+      <%# Desktop navigation. The workspace-context affordance lives in the
+          sidebar switcher (rendered on every workspace-scoped page),
+          not in the header — header chrome stays workspace-agnostic. %>
       <div class="hidden md:flex items-center gap-2">
-        <% if authenticated? %>
-          <%= link_to t("navigation.workspaces"), main_app.workspaces_path,
-                class: "min-h-[var(--form-input-height)] flex items-center text-text-body
-                        hover:text-interactive-hover
-                        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus rounded px-2" %>
-        <% else %>
+        <% unless authenticated? %>
           <%= link_to t("navigation.sign_up"), main_app.new_registration_path,
                 class: "min-h-[var(--form-input-height)] flex items-center px-4 rounded-md
                         bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium
@@ -57,12 +54,10 @@
         </div>
       <% end %>
 
+      <%# Mobile accordion — workspace switching is handled by the sidebar
+          slot above; this block carries account/auth items only. %>
       <div class="flex flex-col gap-2">
         <% if authenticated? %>
-          <%= link_to t("navigation.workspaces"), main_app.workspaces_path,
-                class: "min-h-[var(--form-input-height)] flex items-center px-2 text-text-body
-                        hover:text-interactive-hover rounded
-                        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus" %>
           <%= render "shared/user_menu", context: :mobile %>
         <% else %>
           <%= link_to t("navigation.sign_in"), main_app.new_session_path,
