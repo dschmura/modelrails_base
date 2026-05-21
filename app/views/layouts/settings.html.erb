@@ -41,16 +41,18 @@
     </div>
 
     <%# Settings hub layout. Path Z header-accordion pattern: at md+ the
-        sidebar renders inline to the left of <main>; below md, the same
-        sidebar partial is surfaced via content_for(:mobile_menu_sidebar)
-        which the shared header reads into its expanded panel. One
-        eager-loaded workspaces relation feeds both renders to avoid an
-        N+1 on the doubly-rendered sidebar. content_for MUST be declared
-        before render "shared/header" so the slot is populated when the
-        header reads it. %>
+        sidebar renders inline to the left of <main> with the <aside>
+        chrome (_settings_sidebar wrapper); below md, the *chrome-free*
+        contents partial (_settings_sidebar_items) is surfaced via
+        content_for(:mobile_menu_sidebar) so the switcher + nav items
+        flow inline inside the header accordion instead of appearing as
+        a nested sidebar-within-a-menu. One eager-loaded workspaces
+        relation feeds both renders to avoid an N+1 on the doubly-rendered
+        contents. content_for MUST be declared before render
+        "shared/header" so the slot is populated when the header reads it. %>
     <% workspaces_scope = Current.user.workspaces.kept.includes(:logo_attachment, memberships: [ :role, { user: :avatar_attachment } ]) %>
     <% content_for :mobile_menu_sidebar do %>
-      <%= render "shared/settings_sidebar",
+      <%= render "shared/settings_sidebar_items",
             workspaces: workspaces_scope,
             current_workspace: Current.workspace %>
     <% end %>

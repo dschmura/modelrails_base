@@ -1,0 +1,30 @@
+<%# locals: (workspaces:, current_workspace:) -%>
+<%# Chrome-free workspace-sidebar contents — workspace switcher + nav items.
+    Rendered both inside `_workspace_sidebar` (which adds the <aside>
+    landmark + sidebar visual chrome for the desktop column) AND directly
+    into the mobile-accordion content_for slot (no chrome — contents flow
+    inline alongside the rest of the accordion items, matching the
+    modelrails_agent_os mobile pattern). -%>
+<%= render "shared/settings_sidebar_switcher",
+      workspaces: workspaces,
+      current_workspace: current_workspace %>
+
+<ul role="list" class="flex flex-col gap-1">
+  <%= render "shared/settings_sidebar_item",
+        label: t("workspaces.sidebar.overview"),
+        href: workspace_path(current_workspace),
+        active: current_page?(workspace_path(current_workspace)) %>
+
+  <%= render "shared/settings_sidebar_item",
+        label: t("workspaces.sidebar.projects"),
+        href: workspace_projects_path(current_workspace),
+        active: current_page?(workspace_projects_path(current_workspace)) %>
+
+  <%# Settings link routes to workspaces#edit (Profile) which is the
+      entry point of the Settings hub. The hub's own sidebar takes
+      over once the user lands inside. %>
+  <%= render "shared/settings_sidebar_item",
+        label: t("workspaces.sidebar.settings"),
+        href: edit_workspace_path(current_workspace),
+        active: false %>
+</ul>

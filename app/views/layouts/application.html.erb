@@ -33,8 +33,12 @@
         reads it. %>
     <% workspaces_scope = Current.workspace ? Current.user.workspaces.kept.includes(:logo_attachment, memberships: [ :role, { user: :avatar_attachment } ]) : nil %>
     <% if Current.workspace %>
+      <%# Mobile accordion: chrome-free contents partial so the workspace
+          switcher + nav items flow inline rather than appearing as a
+          nested sidebar. Desktop column below still renders the full
+          _workspace_sidebar wrapper with the <aside> chrome. %>
       <% content_for :mobile_menu_sidebar do %>
-        <%= render "shared/workspace_sidebar",
+        <%= render "shared/workspace_sidebar_items",
               workspaces: workspaces_scope,
               current_workspace: Current.workspace %>
       <% end %>
