@@ -1,4 +1,4 @@
-<%# locals: (workspaces:, current_workspace:) -%>
+<%# locals: (workspaces:, current_workspace:, id_suffix: "") -%>
 <%# Settings hub sidebar workspace switcher (Path Y Phase A).
 
     Trigger+dropdown pattern adapted from modelrails_agent_os:
@@ -19,18 +19,26 @@
       workspace_icon_for helper renders rounded-full, so we wrap it
       in a span that masks to the desired shape via overflow-hidden.
     - Uses project semantic tokens (bg-surface-*, text-text-*,
-      border-border, ring-interactive-focus) — never raw slate-*. -%>
+      border-border, ring-interactive-focus) — never raw slate-*.
+    - `id_suffix:` defaults to "" for the desktop column render and is
+      set to "-mobile" when the items partial is rendered into the
+      mobile-accordion content_for slot. Both renders coexist in the
+      DOM (the desktop column is `hidden md:flex`, not server-omitted),
+      so unique IDs prevent morph-mode `idiomorph` collisions and keep
+      `aria-controls` / `aria-labelledby` pointing at the right node. -%>
 <% if current_workspace.present? %>
+  <% button_id = "settings-workspace-switcher-button#{id_suffix}" %>
+  <% menu_id   = "settings-workspace-switcher-menu#{id_suffix}" %>
   <div data-controller="dropdown" class="relative mb-3">
     <%# Trigger button — shows current workspace. min-h-[44px] meets AAA
         touch-target sizing; ring-interactive-focus keyboard focus. %>
     <button type="button"
             data-dropdown-target="button"
             data-action="click->dropdown#toggle"
-            id="settings-workspace-switcher-button"
+            id="<%= button_id %>"
             aria-expanded="false"
             aria-haspopup="true"
-            aria-controls="settings-workspace-switcher-menu"
+            aria-controls="<%= menu_id %>"
             aria-label="<%= t("settings.sidebar.switcher.switch_workspace") %>"
             class="w-full min-h-[44px] flex items-center gap-3 px-3 py-2 rounded-md
                    bg-surface border border-border
@@ -57,10 +65,10 @@
         and the drawer overlay does not clip (sidebar has no
         overflow-hidden on the aside). %>
     <div data-dropdown-target="menu"
-         id="settings-workspace-switcher-menu"
+         id="<%= menu_id %>"
          role="menu"
          aria-orientation="vertical"
-         aria-labelledby="settings-workspace-switcher-button"
+         aria-labelledby="<%= button_id %>"
          class="hidden absolute left-0 right-0 top-full mt-1 z-50
                 rounded-md bg-surface-overlay
                 border border-border shadow-lg overflow-hidden">

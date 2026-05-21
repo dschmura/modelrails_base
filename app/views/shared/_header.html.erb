@@ -1,5 +1,6 @@
 <header class="sticky top-0 z-40 bg-surface-raised border-b border-border"
-        data-controller="mobile-menu">
+        data-controller="mobile-menu"
+        data-action="keydown@window->mobile-menu#close">
   <nav aria-label="<%= t("navigation.aria_label") %>"
        class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between h-16">
@@ -57,9 +58,14 @@
          aria-label="<%= t("navigation.mobile_menu.aria_label") %>"
          class="hidden md:hidden pb-4 max-h-[calc(100vh-4rem)] overflow-y-auto">
       <% if content_for?(:mobile_menu_sidebar) %>
-        <div class="mb-3 pb-3 border-b border-border">
+        <%# <nav> landmark with a context-specific aria-label provided by
+            the active layout via content_for(:mobile_menu_sidebar_aria_label).
+            Falls back to the panel's own aria-label if the layout didn't
+            supply one. Gives screen readers a landmark to bypass-block to. %>
+        <nav aria-label="<%= content_for?(:mobile_menu_sidebar_aria_label) ? content_for(:mobile_menu_sidebar_aria_label) : t("navigation.mobile_menu.aria_label") %>"
+             class="mb-3 pb-3 border-b border-border">
           <%= yield :mobile_menu_sidebar %>
-        </div>
+        </nav>
       <% end %>
 
       <%# Mobile accordion — workspace switching is handled by the sidebar

@@ -54,8 +54,10 @@
     <% content_for :mobile_menu_sidebar do %>
       <%= render "shared/settings_sidebar_items",
             workspaces: workspaces_scope,
-            current_workspace: Current.workspace %>
+            current_workspace: Current.workspace,
+            id_suffix: "-mobile" %>
     <% end %>
+    <% content_for :mobile_menu_sidebar_aria_label, t("settings.sidebar.aria_label") %>
 
     <%= render "shared/header" %>
     <%= render "shared/toasts" %>

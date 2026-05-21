@@ -1,10 +1,12 @@
-<%# locals: (workspaces:, current_workspace:) -%>
+<%# locals: (workspaces:, current_workspace:, id_suffix: "") -%>
 <%# Chrome-free settings-sidebar contents — workspace switcher + nav items.
     Rendered both inside `_settings_sidebar` (which adds the <aside>
     landmark + sidebar visual chrome for the desktop column) AND directly
     into the mobile-accordion content_for slot (no chrome — contents flow
     inline alongside the rest of the accordion items, matching the
-    modelrails_agent_os mobile pattern).
+    modelrails_agent_os mobile pattern). The mobile path passes
+    `id_suffix: "-mobile"` so the switcher's button/menu IDs and the
+    section-label ID are unique across the two coexisting renders.
 
     Adding a new sidebar item:
     1. Add i18n keys in config/locales/en/settings.en.yml:
@@ -17,9 +19,11 @@
        Org items wrap in render_nav_item_if_permitted; personal items render unconditionally.
     The sidebar's source of truth for visibility IS the destination controller's Pundit
     policy — never introduce a separate SidebarPolicy. -%>
+<% section_label_id = "settings-sidebar-section-label#{id_suffix}" %>
 <%= render "shared/settings_sidebar_switcher",
       workspaces: workspaces,
-      current_workspace: current_workspace %>
+      current_workspace: current_workspace,
+      id_suffix: id_suffix %>
 
 <%# Visual divider between switcher and section nav — matches the
     modelrails_agent_os mobile-accordion rhythm and gives the desktop
@@ -28,11 +32,12 @@
 
 <%# Section label. Personal context covers account-level settings
     (Profile, Notifications, Security, Appearance); org context covers
-    workspace-level settings. The aside's aria-label provides the
-    landmark name, so this is a visual sub-grouper rendered as a div
-    rather than a heading to avoid document-outline conflicts with
-    the page's <h1>. %>
-<div class="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-text-muted">
+    workspace-level settings. Rendered as a styled <div> (not a heading)
+    so it doesn't conflict with the page's <h1>; programmatically
+    associated with the <ul> below via aria-labelledby so screen readers
+    announce "Account, list, N items" when entering the navigation. %>
+<div id="<%= section_label_id %>"
+     class="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-text-muted">
   <% if settings_context_kind == :personal %>
     <%= t("settings.sidebar.section_label.personal") %>
   <% else %>
@@ -40,7 +45,9 @@
   <% end %>
 </div>
 
-<ul role="list" class="flex flex-col gap-1">
+<ul role="list"
+    aria-labelledby="<%= section_label_id %>"
+    class="flex flex-col gap-1">
   <% if settings_context_kind == :personal %>
     <%= render "shared/settings_sidebar_item",
           label: t("settings.sidebar.items.profile"),

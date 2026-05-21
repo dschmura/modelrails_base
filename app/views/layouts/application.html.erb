@@ -36,12 +36,16 @@
       <%# Mobile accordion: chrome-free contents partial so the workspace
           switcher + nav items flow inline rather than appearing as a
           nested sidebar. Desktop column below still renders the full
-          _workspace_sidebar wrapper with the <aside> chrome. %>
+          _workspace_sidebar wrapper with the <aside> chrome.
+          id_suffix: "-mobile" so IDs (switcher button/menu, section
+          label) don't collide with the desktop render below. %>
       <% content_for :mobile_menu_sidebar do %>
         <%= render "shared/workspace_sidebar_items",
               workspaces: workspaces_scope,
-              current_workspace: Current.workspace %>
+              current_workspace: Current.workspace,
+              id_suffix: "-mobile" %>
       <% end %>
+      <% content_for :mobile_menu_sidebar_aria_label, t("workspaces.sidebar.aria_label") %>
     <% end %>
 
     <%= render "shared/header" %>
