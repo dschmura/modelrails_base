@@ -23,11 +23,13 @@
   <%= render "shared/settings_sidebar_item",
         label: t("workspaces.sidebar.overview"),
         href: workspace_path(current_workspace),
+        icon: :home,
         active: current_page?(workspace_path(current_workspace)) %>
 
   <%= render "shared/settings_sidebar_item",
         label: t("workspaces.sidebar.projects"),
         href: workspace_projects_path(current_workspace),
+        icon: :folder,
         active: current_page?(workspace_projects_path(current_workspace)) %>
 
   <%# Settings link routes to workspaces#edit (Profile) which is the
@@ -36,5 +38,6 @@
   <%= render "shared/settings_sidebar_item",
         label: t("workspaces.sidebar.settings"),
         href: edit_workspace_path(current_workspace),
+        icon: :cog,
         active: false %>
 </ul>
