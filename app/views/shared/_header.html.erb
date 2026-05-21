@@ -37,13 +37,19 @@
             the standard header nav links + user menu below. The sr-only
             label provides the accessible name; aria-expanded flips between
             true/false on toggle. %>
+        <%# The sr-only label flips between "Open menu" and "Close menu"
+            based on state — controller toggles textContent in open()/close()
+            so AT announces the correct affordance regardless of how
+            individual screen readers handle aria-expanded reporting. %>
         <button data-action="click->mobile-menu#toggle"
                 data-mobile-menu-target="button"
+                data-mobile-menu-open-label-value="<%= t("navigation.mobile_menu.open") %>"
+                data-mobile-menu-close-label-value="<%= t("navigation.mobile_menu.close") %>"
                 aria-expanded="false"
                 aria-controls="mobile-menu-panel"
                 class="btn-touch-target md:hidden text-text-body
                        focus:outline-none focus:ring-2 focus:ring-interactive-focus rounded">
-          <span class="sr-only"><%= t("navigation.mobile_menu.open") %></span>
+          <span class="sr-only" data-mobile-menu-target="label"><%= t("navigation.mobile_menu.open") %></span>
           <%= icon(:bars_3, size: :lg) %>
         </button>
       </div>

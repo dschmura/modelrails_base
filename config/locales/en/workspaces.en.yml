@@ -8,6 +8,10 @@ en:
       overview: "Overview"
       projects: "Projects"
       settings: "Settings"
+    plans:
+      free: "Free"
+      pro: "Pro"
+      enterprise: "Enterprise"
     index:
       title: "Your workspaces"
       new_workspace: "New workspace"

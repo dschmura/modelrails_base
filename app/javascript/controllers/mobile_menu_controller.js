@@ -12,7 +12,8 @@ import { Controller } from "@hotwired/stimulus"
 // Escape is wired at the header element via `keydown@window->mobile-menu#close`
 // so it works regardless of which descendant has focus.
 export default class extends Controller {
-  static targets = ["menu", "button"]
+  static targets = ["menu", "button", "label"]
+  static values = { openLabel: String, closeLabel: String }
 
   toggle() {
     if (this.menuTarget.classList.contains("hidden")) {
@@ -25,6 +26,7 @@ export default class extends Controller {
   open() {
     this.menuTarget.classList.remove("hidden")
     this.buttonTarget.setAttribute("aria-expanded", "true")
+    this.#setLabel(this.closeLabelValue)
     // requestAnimationFrame so the panel is actually painted before we
     // attempt to move focus — focus() on a still-hidden element is a no-op.
     requestAnimationFrame(() => {
@@ -44,6 +46,7 @@ export default class extends Controller {
     }
     this.menuTarget.classList.add("hidden")
     this.buttonTarget.setAttribute("aria-expanded", "false")
+    this.#setLabel(this.openLabelValue)
     this.buttonTarget.focus()
   }
 
@@ -55,7 +58,12 @@ export default class extends Controller {
     if (event.target.closest("a") && !this.menuTarget.classList.contains("hidden")) {
       this.menuTarget.classList.add("hidden")
       this.buttonTarget.setAttribute("aria-expanded", "false")
+      this.#setLabel(this.openLabelValue)
       this.buttonTarget.focus()
     }
+  }
+
+  #setLabel(text) {
+    if (this.hasLabelTarget && text) this.labelTarget.textContent = text
   }
 }
