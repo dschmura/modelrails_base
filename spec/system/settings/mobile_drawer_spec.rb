@@ -3,18 +3,18 @@
 require "rails_helper"
 
 # Mobile-viewport behavior for the Settings hub off-canvas drawer (below md).
-# Locks in: hamburger visibility at iPhone-SE width, drawer open/close via
-# toggle, auto-dismiss on sidebar link click (with navigation), and axe AAA
-# in both closed + open states across light + dark themes.
+# SUPERSEDED by Path Z header-accordion pattern; see
+# spec/system/settings/mobile_accordion_spec.rb. This file is pended and
+# scheduled for deletion in Path Z Task 6 once the locale-key cleanup
+# and final cleanup pass complete.
 RSpec.describe "Settings hub — mobile drawer", type: :system, js: true do
   let(:user) { create(:user) }
   let(:axe_options) { { runOnly: { type: "tag", values: [ "wcag2aaa" ] } } }
 
   before do
+    skip "superseded by Path Z mobile_accordion_spec — deleted in Task 6"
+
     sign_in_via_form(user)
-    # 375x667 — iPhone SE 2nd gen. Capybara spawns the Playwright session
-    # lazily on the first visit during sign-in, so the page is live by the
-    # time we resize. API matches notification_preferences_mobile_spec.rb.
     page.driver.with_playwright_page do |pw_page|
       pw_page.set_viewport_size(width: 375, height: 667)
     end
