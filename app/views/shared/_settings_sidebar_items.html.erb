@@ -21,6 +21,25 @@
       workspaces: workspaces,
       current_workspace: current_workspace %>
 
+<%# Visual divider between switcher and section nav — matches the
+    modelrails_agent_os mobile-accordion rhythm and gives the desktop
+    sidebar the same scannable section layout. %>
+<hr class="my-3 border-border">
+
+<%# Section label. Personal context covers account-level settings
+    (Profile, Notifications, Security, Appearance); org context covers
+    workspace-level settings. The aside's aria-label provides the
+    landmark name, so this is a visual sub-grouper rendered as a div
+    rather than a heading to avoid document-outline conflicts with
+    the page's <h1>. %>
+<div class="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-text-muted">
+  <% if settings_context_kind == :personal %>
+    <%= t("settings.sidebar.section_label.personal") %>
+  <% else %>
+    <%= t("settings.sidebar.section_label.org") %>
+  <% end %>
+</div>
+
 <ul role="list" class="flex flex-col gap-1">
   <% if settings_context_kind == :personal %>
     <%= render "shared/settings_sidebar_item",

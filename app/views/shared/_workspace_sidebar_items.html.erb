@@ -9,6 +9,16 @@
       workspaces: workspaces,
       current_workspace: current_workspace %>
 
+<%# Visual divider + section label — matches agent_os mobile rhythm
+    and gives the desktop sidebar the same scannable layout. The
+    aside's aria-label provides the landmark name; this is a visual
+    sub-grouper rendered as a div, not a heading. %>
+<hr class="my-3 border-border">
+
+<div class="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-text-muted">
+  <%= t("workspaces.sidebar.section_label") %>
+</div>
+
 <ul role="list" class="flex flex-col gap-1">
   <%= render "shared/settings_sidebar_item",
         label: t("workspaces.sidebar.overview"),
