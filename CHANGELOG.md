@@ -25,6 +25,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- Mobile shell: header now expands accordion-style on mobile to surface the active sidebar contents inline. Replaces the off-canvas drawer pattern shipped earlier this cycle (#148) — one navigation paradigm across breakpoints, no overlay/focus-trap/dialog ARIA, same axe AAA coverage. Workspace-scoped pages and settings pages both use the unified pattern.
 - Header workspace switcher hides personal workspaces — solo users feel single-tenant in the header; the personal workspace remains accessible through the Settings hub sidebar switcher, which is the explicit IA surface for workspace-context switching (closes #145).
 - Account Profile, Notification Preferences, Connected Accounts (Security), Workspace Settings, and Workspace Members destinations now use the shared settings page header for consistent chrome.
 - Smooth motion-safe color transitions on sidebar items and switcher; settings layout's context attribute renamed `data-settings-context-kind` → `data-workspace-kind`; hover prefetch added to header user-menu settings links and header workspace dropdown.
@@ -32,6 +33,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Removed
 
+- `settings-drawer` Stimulus controller, `settings.mobile_drawer.*` and `workspaces.mobile_drawer.*` locale namespaces, and the off-canvas drawer markup from `settings.html.erb` and `application.html.erb` — superseded by the header accordion (see Changed).
 - `Workspaces::BrandingsController` and its routes (`/workspaces/:slug/branding/*`). Identity picker hub moved to `WorkspacesController#identity_picker_hub` (`/workspaces/:slug/identity_picker_hub`).
 - `Workspaces::BrandingPolicy` (replaced by `Workspaces::ProfilePolicy` on workspaces#edit/update).
 - Orphan header dropdown partials (`shared/_workspace_switcher.html.erb`, `shared/_navigation.html.erb`) and the unused `navigation.new_workspace` locale key — completes Path Y; the sidebar switcher is the canonical workspace-switching surface.
