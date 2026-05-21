@@ -26,6 +26,10 @@ en:
     user_menu_label_with_unread:
       one: "User menu for %{name}. 1 unread notification, including %{phrase}."
       other: "User menu for %{name}. %{count} unread notifications, including %{phrase}."
+    mobile_menu:
+      open: "Open menu"
+      close: "Close menu"
+      aria_label: "Main menu"
   theme:
     light: "Light"
     dark: "Dark"

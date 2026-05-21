@@ -14,8 +14,6 @@ RSpec.describe "Settings hub — mobile accordion", type: :system, js: true do
   let(:axe_options) { { runOnly: { type: "tag", values: [ "wcag2aaa" ] } } }
 
   before do
-    skip "Path Z Task 5: locale keys + Tasks 3/4: header wiring + layout migration"
-
     sign_in_via_form(user)
     page.driver.with_playwright_page do |pw_page|
       pw_page.set_viewport_size(width: 375, height: 667)

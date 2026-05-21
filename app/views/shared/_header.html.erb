@@ -29,13 +29,16 @@
       <%# Mobile menu button. Header-accordion pattern (Path Z) — tapping
           expands the panel downward to reveal the active layout's sidebar
           contents inline (via content_for(:mobile_menu_sidebar)) plus
-          the standard header nav links + user menu below. %>
+          the standard header nav links + user menu below. The sr-only
+          label provides the accessible name; aria-expanded flips between
+          true/false on toggle. %>
       <button data-action="click->mobile-menu#toggle"
               data-mobile-menu-target="button"
-              aria-label="<%= t("navigation.toggle_menu") %>"
               aria-expanded="false"
+              aria-controls="mobile-menu-panel"
               class="btn-touch-target md:hidden text-text-body
                      focus:outline-none focus:ring-2 focus:ring-interactive-focus rounded">
+        <span class="sr-only"><%= t("navigation.mobile_menu.open") %></span>
         <%= icon(:bars_3, size: :lg) %>
       </button>
     </div>
@@ -43,8 +46,10 @@
     <%# Mobile menu panel. The closeOnLinkClick action delegates via event
         bubbling to any anchor inside, so navigation via the accordion's
         sidebar links auto-dismisses the panel. %>
-    <div data-mobile-menu-target="menu"
+    <div id="mobile-menu-panel"
+         data-mobile-menu-target="menu"
          data-action="click->mobile-menu#closeOnLinkClick"
+         aria-label="<%= t("navigation.mobile_menu.aria_label") %>"
          class="hidden md:hidden pb-4 max-h-[calc(100vh-4rem)] overflow-y-auto">
       <% if content_for?(:mobile_menu_sidebar) %>
         <div class="mb-3 pb-3 border-b border-border">
