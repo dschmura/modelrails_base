@@ -2,14 +2,14 @@
 
 require "rails_helper"
 
-# Path Z prep: the shared header's mobile-menu panel should auto-dismiss
-# when an anchor inside the expanded panel is clicked. The Stimulus
-# action lands in Task 1; the wiring on the menu element lands in Task 3.
-# Pending until Task 3 connects the action (the accordion specs in
-# spec/system/settings/mobile_accordion_spec.rb and
-# spec/system/workspaces/mobile_accordion_spec.rb exercise the wired
+# Path Z: the shared header's mobile-menu panel auto-dismisses when an
+# anchor inside the expanded panel is clicked. The Stimulus action and
+# the data-action wiring on the menu element ship together as part of
+# the header-accordion pattern. The accordion specs
+# (spec/system/settings/mobile_accordion_spec.rb and
+# spec/system/workspaces/mobile_accordion_spec.rb) exercise the wired
 # end-to-end behavior under the real accordion content; this spec
-# documents the auto-close intent on the bare header alone).
+# documents the auto-close intent on the bare header alone.
 RSpec.describe "Shared header — mobile menu auto-close", type: :system, js: true do
   let(:user) { create(:user) }
 
@@ -21,8 +21,6 @@ RSpec.describe "Shared header — mobile menu auto-close", type: :system, js: tr
   end
 
   it "wires closeOnLinkClick on the menu panel and dismisses on link tap" do
-    pending "Path Z Task 3: wire data-action='click->mobile-menu#closeOnLinkClick' on header menu"
-
     visit root_path
 
     # The menu element should declare the auto-close action so any anchor
@@ -32,8 +30,7 @@ RSpec.describe "Shared header — mobile menu auto-close", type: :system, js: tr
       visible: :all
     )
 
-    # Open the panel, then invoke the controller method directly to verify
-    # the JS hook hides the menu and resets aria-expanded.
+    # Open the panel, then dispatch a click on an anchor inside it.
     find("[data-mobile-menu-target='button']").click
     expect(page).to have_css("[data-mobile-menu-target='menu']:not(.hidden)")
 
