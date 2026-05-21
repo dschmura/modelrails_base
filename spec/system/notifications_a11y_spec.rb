@@ -37,7 +37,6 @@ RSpec.describe "Notifications a11y plumbing", type: :system do
       # label inside the standalone header bell) and notifications_bell_indicator_frame
       # (severity overlay). The bell link itself is OUTSIDE any broadcast
       # frame so clicks landing mid-broadcast still hit a live target.
-      skip "D1: bell wired into header in Task 5; frame assertions pass once _notifications_bell_link is mounted"
       expect(page).to have_css("turbo-frame#notifications_bell_label_frame", visible: :all)
       expect(page).to have_css("turbo-frame#notifications_bell_indicator_frame", visible: :all)
       expect(page).to have_no_css("turbo-frame#notifications_bell_label_frame #notifications-bell-link")

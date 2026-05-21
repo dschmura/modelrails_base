@@ -33,7 +33,6 @@ RSpec.describe "Notifications index page", type: :system do
 
   describe "discoverability from the header" do
     it "exposes a Notifications bell link in the header (D1: standalone bell)" do
-      skip "D1: bell wired into header in Task 5; this assertion will pass once the header renders _notifications_bell_link"
       visit root_path
       expect(page).to have_link(href: account_notifications_path)
       expect(page).to have_css("#notifications-bell-link")

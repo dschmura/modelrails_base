@@ -9,35 +9,43 @@
         <%= render "shared/site_logo", size: :small, show_name: true %>
       <% end %>
 
-      <%# Desktop navigation. The workspace-context affordance lives in the
-          sidebar switcher (rendered on every workspace-scoped page),
-          not in the header — header chrome stays workspace-agnostic. %>
-      <div class="hidden md:flex items-center gap-2">
+      <%# Right cluster. The bell (D1) is rendered ONCE here so its broadcast
+          frames (notifications_bell_label_frame + notifications_bell_indicator_frame)
+          appear exactly once in the DOM — IDs must stay unique. The bell
+          sits to the left of the avatar (desktop) AND to the left of the
+          hamburger (mobile). Theme toggle is desktop-only in this row;
+          mobile gets a labeled theme toggle inside the accordion. %>
+      <div class="flex items-center gap-2">
         <% unless authenticated? %>
           <%= link_to t("navigation.sign_up"), main_app.new_registration_path,
-                class: "min-h-[var(--form-input-height)] flex items-center px-4 rounded-md
+                class: "hidden md:inline-flex min-h-[var(--form-input-height)] items-center px-4 rounded-md
                         bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium
                         focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus" %>
         <% end %>
-        <%= render "shared/theme_toggle", style: :icon %>
+        <div class="hidden md:block">
+          <%= render "shared/theme_toggle", style: :icon %>
+        </div>
+        <% if authenticated? %>
+          <%= render "shared/notifications_bell_link", user: Current.user %>
+        <% end %>
         <%= render "shared/user_menu", context: :desktop %>
-      </div>
 
-      <%# Mobile menu button. Header-accordion pattern (Path Z) — tapping
-          expands the panel downward to reveal the active layout's sidebar
-          contents inline (via content_for(:mobile_menu_sidebar)) plus
-          the standard header nav links + user menu below. The sr-only
-          label provides the accessible name; aria-expanded flips between
-          true/false on toggle. %>
-      <button data-action="click->mobile-menu#toggle"
-              data-mobile-menu-target="button"
-              aria-expanded="false"
-              aria-controls="mobile-menu-panel"
-              class="btn-touch-target md:hidden text-text-body
-                     focus:outline-none focus:ring-2 focus:ring-interactive-focus rounded">
-        <span class="sr-only"><%= t("navigation.mobile_menu.open") %></span>
-        <%= icon(:bars_3, size: :lg) %>
-      </button>
+        <%# Mobile menu button. Header-accordion pattern (Path Z) — tapping
+            expands the panel downward to reveal the active layout's sidebar
+            contents inline (via content_for(:mobile_menu_sidebar)) plus
+            the standard header nav links + user menu below. The sr-only
+            label provides the accessible name; aria-expanded flips between
+            true/false on toggle. %>
+        <button data-action="click->mobile-menu#toggle"
+                data-mobile-menu-target="button"
+                aria-expanded="false"
+                aria-controls="mobile-menu-panel"
+                class="btn-touch-target md:hidden text-text-body
+                       focus:outline-none focus:ring-2 focus:ring-interactive-focus rounded">
+          <span class="sr-only"><%= t("navigation.mobile_menu.open") %></span>
+          <%= icon(:bars_3, size: :lg) %>
+        </button>
+      </div>
     </div>
 
     <%# Mobile menu panel. The closeOnLinkClick action delegates via event

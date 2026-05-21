@@ -29,7 +29,6 @@ RSpec.describe "Notifications avatar indicator", type: :system do
   end
 
   it "renders a danger overlay when a security notification is unread" do
-    skip "D1: bell wired into header in Task 5; severity overlay reappears once _notifications_bell_link is mounted"
     PasswordChangedNotifier.with(record: user).deliver(user)
     visit root_path
     expect(page).to have_css('[data-bell-severity="danger"]')
@@ -37,7 +36,6 @@ RSpec.describe "Notifications avatar indicator", type: :system do
   end
 
   it "renders a warning overlay for billing notifications" do
-    skip "D1: bell wired into header in Task 5; severity overlay reappears once _notifications_bell_link is mounted"
     workspace = create(:workspace)
     create(:membership, :owner, user: user, workspace: workspace)
     WorkspaceCapacityApproachingNotifier.with(
@@ -49,7 +47,6 @@ RSpec.describe "Notifications avatar indicator", type: :system do
   end
 
   it "shows highest-severity color when mixed categories are unread" do
-    skip "D1: bell wired into header in Task 5; severity overlay reappears once _notifications_bell_link is mounted"
     # danger
     PasswordChangedNotifier.with(record: user).deliver(user)
     # success — added_user is the Membership.user, so deliver to that user
