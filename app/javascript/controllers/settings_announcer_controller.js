@@ -4,9 +4,15 @@ import { Controller } from "@hotwired/stimulus"
 // to assistive tech via the polite aria-live region this controller mounts on.
 //
 // Why turbo:render (not turbo:morph-rendered): it fires once per full page
-// render — covering both initial load and morph-driven updates. Clearing the
-// node and re-writing inside requestAnimationFrame nudges screen readers to
-// re-announce when the same template would otherwise be identical to last time.
+// render — covering both initial load and morph-driven updates.
+//
+// Why dedup on `lastKind`: the previous implementation cleared + re-wrote on
+// every render, which forced AT to re-announce even when navigating
+// personal→personal or org→org. Screen readers handle the duplicate-content
+// rule inconsistently, but the better fix is to only announce on actual
+// transitions — first entry into the hub OR a kind change. First page load
+// (no prior `lastKind`) is silent because the user knows where they just
+// landed; announcement is for *transitions*.
 export default class extends Controller {
   static values = {
     personal: String,
@@ -14,6 +20,7 @@ export default class extends Controller {
   }
 
   connect() {
+    this.lastKind = null
     this.boundOnRender = this.onRender.bind(this)
     document.addEventListener("turbo:render", this.boundOnRender)
   }
@@ -24,13 +31,24 @@ export default class extends Controller {
 
   onRender() {
     const main = document.querySelector("[data-workspace-kind]")
-    if (!main) return
+    if (!main) {
+      // Left the settings hub — reset so a future re-entry announces.
+      this.lastKind = null
+      return
+    }
 
     const kind = main.dataset.workspaceKind
-    const template = this[`${kind}Value`]
-    if (!template) return
 
-    this.element.textContent = ""
-    requestAnimationFrame(() => { this.element.textContent = template })
+    // Only announce on actual transitions. First load is silent;
+    // same-kind navigation is silent; cross-kind navigation announces.
+    if (this.lastKind && this.lastKind !== kind) {
+      const template = this[`${kind}Value`]
+      if (template) {
+        this.element.textContent = ""
+        requestAnimationFrame(() => { this.element.textContent = template })
+      }
+    }
+
+    this.lastKind = kind
   }
 }
