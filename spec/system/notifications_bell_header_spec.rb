@@ -57,6 +57,44 @@ RSpec.describe "Notifications bell — standalone header link", type: :system, j
       expect(page).to have_css(".text-danger")
     end
 
+    it "renders a warning overlay for billing notifications" do
+      workspace = create(:workspace)
+      create(:membership, :owner, user: user, workspace: workspace)
+      WorkspaceCapacityApproachingNotifier.with(
+        record: workspace, metric: :members, current: 9, limit: 10
+      ).deliver(user)
+      visit root_path
+      expect(page).to have_css("[data-bell-severity='warning']")
+      expect(page).to have_css(".text-warning")
+    end
+
+    it "shows highest-severity color and aggregate count when mixed categories are unread" do
+      # danger
+      PasswordChangedNotifier.with(record: user).deliver(user)
+      # success — WorkspaceMemberAddedNotifier.with(record: membership).deliver(user)
+      success_workspace = create(:workspace)
+      added_membership = create(:membership, user: user, workspace: success_workspace)
+      WorkspaceMemberAddedNotifier.with(record: added_membership).deliver(user)
+
+      visit root_path
+      # Bell color convergence: highest severity (danger) wins.
+      expect(page).to have_css("[data-bell-severity='danger']")
+      # aria-label convergence: count reflects the full unread set (was the
+      # "Surface 2" assertion in the retired avatar_indicator convergence spec).
+      label_text = page.find("#notifications_bell_label", visible: :all).text(:all)
+      expect(label_text).to include("2 unread")
+    end
+
+    it "does not render the obsolete notifications dropdown panel (regression guard)" do
+      # Pre-D1 the unread bell hung off the avatar and clicking it opened a
+      # notifications dropdown. D1 replaced that with this standalone bell link.
+      # If a refactor regresses to the old pattern, this guard catches it.
+      PasswordChangedNotifier.with(record: user).deliver(user)
+      visit root_path
+      expect(page).not_to have_css("#notifications-dropdown-panel")
+      expect(page).not_to have_css("[data-controller~='notification-dropdown']")
+    end
+
     it "live-updates the bell label and indicator when a notification arrives via broadcast" do
       visit root_path
       expect(page).not_to have_css("[data-bell-severity]")
