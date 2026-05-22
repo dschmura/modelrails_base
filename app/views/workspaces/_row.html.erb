@@ -21,7 +21,7 @@
 <%
   workspace = membership.workspace
   user_role = membership.role
-  member_count = workspace.memberships.kept.size
+  member_count = workspace.memberships.reject(&:discarded?).size
   is_personal = membership.user.personal_workspace_id == workspace.id
 %>
 
