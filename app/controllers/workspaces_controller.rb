@@ -11,7 +11,11 @@ class WorkspacesController < ApplicationController
     scope = Current.user.memberships.kept
               .joins(:workspace)
               .merge(Workspace.kept)
-              .includes(workspace: [ :logo_attachment, memberships: [ :role, { user: :avatar_attachment } ] ])
+              .includes(
+                :role,
+                :user,
+                workspace: [ :logo_attachment, memberships: [ :role, :user ] ]
+              )
               .order(Arel.sql("memberships.last_accessed_at DESC NULLS LAST, workspaces.name ASC"))
 
     @memberships = scope.to_a
