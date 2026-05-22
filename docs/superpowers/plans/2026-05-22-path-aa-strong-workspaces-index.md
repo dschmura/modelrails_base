@@ -459,7 +459,7 @@ Suite: 1916 / 0 / 0 (no behavior change)."
 - Modify: `app/policies/membership_policy.rb`
 - Test: `spec/policies/membership_policy_spec.rb` (create or extend)
 
-- [ ] **Step 1: Failing policy spec.** Create or extend `spec/policies/membership_policy_spec.rb`:
+- [x] **Step 1: Failing policy spec.** Create or extend `spec/policies/membership_policy_spec.rb`:
 
 ```ruby
 require "rails_helper"
@@ -525,7 +525,7 @@ RSpec.describe MembershipPolicy do
 end
 ```
 
-- [ ] **Step 2: Run the spec to verify it fails.**
+- [x] **Step 2: Run the spec to verify it fails.**
 
 ```bash
 /opt/homebrew/bin/mise exec -- bundle exec rspec spec/policies/membership_policy_spec.rb
@@ -533,7 +533,7 @@ end
 
 Expected: FAILS — the current policy is `can?("manage_members") && record.user != user`, which explicitly excludes self-leave.
 
-- [ ] **Step 3: Amend `app/policies/membership_policy.rb`.** Replace the current `destroy?` (line 10-12) with:
+- [x] **Step 3: Amend `app/policies/membership_policy.rb`.** Replace the current `destroy?` (line 10-12) with:
 
 ```ruby
   def destroy?
@@ -587,7 +587,7 @@ class MembershipPolicy < ApplicationPolicy
 end
 ```
 
-- [ ] **Step 4: Re-run policy spec.**
+- [x] **Step 4: Re-run policy spec.**
 
 ```bash
 /opt/homebrew/bin/mise exec -- bundle exec rspec spec/policies/membership_policy_spec.rb
@@ -595,7 +595,7 @@ end
 
 Expected: PASS (7 examples).
 
-- [ ] **Step 5: Full suite.**
+- [x] **Step 5: Full suite.**
 
 ```bash
 /opt/homebrew/bin/mise exec -- bundle exec rspec --format progress
@@ -603,7 +603,7 @@ Expected: PASS (7 examples).
 
 Expected: **1923 / 0 / 0** (1916 + 7 new policy examples).
 
-- [ ] **Step 6: Commit.**
+- [x] **Step 6: Commit.**
 
 ```bash
 git add app/policies/membership_policy.rb spec/policies/membership_policy_spec.rb

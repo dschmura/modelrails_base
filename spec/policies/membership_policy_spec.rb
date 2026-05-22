@@ -57,4 +57,62 @@ RSpec.describe MembershipPolicy do
       expect(described_class.new(user, other_membership).transfer_ownership?).to be false
     end
   end
+
+  describe "#destroy? — admin deactivates someone else" do
+    let(:user) { create(:user) }
+    let(:other_user) { create(:user) }
+    let!(:admin_membership) { create(:membership, :admin, user: user, workspace: workspace) }
+    let(:record) { create(:membership, user: other_user, workspace: workspace) }
+    subject(:policy) { described_class.new(user, record) }
+
+    it "permits admin to deactivate another member" do
+      expect(policy.destroy?).to be(true)
+    end
+
+    it "denies when the workspace is discarded" do
+      workspace.discard!
+      record.reload
+      expect(policy.destroy?).to be(false)
+    end
+  end
+
+  describe "#destroy? — user leaves own membership" do
+    let(:user) { create(:user) }
+    let(:other_user) { create(:user) }
+    let(:record) { create(:membership, user: user, workspace: workspace) }
+    let!(:owner_membership_other) { create(:membership, :owner, user: other_user, workspace: workspace) }
+    subject(:policy) { described_class.new(user, record) }
+
+    it "permits leaving when not last owner and not personal workspace" do
+      expect(policy.destroy?).to be(true)
+    end
+
+    it "denies leaving the user's personal workspace" do
+      user.update!(personal_workspace_id: workspace.id)
+      expect(policy.destroy?).to be(false)
+    end
+
+    it "denies leaving when the user is the last owner" do
+      owner_membership_other.discard!
+      record.update!(role: Role.find_or_create_by!(slug: "owner", workspace_id: nil) { |r| r.name = "Owner" })
+      expect(policy.destroy?).to be(false)
+    end
+
+    it "denies when the workspace is discarded" do
+      workspace.discard!
+      record.reload
+      expect(policy.destroy?).to be(false)
+    end
+  end
+
+  describe "#destroy? — non-member" do
+    let(:user) { create(:user) }
+    let(:actor) { create(:user) }
+    let(:record) { create(:membership, user: user, workspace: workspace) }
+    subject(:policy) { described_class.new(actor, record) }
+
+    it "denies non-members" do
+      expect(policy.destroy?).to be(false)
+    end
+  end
 end
