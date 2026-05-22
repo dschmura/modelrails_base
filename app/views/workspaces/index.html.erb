@@ -7,24 +7,39 @@
     <%= link_to t("workspaces.index.new_workspace"), new_workspace_path, class: "btn-primary" %>
   </div>
 
-  <% if @workspaces.any? %>
-    <div class="mt-8 grid gap-4">
-      <% @workspaces.each do |workspace| %>
-        <%= link_to workspace_path(workspace),
-              class: "block p-4 border border-border rounded-lg
-                      hover:border-interactive
-                      focus:outline-none focus:ring-2 focus:ring-interactive-focus" do %>
-          <div class="flex items-center gap-3">
-            <%= workspace_icon_for(workspace, size: :md) %>
-            <div>
-              <p class="font-medium text-text-heading"><%= workspace.name %></p>
-              <p class="text-sm text-text-muted"><%= workspace.plan.titleize %></p>
+  <% if @current_membership.present? %>
+    <section class="mt-8" data-test="current-workspace-row">
+      <div class="flex items-center gap-3 p-4 border border-border rounded-lg">
+        <%= workspace_icon_for(@current_membership.workspace, size: :md) %>
+        <div class="flex-1">
+          <p class="font-medium text-text-heading"><%= @current_membership.workspace.name %></p>
+        </div>
+        <span class="text-xs font-semibold uppercase tracking-wider px-2 py-1 rounded bg-interactive text-text-on-interactive">
+          <%= t("workspaces.index.current_badge") %>
+        </span>
+      </div>
+    </section>
+  <% end %>
+
+  <% if @other_memberships.any? %>
+    <section class="mt-8">
+      <h2 class="text-xs font-semibold uppercase tracking-wider text-text-muted mb-3">
+        <%= t("workspaces.index.other_workspaces_heading") %>
+      </h2>
+      <ul class="flex flex-col gap-2" data-test="other-workspaces-list">
+        <% @other_memberships.each do |membership| %>
+          <li class="flex items-center gap-3 p-4 border border-border rounded-lg">
+            <%= workspace_icon_for(membership.workspace, size: :md) %>
+            <div class="flex-1">
+              <p class="font-medium text-text-heading"><%= membership.workspace.name %></p>
             </div>
-          </div>
+          </li>
         <% end %>
-      <% end %>
-    </div>
-  <% else %>
+      </ul>
+    </section>
+  <% end %>
+
+  <% if @memberships.empty? %>
     <div class="mt-8">
       <%= render "shared/empty_state",
             message: t("workspaces.index.empty"),

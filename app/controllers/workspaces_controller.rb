@@ -7,8 +7,16 @@ class WorkspacesController < ApplicationController
 
   def index
     authorize Workspace
-    @workspaces = Current.user.workspaces.kept
-      .includes(:logo_attachment, memberships: [ :role, { user: :avatar_attachment } ])
+
+    scope = Current.user.memberships.kept
+              .joins(:workspace)
+              .merge(Workspace.kept)
+              .includes(workspace: [ :logo_attachment, memberships: [ :role, { user: :avatar_attachment } ] ])
+              .order(Arel.sql("memberships.last_accessed_at DESC NULLS LAST, workspaces.name ASC"))
+
+    @memberships = scope.to_a
+    @current_membership = @memberships.first
+    @other_memberships = @memberships.drop(1)
   end
 
   def new

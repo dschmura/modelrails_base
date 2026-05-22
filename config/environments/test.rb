@@ -153,5 +153,16 @@ Rails.application.configure do
     Bullet.add_safelist(type: :unused_eager_loading,
                         class_name: "User",
                         association: :avatar_attachment)
+
+    # WorkspacesController#index queries memberships first then joins+preloads
+    # workspace so it can sort by `memberships.last_accessed_at` (Path AA pinned-
+    # current row). Bullet flags `Membership => [:workspace]` as unused eager
+    # loading because the join already aliases workspaces into the SQL, so its
+    # detector treats the includes-side preload as redundant — but the view
+    # still needs the preloaded workspace per row to render name + icon without
+    # an N+1. Safelist matches the conditional-preload precedent above.
+    Bullet.add_safelist(type: :unused_eager_loading,
+                        class_name: "Membership",
+                        association: :workspace)
   end
 end
