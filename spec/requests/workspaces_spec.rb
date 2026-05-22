@@ -34,6 +34,49 @@ RSpec.describe "Workspaces", type: :request do
         get workspaces_path
         expect(response.body).not_to include(CGI.escapeHTML(workspace.name))
       end
+
+      # Regression guard: four real N+1s on this surface survived per-task
+      # spec-compliance + cross-task code-quality + manual security/N+1 reviews
+      # before bin/dev's Bullet panel caught them at runtime. Bullet running
+      # against a multi-row end-to-end render is the only thing that reliably
+      # exposes eager-load shape regressions on workspaces#index.
+      #
+      # Mechanism: Bullet.raise = true (config/environments/test.rb) raises
+      # mid-request via the Bullet::Rack middleware as soon as the detector
+      # sees an N+1 / unused-eager-loading hit. The Rack middleware also
+      # wraps each HTTP request in start_request/end_request, which clears
+      # the notification_collector before control returns to the spec — so
+      # post-hoc Bullet.warnings inspection is not possible from a request
+      # spec. The right pattern here is: render with enough rows to expose
+      # the eager-load shape and let Bullet.raise fail the example.
+      #
+      # The single-row examples above don't reliably trip Bullet because
+      # NPlusOne detection is threshold-based. This multi-row fixture is
+      # what gives the guard its teeth — any future change that breaks
+      # the eager-load chain (controller includes, sidebar preload, the
+      # workspace_icon_for owner-fallback) fails HERE at CI time.
+      it "renders without N+1 queries (regression guard)" do
+        # Three workspaces with varying last_accessed_at exercise the full
+        # row-render path: pinned-current row + others list, policy checks
+        # per row, workspace_icon_for fallback (which walks memberships to
+        # find the owner role when no logo is attached).
+        workspaces = (1..3).map do |i|
+          ws = create(:workspace, name: "Workspace #{i}")
+          create(:membership, :owner, user: user, workspace: ws, last_accessed_at: i.days.ago)
+          ws
+        end
+
+        get workspaces_path
+
+        # If Bullet detected an N+1 mid-request it would have already raised
+        # and the example would be a failure, not a passed assertion. These
+        # expectations confirm the render actually completed end-to-end with
+        # multiple rows, which is what gives the Bullet guard its coverage.
+        expect(response).to have_http_status(:ok)
+        workspaces.each do |ws|
+          expect(response.body).to include(CGI.escapeHTML(ws.name))
+        end
+      end
     end
 
     describe "GET /workspaces/new" do
