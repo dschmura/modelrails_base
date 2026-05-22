@@ -4,20 +4,17 @@
     <h1 class="text-3xl font-bold text-text-heading">
       <%= t("workspaces.index.title") %>
     </h1>
-    <%= link_to t("workspaces.index.new_workspace"), new_workspace_path, class: "btn-primary" %>
+    <%= link_to t("workspaces.index.new_workspace"), new_workspace_path,
+          class: "btn-touch-target inline-flex items-center px-4 py-2 rounded-md
+                  bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium
+                  focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus" %>
   </div>
 
   <% if @current_membership.present? %>
-    <section class="mt-8" data-test="current-workspace-row">
-      <div class="flex items-center gap-3 p-4 border border-border rounded-lg">
-        <%= workspace_icon_for(@current_membership.workspace, size: :md) %>
-        <div class="flex-1">
-          <p class="font-medium text-text-heading"><%= @current_membership.workspace.name %></p>
-        </div>
-        <span class="text-xs font-semibold uppercase tracking-wider px-2 py-1 rounded bg-interactive text-text-on-interactive">
-          <%= t("workspaces.index.current_badge") %>
-        </span>
-      </div>
+    <section class="mt-8" data-test="current-workspace-row" aria-label="<%= t('workspaces.index.current_badge') %>">
+      <ul class="flex flex-col gap-2">
+        <%= render "workspaces/row", membership: @current_membership, current: true %>
+      </ul>
     </section>
   <% end %>
 
@@ -28,12 +25,7 @@
       </h2>
       <ul class="flex flex-col gap-2" data-test="other-workspaces-list">
         <% @other_memberships.each do |membership| %>
-          <li class="flex items-center gap-3 p-4 border border-border rounded-lg">
-            <%= workspace_icon_for(membership.workspace, size: :md) %>
-            <div class="flex-1">
-              <p class="font-medium text-text-heading"><%= membership.workspace.name %></p>
-            </div>
-          </li>
+          <%= render "workspaces/row", membership: membership, current: false %>
         <% end %>
       </ul>
     </section>
@@ -47,4 +39,12 @@
             action_url: new_workspace_path %>
     </div>
   <% end %>
+
+  <div class="mt-12 text-center">
+    <%= link_to t("workspaces.index.create_workspace_cta"), new_workspace_path,
+          class: "btn-touch-target inline-flex items-center px-4 py-2 rounded-md
+                  text-sm font-medium text-interactive
+                  hover:bg-surface-sunken
+                  focus:outline-none focus:ring-2 focus:ring-interactive-focus" %>
+  </div>
 </div>
