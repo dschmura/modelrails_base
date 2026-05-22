@@ -166,7 +166,7 @@ Suite: 1910 → 1912 / 0 / 0."
 - Create: `spec/controllers/concerns/workspace_scoped_spec.rb` (if absent)
 - Create: `spec/system/workspaces/membership_touch_spec.rb`
 
-- [ ] **Step 1: Failing concern spec.** Create `spec/controllers/concerns/workspace_scoped_spec.rb`:
+- [x] **Step 1: Failing concern spec.** Create `spec/controllers/concerns/workspace_scoped_spec.rb`:
 
 ```ruby
 require "rails_helper"
@@ -215,7 +215,7 @@ RSpec.describe WorkspaceScoped, type: :request do
 end
 ```
 
-- [ ] **Step 2: Run the spec to verify it fails.**
+- [x] **Step 2: Run the spec to verify it fails.**
 
 ```bash
 /opt/homebrew/bin/mise exec -- bundle exec rspec spec/controllers/concerns/workspace_scoped_spec.rb
@@ -223,7 +223,7 @@ end
 
 Expected: FAILS — `touch_membership_last_accessed` doesn't exist; the `last_accessed_at` won't move.
 
-- [ ] **Step 3: Add the before_action to the concern.** Modify `app/controllers/concerns/workspace_scoped.rb` to:
+- [x] **Step 3: Add the before_action to the concern.** Modify `app/controllers/concerns/workspace_scoped.rb` to:
 
 ```ruby
 module WorkspaceScoped
@@ -265,7 +265,7 @@ module WorkspaceScoped
 end
 ```
 
-- [ ] **Step 4: Re-run the concern spec.**
+- [x] **Step 4: Re-run the concern spec.**
 
 ```bash
 /opt/homebrew/bin/mise exec -- bundle exec rspec spec/controllers/concerns/workspace_scoped_spec.rb
@@ -273,7 +273,7 @@ end
 
 Expected: PASS (3 examples).
 
-- [ ] **Step 5: Add the system-level integration spec.** Create `spec/system/workspaces/membership_touch_spec.rb`:
+- [x] **Step 5: Add the system-level integration spec.** Create `spec/system/workspaces/membership_touch_spec.rb`:
 
 ```ruby
 require "rails_helper"
@@ -307,7 +307,7 @@ RSpec.describe "Membership last_accessed_at touch", type: :system, js: true do
 end
 ```
 
-- [ ] **Step 6: Run the integration spec.**
+- [x] **Step 6: Run the integration spec.**
 
 ```bash
 /opt/homebrew/bin/mise exec -- bundle exec rspec spec/system/workspaces/membership_touch_spec.rb
@@ -315,7 +315,7 @@ end
 
 Expected: PASS (1 example).
 
-- [ ] **Step 7: Full suite.**
+- [x] **Step 7: Full suite.**
 
 ```bash
 /opt/homebrew/bin/mise exec -- bundle exec rspec --format progress
@@ -323,7 +323,7 @@ Expected: PASS (1 example).
 
 Expected: **1916 / 0 / 0** (1910 + 2 from Task 1 + 4 new from Task 2).
 
-- [ ] **Step 8: Commit.**
+- [x] **Step 8: Commit.**
 
 ```bash
 git add app/controllers/concerns/workspace_scoped.rb spec/controllers/concerns/workspace_scoped_spec.rb spec/system/workspaces/membership_touch_spec.rb
