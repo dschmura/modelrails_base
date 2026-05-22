@@ -169,4 +169,39 @@ RSpec.describe "Strong workspaces index", type: :system, js: true do
       expect(page).to have_no_text(I18n.t("workspaces.index.other_workspaces_heading"))
     end
   end
+
+  describe "sort order" do
+    it "places never-visited workspaces alphabetically after touched ones" do
+      a_never = create(:workspace, name: "AAA Never")
+      z_never = create(:workspace, name: "ZZZ Never")
+      create(:membership, user: user, workspace: a_never, last_accessed_at: nil)
+      create(:membership, user: user, workspace: z_never, last_accessed_at: nil)
+      visit workspaces_path
+
+      # Order in 'Other workspaces': Older (touched 3d ago), AAA Never, ZZZ Never
+      others = page.find("[data-test='other-workspaces-list']")
+      names = others.all("li").map(&:text)
+      expect(names.find_index { |t| t.include?("Older") }).to be < names.find_index { |t| t.include?("AAA Never") }
+      expect(names.find_index { |t| t.include?("AAA Never") }).to be < names.find_index { |t| t.include?("ZZZ Never") }
+    end
+  end
+
+  describe "accessibility (WCAG 2.2 AAA)" do
+    let(:axe_options) { { runOnly: { type: "tag", values: [ "wcag2aaa" ] } } }
+
+    it "passes axe at default viewport in both themes" do
+      visit workspaces_path
+      expect(axe_clean_in_both_themes?(axe_options)).to be(true),
+        "AAA violations: #{axe_violations_in_both_themes(axe_options).join("\n")}"
+    end
+
+    it "passes axe at iPhone-SE viewport in both themes (responsive sanity)" do
+      page.driver.with_playwright_page do |pw_page|
+        pw_page.set_viewport_size(width: 375, height: 667)
+      end
+      visit workspaces_path
+      expect(axe_clean_in_both_themes?(axe_options)).to be(true),
+        "AAA violations (375x667): #{axe_violations_in_both_themes(axe_options).join("\n")}"
+    end
+  end
 end
