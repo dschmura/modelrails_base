@@ -634,7 +634,7 @@ Suite: 1916 → 1923 / 0 / 0."
 - Modify: `app/controllers/workspaces/members_controller.rb` (the `destroy` action only)
 - Test: `spec/requests/workspaces/members_spec.rb` (create or extend)
 
-- [ ] **Step 1: Failing request spec.** Create or extend `spec/requests/workspaces/members_spec.rb`:
+- [x] **Step 1: Failing request spec.** Create or extend `spec/requests/workspaces/members_spec.rb`:
 
 ```ruby
 require "rails_helper"
@@ -709,7 +709,7 @@ RSpec.describe "Workspaces::Members destroy", type: :request do
 end
 ```
 
-- [ ] **Step 2: Run the request spec to verify it fails.**
+- [x] **Step 2: Run the request spec to verify it fails.**
 
 ```bash
 /opt/homebrew/bin/mise exec -- bundle exec rspec spec/requests/workspaces/members_spec.rb
@@ -717,7 +717,7 @@ end
 
 Expected: FAILS — the "leaving" case currently redirects to `workspace_members_path` not `workspaces_path`, and the policy hasn't been adjusted yet (Task 4 handles policy; this task handles controller branching).
 
-- [ ] **Step 3: Amend the `destroy` action.** Replace `app/controllers/workspaces/members_controller.rb`'s `destroy` method (lines 41-48 of the current file) with:
+- [x] **Step 3: Amend the `destroy` action.** Replace `app/controllers/workspaces/members_controller.rb`'s `destroy` method (lines 41-48 of the current file) with:
 
 ```ruby
     def destroy
@@ -748,7 +748,7 @@ Expected: FAILS — the "leaving" case currently redirects to `workspace_members
 
 The two-branch redirect keeps existing admin-deactivate behavior identical while routing self-leave back to the workspaces index where the user came from.
 
-- [ ] **Step 4: Re-run request spec.**
+- [x] **Step 4: Re-run request spec.**
 
 ```bash
 /opt/homebrew/bin/mise exec -- bundle exec rspec spec/requests/workspaces/members_spec.rb
@@ -756,7 +756,7 @@ The two-branch redirect keeps existing admin-deactivate behavior identical while
 
 Expected: PASS (5 examples).
 
-- [ ] **Step 5: Full suite.**
+- [x] **Step 5: Full suite.**
 
 ```bash
 /opt/homebrew/bin/mise exec -- bundle exec rspec --format progress
@@ -764,7 +764,7 @@ Expected: PASS (5 examples).
 
 Expected: **1928 / 0 / 0** (1923 + 5 new request examples). Verify no existing Members-controller specs broke from the redirect change.
 
-- [ ] **Step 6: Commit.**
+- [x] **Step 6: Commit.**
 
 ```bash
 git add app/controllers/workspaces/members_controller.rb spec/requests/workspaces/members_spec.rb
