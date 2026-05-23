@@ -1,0 +1,41 @@
+<%# locals: (workspaces:, current_workspace:) -%>
+<nav aria-label="<%= t("settings.sidebar.switcher_aria_label") %>"
+     class="mb-4 pb-4 border-b border-border"
+     data-controller="settings-switcher">
+  <ul role="list" class="flex flex-col gap-1">
+    <% workspaces.each do |workspace| %>
+      <% is_current = workspace == current_workspace %>
+      <% role_slug = workspace.memberships.detect { |m| m.user_id == Current.user.id }&.role&.slug %>
+      <li>
+        <%= link_to workspace_path(workspace),
+              aria: { current: ("true" if is_current),
+                      label: (t("settings.sidebar.workspace_link_aria_label.personal", name: workspace.name) if workspace.personal?) },
+              data: { turbo_prefetch: "true" },
+              class: [
+                "min-h-[44px] flex items-center gap-3 px-3 py-2 rounded-md",
+                "text-text-body",
+                "hover:bg-surface-sunken",
+                "focus:outline-none focus:ring-2 focus:ring-interactive-focus",
+                "motion-safe:transition-colors motion-safe:duration-150",
+                ("bg-surface-sunken font-semibold text-text-heading" if is_current)
+              ].compact do %>
+          <%# Avatar shape: circle = personal, rounded square = org (WCAG 1.4.1: not color-alone) %>
+          <span class="<%= workspace.personal? ? "rounded-full" : "rounded-md overflow-hidden" %> shrink-0">
+            <%= workspace_icon_for(workspace, size: :sm) %>
+          </span>
+          <% unless workspace.personal? %>
+            <span class="w-1 h-6 rounded-full shrink-0"
+                  style="background: oklch(0.55 0.18 <%= workspace.primary_color || 210 %>);"
+                  aria-hidden="true"></span>
+          <% end %>
+          <span class="flex-1 min-w-0">
+            <span class="block truncate"><%= workspace.name %></span>
+            <% if role_slug %>
+              <span class="block text-xs text-text-muted"><%= role_slug.titleize %></span>
+            <% end %>
+          </span>
+        <% end %>
+      </li>
+    <% end %>
+  </ul>
+</nav>

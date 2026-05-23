@@ -1,0 +1,15 @@
+<%# locals: (title: nil, title_html: nil, description: nil)
+    title_html is rendered HTML-safe — caller MUST escape user input
+    (e.g. workspace name) via ERB::Util.html_escape before passing. -%>
+<header class="mb-8">
+  <h1 class="text-2xl font-semibold text-text-heading">
+    <% if title_html %>
+      <%= safe_html(title_html) %>
+    <% else %>
+      <%= title %>
+    <% end %>
+  </h1>
+  <% if description.present? %>
+    <p class="mt-2 text-sm text-text-body max-w-2xl"><%= description %></p>
+  <% end %>
+</header>

@@ -509,4 +509,44 @@ RSpec.describe User, type: :model do
       )
     end
   end
+
+  describe "#personal_workspace" do
+    let(:user) { create(:user) }
+
+    it "returns the workspace pointed to by personal_workspace_id" do
+      expect(user.personal_workspace).to eq(Workspace.find(user.personal_workspace_id))
+    end
+
+    it "returns nil if the personal workspace has been soft-deleted" do
+      user.personal_workspace.discard!
+      expect(user.personal_workspace).to be_nil
+    end
+
+    it "returns nil if personal_workspace_id is unset" do
+      user.update_column(:personal_workspace_id, nil)
+      expect(user.personal_workspace).to be_nil
+    end
+  end
+
+  describe "#create_personal_workspace (idempotency + uniqueness)" do
+    let(:user) { create(:user) }
+
+    it "is idempotent when called a second time on the same user" do
+      original_id = user.personal_workspace_id
+      expect(original_id).to be_present
+
+      expect { user.send(:create_personal_workspace) }
+        .not_to change { user.reload.personal_workspace_id }
+      expect(user.personal_workspace_id).to eq(original_id)
+    end
+
+    it "enforces uniqueness at the database level" do
+      other_user = create(:user)
+      # Try to point two users at the same personal workspace — the partial
+      # unique index on personal_workspace_id (where IS NOT NULL) must reject.
+      expect {
+        other_user.update_column(:personal_workspace_id, user.personal_workspace_id)
+      }.to raise_error(ActiveRecord::RecordNotUnique)
+    end
+  end
 end

@@ -20,11 +20,11 @@ en:
       settings: "Settings"
       branding: "Branding"
     edit:
-      title: "Edit workspace"
+      title: "%{workspace} — Profile"
       name_label: "Workspace name"
       submit: "Save changes"
     update:
-      success: "Workspace updated."
+      success: "Workspace profile updated."
     destroy:
       success: "Workspace archived."
       confirm: "Are you sure? This workspace will be archived."

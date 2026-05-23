@@ -24,7 +24,7 @@ RSpec.describe "Members table", type: :system do
       visit workspace_members_path(workspace)
       expect(page).to have_text("Alice Anderson")
       expect(page).to have_text("Bob Baker")
-      expect(page).to have_text(I18n.t("workspaces.members.index.title"))
+      expect(page).to have_selector("h1", text: "#{workspace.name} members")
     end
 
     it "shows a search field" do

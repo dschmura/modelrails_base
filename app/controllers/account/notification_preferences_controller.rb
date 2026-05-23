@@ -2,6 +2,9 @@
 
 module Account
   class NotificationPreferencesController < ApplicationController
+    include PersonalWorkspaceContext
+    layout "settings"
+
     before_action :set_preferences
 
     def edit

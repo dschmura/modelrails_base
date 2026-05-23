@@ -2,6 +2,8 @@ module Workspaces
   class SettingsController < ApplicationController
     include WorkspaceScoped
 
+    layout "settings"
+
     def edit
       authorize @workspace, policy_class: Workspaces::SettingsPolicy
     end

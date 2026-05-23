@@ -46,6 +46,12 @@
   /* --- Modal --- */
   --modal-backdrop: oklch(20.5% 0.016 265.755 / 50%);
   --modal-animation-duration: 200ms;
+
+  /* Transitions — durations for UI state changes. Used with
+     motion-safe:transition-* utilities so users with
+     prefers-reduced-motion get instant state changes. */
+  --transition-default: 150ms;
+  --transition-fast: 75ms;
 }
 
 .dark {

@@ -1,11 +1,11 @@
 <%# locals: (workspace:)
-    Identity section — workspace name, logo, and primary color in one form.
-    Posts to brandings#update (BrandingPolicy gates the whole concern). %>
+    Workspace Profile section — name, logo, and primary color in one form.
+    Posts to workspaces#update (gated by Workspaces::ProfilePolicy). %>
 <section class="space-y-4" aria-labelledby="settings-identity-heading">
   <h2 id="settings-identity-heading" class="text-lg font-semibold text-text-heading">
     <%= t("workspaces.settings.edit.sections.identity_title") %>
   </h2>
-  <%= form_with model: workspace, url: workspace_branding_path(workspace), method: :patch,
+  <%= form_with model: workspace, url: workspace_path(workspace), method: :patch,
         class: "space-y-6" do |form| %>
     <%= form.error_summary %>
 
@@ -36,8 +36,8 @@
         <%= render "shared/modal", title: t("identity_picker.choose_workspace_logo"), size: :lg do %>
           <%= render "shared/identity_picker",
                 model: workspace,
-                form_url: workspace_branding_path(workspace),
-                hub_url: hub_workspace_branding_path(workspace),
+                form_url: workspace_path(workspace),
+                hub_url: identity_picker_hub_workspace_path(workspace),
                 hub_title: t("identity_picker.choose_workspace_logo"),
                 crop_title: t("identity_picker.adjust_workspace_logo") %>
         <% end %>

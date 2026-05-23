@@ -1,8 +1,8 @@
 <% content_for(:title) { t("account.profiles.edit.title") } %>
 <div class="max-w-md mx-auto px-4 py-16">
-  <h1 class="text-3xl font-bold text-text-heading">
-    <%= t("account.profiles.edit.title") %>
-  </h1>
+  <%= render "shared/settings_page_header",
+        title: t("settings.pages.profile_personal.h1"),
+        description: t("settings.pages.profile_personal.description") %>
 
   <%# Avatar — opens identity picker modal %>
   <div class="flex items-center gap-6 mt-8 mb-8"

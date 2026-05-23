@@ -1,8 +1,8 @@
 <% content_for(:title) { t("account.connected_accounts.index.title") } %>
 <div class="page-container py-16">
-  <h1 class="text-3xl font-bold text-text-heading">
-    <%= t("account.connected_accounts.index.title") %>
-  </h1>
+  <%= render "shared/settings_page_header",
+        title: t("settings.pages.security.h1"),
+        description: t("settings.pages.security.description") %>
 
   <%= turbo_stream_from Current.user, :authentications %>
 

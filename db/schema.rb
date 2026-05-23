@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_13_132808) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_20_141152) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -264,10 +264,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_132808) do
     t.string "pending_email"
     t.datetime "pending_email_sent_at"
     t.string "pending_email_token"
+    t.integer "personal_workspace_id"
     t.integer "primary_color", default: 210
     t.datetime "updated_at", null: false
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
     t.index ["pending_email_token"], name: "index_users_on_pending_email_token", unique: true
+    t.index ["personal_workspace_id"], name: "index_users_on_personal_workspace_id"
+    t.index ["personal_workspace_id"], name: "index_users_on_personal_workspace_id_unique", unique: true, where: "personal_workspace_id IS NOT NULL"
   end
 
   create_table "workspaces", force: :cascade do |t|
@@ -307,4 +310,5 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_13_132808) do
   add_foreign_key "roles", "workspaces"
   add_foreign_key "sessions", "users"
   add_foreign_key "user_preferences", "users"
+  add_foreign_key "users", "workspaces", column: "personal_workspace_id", on_delete: :nullify
 end

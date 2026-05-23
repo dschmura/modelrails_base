@@ -1,0 +1,19 @@
+<%# locals: (label:, href:, aria_label: nil, active: false, icon: nil) -%>
+<li>
+  <%= link_to href,
+        aria: { label: aria_label, current: ("page" if active) },
+        data: { turbo_prefetch: "true" },
+        class: [
+          "min-h-[44px] flex items-center gap-3 px-3 py-2 rounded-md",
+          "text-text-body",
+          "motion-safe:transition-colors motion-safe:duration-150",
+          "hover:bg-surface-sunken",
+          "focus:outline-none focus:ring-2 focus:ring-interactive-focus",
+          ("bg-surface-sunken font-semibold text-text-heading" if active)
+        ].compact do %>
+    <% if icon %>
+      <span class="shrink-0" aria-hidden="true"><%= icon(icon, size: :sm) %></span>
+    <% end %>
+    <span><%= label %></span>
+  <% end %>
+</li>
