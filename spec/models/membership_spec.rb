@@ -1,6 +1,18 @@
 require "rails_helper"
 
 RSpec.describe Membership, type: :model do
+  describe "schema" do
+    it "has a last_accessed_at datetime column" do
+      expect(Membership.columns_hash["last_accessed_at"].sql_type_metadata.type).to eq(:datetime)
+    end
+
+    it "has a composite index on [user_id, last_accessed_at]" do
+      indexes = ActiveRecord::Base.connection.indexes("memberships")
+      index = indexes.find { |i| i.columns == [ "user_id", "last_accessed_at" ] }
+      expect(index).to be_present, "Expected composite index on (user_id, last_accessed_at)"
+    end
+  end
+
   describe "validations" do
     it "requires a user" do
       membership = build(:membership, user: nil)

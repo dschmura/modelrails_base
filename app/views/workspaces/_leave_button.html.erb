@@ -1,0 +1,17 @@
+<%# locals: (membership:) -%>
+<%# Leave button — only rendered for memberships where the current user
+    is permitted to deactivate their own membership (not personal, not
+    last owner). Pundit gate is enforced both in the partial render
+    condition AND at the controller via authorize — do not remove the
+    policy check from the controller. Uses standard turbo confirm. -%>
+<% return unless policy(membership).destroy? %>
+<%= button_to t("workspaces.index.row.leave"),
+      workspace_member_path(membership.workspace, membership),
+      method: :delete,
+      data: { turbo_confirm: t("workspaces.index.row.leave_confirm", workspace: membership.workspace.name) },
+      class: "btn-touch-target inline-flex items-center px-3 py-2 rounded-md
+              text-sm font-medium text-text-body
+              bg-surface-raised border border-border
+              hover:bg-surface-sunken hover:text-text-heading
+              focus:outline-none focus:ring-2 focus:ring-interactive-focus
+              cursor-pointer" %>

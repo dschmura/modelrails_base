@@ -40,18 +40,35 @@
          data-settings-announcer-org-value="<%= current_workspace_announcement_for_aria_live %>">
     </div>
 
+    <%# Settings hub layout. Path Z header-accordion pattern: at md+ the
+        sidebar renders inline to the left of <main> with the <aside>
+        chrome (_settings_sidebar wrapper); below md, the *chrome-free*
+        contents partial (_settings_sidebar_items) is surfaced via
+        content_for(:mobile_menu_sidebar) so the switcher + nav items
+        flow inline inside the header accordion instead of appearing as
+        a nested sidebar-within-a-menu. One eager-loaded workspaces
+        relation feeds both renders to avoid an N+1 on the doubly-rendered
+        contents. content_for MUST be declared before render
+        "shared/header" so the slot is populated when the header reads it. %>
+    <% workspaces_scope = Current.user.workspaces.kept.includes(:logo_attachment, memberships: [ :role, { user: :avatar_attachment } ]) %>
+    <% content_for :mobile_menu_sidebar do %>
+      <%= render "shared/settings_sidebar_items",
+            workspaces: workspaces_scope,
+            current_workspace: Current.workspace,
+            id_suffix: "-mobile" %>
+    <% end %>
+    <% content_for :mobile_menu_sidebar_aria_label, t("settings.sidebar.aria_label") %>
+
     <%= render "shared/header" %>
     <%= render "shared/toasts" %>
 
-    <%# Sidebar is hidden below md (768px). Mobile drawer pattern is deferred
-        to a later phase; for now the page stacks with main-content occupying
-        full width. The data-workspace-kind hook stays on the wrapper
-        so JS/CSS dependents see it at all viewports. %>
     <div class="flex-1 flex flex-col md:flex-row min-h-[calc(100vh-4rem)]"
          data-workspace-kind="<%= settings_context_kind %>">
-      <div class="hidden md:block">
+      <%# Desktop sidebar — hidden below md where the header accordion
+          surfaces the same _settings_sidebar partial. %>
+      <div class="hidden md:flex shrink-0">
         <%= render "shared/settings_sidebar",
-              workspaces: Current.user.workspaces.kept.includes(:logo_attachment, memberships: [ :role, { user: :avatar_attachment } ]),
+              workspaces: workspaces_scope,
               current_workspace: Current.workspace %>
       </div>
 
@@ -63,7 +80,6 @@
               data-workspace-branded
               style="--ws-primary-light: oklch(0.40 0.15 <%= ws_hue %>); --ws-primary-dark: oklch(0.78 0.10 <%= ws_hue %>);"
             <% end %>>
-        <%= render "shared/workspace_back_link" %>
         <%= yield %>
       </main>
     </div>
@@ -71,31 +87,7 @@
     <%= render "shared/footer" %>
     <%= biscuit_banner %>
 
-    <% if authenticated? %>
-      <%# Subscribe to the recipient's notifications stream. After-create
-          callback on Noticed::Notification broadcasts a turbo-stream that
-          replaces the bell frame and (cycle C) updates the live region. %>
-      <%= turbo_stream_from [Current.user, :notifications] %>
-
-      <%# Subscribe to the current workspace's stream in org context so
-          membership mutations (e.g. an admin demoting a member while that
-          member has a settings tab open) re-render this layout via the
-          Membership Broadcastable contract. Personal context is skipped:
-          personal workspaces only contain the owner, so any broadcast
-          would be a self-broadcast with no other subscribers. %>
-      <% if Current.workspace && !Current.workspace.personal? %>
-        <%= turbo_stream_from Current.workspace %>
-      <% end %>
-
-      <%# Timezone beacon: reads the browser's IANA timezone via
-          Intl.DateTimeFormat on Stimulus connect and PATCHes it to the
-          server. Idempotent server-side — never clobbers an explicit
-          user choice. Authenticated-only. %>
-      <div data-controller="timezone-beacon"
-           data-timezone-beacon-url-value="<%= account_preferences_timezone_path %>"
-           data-timezone-beacon-token-value="<%= form_authenticity_token %>"
-           hidden></div>
-    <% end %>
+    <%= render "shared/authenticated_layout_streams" if authenticated? %>
 
     <%# Screen-reader announcement slot for real-time notification arrivals.
         Empty by default; broadcasts (Task 14 cycle C) update its content,

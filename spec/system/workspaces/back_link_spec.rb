@@ -11,33 +11,34 @@ RSpec.describe "Workspace back-link navigation", type: :system do
     click_button I18n.t("sessions.new.continue")
     fill_in I18n.t("sessions.password_form.password_label"), with: "SecureP@ssw0rd123!"
     click_button I18n.t("sessions.password_form.submit")
-    expect(page).to have_link(I18n.t("navigation.workspaces"))
+    expect(page).to have_css("#user-menu-button")
   end
 
-  describe "on workspace-scoped pages" do
-    let(:back_label) { I18n.t("navigation.back_to_workspace", workspace: workspace.name) }
+  let(:back_label) { I18n.t("navigation.back_to_workspace", workspace: workspace.name) }
 
-    it "shows the back-link on the members page" do
+  describe "on settings-hub pages (post route-consolidation panel review)" do
+    # The settings hub sidebar's workspace switcher is the canonical
+    # context-escape from settings — clicking another workspace (or the
+    # current workspace's entry) navigates to that workspace's dashboard.
+    # The redundant <nav>-wrapped back-link was removed from settings
+    # layout after a Jason Fried-led panel review found it created visual
+    # divorce between the sidebar and the main content.
+
+    it "does not show the back-link on the members page" do
       visit workspace_members_path(workspace)
-      expect(page).to have_link(back_label, href: workspace_path(workspace))
+      expect(page).not_to have_link(back_label)
     end
 
-    it "shows the back-link on the settings page" do
+    it "does not show the back-link on the limits & plan (settings) page" do
       visit edit_workspace_settings_path(workspace)
-      expect(page).to have_link(back_label, href: workspace_path(workspace))
-    end
-
-    it "navigates back to the workspace overview when clicked" do
-      visit workspace_members_path(workspace)
-      click_link back_label
-      expect(page).to have_current_path(workspace_path(workspace))
+      expect(page).not_to have_link(back_label)
     end
   end
 
   describe "on the workspace show page" do
     it "does not show the back-link (tautological — already there)" do
       visit workspace_path(workspace)
-      expect(page).not_to have_link(I18n.t("navigation.back_to_workspace", workspace: workspace.name))
+      expect(page).not_to have_link(back_label)
     end
   end
 end

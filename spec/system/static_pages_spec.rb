@@ -72,7 +72,7 @@ RSpec.describe "Static pages", type: :system do
 
     it "has a mobile menu toggle button" do
       visit root_path
-      expect(page).to have_css("button[aria-label='#{I18n.t("navigation.toggle_menu")}']", visible: :all)
+      expect(page).to have_button(I18n.t("navigation.mobile_menu.open"), visible: :all)
     end
 
     it "has toast containers for pills and cards" do

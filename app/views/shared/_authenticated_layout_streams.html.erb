@@ -1,0 +1,31 @@
+<%# Shared authenticated-layout chrome — Turbo Stream subscriptions + the
+    timezone beacon. Rendered from both layouts/application.html.erb and
+    layouts/settings.html.erb so a future stream-rename (D1 was one) is
+    a one-file edit instead of a per-layout sweep. Caller is responsible
+    for the authenticated? guard. -%>
+
+<%# Subscribe to the recipient's notifications stream. After-create
+    callback on Noticed::Event broadcasts a turbo-stream that replaces
+    the bell frames (notifications_bell_label_frame +
+    notifications_bell_indicator_frame). %>
+<%= turbo_stream_from [Current.user, :notifications] %>
+
+<%# Subscribe to the current workspace's stream in org context so
+    membership mutations (e.g. an admin demoting a member while that
+    member has a settings tab open) re-render the layout via the
+    Membership Broadcastable contract. Personal context is skipped:
+    personal workspaces only contain the owner, so any broadcast
+    would be a self-broadcast with no other subscribers. The if-guard
+    means this is a no-op on layouts/contexts without a workspace. -%>
+<% if Current.workspace && !Current.workspace.personal? %>
+  <%= turbo_stream_from Current.workspace %>
+<% end %>
+
+<%# Timezone beacon: reads the browser's IANA timezone via
+    Intl.DateTimeFormat on Stimulus connect and PATCHes it to the
+    server. Idempotent server-side — never clobbers an explicit
+    user choice. -%>
+<div data-controller="timezone-beacon"
+     data-timezone-beacon-url-value="<%= account_preferences_timezone_path %>"
+     data-timezone-beacon-token-value="<%= form_authenticity_token %>"
+     hidden></div>

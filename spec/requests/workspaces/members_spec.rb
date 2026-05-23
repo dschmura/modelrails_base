@@ -314,3 +314,72 @@ RSpec.describe "Workspace Members", type: :request do
     end
   end
 end
+
+RSpec.describe "Workspaces::Members destroy", type: :request do
+  let(:user) { create(:user) }
+  let(:other_user) { create(:user) }
+  let(:workspace) { create(:workspace, name: "Acme") }
+
+  before { sign_in(user) }
+
+  describe "DELETE /workspaces/:slug/members/:id" do
+    context "user leaving their own (non-personal) membership" do
+      let!(:user_membership) { create(:membership, user: user, workspace: workspace) }
+      let!(:owner_membership) { create(:membership, :owner, user: other_user, workspace: workspace) }
+
+      it "deactivates the membership and redirects to /workspaces with the 'left' flash" do
+        delete workspace_member_path(workspace, user_membership)
+        expect(response).to redirect_to(workspaces_path)
+        follow_redirect!
+        expect(flash[:notice]).to eq(I18n.t("workspaces.members.destroy.left", workspace: workspace.name))
+        expect(user_membership.reload.discarded_at).to be_present
+      end
+    end
+
+    context "user trying to leave their personal workspace" do
+      let!(:personal_membership) { create(:membership, :owner, user: user, workspace: workspace) }
+      before { user.update!(personal_workspace_id: workspace.id) }
+
+      it "is forbidden by the policy" do
+        delete workspace_member_path(workspace, personal_membership)
+        expect(response).to have_http_status(:forbidden).or have_http_status(:redirect)
+        expect(personal_membership.reload.discarded_at).to be_nil
+      end
+    end
+
+    context "user trying to leave as the last owner" do
+      let!(:user_owner_membership) { create(:membership, :owner, user: user, workspace: workspace) }
+      # No other owners exist.
+
+      it "is forbidden and the membership remains kept" do
+        delete workspace_member_path(workspace, user_owner_membership)
+        expect(response).to have_http_status(:forbidden).or have_http_status(:redirect)
+        expect(user_owner_membership.reload.discarded_at).to be_nil
+      end
+    end
+
+    context "admin deactivating another member (existing case)" do
+      let!(:admin_membership) { create(:membership, :admin, user: user, workspace: workspace) }
+      let!(:other_membership) { create(:membership, user: other_user, workspace: workspace) }
+      let!(:other_owner) { create(:membership, :owner, user: create(:user), workspace: workspace) }
+
+      it "deactivates and redirects to the members table (unchanged behavior)" do
+        delete workspace_member_path(workspace, other_membership)
+        expect(response).to redirect_to(workspace_members_path(workspace))
+        follow_redirect!
+        expect(flash[:notice]).to eq(I18n.t("workspaces.members.destroy.deactivated"))
+        expect(other_membership.reload.discarded_at).to be_present
+      end
+    end
+
+    context "non-member tries to delete someone else's membership" do
+      let!(:stranger) { user }  # the signed-in user has no membership in workspace
+      let!(:target_membership) { create(:membership, user: other_user, workspace: workspace) }
+
+      it "is forbidden" do
+        delete workspace_member_path(workspace, target_membership)
+        expect(response).to have_http_status(:redirect)  # set_workspace redirects to /workspaces on RecordNotFound
+      end
+    end
+  end
+end

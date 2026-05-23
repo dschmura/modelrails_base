@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_20_141152) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_22_120148) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -128,12 +128,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_20_141152) do
   create_table "memberships", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "discarded_at"
+    t.datetime "last_accessed_at"
     t.integer "role_id", null: false
     t.datetime "updated_at", null: false
     t.integer "user_id", null: false
     t.integer "workspace_id", null: false
     t.index ["discarded_at"], name: "index_memberships_on_discarded_at"
     t.index ["role_id"], name: "index_memberships_on_role_id"
+    t.index ["user_id", "last_accessed_at"], name: "index_memberships_on_user_id_and_last_accessed_at"
     t.index ["user_id", "workspace_id"], name: "index_memberships_on_user_id_and_workspace_id", unique: true
     t.index ["user_id"], name: "index_memberships_on_user_id"
     t.index ["workspace_id"], name: "index_memberships_on_workspace_id"

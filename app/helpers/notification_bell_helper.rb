@@ -70,6 +70,25 @@ module NotificationBellHelper
     end
   end
 
+  # Accessible name for the standalone notifications bell header link
+  # (D1). Parallels `avatar_button_aria_label` but speaks for the bell —
+  # it announces unread count + dominant-severity phrase without naming
+  # the user (the bell sits beside the avatar; the avatar carries the
+  # identity label). When there are no unread notifications, the label
+  # collapses to plain "Notifications" — the icon glyph + click target
+  # are sufficient affordance.
+  def bell_link_aria_label(user, summary = unread_notification_summary(user))
+    if summary[:count].zero?
+      t("navigation.bell.label")
+    elsif summary[:severity]
+      t("navigation.bell.label_with_unread",
+        count: summary[:count],
+        phrase: t("notifications.severity_phrase.#{summary[:severity]}"))
+    else
+      t("navigation.bell.label_with_unread_count_only", count: summary[:count])
+    end
+  end
+
   def _resolve_severity_for(notifier_class_name)
     case notifier_class_name.safe_constantize
     in nil

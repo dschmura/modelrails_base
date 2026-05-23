@@ -3,11 +3,11 @@ require "rails_helper"
 RSpec.describe "Notification Turbo Stream broadcasts" do
   let(:user) { create(:user) }
 
-  it "broadcasts the avatar-button-label + bell-indicator + menu-count quartet replaces to each recipient on event commit" do
+  it "broadcasts the bell-label + bell-indicator pair replaces to each recipient on event commit" do
     expect(Turbo::StreamsChannel).to receive(:broadcast_replace_to).with(
       [ a_kind_of(User), :notifications ],
-      target: "notifications_avatar_button_label_frame",
-      partial: "shared/user_menu_avatar_button_label",
+      target: "notifications_bell_label_frame",
+      partial: "shared/notifications_bell_label",
       locals: hash_including(user: a_kind_of(User), summary: hash_including(:count, :severity))
     )
     expect(Turbo::StreamsChannel).to receive(:broadcast_replace_to).with(
@@ -16,21 +16,17 @@ RSpec.describe "Notification Turbo Stream broadcasts" do
       partial: "shared/notifications_bell",
       locals: hash_including(user: a_kind_of(User), summary: hash_including(:count, :severity))
     )
-    expect(Turbo::StreamsChannel).to receive(:broadcast_replace_to).with(
-      [ a_kind_of(User), :notifications ],
-      target: "notifications_menu_count_frame",
-      partial: "shared/notifications_menu_count_span",
-      locals: hash_including(user: a_kind_of(User), summary: hash_including(:count, :severity))
-    )
 
     PasswordChangedNotifier.with(record: user).deliver(user)
   end
 
-  it "broadcasts all three frames once per recipient when fanned out" do
-    # 2 recipients × 3 frames (avatar-button + bell-indicator + menu-count) = 6 total replaces.
+  it "broadcasts both frames once per recipient when fanned out" do
+    # 2 recipients × 2 frames (bell-label + bell-indicator) = 4 total replaces.
+    # D1 dropped the menu-count broadcast — the user menu no longer carries
+    # a Notifications link with an inline count.
     other = create(:user)
 
-    expect(Turbo::StreamsChannel).to receive(:broadcast_replace_to).exactly(6).times
+    expect(Turbo::StreamsChannel).to receive(:broadcast_replace_to).exactly(4).times
 
     PasswordChangedNotifier.with(record: user).deliver([ user, other ])
   end

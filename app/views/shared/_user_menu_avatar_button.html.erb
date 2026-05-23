@@ -1,26 +1,19 @@
-<%# locals: (user:, summary: nil) -%>
-<%# The avatar trigger button. Never replaced by broadcasts — its
-    aria-label lives in a sibling frame (#user_menu_button_label) via
-    aria-labelledby. The bell overlay inside the button has its own
-    broadcast frame (#notifications_bell_indicator_frame), which sits
-    INSIDE the button but does not detach the button itself.
-
-    Accepts an optional pre-computed `summary:` local so a parent
-    partial (e.g. `_user_menu.html.erb`) can share ONE
-    `unread_notification_breakdown` query across the avatar button,
-    the bell, and the menu count span. Falls back to its own query
-    when rendered standalone. %>
-<% summary ||= unread_notification_summary(user) %>
+<%# locals: (user:) -%>
+<%# The avatar trigger button. D1: no longer renders the notifications
+    bell overlay or carries notification state — the bell is now a
+    standalone header affordance (see _notifications_bell_link). The
+    avatar carries a static identity-only aria-label, so the button is
+    always stable (no broadcast frames to keep its accessible name
+    swappable mid-click). %>
 <button data-dropdown-target="button"
         data-action="click->dropdown#toggle"
         id="user-menu-button"
         aria-haspopup="true"
         aria-expanded="false"
         aria-controls="user-menu"
-        aria-labelledby="user_menu_button_label"
-        class="btn-touch-target relative rounded-full
+        aria-label="<%= t("navigation.user_menu_label_simple", name: user.full_name) %>"
+        class="btn-touch-target rounded-full
                focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus
                cursor-pointer">
   <span id="user_avatar_header"><%= avatar_for(user, size: :md) %></span>
-  <%= render "shared/notifications_bell", user: user, summary: summary %>
 </button>

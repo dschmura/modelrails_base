@@ -1,41 +1,138 @@
-<%# locals: (workspaces:, current_workspace:) -%>
-<nav aria-label="<%= t("settings.sidebar.switcher_aria_label") %>"
-     class="mb-4 pb-4 border-b border-border"
-     data-controller="settings-switcher">
-  <ul role="list" class="flex flex-col gap-1">
-    <% workspaces.each do |workspace| %>
-      <% is_current = workspace == current_workspace %>
-      <% role_slug = workspace.memberships.detect { |m| m.user_id == Current.user.id }&.role&.slug %>
-      <li>
-        <%= link_to workspace_path(workspace),
-              aria: { current: ("true" if is_current),
-                      label: (t("settings.sidebar.workspace_link_aria_label.personal", name: workspace.name) if workspace.personal?) },
-              data: { turbo_prefetch: "true" },
-              class: [
-                "min-h-[44px] flex items-center gap-3 px-3 py-2 rounded-md",
-                "text-text-body",
-                "hover:bg-surface-sunken",
-                "focus:outline-none focus:ring-2 focus:ring-interactive-focus",
-                "motion-safe:transition-colors motion-safe:duration-150",
-                ("bg-surface-sunken font-semibold text-text-heading" if is_current)
-              ].compact do %>
-          <%# Avatar shape: circle = personal, rounded square = org (WCAG 1.4.1: not color-alone) %>
-          <span class="<%= workspace.personal? ? "rounded-full" : "rounded-md overflow-hidden" %> shrink-0">
-            <%= workspace_icon_for(workspace, size: :sm) %>
-          </span>
-          <% unless workspace.personal? %>
-            <span class="w-1 h-6 rounded-full shrink-0"
-                  style="background: oklch(0.55 0.18 <%= workspace.primary_color || 210 %>);"
-                  aria-hidden="true"></span>
-          <% end %>
-          <span class="flex-1 min-w-0">
-            <span class="block truncate"><%= workspace.name %></span>
-            <% if role_slug %>
-              <span class="block text-xs text-text-muted"><%= role_slug.titleize %></span>
+<%# locals: (workspaces:, current_workspace:, id_suffix: "") -%>
+<%# Settings hub sidebar workspace switcher (Path Y Phase A).
+
+    Trigger+dropdown pattern adapted from modelrails_agent_os:
+    - Compact trigger row at the top of the sidebar shows the current
+      workspace (avatar + name + chevron).
+    - Click reveals a dropdown menu with the full workspace list,
+      current entry marked with a checkmark, and a "Create workspace"
+      footer action.
+
+    Implementation notes:
+    - Reuses the project's existing `dropdown` Stimulus controller,
+      which handles outside-click + Esc close, arrow-key navigation,
+      and aria-expanded toggling. (Path Y Phase C deleted the former
+      header dropdown — this sidebar trigger is now the single
+      workspace-switching surface.)
+    - Avatar shape differentiation per WCAG 1.4.1: circle for
+      personal workspaces, rounded-square for org workspaces. The
+      workspace_icon_for helper renders rounded-full, so we wrap it
+      in a span that masks to the desired shape via overflow-hidden.
+    - Uses project semantic tokens (bg-surface-*, text-text-*,
+      border-border, ring-interactive-focus) — never raw slate-*.
+    - `id_suffix:` defaults to "" for the desktop column render and is
+      set to "-mobile" when the items partial is rendered into the
+      mobile-accordion content_for slot. Both renders coexist in the
+      DOM (the desktop column is `hidden md:flex`, not server-omitted),
+      so unique IDs prevent morph-mode `idiomorph` collisions and keep
+      `aria-controls` / `aria-labelledby` pointing at the right node. -%>
+<% if current_workspace.present? %>
+  <% button_id = "settings-workspace-switcher-button#{id_suffix}" %>
+  <% menu_id   = "settings-workspace-switcher-menu#{id_suffix}" %>
+  <div data-controller="dropdown" class="relative mb-3">
+    <%# Trigger button — shows current workspace. min-h-[44px] meets AAA
+        touch-target sizing; ring-interactive-focus keyboard focus. %>
+    <button type="button"
+            data-dropdown-target="button"
+            data-action="click->dropdown#toggle"
+            id="<%= button_id %>"
+            aria-expanded="false"
+            aria-haspopup="true"
+            aria-controls="<%= menu_id %>"
+            aria-label="<%= t("settings.sidebar.switcher.switch_workspace") %>"
+            class="w-full min-h-[44px] flex items-center gap-3 px-3 py-2 rounded-md
+                   bg-surface border border-border
+                   text-text-body
+                   motion-safe:transition-colors motion-safe:duration-150
+                   hover:bg-surface-sunken
+                   focus:outline-none focus:ring-2 focus:ring-interactive-focus">
+      <span class="shrink-0 w-8 h-8 flex items-center justify-center
+                   <%= current_workspace.personal? ? "rounded-full" : "rounded-md overflow-hidden" %>">
+        <%= workspace_icon_for(current_workspace, size: :sm) %>
+      </span>
+      <span class="flex-1 min-w-0 text-left">
+        <span class="block text-sm font-medium text-text-heading truncate" title="<%= current_workspace.name %>">
+          <%= current_workspace.name %>
+        </span>
+      </span>
+      <span class="shrink-0 text-text-muted" aria-hidden="true">
+        <%= icon(:chevron_down, size: :sm) %>
+      </span>
+    </button>
+
+    <%# Dropdown menu — hidden by default; controller removes the
+        `hidden` class on toggle. z-50 keeps it above sidebar content
+        and the drawer overlay does not clip (sidebar has no
+        overflow-hidden on the aside). %>
+    <div data-dropdown-target="menu"
+         id="<%= menu_id %>"
+         role="menu"
+         aria-orientation="vertical"
+         aria-labelledby="<%= button_id %>"
+         class="hidden absolute left-0 right-0 top-full mt-1 z-50
+                rounded-md bg-surface-overlay
+                border border-border shadow-lg overflow-hidden">
+      <div class="px-3 py-2 border-b border-border">
+        <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">
+          <%= t("settings.sidebar.switcher.switch_workspace") %>
+        </p>
+      </div>
+
+      <ul role="none" class="py-1 max-h-64 overflow-y-auto">
+        <% workspaces.each do |workspace| %>
+          <% is_current = workspace.id == current_workspace.id %>
+          <li role="none">
+            <%# Current workspace gets a left-border accent + background so it
+                stays visually distinct even when a non-current row is being
+                hovered (both use bg-surface-sunken otherwise). border-l-4 +
+                adjusted px-3→pl-2 keeps the icon column aligned.
+                No turbo_prefetch on workspace rows — opening the dropdown
+                would otherwise prefetch every workspace's dashboard on hover. %>
+            <%= link_to workspace_path(workspace),
+                  role: "menuitem",
+                  tabindex: "-1",
+                  aria: { current: ("true" if is_current) },
+                  class: [
+                    "min-h-[44px] flex items-center gap-3 py-2 text-sm",
+                    "motion-safe:transition-colors motion-safe:duration-150",
+                    "focus:outline-none focus:bg-surface-sunken",
+                    (is_current ?
+                      "pl-2 pr-3 border-l-4 border-interactive bg-surface-sunken font-semibold text-text-heading" :
+                      "px-3 text-text-body hover:bg-surface-sunken")
+                  ].compact do %>
+              <span class="shrink-0 w-8 h-8 flex items-center justify-center
+                           <%= workspace.personal? ? "rounded-full" : "rounded-md overflow-hidden" %>">
+                <%= workspace_icon_for(workspace, size: :sm) %>
+              </span>
+              <span class="flex-1 min-w-0">
+                <span class="block truncate" title="<%= workspace.name %>"><%= workspace.name %></span>
+                <span class="block text-xs text-text-muted"><%= t("workspaces.plans.#{workspace.plan}", default: workspace.plan.titleize) %></span>
+              </span>
+              <% if is_current %>
+                <span class="shrink-0 text-interactive" aria-hidden="true">
+                  <%= icon(:check_circle, size: :sm) %>
+                </span>
+              <% end %>
             <% end %>
-          </span>
+          </li>
         <% end %>
-      </li>
-    <% end %>
-  </ul>
-</nav>
+      </ul>
+
+      <div class="border-t border-border">
+        <%= link_to new_workspace_path,
+              role: "menuitem",
+              tabindex: "-1",
+              class: "min-h-[44px] flex items-center gap-3 px-3 py-2 text-sm text-interactive
+                      motion-safe:transition-colors motion-safe:duration-150
+                      hover:bg-surface-sunken
+                      focus:outline-none focus:bg-surface-sunken" do %>
+          <span class="shrink-0 w-8 h-8 rounded-md flex items-center justify-center bg-surface-sunken"
+                aria-hidden="true">
+            <span class="text-lg leading-none font-semibold">+</span>
+          </span>
+          <span class="font-medium"><%= t("settings.sidebar.switcher.create_workspace") %></span>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>

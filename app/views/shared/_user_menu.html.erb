@@ -1,41 +1,14 @@
 <%# locals: (context: :desktop) -%>
+<%# D1: user menu collapses to two items per context — a clickable
+    identity block (avatar + name + email linking to the personal-context
+    profile) and a sign-out button. Notifications relocate to the
+    standalone header bell; notification preferences remain accessible
+    via the Settings hub sidebar. -%>
 <% if authenticated? %>
-  <%# Compute the unread summary ONCE per page render and pass it down to
-      every partial that needs it (avatar button, bell, menu count span).
-      Each downstream partial accepts `summary:` as an optional local and
-      falls back to its own query when rendered standalone (e.g. via
-      Turbo Stream broadcast). -%>
-  <% summary = unread_notification_summary(Current.user) %>
-  <%# Unread-dot decoration for the Preferences link — surfaces in both
-      desktop and mobile contexts until the user dismisses the migration
-      banner. Pure CSS via Tailwind `after:` pseudo-element so screen
-      readers don't see a spurious visual marker (the dot is purely
-      decorative — the banner inside the page is the SR-accessible
-      announcement). The `data-unread-dot` attribute is a stable test
-      hook that doesn't require escaping Tailwind colons in selectors. -%>
-  <%
-    prefs_unread = Current.user.preferences&.dismissed_notifications_redesign_banner_at.nil?
-    prefs_dot_classes = prefs_unread ?
-      "relative after:content-[''] after:absolute after:right-3 after:top-1/2 " \
-      "after:-translate-y-1/2 after:w-2 after:h-2 after:bg-interactive after:rounded-full" :
-      ""
-    prefs_dot_data = prefs_unread ? { unread_dot: "true" } : {}
-  %>
   <% if context == :desktop %>
-  <%# Desktop: avatar with notification overlay; bell + count broadcast targets %>
   <div class="hidden md:flex items-center gap-2">
-    <div data-controller="dropdown"
-         class="relative">
-      <%# The accessible name (aria-label text) lives in its own
-          broadcast frame, separate from the focusable button. When a
-          notification arrives, NotificationBroadcaster replaces this
-          label frame only — the button itself is never detached, so
-          clicks landing during a broadcast still hit a live target. %>
-      <turbo-frame id="notifications_avatar_button_label_frame">
-        <%= render "shared/user_menu_avatar_button_label", user: Current.user, summary: summary %>
-      </turbo-frame>
-
-      <%= render "shared/user_menu_avatar_button", user: Current.user, summary: summary %>
+    <div data-controller="dropdown" class="relative">
+      <%= render "shared/user_menu_avatar_button", user: Current.user %>
 
       <div data-dropdown-target="menu"
            id="user-menu"
@@ -44,50 +17,37 @@
            aria-labelledby="user-menu-button"
            class="hidden absolute right-0 mt-2 w-64 rounded-lg
                   bg-surface-raised border border-border shadow-lg z-50">
-        <div class="px-4 py-3">
-          <p class="text-sm font-semibold text-text-heading"><%= Current.user.full_name %></p>
-          <p class="text-sm text-text-muted truncate"><%= Current.user.email_address %></p>
-        </div>
+        <%= link_to main_app.edit_account_profile_path,
+              role: "menuitem", tabindex: "-1",
+              data: { turbo_prefetch: "true" },
+              class: "flex items-center gap-3 px-4 py-3 rounded-t-lg
+                      hover:bg-surface focus:outline-none focus:bg-surface
+                      focus:ring-2 focus:ring-inset focus:ring-interactive-focus" do %>
+          <div class="shrink-0 w-10 h-10 rounded-full overflow-hidden">
+            <%= avatar_for(Current.user, size: :md) %>
+          </div>
+          <div class="min-w-0">
+            <p class="text-sm font-semibold text-text-heading truncate"><%= Current.user.full_name %></p>
+            <p class="text-xs text-text-muted truncate"><%= Current.user.email_address %></p>
+          </div>
+        <% end %>
 
+        <%# "All workspaces" — the only in-product path to the workspaces
+            index on non-workspace-scoped pages (marketing landing, auth
+            flows). Path Y Phase C removed the header text-link version of
+            this affordance because it sat adjacent to the sidebar switcher
+            and got mistaken for it; placing it inside the user menu
+            structurally prevents that confusion. Label is deliberately
+            "All workspaces" (not "Workspaces") to disambiguate from the
+            switcher's "switch workspace" verb. %>
         <div class="border-t border-border">
-          <%= link_to t("navigation.profile"), main_app.edit_account_profile_path,
+          <%= link_to t("navigation.all_workspaces"), main_app.workspaces_path,
                 role: "menuitem", tabindex: "-1",
                 data: { turbo_prefetch: "true" },
                 class: "flex items-center min-h-[var(--form-input-height)] px-4 py-2
                         text-sm text-text-body
                         hover:bg-surface hover:text-interactive
                         focus:outline-none focus:ring-2 focus:ring-interactive-focus focus:text-interactive" %>
-        </div>
-
-        <div class="border-t border-border">
-          <%= link_to main_app.account_notifications_path,
-                role: "menuitem", tabindex: "-1",
-                data: { turbo_prefetch: "true" },
-                class: "flex items-center min-h-[var(--form-input-height)] px-4 py-2
-                        text-sm text-text-body
-                        hover:bg-surface hover:text-interactive
-                        focus:outline-none focus:ring-2 focus:ring-interactive-focus focus:text-interactive" do %>
-            <%= icon(:bell, style: :solid, class: class_names(
-                  "w-4 h-4 mr-2",
-                  "forced-colors:text-[ButtonText]",
-                  summary[:severity] && notification_bell_classes(summary[:severity])[:icon]
-                )) %>
-            <%= t("navigation.notifications") %>
-            <turbo-frame id="notifications_menu_count_frame">
-              <%= render "shared/notifications_menu_count_span", user: Current.user, summary: summary %>
-            </turbo-frame>
-          <% end %>
-        </div>
-
-        <div class="border-t border-border">
-          <%= link_to t("navigation.notification_preferences"), main_app.edit_account_notification_preferences_path,
-                role: "menuitem", tabindex: "-1",
-                data: prefs_dot_data.merge(turbo_prefetch: "true"),
-                class: "flex items-center min-h-[var(--form-input-height)] px-4 py-2
-                        text-sm text-text-body
-                        hover:bg-surface hover:text-interactive
-                        focus:outline-none focus:ring-2 focus:ring-interactive-focus focus:text-interactive
-                        #{prefs_dot_classes}" %>
         </div>
 
         <div class="border-t border-border">
@@ -105,39 +65,31 @@
   <% end %>
 
   <% if context == :mobile %>
-  <%# Mobile: inline links (shown inside hamburger menu) %>
   <div class="md:hidden">
-    <div class="px-2 py-2">
-      <p class="text-sm font-semibold text-text-heading"><%= Current.user.full_name %></p>
-      <p class="text-sm text-text-muted truncate"><%= Current.user.email_address %></p>
-    </div>
-    <%= link_to t("navigation.profile"), main_app.edit_account_profile_path,
+    <%= link_to main_app.edit_account_profile_path,
           data: { turbo_prefetch: "true" },
-          class: "min-h-[var(--form-input-height)] flex items-center px-2 text-text-body
-                  hover:text-interactive-hover rounded
-                  focus:outline-none focus:ring-2 focus:ring-interactive-focus" %>
-    <%= link_to main_app.account_notifications_path,
-          data: { turbo_prefetch: "true" },
-          class: "min-h-[var(--form-input-height)] flex items-center px-2 text-text-body
-                  hover:text-interactive-hover rounded
-                  focus:outline-none focus:ring-2 focus:ring-interactive-focus" do %>
-      <%= icon(:bell, style: :solid, class: class_names(
-            "w-4 h-4 mr-2",
-            "forced-colors:text-[ButtonText]",
-            summary[:severity] && notification_bell_classes(summary[:severity])[:icon]
-          )) %>
-      <%= t("navigation.notifications") %>
-      <%= render "shared/notifications_menu_count_span", user: Current.user, summary: summary %>
+          class: "flex items-center gap-3 px-3 py-3 rounded-md
+                  hover:bg-surface focus:outline-none focus:bg-surface
+                  focus:ring-2 focus:ring-inset focus:ring-interactive-focus" do %>
+      <div class="shrink-0 w-10 h-10 rounded-full overflow-hidden">
+        <%= avatar_for(Current.user, size: :md) %>
+      </div>
+      <div class="min-w-0">
+        <p class="text-sm font-semibold text-text-heading truncate"><%= Current.user.full_name %></p>
+        <p class="text-xs text-text-muted truncate"><%= Current.user.email_address %></p>
+      </div>
     <% end %>
-    <%= link_to t("navigation.notification_preferences"), main_app.edit_account_notification_preferences_path,
-          data: prefs_dot_data.merge(turbo_prefetch: "true"),
-          class: "min-h-[var(--form-input-height)] flex items-center px-2 text-text-body
-                  hover:text-interactive-hover rounded
-                  focus:outline-none focus:ring-2 focus:ring-interactive-focus
-                  #{prefs_dot_classes}" %>
+    <%# "All workspaces" — see desktop branch above for rationale. %>
+    <%= link_to t("navigation.all_workspaces"), main_app.workspaces_path,
+          data: { turbo_prefetch: "true" },
+          class: "mt-1 w-full min-h-[var(--form-input-height)] flex items-center px-3 py-2
+                  text-sm text-text-body
+                  hover:bg-surface-sunken hover:text-interactive-hover rounded
+                  focus:outline-none focus:ring-2 focus:ring-interactive-focus" %>
     <%= button_to t("navigation.sign_out"), main_app.session_path, method: :delete,
-          class: "min-h-[var(--form-input-height)] flex items-center px-2 text-text-body
-                  hover:text-interactive-hover rounded
+          class: "mt-1 w-full min-h-[var(--form-input-height)] flex items-center px-3 py-2
+                  text-sm text-text-body
+                  hover:bg-surface-sunken hover:text-interactive-hover rounded
                   focus:outline-none focus:ring-2 focus:ring-interactive-focus cursor-pointer" %>
   </div>
   <% end %>

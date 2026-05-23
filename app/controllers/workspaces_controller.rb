@@ -7,8 +7,23 @@ class WorkspacesController < ApplicationController
 
   def index
     authorize Workspace
-    @workspaces = Current.user.workspaces.kept
-      .includes(:logo_attachment, memberships: [ :role, { user: :avatar_attachment } ])
+
+    # No `:user` on the outer scope — the row partial uses `Current.user`
+    # directly (membership.user is always Current.user on this page). Inner
+    # `memberships: { user: ... }` stays because Workspace#owners walks the
+    # *other* members' user records.
+    scope = Current.user.memberships.kept
+              .joins(:workspace)
+              .merge(Workspace.kept)
+              .includes(
+                :role,
+                workspace: [ :logo_attachment, memberships: [ :role, :user ] ]
+              )
+              .order(Arel.sql("memberships.last_accessed_at DESC NULLS LAST, workspaces.name ASC"))
+
+    @memberships = scope.to_a
+    @current_membership = @memberships.first
+    @other_memberships = @memberships.drop(1)
   end
 
   def new
@@ -94,7 +109,7 @@ class WorkspacesController < ApplicationController
 
     if @workspace.update(profile_params)
       respond_to do |format|
-        format.turbo_stream { render "workspaces/brandings/update" }
+        format.turbo_stream
         format.html { redirect_to edit_workspace_path(@workspace), notice: t(".success") }
       end
     else
