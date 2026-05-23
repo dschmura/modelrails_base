@@ -27,7 +27,7 @@ RSpec.describe "Account Notification Preferences — AAA accessibility", type: :
 
   it "passes AAA audit on the preferences edit page in both light + dark modes" do
     visit edit_account_notification_preferences_path
-    expect(page).to have_text(I18n.t("notifications.preferences.heading"))
+    expect(page).to have_text(I18n.t("settings.pages.notifications.h1"))
 
     expect(axe_clean_in_both_themes?(axe_options)).to be(true),
       "AAA violations:\n#{axe_violations_in_both_themes(axe_options).join("\n")}"

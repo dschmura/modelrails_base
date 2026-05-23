@@ -1,5 +1,8 @@
 module Account
   class ConnectedAccountsController < ApplicationController
+    include PersonalWorkspaceContext
+    layout "settings"
+
     allow_unauthenticated_access only: :verify
 
     rate_limit to: 3, within: 3.minutes, only: :resend_verification,

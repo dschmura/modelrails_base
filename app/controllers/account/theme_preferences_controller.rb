@@ -1,5 +1,13 @@
 module Account
   class ThemePreferencesController < ApplicationController
+    include PersonalWorkspaceContext
+    layout "settings"
+
+    def edit
+      @preferences = Current.user.preferences || Current.user.build_preferences
+      authorize @preferences, policy_class: Account::ThemePreferencesPolicy
+    end
+
     def update
       preferences = Current.user.preferences || Current.user.create_preferences!
       authorize preferences, policy_class: Account::ThemePreferencesPolicy

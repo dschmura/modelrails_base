@@ -10,12 +10,27 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Added
 
+- Settings hub destinations: disambiguated H1s + descriptions on each sidebar destination, shared `shared/_settings_page_header.html.erb` partial, and Appearance page (closes #150 — sidebar link no longer 405s).
+- Settings hub shell: sidebar-equipped layout (`layouts/settings.html.erb`) for account- and workspace-tier settings, with context-adaptive item list, Pundit-gated visibility, polite aria-live region, and site-wide Turbo morph.
+- Personal-workspace OKLCH context ramp via `[data-workspace-kind="personal"]` — desaturated slate treatment so solo users see a deliberate visual identity rather than unstyled-org defaults.
+- Chroma-boosted color swatch on org workspaces in the sidebar switcher — small vertical chip beside each workspace name using its `primary_color` for at-a-glance differentiation.
 - Notifications v1 — in-app bell + dropdown, dedicated `/account/notifications` triage page, real-time arrival broadcasts, preferences UI (DND, 5×3 category/channel matrix, digest cadence, retention), email digests every 15 minutes, and 10 wired notifier types covering workspace, project, billing, and security events (#48, #53–#56, #64–#71).
 - Optional VS Code Dev Container that matches the production image (#129).
 - `.env.example` documenting required environment variables (#129).
 - YJIT enabled in production (#129).
 - CI builds the production Docker image on every PR (#134).
 - New deployment, background-jobs, and dev-environment docs at `/docs` (#136).
+
+### Changed
+
+- Account Profile, Notification Preferences, Connected Accounts (Security), Workspace Settings, and Workspace Members destinations now use the shared settings page header for consistent chrome.
+- Smooth motion-safe color transitions on sidebar items and switcher; settings layout's context attribute renamed `data-settings-context-kind` → `data-workspace-kind`; hover prefetch added to header user-menu settings links and header workspace dropdown.
+- Route consolidation: `workspaces#edit` now serves the workspace Profile (identity — name, logo, primary_color); `workspaces/settings#edit` narrows to Limits & Plan. Admin sees Profile in sidebar (capability expansion vs pre-consolidation when sidebar gated on Owner-only `WorkspacePolicy#update?`; now gated on `Workspaces::ProfilePolicy#update?` = `manage_settings`).
+
+### Removed
+
+- `Workspaces::BrandingsController` and its routes (`/workspaces/:slug/branding/*`). Identity picker hub moved to `WorkspacesController#identity_picker_hub` (`/workspaces/:slug/identity_picker_hub`).
+- `Workspaces::BrandingPolicy` (replaced by `Workspaces::ProfilePolicy` on workspaces#edit/update).
 
 ### Bug fixes
 

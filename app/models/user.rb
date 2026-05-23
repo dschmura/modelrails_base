@@ -174,6 +174,15 @@ class User < ApplicationRecord
     update_column(:last_known_browsers, browsers)
   end
 
+  # Resolves the user's personal workspace via the denormalized FK column
+  # (users.personal_workspace_id), backed by a unique partial index that
+  # enforces "at most one personal workspace per user" at the database level.
+  # Returns nil if the FK is unset or the referenced workspace was discarded.
+  def personal_workspace
+    return nil if personal_workspace_id.nil?
+    Workspace.kept.find_by(id: personal_workspace_id)
+  end
+
   # Returns { notifier_class_name => unread_count, ... } for the user.
   # Used by NotificationBellHelper to compute count and severity in one DB hit.
   def unread_notification_breakdown
@@ -191,12 +200,15 @@ class User < ApplicationRecord
   end
 
   def create_personal_workspace
+    return if personal_workspace_id.present?
+
     workspace = Workspace.create!(name: "#{first_name}'s Workspace", personal: true)
     owner_role = Role.find_or_create_by!(slug: "owner", workspace_id: nil) do |r|
       r.name = "Owner"
       r.permissions = { manage_workspace: true, manage_members: true, manage_projects: true, manage_settings: true }
     end
     workspace.memberships.create!(user: self, role: owner_role)
+    update_column(:personal_workspace_id, workspace.id)
   end
 
   def password_not_pwned

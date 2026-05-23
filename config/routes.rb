@@ -23,7 +23,7 @@ Rails.application.routes.draw do
     resource :avatar, only: [ :update, :destroy ] do
       get :hub
     end
-    resource :theme_preference, only: [ :update ]
+    resource :theme_preference, only: [ :edit, :update ]
     resource :notification_preferences, only: [ :edit, :update ] do
       post :dismiss_banner
     end
@@ -51,6 +51,9 @@ Rails.application.routes.draw do
   end
 
   resources :workspaces, param: :slug do
+    member do
+      get :identity_picker_hub
+    end
     scope module: :workspaces do
       resources :members, only: [ :index, :edit, :update, :destroy ] do
         member do
@@ -64,9 +67,6 @@ Rails.application.routes.draw do
         end
       end
       resource :settings, only: [ :edit, :update ]
-      resource :branding, only: [ :edit, :update, :destroy ] do
-        get :hub
-      end
       resources :projects, param: :slug do
         scope module: :projects do
           resources :memberships, only: [ :index, :new, :create, :update, :destroy ] do

@@ -2,6 +2,8 @@ module Workspaces
   class MembersController < ApplicationController
     include WorkspaceScoped
 
+    layout "settings"
+
     def index
       authorize Membership
       @roles = @workspace.effective_roles

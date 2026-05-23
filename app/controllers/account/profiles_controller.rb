@@ -1,5 +1,8 @@
 module Account
   class ProfilesController < ApplicationController
+    include PersonalWorkspaceContext
+    layout "settings"
+
     def edit
       @user = Current.user
       authorize @user, policy_class: Account::ProfilePolicy
