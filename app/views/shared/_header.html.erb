@@ -47,10 +47,22 @@
                 data-mobile-menu-close-label-value="<%= t("navigation.mobile_menu.close") %>"
                 aria-expanded="false"
                 aria-controls="mobile-menu-panel"
-                class="btn-touch-target md:hidden text-text-body
+                class="btn-touch-target relative md:hidden text-text-body
                        focus:outline-none focus:ring-2 focus:ring-interactive-focus rounded">
           <span class="sr-only" data-mobile-menu-target="label"><%= t("navigation.mobile_menu.open") %></span>
           <%= icon(:bars_3, size: :lg) %>
+          <% if authenticated? %>
+            <%# v2: severity-colored indicator dot. Mirrors the avatar's
+                indicator (also a positioned sibling, not inside the
+                button's accessible-name path) so AT users get notification
+                state via the in-menu Notifications row aria-live region,
+                not via the hamburger's "Open/Close menu" label. %>
+            <turbo-frame id="notifications_indicator_hamburger">
+              <%= render "shared/notifications_indicator",
+                    summary: unread_notification_summary(Current.user),
+                    surface: :hamburger %>
+            </turbo-frame>
+          <% end %>
         </button>
       </div>
     </div>
