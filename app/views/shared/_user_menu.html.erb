@@ -36,29 +36,11 @@
         <% end %>
 
         <%# v2 Notifications row — the canonical triage entry point.
-            Wrapped in notifications_menu_count_frame so broadcasts can
-            swap just the count without re-rendering the whole menu. %>
+            Wrapped in notifications_menu_count_frame so the broadcaster
+            can swap just the count without re-rendering the whole menu. %>
         <div class="border-t border-border">
           <turbo-frame id="notifications_menu_count_frame">
-            <%= link_to main_app.account_notifications_path,
-                  role: "menuitem", tabindex: "-1",
-                  data: { turbo_prefetch: "true" },
-                  class: "flex items-center justify-between gap-3 min-h-[var(--form-input-height)] px-4 py-2
-                          text-sm text-text-body
-                          hover:bg-surface hover:text-interactive
-                          focus:outline-none focus:ring-2 focus:ring-interactive-focus focus:text-interactive" do %>
-              <span class="flex items-center gap-3">
-                <%= icon(:bell, size: :sm) %>
-                <%= t("navigation.notifications") %>
-              </span>
-              <% if summary[:count]&.positive? %>
-                <span class="text-xs font-medium text-text-muted"
-                      aria-live="polite"
-                      aria-label="<%= t("navigation.notifications_count_aria", count: summary[:count]) %>">
-                  <%= t("navigation.notifications_count", count: summary[:count]) %>
-                </span>
-              <% end %>
-            <% end %>
+            <%= render "shared/user_menu_notifications_row", user: Current.user, summary: summary %>
           </turbo-frame>
         </div>
 
