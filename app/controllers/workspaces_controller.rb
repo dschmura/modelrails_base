@@ -8,12 +8,15 @@ class WorkspacesController < ApplicationController
   def index
     authorize Workspace
 
+    # No `:user` on the outer scope — the row partial uses `Current.user`
+    # directly (membership.user is always Current.user on this page). Inner
+    # `memberships: { user: ... }` stays because Workspace#owners walks the
+    # *other* members' user records.
     scope = Current.user.memberships.kept
               .joins(:workspace)
               .merge(Workspace.kept)
               .includes(
                 :role,
-                :user,
                 workspace: [ :logo_attachment, memberships: [ :role, :user ] ]
               )
               .order(Arel.sql("memberships.last_accessed_at DESC NULLS LAST, workspaces.name ASC"))
