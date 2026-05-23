@@ -1,88 +1,20 @@
 <%# locals: (workspaces:, current_workspace:) -%>
-<%# Adding a new sidebar item:
-    1. Add i18n keys in config/locales/en/settings.en.yml:
-       - settings.sidebar.items.<key>      (visible label)
-       - settings.sidebar.aria_labels.<key> (context-disambiguated aria-label, org items only)
-    2. If the item should be announced in the aria-live region when the
-       workspace context changes, add it to SettingsNavigationHelper#visible_org_sidebar_items
-       with the same Pundit policy/action used to gate it here.
-    3. Add a render block below in the matching context branch (personal or org).
-       Org items wrap in render_render_nav_item_if_permitted; personal items render unconditionally.
-    The sidebar's source of truth for visibility IS the destination controller's Pundit
-    policy — never introduce a separate SidebarPolicy. -%>
+<%# Desktop settings-sidebar wrapper — provides the <aside> landmark
+    and the boxed sidebar visual chrome (fixed 256px width, surface
+    background, right border). For the actual contents (switcher +
+    nav items + Pundit gating), see _settings_sidebar_items.html.erb,
+    which is also rendered directly into the mobile-accordion
+    content_for slot WITHOUT this chrome — that's how mobile sees the
+    sidebar contents flow inline instead of as a nested sidebar.
+
+    Workspace switcher: a trigger+dropdown row at the top of the sidebar
+    contents (shared/_settings_sidebar_switcher.html.erb) shows the
+    current workspace and reveals the full workspace list on click —
+    Path Y Phase A, restoring switching to the sidebar in a compact form
+    after the always-open inline list (Phase 2) was retired by panel review. -%>
 <aside aria-label="<%= t("settings.sidebar.aria_label") %>"
        class="w-64 shrink-0 px-4 py-6 border-r border-border bg-surface">
-  <%= render "shared/settings_sidebar_switcher",
+  <%= render "shared/settings_sidebar_items",
         workspaces: workspaces,
         current_workspace: current_workspace %>
-
-  <ul role="list" class="flex flex-col gap-1">
-    <% if settings_context_kind == :personal %>
-      <%= render "shared/settings_sidebar_item",
-            label: t("settings.sidebar.items.profile"),
-            href: edit_account_profile_path,
-            aria_label: t("settings.sidebar.aria_labels.profile_personal"),
-            active: current_page?(edit_account_profile_path) %>
-
-      <%= render "shared/settings_sidebar_item",
-            label: t("settings.sidebar.items.notifications"),
-            href: edit_account_notification_preferences_path,
-            active: current_page?(edit_account_notification_preferences_path) %>
-
-      <%= render "shared/settings_sidebar_item",
-            label: t("settings.sidebar.items.security"),
-            href: account_connected_accounts_path,
-            active: current_page?(account_connected_accounts_path) %>
-
-      <%= render "shared/settings_sidebar_item",
-            label: t("settings.sidebar.items.appearance"),
-            href: edit_account_theme_preference_path,
-            active: current_page?(edit_account_theme_preference_path) %>
-    <% else %>
-      <%# Profile routes to workspaces#edit which authorizes via
-          Workspaces::ProfilePolicy (manage_settings permission). Consult
-          ProfilePolicy directly so sidebar visibility matches the
-          destination controller's authorize call. %>
-      <% if Workspaces::ProfilePolicy.new(Current.user, current_workspace).update? %>
-        <%= render "shared/settings_sidebar_item",
-              label: t("settings.sidebar.items.profile"),
-              href: edit_workspace_path(current_workspace),
-              aria_label: t("settings.sidebar.aria_labels.profile_org",
-                            workspace_name: current_workspace.name),
-              active: current_page?(edit_workspace_path(current_workspace)) %>
-      <% end %>
-
-      <%= render_nav_item_if_permitted(Membership.new(workspace: current_workspace), action: :index?) do %>
-        <%= render "shared/settings_sidebar_item",
-              label: t("settings.sidebar.items.members"),
-              href: workspace_members_path(current_workspace),
-              aria_label: t("settings.sidebar.aria_labels.members",
-                            workspace_name: current_workspace.name),
-              active: current_page?(workspace_members_path(current_workspace)) %>
-      <% end %>
-
-      <%= render_nav_item_if_permitted(Invitation.new(invitable: current_workspace), action: :index?) do %>
-        <%= render "shared/settings_sidebar_item",
-              label: t("settings.sidebar.items.invitations"),
-              href: workspace_invitations_path(current_workspace),
-              aria_label: t("settings.sidebar.aria_labels.invitations",
-                            workspace_name: current_workspace.name),
-              active: current_page?(workspace_invitations_path(current_workspace)) %>
-      <% end %>
-
-      <%# Limits & Plan routes to workspaces/settings#edit which authorizes via
-          Workspaces::SettingsPolicy (manage_settings permission). The default
-          WorkspacePolicy#update? checks manage_workspace — a different permission
-          held by Owners but not Admins. We consult SettingsPolicy directly so
-          sidebar visibility matches the destination controller's authorize call. %>
-      <% if Workspaces::SettingsPolicy.new(Current.user, current_workspace).update? %>
-        <%= render "shared/settings_sidebar_item",
-              label: t("settings.sidebar.items.limits_and_plan"),
-              href: edit_workspace_settings_path(current_workspace),
-              aria_label: t("settings.sidebar.aria_labels.limits_and_plan",
-                            workspace_name: current_workspace.name),
-              active: current_page?(edit_workspace_settings_path(current_workspace)) %>
-      <% end %>
-    <% end %>
-  </ul>
 </aside>

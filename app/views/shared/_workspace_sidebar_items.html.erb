@@ -1,0 +1,51 @@
+<%# locals: (workspaces:, current_workspace:, id_suffix: "") -%>
+<%# Chrome-free workspace-sidebar contents — workspace switcher + nav items.
+    Rendered both inside `_workspace_sidebar` (which adds the <aside>
+    landmark + sidebar visual chrome for the desktop column) AND directly
+    into the mobile-accordion content_for slot (no chrome — contents flow
+    inline alongside the rest of the accordion items, matching the
+    modelrails_agent_os mobile pattern). The mobile path passes
+    `id_suffix: "-mobile"` so the switcher's button/menu IDs and the
+    section-label ID are unique across the two coexisting renders. -%>
+<% section_label_id = "workspace-sidebar-section-label#{id_suffix}" %>
+<%= render "shared/settings_sidebar_switcher",
+      workspaces: workspaces,
+      current_workspace: current_workspace,
+      id_suffix: id_suffix %>
+
+<%# Visual divider + section label — matches agent_os mobile rhythm
+    and gives the desktop sidebar the same scannable layout. Section
+    label is a styled <div> programmatically associated with the <ul>
+    below via aria-labelledby (screen readers announce "Workspace,
+    list, N items" on entry). %>
+<hr class="my-3 border-border">
+
+<div id="<%= section_label_id %>"
+     class="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-text-muted">
+  <%= t("workspaces.sidebar.section_label") %>
+</div>
+
+<ul role="list"
+    aria-labelledby="<%= section_label_id %>"
+    class="flex flex-col gap-1">
+  <%= render "shared/settings_sidebar_item",
+        label: t("workspaces.sidebar.overview"),
+        href: workspace_path(current_workspace),
+        icon: :home,
+        active: current_page?(workspace_path(current_workspace)) %>
+
+  <%= render "shared/settings_sidebar_item",
+        label: t("workspaces.sidebar.projects"),
+        href: workspace_projects_path(current_workspace),
+        icon: :folder,
+        active: current_page?(workspace_projects_path(current_workspace)) %>
+
+  <%# Settings link routes to workspaces#edit (Profile) which is the
+      entry point of the Settings hub. The hub's own sidebar takes
+      over once the user lands inside. %>
+  <%= render "shared/settings_sidebar_item",
+        label: t("workspaces.sidebar.settings"),
+        href: edit_workspace_path(current_workspace),
+        icon: :cog,
+        active: false %>
+</ul>

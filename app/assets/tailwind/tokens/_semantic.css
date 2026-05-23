@@ -19,7 +19,31 @@
   --color-text-muted:          var(--neutral-700); /* AAA 7:1 on white surface — same darkness as body; visual hierarchy is now via font-size/weight, not lightness */
   --color-text-on-interactive: oklch(100% 0 0);  /* white */
 
-  /* --- Interactive (buttons, links, focus rings) --- */
+  /* --- Interactive (buttons, links, focus rings) ---
+   *
+   * NOTE on choosing between `interactive` and `interactive-hover`:
+   *
+   * - `text-interactive` (primary-800) is the NORMAL-state interactive
+   *   token. It measures 7.56:1 on `bg-surface` (the default page
+   *   background) — AAA-compliant.
+   *
+   * - `text-interactive-hover` (primary-900) is the HOVER-state token.
+   *   It's calibrated darker on purpose: it measures 8.22:1 on
+   *   `bg-surface-sunken` (the standard hover-state background),
+   *   while `text-interactive` only measures 6.79:1 on the same
+   *   sunken surface — failing AAA 7:1 by 0.21 ratio points.
+   *
+   * Practical rule:
+   *   - `hover:text-interactive`        + `hover:bg-surface-sunken` → ❌ FAILS AAA
+   *   - `hover:text-interactive-hover`  + `hover:bg-surface-sunken` → ✓ PASSES
+   *   - `hover:text-text-heading`       + `hover:bg-surface-sunken` → ✓ PASSES (~21:1)
+   *
+   * If you find yourself writing `hover:text-interactive`, use
+   * `hover:text-interactive-hover` (the explicit hover tier) or
+   * `hover:text-text-heading` (always-safe high-contrast fallback).
+   * See Path AA hotfix history at `c718482` and `e56dad7` for the
+   * incident this rule is encoded from.
+   */
   --color-interactive:       var(--primary-800);  /* was primary-700 (5.93:1) — now 7.56:1 AAA */
   --color-interactive-hover: var(--primary-900);
   --color-interactive-focus: var(--primary-800);

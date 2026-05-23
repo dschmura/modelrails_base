@@ -182,18 +182,17 @@ Every authenticated page subscribes via the layout:
 <%= turbo_stream_from [Current.user, :notifications] %>
 ```
 
-### The four broadcasts
+### The three broadcasts (D1)
 
-`NotificationBroadcaster.refresh_for(user, announcement_key:)` (in `app/lib/notification_broadcaster.rb`) issues a four-target broadcast quartet per call. Each broadcast targets an independent slim partial wrapped in its own turbo-frame, so the surfaces refresh atomically without rewiring unrelated chrome.
+`NotificationBroadcaster.refresh_for(user, announcement_key:)` (in `app/lib/notification_broadcaster.rb`) issues a three-target broadcast trio per call. Each broadcast targets an independent slim partial wrapped in its own turbo-frame, so the surfaces refresh atomically without rewiring unrelated chrome.
 
-1. **`broadcast_replace_to`** → `target: "notifications_avatar_button_frame"`, renders `shared/_user_menu_avatar_button` — refreshes the avatar button's `aria-label` so AT users hear the new unread count + severity phrase on their next focus traversal
-2. **`broadcast_replace_to`** → `target: "notifications_bell_indicator_frame"`, renders `shared/_notifications_bell` — refreshes the severity-colored bell glyph overlaid at the bottom-right of the avatar
-3. **`broadcast_replace_to`** → `target: "notifications_menu_count_frame"`, renders `shared/_notifications_menu_count_span` — refreshes the "(3)" count next to the user menu's "Notifications" link
-4. **`broadcast_update_to`** → `target: "notifications-live"`, content from `announcement_key` (`notifications.bell.arrival_announcement` or `notifications.bell.read_state_announcement`) — updates the page-level `aria-live="polite"` region for SR users
+1. **`broadcast_replace_to`** → `target: "notifications_bell_label_frame"`, renders `shared/_notifications_bell_label` — refreshes the sr-only `aria-label` text inside the standalone header bell link so AT users hear the new unread count + severity phrase on their next focus traversal
+2. **`broadcast_replace_to`** → `target: "notifications_bell_indicator_frame"`, renders `shared/_notifications_bell` — refreshes the severity-colored bell glyph overlay inside the bell link
+3. **`broadcast_update_to`** → `target: "notifications-live"`, content from `announcement_key` (`notifications.bell.arrival_announcement` or `notifications.bell.read_state_announcement`) — updates the page-level `aria-live="polite"` region for SR users
 
-Each broadcast runs in its own `safe_broadcast` rescue scope. A failure on ONE surface must NOT abort the other three: the real failure mode this prevents is a transient cable adapter hiccup or a partial-rendering exception in the first broadcast silently dropping the rest of the refresh. Each failed broadcast is `Rails.logger.warn`'d and `Rails.error.report(handled: true)`'d with a `source: "NotificationBroadcaster.<surface>"` context tag, so cable outages reach your error tracker per-surface.
+Each broadcast runs in its own `safe_broadcast` rescue scope. A failure on ONE surface must NOT abort the others: the real failure mode this prevents is a transient cable adapter hiccup or a partial-rendering exception in the first broadcast silently dropping the rest of the refresh. Each failed broadcast is `Rails.logger.warn`'d and `Rails.error.report(handled: true)`'d with a `source: "NotificationBroadcaster.<surface>"` context tag, so cable outages reach your error tracker per-surface.
 
-Performance: the unread breakdown summary is computed ONCE at the top of `refresh_for` and passed to each receiving partial as a `summary:` local — avoids 3 redundant `unread_notification_breakdown` queries that would otherwise fire (one per partial that needs it).
+Performance: the unread breakdown summary is computed ONCE at the top of `refresh_for` and passed to each receiving partial as a `summary:` local — avoids 2 redundant `unread_notification_breakdown` queries that would otherwise fire (one per partial that needs it).
 
 ### Two call sites
 
@@ -208,18 +207,17 @@ Both flow through `NotificationBroadcaster.refresh_for` — no duplicate broadca
 
 Noticed v2 uses `notifications.insert_all!` to fan out per-recipient rows — that bulk insert bypasses ActiveRecord callbacks on the `Notification` class. So `after_create_commit :broadcast_notifications_arrival` lives on `ApplicationNotifier` (the Event class), and the method queries `Noticed::Notification.where(event_id: id, recipient_type: "User").pluck(:recipient_id)` to find the rows that the bulk insert created.
 
-### Frame targets in the DOM
+### Frame targets in the DOM (D1)
 
 | Frame ID | Lives in | Replaced by |
 |---|---|---|
-| `notifications_avatar_button_frame` | `shared/_user_menu.html.erb` | `_user_menu_avatar_button.html.erb` |
-| `notifications_bell_indicator_frame` | `shared/_user_menu_avatar_button.html.erb` (nested inside the avatar button) | `_notifications_bell.html.erb` |
-| `notifications_menu_count_frame` | `shared/_user_menu.html.erb` (wraps the count span on the "Notifications" menu link) | `_notifications_menu_count_span.html.erb` |
+| `notifications_bell_label_frame` | `shared/_notifications_bell_link.html.erb` (wraps the sr-only aria-label span) | `_notifications_bell_label.html.erb` |
+| `notifications_bell_indicator_frame` | `shared/_notifications_bell_link.html.erb` (sibling of the label frame inside the bell link) | `_notifications_bell.html.erb` |
 | `notifications-live` | Layout-level `aria-live="polite"` region | Plain text content via `broadcast_update_to` |
 
-The bell-indicator frame is nested INSIDE the avatar-button frame in the initial render — a single broadcast can replace the outer frame and bring a fresh bell along with it. The standalone `bell_indicator_frame` broadcast exists for the inverse case: refreshing only the bell color/count without re-rendering the surrounding button (e.g., when state changes but the aria-label phrase is identical).
+The bell link itself is OUTSIDE every broadcast frame — it's a stable focusable element. Only the sr-only label span and the severity overlay swap on broadcast, so clicks landing mid-broadcast still hit a live target.
 
-There is no longer a dropdown panel; the avatar opens the existing user menu, and the only path to read history is `/account/notifications`.
+There is no longer a dropdown panel; the bell link routes directly to `/account/notifications`, and the avatar opens the existing 2-item user menu (identity block + sign out).
 
 ## NotificationPreferences value object
 

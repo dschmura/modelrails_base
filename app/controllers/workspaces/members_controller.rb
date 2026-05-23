@@ -45,10 +45,26 @@ module Workspaces
     def destroy
       @membership = @workspace.memberships.find(params[:id])
       authorize @membership
+
+      leaving = @membership.user == Current.user
+
       @membership.deactivate!
-      redirect_to workspace_members_path(@workspace), notice: t(".deactivated")
+
+      if leaving
+        redirect_to workspaces_path,
+                    notice: t("workspaces.members.destroy.left", workspace: @workspace.name)
+      else
+        redirect_to workspace_members_path(@workspace),
+                    notice: t(".deactivated")
+      end
     rescue ActiveRecord::RecordInvalid
-      redirect_to workspace_members_path(@workspace), alert: t(".cannot_deactivate_last_owner")
+      if @membership&.user == Current.user
+        redirect_to workspaces_path,
+                    alert: t("workspaces.members.destroy.cannot_leave_last_owner")
+      else
+        redirect_to workspace_members_path(@workspace),
+                    alert: t(".cannot_deactivate_last_owner")
+      end
     end
 
     def reactivate

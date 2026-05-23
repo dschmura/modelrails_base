@@ -2,10 +2,37 @@ en:
   workspaces:
     not_found: "Workspace not found."
     unauthorized: "You don't have permission to do that."
+    sidebar:
+      aria_label: "Workspace navigation"
+      section_label: "Workspace"
+      overview: "Overview"
+      projects: "Projects"
+      settings: "Settings"
+    plans:
+      free: "Free"
+      pro: "Pro"
+      enterprise: "Enterprise"
     index:
       title: "Your workspaces"
       new_workspace: "New workspace"
       empty: "You don't have any workspaces yet."
+      current_badge: "Current"
+      other_workspaces_heading: "Other workspaces"
+      create_workspace_cta: "Create workspace"
+      row:
+        switch: "Switch"
+        leave: "Leave"
+        leave_confirm: "Leave %{workspace}? You'll lose access to its projects and members. This can be reversed only by being re-invited."
+        member:
+          one: "1 member"
+          other: "%{count} members"
+        last_accessed:
+          touched: "Last accessed %{relative} ago"
+          never: "Never accessed"
+        role:
+          owner: "Owner"
+          admin: "Admin"
+          member: "Member"
     new:
       title: "Create a workspace"
       name_label: "Workspace name"
@@ -75,6 +102,9 @@ en:
       destroy:
         deactivated: "Member deactivated."
         cannot_deactivate_last_owner: "Cannot deactivate the last owner."
+        left: "You left %{workspace}."
+        cannot_leave_last_owner: "You can't leave — you're the last owner. Transfer ownership first."
+        cannot_leave_personal: "You can't leave your personal workspace."
       reactivate:
         reactivated: "Member reactivated."
       transfer_ownership:

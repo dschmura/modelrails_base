@@ -4,27 +4,34 @@
     <h1 class="text-3xl font-bold text-text-heading">
       <%= t("workspaces.index.title") %>
     </h1>
-    <%= link_to t("workspaces.index.new_workspace"), new_workspace_path, class: "btn-primary" %>
+    <%= link_to t("workspaces.index.new_workspace"), new_workspace_path,
+          class: "btn-touch-target inline-flex items-center px-4 py-2 rounded-md
+                  bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium
+                  focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus" %>
   </div>
 
-  <% if @workspaces.any? %>
-    <div class="mt-8 grid gap-4">
-      <% @workspaces.each do |workspace| %>
-        <%= link_to workspace_path(workspace),
-              class: "block p-4 border border-border rounded-lg
-                      hover:border-interactive
-                      focus:outline-none focus:ring-2 focus:ring-interactive-focus" do %>
-          <div class="flex items-center gap-3">
-            <%= workspace_icon_for(workspace, size: :md) %>
-            <div>
-              <p class="font-medium text-text-heading"><%= workspace.name %></p>
-              <p class="text-sm text-text-muted"><%= workspace.plan.titleize %></p>
-            </div>
-          </div>
+  <% if @current_membership.present? %>
+    <section class="mt-8" data-test="current-workspace-row" aria-label="<%= t('workspaces.index.current_badge') %>">
+      <ul class="flex flex-col gap-2">
+        <%= render "workspaces/row", membership: @current_membership, current: true %>
+      </ul>
+    </section>
+  <% end %>
+
+  <% if @other_memberships.any? %>
+    <section class="mt-8">
+      <h2 class="text-xs font-semibold uppercase tracking-wider text-text-muted mb-3">
+        <%= t("workspaces.index.other_workspaces_heading") %>
+      </h2>
+      <ul class="flex flex-col gap-2" data-test="other-workspaces-list">
+        <% @other_memberships.each do |membership| %>
+          <%= render "workspaces/row", membership: membership, current: false %>
         <% end %>
-      <% end %>
-    </div>
-  <% else %>
+      </ul>
+    </section>
+  <% end %>
+
+  <% if @memberships.empty? %>
     <div class="mt-8">
       <%= render "shared/empty_state",
             message: t("workspaces.index.empty"),
@@ -32,4 +39,12 @@
             action_url: new_workspace_path %>
     </div>
   <% end %>
+
+  <div class="mt-12 text-center">
+    <%= link_to t("workspaces.index.create_workspace_cta"), new_workspace_path,
+          class: "btn-touch-target inline-flex items-center px-4 py-2 rounded-md
+                  text-sm font-medium text-interactive
+                  hover:bg-surface-sunken
+                  focus:outline-none focus:ring-2 focus:ring-interactive-focus" %>
+  </div>
 </div>

@@ -16,7 +16,6 @@
     <%= stylesheet_link_tag "biscuit/biscuit", "data-turbo-track": "reload" %>
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
-    <%= turbo_refreshes_with method: :morph %>
   </head>
 
   <body class="min-h-screen flex flex-col bg-surface-raised text-text-heading">
@@ -25,39 +24,66 @@
       <%= t("application.skip_to_content") %>
     </a>
 
+    <%# Path Z header-accordion pattern: when there's a workspace context,
+        the workspace sidebar renders inline on desktop (md+) and is
+        surfaced inside the shared header's expanded mobile panel via
+        content_for(:mobile_menu_sidebar). One eager-loaded workspaces
+        relation feeds both renders. content_for MUST be declared before
+        render "shared/header" so the slot is populated when the header
+        reads it. %>
+    <% workspaces_scope = Current.workspace ? Current.user.workspaces.kept.includes(:logo_attachment, memberships: [ :role, { user: :avatar_attachment } ]) : nil %>
+    <% if Current.workspace %>
+      <%# Mobile accordion: chrome-free contents partial so the workspace
+          switcher + nav items flow inline rather than appearing as a
+          nested sidebar. Desktop column below still renders the full
+          _workspace_sidebar wrapper with the <aside> chrome.
+          id_suffix: "-mobile" so IDs (switcher button/menu, section
+          label) don't collide with the desktop render below. %>
+      <% content_for :mobile_menu_sidebar do %>
+        <%= render "shared/workspace_sidebar_items",
+              workspaces: workspaces_scope,
+              current_workspace: Current.workspace,
+              id_suffix: "-mobile" %>
+      <% end %>
+      <% content_for :mobile_menu_sidebar_aria_label, t("workspaces.sidebar.aria_label") %>
+    <% end %>
+
     <%= render "shared/header" %>
     <%= render "shared/toasts" %>
 
-    <main id="main-content"
-          tabindex="-1"
-          class="flex-1"
-          <% if Current.workspace %>
-            <% ws_hue = Current.workspace.primary_color || 210 %>
-            data-workspace-branded
-            style="--ws-primary-light: oklch(0.40 0.15 <%= ws_hue %>); --ws-primary-dark: oklch(0.78 0.10 <%= ws_hue %>);"
-          <% end %>>
-      <%= render "shared/workspace_back_link" %>
-      <%= yield %>
-    </main>
+    <% if Current.workspace %>
+      <div class="flex-1 flex flex-col md:flex-row min-h-[calc(100vh-4rem)]">
+        <%# Desktop sidebar — hidden below md where the header accordion
+            surfaces the same _workspace_sidebar partial. %>
+        <div class="hidden md:flex shrink-0">
+          <%= render "shared/workspace_sidebar",
+                workspaces: workspaces_scope,
+                current_workspace: Current.workspace %>
+        </div>
+
+        <main id="main-content"
+              tabindex="-1"
+              class="flex-1 min-w-0"
+              <% ws_hue = Current.workspace.primary_color || 210 %>
+              data-workspace-branded
+              style="--ws-primary-light: oklch(0.40 0.15 <%= ws_hue %>); --ws-primary-dark: oklch(0.78 0.10 <%= ws_hue %>);">
+          <%= render "shared/workspace_back_link" %>
+          <%= yield %>
+        </main>
+      </div>
+    <% else %>
+      <main id="main-content"
+            tabindex="-1"
+            class="flex-1">
+        <%= render "shared/workspace_back_link" %>
+        <%= yield %>
+      </main>
+    <% end %>
 
     <%= render "shared/footer" %>
     <%= biscuit_banner %>
 
-    <% if authenticated? %>
-      <%# Subscribe to the recipient's notifications stream. After-create
-          callback on Noticed::Notification broadcasts a turbo-stream that
-          replaces the bell frame and (cycle C) updates the live region. %>
-      <%= turbo_stream_from [Current.user, :notifications] %>
-
-      <%# Timezone beacon: reads the browser's IANA timezone via
-          Intl.DateTimeFormat on Stimulus connect and PATCHes it to the
-          server. Idempotent server-side — never clobbers an explicit
-          user choice. Authenticated-only. %>
-      <div data-controller="timezone-beacon"
-           data-timezone-beacon-url-value="<%= account_preferences_timezone_path %>"
-           data-timezone-beacon-token-value="<%= form_authenticity_token %>"
-           hidden></div>
-    <% end %>
+    <%= render "shared/authenticated_layout_streams" if authenticated? %>
 
     <%# Screen-reader announcement slot for real-time notification arrivals.
         Empty by default; broadcasts (Task 14 cycle C) update its content,

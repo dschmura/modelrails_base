@@ -13,7 +13,7 @@ RSpec.describe "Workspace invitations", type: :system do
     click_button I18n.t("sessions.new.continue")
     fill_in I18n.t("sessions.password_form.password_label"), with: "SecureP@ssw0rd123!"
     click_button I18n.t("sessions.password_form.submit")
-    expect(page).to have_link(I18n.t("navigation.workspaces"))
+    expect(page).to have_css("#user-menu-button")
   end
 
   describe "creating an email invitation through the form" do

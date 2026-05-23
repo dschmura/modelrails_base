@@ -1,0 +1,89 @@
+<%# locals: (membership:, current: false) -%>
+<%# Single workspace row partial used by both the pinned-current section
+    and the "Other workspaces" list. `current: true` suppresses the Leave
+    button (the user must navigate INTO the workspace to leave it) and
+    adds the CURRENT badge.
+
+    Whole-row click — JS-free absolute-overlay-link pattern: an empty
+    link spans inset-0 and absorbs every click landing on the row. The
+    static-flow row content sits visually atop the link, but uses
+    `pointer-events-none` so pointer hits pass through to the overlay
+    link. Action buttons re-enable interactivity via `pointer-events-auto`
+    (plus `relative z-10` so they paint above the overlay).
+
+    A11y: the overlay link's accessible name is the workspace name (via
+    an sr-only span) so screen readers announce "Older, link" rather
+    than a generic "link". The visible name in the body is the same
+    string; AT users hear it only once because the body text isn't
+    inside a link or other nameable element. The explicit "Switch"
+    button still exists in the action area for users who scan for an
+    explicit verb. -%>
+<%
+  workspace = membership.workspace
+  user_role = membership.role
+  member_count = workspace.memberships.reject(&:discarded?).size
+  # We use Current.user, not membership.user — on workspaces#index the scope
+  # is Current.user.memberships.kept, so membership.user is always
+  # Current.user. Reading the field off the membership-side preload would
+  # require including :user on the outer scope, which Bullet flags as
+  # unused eager loading (correctly — we already have the data).
+  is_personal = Current.user.personal_workspace_id == workspace.id
+%>
+
+<li class="relative flex flex-col md:flex-row md:items-center gap-3 p-4 rounded-lg border border-border
+           hover:border-interactive
+           focus-within:ring-2 focus-within:ring-interactive-focus">
+  <%= link_to workspace_path(workspace),
+        class: "absolute inset-0 z-0 rounded-lg focus:outline-none" do %>
+    <span class="sr-only"><%= workspace.name %></span>
+  <% end %>
+
+  <%# Icon — pointer-events-none so clicks fall through to the overlay link. %>
+  <div class="relative shrink-0 pointer-events-none">
+    <%= workspace_icon_for(workspace, size: :md) %>
+  </div>
+
+  <%# Identity + metadata — pointer-events-none so clicks fall through. %>
+  <div class="relative flex-1 min-w-0 pointer-events-none">
+    <div class="flex items-center gap-2">
+      <p class="font-medium text-text-heading truncate" title="<%= workspace.name %>">
+        <%= workspace.name %>
+      </p>
+      <% if current %>
+        <span class="text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded
+                     bg-interactive text-text-on-interactive">
+          <%= t("workspaces.index.current_badge") %>
+        </span>
+      <% end %>
+    </div>
+    <p class="mt-1 text-sm text-text-muted">
+      <%= t("workspaces.plans.#{workspace.plan}", default: workspace.plan.titleize) %>
+      &middot;
+      <%= t("workspaces.index.row.role.#{user_role.slug}", default: user_role.name) %>
+      &middot;
+      <%= t("workspaces.index.row.member", count: member_count) %>
+    </p>
+    <p class="mt-1 text-xs text-text-muted">
+      <% if membership.last_accessed_at.present? %>
+        <%= t("workspaces.index.row.last_accessed.touched",
+               relative: time_ago_in_words(membership.last_accessed_at)) %>
+      <% else %>
+        <%= t("workspaces.index.row.last_accessed.never") %>
+      <% end %>
+    </p>
+  </div>
+
+  <%# Action buttons — pointer-events-auto + relative z-10 so they intercept
+      clicks ahead of the overlay link. %>
+  <div class="relative z-10 flex items-center gap-2 mt-2 md:mt-0 pointer-events-auto">
+    <%= link_to t("workspaces.index.row.switch"), workspace_path(workspace),
+          class: "btn-touch-target inline-flex items-center px-3 py-2 rounded-md
+                  text-sm font-medium text-text-body
+                  bg-surface-raised border border-border
+                  hover:bg-surface-sunken hover:text-text-heading
+                  focus:outline-none focus:ring-2 focus:ring-interactive-focus" %>
+    <% if !current && !is_personal %>
+      <%= render "workspaces/leave_button", membership: membership %>
+    <% end %>
+  </div>
+</li>

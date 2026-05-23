@@ -1,5 +1,6 @@
 <header class="sticky top-0 z-40 bg-surface-raised border-b border-border"
-        data-controller="mobile-menu">
+        data-controller="mobile-menu"
+        data-action="keydown@window->mobile-menu#close">
   <nav aria-label="<%= t("navigation.aria_label") %>"
        class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between h-16">
@@ -9,42 +10,74 @@
         <%= render "shared/site_logo", size: :small, show_name: true %>
       <% end %>
 
-      <%# Desktop navigation %>
-      <div class="hidden md:flex items-center gap-2">
-        <% if authenticated? %>
-          <%= link_to t("navigation.workspaces"), main_app.workspaces_path,
-                class: "min-h-[var(--form-input-height)] flex items-center text-text-body
-                        hover:text-interactive-hover
-                        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus rounded px-2" %>
-        <% else %>
+      <%# Right cluster. The bell (D1) is rendered ONCE here so its broadcast
+          frames (notifications_bell_label_frame + notifications_bell_indicator_frame)
+          appear exactly once in the DOM — IDs must stay unique. The bell
+          sits to the left of the avatar (desktop) AND to the left of the
+          hamburger (mobile). Theme toggle is desktop-only in this row;
+          mobile gets a labeled theme toggle inside the accordion. %>
+      <div class="flex items-center gap-2">
+        <% unless authenticated? %>
           <%= link_to t("navigation.sign_up"), main_app.new_registration_path,
-                class: "min-h-[var(--form-input-height)] flex items-center px-4 rounded-md
+                class: "hidden md:inline-flex min-h-[var(--form-input-height)] items-center px-4 rounded-md
                         bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium
                         focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus" %>
         <% end %>
-        <%= render "shared/theme_toggle", style: :icon %>
+        <div class="hidden md:block">
+          <%= render "shared/theme_toggle", style: :icon %>
+        </div>
+        <% if authenticated? %>
+          <%= render "shared/notifications_bell_link", user: Current.user %>
+        <% end %>
         <%= render "shared/user_menu", context: :desktop %>
-      </div>
 
-      <%# Mobile menu button %>
-      <button data-action="click->mobile-menu#toggle"
-              data-mobile-menu-target="button"
-              aria-label="<%= t("navigation.toggle_menu") %>"
-              aria-expanded="false"
-              class="btn-touch-target md:hidden text-text-body
-                     focus:outline-none focus:ring-2 focus:ring-interactive-focus rounded">
-        <%= icon(:bars_3, size: :lg) %>
-      </button>
+        <%# Mobile menu button. Header-accordion pattern (Path Z) — tapping
+            expands the panel downward to reveal the active layout's sidebar
+            contents inline (via content_for(:mobile_menu_sidebar)) plus
+            the standard header nav links + user menu below. The sr-only
+            label provides the accessible name; aria-expanded flips between
+            true/false on toggle. %>
+        <%# The sr-only label flips between "Open menu" and "Close menu"
+            based on state — controller toggles textContent in open()/close()
+            so AT announces the correct affordance regardless of how
+            individual screen readers handle aria-expanded reporting. %>
+        <button data-action="click->mobile-menu#toggle"
+                data-mobile-menu-target="button"
+                data-mobile-menu-open-label-value="<%= t("navigation.mobile_menu.open") %>"
+                data-mobile-menu-close-label-value="<%= t("navigation.mobile_menu.close") %>"
+                aria-expanded="false"
+                aria-controls="mobile-menu-panel"
+                class="btn-touch-target md:hidden text-text-body
+                       focus:outline-none focus:ring-2 focus:ring-interactive-focus rounded">
+          <span class="sr-only" data-mobile-menu-target="label"><%= t("navigation.mobile_menu.open") %></span>
+          <%= icon(:bars_3, size: :lg) %>
+        </button>
+      </div>
     </div>
 
-    <%# Mobile menu %>
-    <div data-mobile-menu-target="menu" class="hidden md:hidden pb-4">
+    <%# Mobile menu panel. The closeOnLinkClick action delegates via event
+        bubbling to any anchor inside, so navigation via the accordion's
+        sidebar links auto-dismisses the panel. %>
+    <div id="mobile-menu-panel"
+         data-mobile-menu-target="menu"
+         data-action="click->mobile-menu#closeOnLinkClick"
+         aria-label="<%= t("navigation.mobile_menu.aria_label") %>"
+         class="hidden md:hidden pb-4 max-h-[calc(100vh-4rem)] overflow-y-auto">
+      <% if content_for?(:mobile_menu_sidebar) %>
+        <%# <nav> landmark with a context-specific aria-label provided by
+            the active layout via content_for(:mobile_menu_sidebar_aria_label).
+            Falls back to the panel's own aria-label if the layout didn't
+            supply one. Gives screen readers a landmark to bypass-block to. %>
+        <nav aria-label="<%= content_for?(:mobile_menu_sidebar_aria_label) ? content_for(:mobile_menu_sidebar_aria_label) : t("navigation.mobile_menu.aria_label") %>"
+             class="mb-3 pb-3 border-b border-border">
+          <%= yield :mobile_menu_sidebar %>
+        </nav>
+      <% end %>
+
+      <%# Mobile accordion — workspace switching is handled by the sidebar
+          slot above; this block carries account/auth items only. %>
       <div class="flex flex-col gap-2">
         <% if authenticated? %>
-          <%= link_to t("navigation.workspaces"), main_app.workspaces_path,
-                class: "min-h-[var(--form-input-height)] flex items-center px-2 text-text-body
-                        hover:text-interactive-hover rounded
-                        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-interactive-focus" %>
           <%= render "shared/user_menu", context: :mobile %>
         <% else %>
           <%= link_to t("navigation.sign_in"), main_app.new_session_path,

@@ -131,18 +131,38 @@ Rails.application.configure do
                         class_name: "Invitation",
                         association: :invitable)
 
-    # The settings sidebar switcher preloads `memberships: { user: :avatar_attachment }`
+    # The settings sidebar switcher preloads `memberships: [:role, { user: :avatar_attachment }]`
     # so `workspace_icon_for` can fall back to the personal-workspace owner's avatar
     # without N+1ing across rows. The fallback is conditional — when a workspace
     # has its own logo attached, `workspace_icon_for` short-circuits before reading
-    # `workspace.owner`, leaving the user preload "unused" for that row. The N+1
-    # cost without the preload is worse than Bullet's false-positive here, so
-    # safelist both legs of the conditional preload chain.
+    # `workspace.owner` (which walks `memberships → role` to find the owner role),
+    # leaving the preload "unused" for that row. The N+1 cost without the preload
+    # is worse than Bullet's false-positive here, so safelist all legs of the
+    # conditional preload chain.
+    #
+    # As of Path Y Phase B the same preload runs from `application.html.erb` for
+    # the non-settings workspace sidebar (workspace dashboard, projects, etc.),
+    # which exposes a few more render paths to the same Bullet false-positive
+    # (e.g. workspaces/projects/memberships#new rendering with no role usage).
     Bullet.add_safelist(type: :unused_eager_loading,
                         class_name: "Membership",
                         association: :user)
     Bullet.add_safelist(type: :unused_eager_loading,
+                        class_name: "Membership",
+                        association: :role)
+    Bullet.add_safelist(type: :unused_eager_loading,
                         class_name: "User",
                         association: :avatar_attachment)
+
+    # WorkspacesController#index queries memberships first then joins+preloads
+    # workspace so it can sort by `memberships.last_accessed_at` (Path AA pinned-
+    # current row). Bullet flags `Membership => [:workspace]` as unused eager
+    # loading because the join already aliases workspaces into the SQL, so its
+    # detector treats the includes-side preload as redundant — but the view
+    # still needs the preloaded workspace per row to render name + icon without
+    # an N+1. Safelist matches the conditional-preload precedent above.
+    Bullet.add_safelist(type: :unused_eager_loading,
+                        class_name: "Membership",
+                        association: :workspace)
   end
 end
