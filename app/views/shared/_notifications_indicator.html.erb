@@ -1,0 +1,33 @@
+<%# locals: (summary:, surface: :avatar) -%>
+<%# Severity-colored indicator dot. The avatar carries it on workspaces#index;
+    the hamburger carries it on mobile chrome. surface picks the position class.
+
+    Renders nothing when summary[:severity] is nil (zero unread). When wrapped
+    in a turbo-frame, the empty state still represents a stable target the
+    broadcast can swap into when state changes.
+
+    A11y model (v2): the dot is purely decorative (aria-hidden). The actual
+    "you have N unread notifications" semantic information is exposed via the
+    user-menu Notifications row's aria-live region. This is the engineering
+    pattern that preserves D1's accessibility lesson — broadcast frames + live
+    regions live OUTSIDE the focusable button's accessible-name path. -%>
+<% if summary[:severity].present? %>
+  <% classes = notification_bell_classes(summary[:severity], variant: :dot) %>
+  <%
+    position = case surface
+               when :hamburger then "top-0.5 right-0.5"
+               else "-bottom-0.5 -right-0.5"
+               end
+  %>
+  <span class="<%= class_names(
+        "absolute #{position}",
+        "w-2 h-2 rounded-full",
+        classes[:bg],
+        "forced-colors:bg-[Highlight]",
+        "[filter:drop-shadow(0_0_2px_var(--color-surface-raised))]",
+        "motion-safe:transition-opacity motion-safe:duration-150",
+        "motion-safe:animate-pulse" => classes[:pulse]
+      ) %>"
+        data-severity="<%= canonical_severity(summary[:severity]) %>"
+        aria-hidden="true"></span>
+<% end %>
