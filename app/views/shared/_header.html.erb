@@ -10,12 +10,11 @@
         <%= render "shared/site_logo", size: :small, show_name: true %>
       <% end %>
 
-      <%# Right cluster. The bell (D1) is rendered ONCE here so its broadcast
-          frames (notifications_bell_label_frame + notifications_bell_indicator_frame)
-          appear exactly once in the DOM — IDs must stay unique. The bell
-          sits to the left of the avatar (desktop) AND to the left of the
-          hamburger (mobile). Theme toggle is desktop-only in this row;
-          mobile gets a labeled theme toggle inside the accordion. %>
+      <%# Right cluster. v2 (2026-05-23): the standalone notifications bell
+          is removed; the avatar and hamburger button each carry a severity-
+          colored indicator dot, and the canonical triage entry point is the
+          Notifications row inside the user menu. Theme toggle is desktop-
+          only in this row; mobile gets a labeled toggle inside the accordion. %>
       <div class="flex items-center gap-2">
         <% unless authenticated? %>
           <%= link_to t("navigation.sign_up"), main_app.new_registration_path,
@@ -26,9 +25,6 @@
         <div class="hidden md:block">
           <%= render "shared/theme_toggle", style: :icon %>
         </div>
-        <% if authenticated? %>
-          <%= render "shared/notifications_bell_link", user: Current.user %>
-        <% end %>
         <%= render "shared/user_menu", context: :desktop %>
 
         <%# Mobile menu button. Header-accordion pattern (Path Z) — tapping
