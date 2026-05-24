@@ -2,7 +2,7 @@
 
 **Goal:** Gate new-user signup behind an invitation requirement, configurable per-deployment via env var (default: invite-only). The gate consults a single policy object from three callers — `RegistrationsController#new`, `RegistrationsController#create`, and the new-user branch of `OmniauthCallbacksController#create` — without adding routes or controllers. Existing users remain able to sign in via any verified method; only *creation of new accounts* is gated. The OAuth credentials file is migrated from a flat `google:`/`github:` structure to a namespaced `oauth:` parent at the same time, since both the OmniAuth initializer and the OAuth helper consult these credentials and a half-migrated state would be confusing.
 
-**Scope:** One new POPO (`SignupPolicy` at `app/lib/`), state-based rendering in two existing `RegistrationsController` actions, a new sibling view (`closed.html.erb`), a guard in the OAuth callbacks controller, two env vars and a boot-time validation initializer, an `Invitation#acceptable?` method, a `signups_open?` view helper, credentials migration plus updates to two existing files that read credentials, locale keys for the closed page, and one unit + request-spec additions + one system spec.
+**Scope:** One new POPO (`SignupPolicy` at `app/lib/`), state-based rendering in two existing `RegistrationsController` actions, a new sibling view (`closed.html.erb`), a guard in the OAuth callbacks controller, one env var (`SIGNUP_MODE`) and a boot-time validation initializer, an `Invitation#acceptable?` method, a `signups_open?` view helper, credentials migration plus updates to two existing files that read credentials, locale keys for the closed page, and one unit + request-spec additions + one system spec.
 
 ---
 
@@ -20,6 +20,7 @@ This spec also resolves a developer-experience gap. The OAuth buttons rendered b
 - **"Request access" form / waitlist.** The friendly deny page tells uninvited visitors to ask their administrator. No `AccessRequest` model, no admin queue, no notification emails. Add later only if real demand surfaces — easier to add than to remove. (Jason Fried / DHH principle: build half a product, not a half-assed product.)
 - **Admin UI for managing pending invitations.** Out of scope; existing invitation send/accept flow stays as-is.
 - **Existing-user lockout when invite-only is enabled.** This spec gates *new-account creation* only. A user who already has an account in the system can always sign in via email/password or any verified OAuth provider, regardless of `SIGNUP_MODE`. A dedicated regression spec pins this.
+- **Optional personal workspace ("B2B-only deployment mode").** Initially considered as a `CREATE_PERSONAL_WORKSPACE` env var alongside `SIGNUP_MODE`. Audit of the codebase showed that three call sites assume every user has a personal workspace ([PersonalWorkspaceContext](app/controllers/concerns/personal_workspace_context.rb), [SettingsNavigationHelper](app/helpers/settings_navigation_helper.rb), and the post-login redirect logic in [Authenticatable](app/controllers/concerns/authenticatable.rb)). Making personal workspaces truly optional is a separate, cohesive piece of work (the env var plus three call-site fixes plus accompanying specs) deserving its own spec. This spec assumes every signup — open or invited — creates a personal workspace, matching the codebase's existing invariant. Captured as a follow-up.
 - **`OauthCredentials` POPO refactor.** Identified during design but deferred — the initializer and helper both `dig(:oauth, :google/:github, ...)` after this work, which is duplication worth DRY-ing the next time we touch OAuth. Captured as a follow-up.
 
 ---
@@ -29,11 +30,10 @@ This spec also resolves a developer-experience gap. The OAuth buttons rendered b
 | Decision | Choice | Reasoning |
 | -------- | ------ | --------- |
 | Gate scope | App-level (signup creation), with workspace-level already enforced structurally by absence of self-join | Existing code has no "join workspace X" path — invitation is the only way in. Adding an app-level gate completes the picture. |
-| Personal workspace on invited signup | Config-driven via `CREATE_PERSONAL_WORKSPACE` env var | Some B2B deployments want users to only belong to inviting workspace; others want personal scratchpads. Template should support both. |
+| Personal workspace on signup | Always created (open or invited path) | Initially planned as a toggle; audit revealed 3 call sites assume every user has a personal workspace. Making it optional is a separate cohesive piece of work deferred to its own spec. |
 | Rejected/uninvited UX | Friendly deny page, no request-access form | Jason Fried / DHH principle: build only what you'll process. Upgrade path to a form exists if demand emerges. |
 | Config mechanism | Env var + initializer with boot-time validation | 12-factor, simple, fails fast on typos. No new schema. |
 | Default for `SIGNUP_MODE` | `invite_only` | Safe default: a forgotten flag should not accidentally open public signups. |
-| Default for `CREATE_PERSONAL_WORKSPACE` | `true` | Matches dominant SaaS template pattern (Jumpstart Pro, etc.). |
 | Gate enforcement architecture | POPO at `app/lib/signup_policy.rb` (class-method API) | Matches the existing `app/lib/` POPO pattern in the codebase (`EmailRecipientThrottle`, `OmniauthAdapters`). One rule, three callers, one unit test file. |
 | Routing | Reuse `GET /registrations/new` and `POST /registrations`; render `closed.html.erb` based on policy state | RESTful per project rules — no custom actions, no new routes. The "new registration" resource has one state-dependent representation. |
 | OAuth dev setup | Real Google + GitHub OAuth apps, per-environment credentials | OmniAuth `developer` strategy can't exercise `oauth_email_verified?` paths; real apps catch real bugs. |
@@ -223,7 +223,6 @@ In `config/application.rb` (inside the application class body):
 
 ```ruby
 config.x.signup.mode = ENV.fetch("SIGNUP_MODE", "invite_only").to_sym
-config.x.signup.create_personal_workspace = ENV.fetch("CREATE_PERSONAL_WORKSPACE", "true") == "true"
 ```
 
 In `config/initializers/signup.rb` (new file):
@@ -247,15 +246,6 @@ Fail-fast at boot — typo'd `SIGNUP_MODE=opn` raises instead of silently defaul
 # - "invite_only" (default): /registrations/new is closed unless visitor has a valid invitation token in session
 # - "open": anyone can sign up at /registrations/new
 # SIGNUP_MODE=invite_only
-
-# Whether new users get a personal workspace IN ADDITION to any invited workspace.
-# - "true"  (default): every user gets a personal workspace, may also belong to others
-# - "false": invited users only join the inviting workspace; open-mode signups still
-#            get a personal workspace (toggle is ignored when user would otherwise
-#            have no workspace)
-# Only the literal strings "true" and "false" are recognized; other values are
-# treated as "false".
-# CREATE_PERSONAL_WORKSPACE=true
 ```
 
 ### OAuth credentials migration (modify — `omniauth.rb` and `oauth_helper.rb`)
@@ -291,19 +281,11 @@ when :github
   Rails.application.credentials.dig(:oauth, :github, :client_id).present?
 ```
 
-### Personal workspace toggle integration
+### Personal workspace creation (unchanged from today)
 
-`Rails.configuration.x.signup.create_personal_workspace` is consulted only when a signing-up user **would otherwise have no workspace**. Behavior matrix:
+Every signup — open-mode, invitation-driven email/password, or OAuth — continues to create a personal workspace via the existing `User#after_create :create_personal_workspace` callback in [app/models/user.rb](app/models/user.rb). This spec does NOT change that behavior. Invitation-driven signups also get the invited workspace membership in addition to their personal workspace, which matches today's behavior.
 
-| Signup path | `CREATE_PERSONAL_WORKSPACE=true` | `CREATE_PERSONAL_WORKSPACE=false` |
-| ----------- | -------------------------------- | --------------------------------- |
-| Open-mode signup (no invitation) | Personal workspace created | **Personal workspace created** (toggle ignored — would otherwise be a broken zero-workspace account) |
-| Invitation-driven signup | Personal workspace **and** invited workspace membership | Only invited workspace membership |
-| OAuth-driven new-user signup with no invitation (`:open` mode only — invite_only blocks this path entirely) | Personal workspace created | **Personal workspace created** (same reasoning as open-mode signup) |
-
-In short: the toggle is a "do users get a personal workspace *in addition to* their invited workspaces?" flag. It is never allowed to leave a user with zero workspaces.
-
-The exact integration point depends on where today's user-creation flow handles default workspace setup (`User#after_create` callback vs. controller-level service call vs. explicit method). The planner resolves this during implementation; the design contract is the matrix above.
+The "no personal workspace for B2B-only deployments" use case is captured as a separate follow-up spec (see Out-of-scope follow-ups) — it requires changes to three call sites that today assume every user has a personal workspace, and bundling those changes here would conflate two features.
 
 ---
 
@@ -421,6 +403,7 @@ end
 
 ## Out-of-scope follow-ups (captured for later)
 
+- **B2B-only deployment mode (`CREATE_PERSONAL_WORKSPACE=false`).** Adds an env var to suppress personal-workspace creation for invited users, plus three call-site fixes: (1) [PersonalWorkspaceContext](app/controllers/concerns/personal_workspace_context.rb) needs a fallback when `Current.user.personal_workspace` is nil; (2) [SettingsNavigationHelper](app/helpers/settings_navigation_helper.rb) needs context inference that doesn't default to `:personal` when `Current.workspace` is nil; (3) post-login redirect in [Authenticatable](app/controllers/concerns/authenticatable.rb) needs to route invited-only users to their first workspace instead of `root_url`. Open-mode signups always get a personal workspace (otherwise zero-workspace state). Trigger: a real B2B-only deployment of the template.
 - **`OauthCredentials` POPO refactor.** DRY the `Rails.application.credentials.dig(:oauth, ...)` lookups that will live in both `omniauth.rb` and `oauth_helper.rb`. Trigger: next OAuth schema change or new provider addition.
 - **Database-backed signup_mode setting.** If a deployment needs to flip invite-only without redeploying, build an `AppSetting` model with admin UI. Trigger: real demand from a downstream template user.
 - **"Request access" form.** Adds an `AccessRequest` model collecting email + optional message, admin queue, notification email. Trigger: real waitlist demand; manual emails asking for access.
@@ -438,7 +421,7 @@ end
 - OAuth new-user creation is blocked when gate denies; OAuth existing-user sign-in is unaffected.
 - `signups_open?` view helper correctly reflects the gate state for landing-page CTA conditional rendering.
 - Initializer fails fast at boot on invalid `SIGNUP_MODE`.
-- No signup path can leave a new user with zero workspaces, regardless of `CREATE_PERSONAL_WORKSPACE` value. Open-mode signups always receive a personal workspace; the toggle only suppresses personal-workspace creation when an invitation is providing one.
+- Every successful signup (open-mode, invitation-driven email/password, or OAuth) results in the user having a personal workspace via the existing `User#after_create` callback. Invitation-driven signups additionally have a membership in the inviting workspace. No new user ends up with zero workspaces.
 - System spec passes end-to-end including axe-core AAA scan on the closed page.
 - All new strings pass through I18n; no hardcoded copy.
 - All policy and request specs pass; no regression in existing `RegistrationsController` or `OmniauthCallbacksController` specs.
