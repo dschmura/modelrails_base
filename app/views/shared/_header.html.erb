@@ -1,6 +1,6 @@
 <header class="sticky top-0 z-40 bg-surface-raised border-b border-border"
         data-controller="mobile-menu"
-        data-action="keydown@window->mobile-menu#close">
+        data-action="keydown@window->mobile-menu#close click@window->mobile-menu#closeOnOutsideClick">
   <nav aria-label="<%= t("navigation.aria_label") %>"
        class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between h-16">
