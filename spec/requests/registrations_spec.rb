@@ -9,6 +9,7 @@ RSpec.describe "Registrations", type: :request do
         get new_registration_path
         expect(response).to render_template(:new)
         expect(response).to have_http_status(:ok)
+        expect(response.body).to include(I18n.t("registrations.new.title"))
       end
     end
 
@@ -35,6 +36,7 @@ RSpec.describe "Registrations", type: :request do
         invitation = create(:invitation)
         # POST to the invitation acceptance route — sets session[:pending_invitation_token]
         post accept_invitation_path(token: invitation.token)
+        expect(response).to have_http_status(:found).or have_http_status(:see_other)
 
         get new_registration_path
         expect(response).to render_template(:new)
