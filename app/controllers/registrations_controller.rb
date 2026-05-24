@@ -5,7 +5,11 @@ class RegistrationsController < ApplicationController
     with: -> { redirect_to new_registration_path, alert: t("registrations.create.rate_limited") }
 
   def new
-    @user = User.new
+    if signups_open?
+      @user = User.new
+    else
+      render :closed
+    end
   end
 
   def create

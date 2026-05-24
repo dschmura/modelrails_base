@@ -2,9 +2,14 @@ require "rails_helper"
 
 RSpec.describe "Registrations", type: :request do
   describe "GET /signup" do
-    it "renders the registration form" do
-      get new_registration_path
-      expect(response).to have_http_status(:ok)
+    context "when signups are open via config" do
+      before { allow(Rails.configuration.x.signup).to receive(:mode).and_return(:open) }
+
+      it "renders :new" do
+        get new_registration_path
+        expect(response).to render_template(:new)
+        expect(response).to have_http_status(:ok)
+      end
     end
 
     context "when the visitor is already signed in" do
@@ -13,6 +18,26 @@ RSpec.describe "Registrations", type: :request do
         get new_registration_path
         expect(response).to redirect_to(root_path)
         expect(flash[:notice]).to eq(I18n.t("authentication.already_signed_in"))
+      end
+    end
+
+    context "when SIGNUP_MODE is :invite_only" do
+      before { allow(Rails.configuration.x.signup).to receive(:mode).and_return(:invite_only) }
+
+      it "renders :closed when there is no invitation token in session" do
+        get new_registration_path
+        expect(response).to render_template(:closed)
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include(I18n.t("registrations.closed.title"))
+      end
+
+      it "renders :new when a valid invitation token is in session" do
+        invitation = create(:invitation)
+        # POST to the invitation acceptance route — sets session[:pending_invitation_token]
+        post accept_invitation_path(token: invitation.token)
+
+        get new_registration_path
+        expect(response).to render_template(:new)
       end
     end
   end
