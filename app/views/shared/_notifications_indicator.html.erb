@@ -1,33 +1,39 @@
 <%# locals: (summary:, surface: :avatar) -%>
-<%# Severity-colored indicator dot. The avatar carries it on workspaces#index;
-    the hamburger carries it on mobile chrome. surface picks the position class.
+<%# Severity-colored indicator dot. The avatar carries it on desktop; the
+    hamburger button carries it on mobile chrome. `surface:` picks the
+    position class.
 
-    Renders nothing when summary[:severity] is nil (zero unread). When wrapped
-    in a turbo-frame, the empty state still represents a stable target the
-    broadcast can swap into when state changes.
+    Visibility contract (fade-out): the span ALWAYS renders, even when
+    summary[:severity] is nil. Visibility is driven by `opacity-100`
+    (severity present) vs `opacity-0` (no severity). The
+    `motion-safe:transition-opacity` class then animates the change over
+    150ms — so mark-all-read fades the dot away instead of removing it
+    instantly. Users with prefers-reduced-motion get the instant change
+    (motion-safe: collapses to no transition).
 
-    A11y model (v2): the dot is purely decorative (aria-hidden). The actual
-    "you have N unread notifications" semantic information is exposed via the
-    user-menu Notifications row's aria-live region. This is the engineering
-    pattern that preserves D1's accessibility lesson — broadcast frames + live
-    regions live OUTSIDE the focusable button's accessible-name path. -%>
-<% if summary[:severity].present? %>
-  <% classes = notification_bell_classes(summary[:severity], variant: :dot) %>
-  <%
-    position = case surface
-               when :hamburger then "top-0.5 right-0.5"
-               else "-bottom-0.5 -right-0.5"
-               end
-  %>
-  <span class="<%= class_names(
-        "absolute #{position}",
-        "w-2 h-2 rounded-full",
-        classes[:bg],
-        "forced-colors:bg-[Highlight]",
-        "[filter:drop-shadow(0_0_2px_var(--color-surface-raised))]",
-        "motion-safe:transition-opacity motion-safe:duration-150",
-        "motion-safe:animate-pulse" => classes[:pulse]
-      ) %>"
-        data-severity="<%= canonical_severity(summary[:severity]) %>"
-        aria-hidden="true"></span>
-<% end %>
+    A11y model (v2): the dot is purely decorative (aria-hidden). The
+    actual "you have N unread notifications" semantic information is
+    exposed via the user-menu Notifications row's aria-live region. This
+    is the engineering pattern that preserves D1's accessibility lesson —
+    broadcast frames + live regions live OUTSIDE the focusable button's
+    accessible-name path. -%>
+<%
+  severity = summary[:severity]
+  classes  = severity ? notification_bell_classes(severity, variant: :dot) : nil
+  position = case surface
+             when :hamburger then "top-0.5 right-0.5"
+             else "-bottom-0.5 -right-0.5"
+             end
+%>
+<span class="<%= class_names(
+      "absolute #{position}",
+      "w-2 h-2 rounded-full",
+      "motion-safe:transition-opacity motion-safe:duration-150",
+      classes ? classes[:bg] : nil,
+      classes ? "opacity-100" : "opacity-0",
+      classes ? "forced-colors:bg-[Highlight]" : nil,
+      classes ? "[filter:drop-shadow(0_0_2px_var(--color-surface-raised))]" : nil,
+      "motion-safe:animate-pulse" => classes&.dig(:pulse)
+    ) %>"
+      <% if severity %>data-severity="<%= canonical_severity(severity) %>"<% end %>
+      aria-hidden="true"></span>
