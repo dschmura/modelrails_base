@@ -13,6 +13,11 @@ class RegistrationsController < ApplicationController
   end
 
   def create
+    unless signups_open?
+      render :closed, status: :unprocessable_entity
+      return
+    end
+
     @user = User.new(registration_params)
     if @user.save
       authentication = @user.authentications.create!(

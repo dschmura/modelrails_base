@@ -45,138 +45,199 @@ RSpec.describe "Registrations", type: :request do
   end
 
   describe "POST /signup" do
-    context "with valid params" do
+    context "when signups are open via config" do
+      before { allow(Rails.configuration.x.signup).to receive(:mode).and_return(:open) }
+
+      context "with valid params" do
+        let(:valid_params) do
+          {
+            user: {
+              email_address: "new@example.com",
+              first_name: "Jane",
+              last_name: "Doe",
+              password: "SecureP@ssw0rd123!",
+              password_confirmation: "SecureP@ssw0rd123!"
+            }
+          }
+        end
+
+        it "creates a user" do
+          expect {
+            post registration_path, params: valid_params
+          }.to change(User, :count).by(1)
+        end
+
+        it "signs in the user" do
+          post registration_path, params: valid_params
+          expect(response).to redirect_to(root_path)
+        end
+      end
+
+      context "with password too short" do
+        it "rejects registration" do
+          post registration_path, params: {
+            user: {
+              email_address: "new@example.com",
+              first_name: "Jane",
+              last_name: "Doe",
+              password: "short",
+              password_confirmation: "short"
+            }
+          }
+          expect(response).to have_http_status(:unprocessable_entity)
+        end
+      end
+
+      context "with duplicate email" do
+        it "rejects registration" do
+          create(:user, email_address: "taken@example.com")
+          post registration_path, params: {
+            user: {
+              email_address: "taken@example.com",
+              first_name: "Jane",
+              last_name: "Doe",
+              password: "SecureP@ssw0rd123!",
+              password_confirmation: "SecureP@ssw0rd123!"
+            }
+          }
+          expect(response).to have_http_status(:unprocessable_entity)
+        end
+      end
+
+      context "with blank fields" do
+        it "rejects blank email" do
+          post registration_path, params: {
+            user: { email_address: "", first_name: "Jane", last_name: "Doe",
+                    password: "SecureP@ssw0rd123!", password_confirmation: "SecureP@ssw0rd123!" }
+          }
+          expect(response).to have_http_status(:unprocessable_entity)
+        end
+
+        it "rejects blank first name" do
+          post registration_path, params: {
+            user: { email_address: "new@example.com", first_name: "", last_name: "Doe",
+                    password: "SecureP@ssw0rd123!", password_confirmation: "SecureP@ssw0rd123!" }
+          }
+          expect(response).to have_http_status(:unprocessable_entity)
+        end
+
+        it "rejects blank last name" do
+          post registration_path, params: {
+            user: { email_address: "new@example.com", first_name: "Jane", last_name: "",
+                    password: "SecureP@ssw0rd123!", password_confirmation: "SecureP@ssw0rd123!" }
+          }
+          expect(response).to have_http_status(:unprocessable_entity)
+        end
+      end
+
+      context "with invalid email format" do
+        it "rejects email without any structure" do
+          post registration_path, params: {
+            user: { email_address: "notanemail", first_name: "Jane", last_name: "Doe",
+                    password: "SecureP@ssw0rd123!", password_confirmation: "SecureP@ssw0rd123!" }
+          }
+          expect(response).to have_http_status(:unprocessable_entity)
+        end
+
+        it "rejects email without a domain TLD" do
+          post registration_path, params: {
+            user: { email_address: "user@example", first_name: "Jane", last_name: "Doe",
+                    password: "SecureP@ssw0rd123!", password_confirmation: "SecureP@ssw0rd123!" }
+          }
+          expect(response).to have_http_status(:unprocessable_entity)
+        end
+      end
+
+      context "with password confirmation mismatch" do
+        it "rejects registration" do
+          post registration_path, params: {
+            user: { email_address: "new@example.com", first_name: "Jane", last_name: "Doe",
+                    password: "SecureP@ssw0rd123!", password_confirmation: "DifferentP@ss456!" }
+          }
+          expect(response).to have_http_status(:unprocessable_entity)
+        end
+      end
+
+      context "with pwned password" do
+        before do
+          pwned = instance_double(Pwned::Password, pwned?: true)
+          allow(Pwned::Password).to receive(:new).and_return(pwned)
+        end
+
+        it "rejects registration with a breached password" do
+          post registration_path, params: {
+            user: {
+              email_address: "new@example.com",
+              first_name: "Jane",
+              last_name: "Doe",
+              password: "password123456",
+              password_confirmation: "password123456"
+            }
+          }
+          expect(response).to have_http_status(:unprocessable_entity)
+        end
+      end
+    end
+
+    context "when SIGNUP_MODE is :invite_only with no token" do
+      before { allow(Rails.configuration.x.signup).to receive(:mode).and_return(:invite_only) }
+
       let(:valid_params) do
         {
           user: {
-            email_address: "new@example.com",
-            first_name: "Jane",
-            last_name: "Doe",
-            password: "SecureP@ssw0rd123!",
-            password_confirmation: "SecureP@ssw0rd123!"
+            email_address: "newuser@example.com",
+            first_name: "New",
+            last_name: "User",
+            password: "supersecret123",
+            password_confirmation: "supersecret123"
           }
         }
       end
 
-      it "creates a user" do
+      it "renders :closed with status 422 and does not create a user" do
+        expect {
+          post registration_path, params: valid_params
+        }.not_to change(User, :count)
+
+        expect(response).to render_template(:closed)
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+    end
+
+    context "when SIGNUP_MODE is :invite_only with a valid token" do
+      let(:invitation) { create(:invitation) }
+
+      before do
+        allow(Rails.configuration.x.signup).to receive(:mode).and_return(:invite_only)
+        post accept_invitation_path(token: invitation.token)
+        expect(response).to have_http_status(:found).or have_http_status(:see_other)
+      end
+
+      let(:valid_params) do
+        {
+          user: {
+            email_address: "newuser@example.com",
+            first_name: "New",
+            last_name: "User",
+            password: "supersecret123",
+            password_confirmation: "supersecret123"
+          }
+        }
+      end
+
+      it "creates the user and accepts the invitation" do
         expect {
           post registration_path, params: valid_params
         }.to change(User, :count).by(1)
-      end
 
-      it "signs in the user" do
-        post registration_path, params: valid_params
-        expect(response).to redirect_to(root_path)
-      end
-    end
-
-    context "with password too short" do
-      it "rejects registration" do
-        post registration_path, params: {
-          user: {
-            email_address: "new@example.com",
-            first_name: "Jane",
-            last_name: "Doe",
-            password: "short",
-            password_confirmation: "short"
-          }
-        }
-        expect(response).to have_http_status(:unprocessable_entity)
-      end
-    end
-
-    context "with duplicate email" do
-      it "rejects registration" do
-        create(:user, email_address: "taken@example.com")
-        post registration_path, params: {
-          user: {
-            email_address: "taken@example.com",
-            first_name: "Jane",
-            last_name: "Doe",
-            password: "SecureP@ssw0rd123!",
-            password_confirmation: "SecureP@ssw0rd123!"
-          }
-        }
-        expect(response).to have_http_status(:unprocessable_entity)
-      end
-    end
-
-    context "with blank fields" do
-      it "rejects blank email" do
-        post registration_path, params: {
-          user: { email_address: "", first_name: "Jane", last_name: "Doe",
-                  password: "SecureP@ssw0rd123!", password_confirmation: "SecureP@ssw0rd123!" }
-        }
-        expect(response).to have_http_status(:unprocessable_entity)
-      end
-
-      it "rejects blank first name" do
-        post registration_path, params: {
-          user: { email_address: "new@example.com", first_name: "", last_name: "Doe",
-                  password: "SecureP@ssw0rd123!", password_confirmation: "SecureP@ssw0rd123!" }
-        }
-        expect(response).to have_http_status(:unprocessable_entity)
-      end
-
-      it "rejects blank last name" do
-        post registration_path, params: {
-          user: { email_address: "new@example.com", first_name: "Jane", last_name: "",
-                  password: "SecureP@ssw0rd123!", password_confirmation: "SecureP@ssw0rd123!" }
-        }
-        expect(response).to have_http_status(:unprocessable_entity)
-      end
-    end
-
-    context "with invalid email format" do
-      it "rejects email without any structure" do
-        post registration_path, params: {
-          user: { email_address: "notanemail", first_name: "Jane", last_name: "Doe",
-                  password: "SecureP@ssw0rd123!", password_confirmation: "SecureP@ssw0rd123!" }
-        }
-        expect(response).to have_http_status(:unprocessable_entity)
-      end
-
-      it "rejects email without a domain TLD" do
-        post registration_path, params: {
-          user: { email_address: "user@example", first_name: "Jane", last_name: "Doe",
-                  password: "SecureP@ssw0rd123!", password_confirmation: "SecureP@ssw0rd123!" }
-        }
-        expect(response).to have_http_status(:unprocessable_entity)
-      end
-    end
-
-    context "with password confirmation mismatch" do
-      it "rejects registration" do
-        post registration_path, params: {
-          user: { email_address: "new@example.com", first_name: "Jane", last_name: "Doe",
-                  password: "SecureP@ssw0rd123!", password_confirmation: "DifferentP@ss456!" }
-        }
-        expect(response).to have_http_status(:unprocessable_entity)
-      end
-    end
-
-    context "with pwned password" do
-      before do
-        pwned = instance_double(Pwned::Password, pwned?: true)
-        allow(Pwned::Password).to receive(:new).and_return(pwned)
-      end
-
-      it "rejects registration with a breached password" do
-        post registration_path, params: {
-          user: {
-            email_address: "new@example.com",
-            first_name: "Jane",
-            last_name: "Doe",
-            password: "password123456",
-            password_confirmation: "password123456"
-          }
-        }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(invitation.reload).to be_accepted
       end
     end
   end
 
   describe "POST /signup side effects" do
+    before { allow(Rails.configuration.x.signup).to receive(:mode).and_return(:open) }
+
     let(:valid_params) do
       {
         user: {
