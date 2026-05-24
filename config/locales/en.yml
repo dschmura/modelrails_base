@@ -30,12 +30,3 @@
 en:
   hello: "Hello world"
   app_name: "ModelRails"
-  registrations:
-    closed:
-      title: "Sign-ups are by invitation only"
-      body_html: |
-        If your team uses %{app_name}, ask your workspace administrator
-        to send you an invitation. Already have an invitation email?
-        Click the link in that message to get started.
-      sign_in_link: "Sign in to an existing account"
-      oauth_blocked: "Sign-ups are by invitation only. Please ask your workspace administrator for an invitation."
