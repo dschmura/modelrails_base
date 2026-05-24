@@ -2,7 +2,7 @@
 
 **Goal:** Gate new-user signup behind an invitation requirement, configurable per-deployment via env var (default: invite-only). The gate consults a single policy object from three callers — `RegistrationsController#new`, `RegistrationsController#create`, and the new-user branch of `OmniauthCallbacksController#create` — without adding routes or controllers. Existing users remain able to sign in via any verified method; only *creation of new accounts* is gated.
 
-**Scope:** One new POPO (`SignupPolicy` at `app/lib/`), state-based rendering in two existing `RegistrationsController` actions, a new sibling view (`closed.html.erb`), a guard in the OAuth callbacks controller, one env var (`SIGNUP_MODE`) and a boot-time validation initializer, an `Invitation#acceptable?` method, a `signups_open?` helper method on `ApplicationController`, locale keys for the closed page, OAuth dev environment setup documentation, and one unit + request-spec additions + one system spec. **The OAuth credentials migration from flat to nested namespace is explicitly out of scope** — it has been decoupled into a follow-up PR per the panel review.
+**Scope:** One new POPO (`SignupPolicy` at `app/lib/`), state-based rendering in two existing `RegistrationsController` actions, a new sibling view (`closed.html.erb`), a guard in the OAuth callbacks controller, one env var (`SIGNUP_MODE`) and a boot-time validation initializer, an `Invitation#acceptable?` method, a `signups_open?` helper method on `ApplicationController`, locale keys for the closed page, OAuth dev environment setup documentation, OAuth credentials migration from flat (`google:`/`github:`) to nested (`oauth: google:`/`oauth: github:`) namespace, and one unit + request-spec additions + one system spec.
 
 ---
 
@@ -21,7 +21,6 @@ This spec also resolves a developer-experience gap. The OAuth buttons rendered b
 - **Admin UI for managing pending invitations.** Out of scope; existing invitation send/accept flow stays as-is.
 - **Existing-user lockout when invite-only is enabled.** This spec gates *new-account creation* only. A user who already has an account in the system can always sign in via email/password or any verified OAuth provider, regardless of `SIGNUP_MODE`. A dedicated regression spec pins this.
 - **Optional personal workspace ("B2B-only deployment mode").** Initially considered as a `CREATE_PERSONAL_WORKSPACE` env var alongside `SIGNUP_MODE`. Audit of the codebase showed that three call sites assume every user has a personal workspace ([PersonalWorkspaceContext](app/controllers/concerns/personal_workspace_context.rb), [SettingsNavigationHelper](app/helpers/settings_navigation_helper.rb), and the post-login redirect logic in [Authenticatable](app/controllers/concerns/authenticatable.rb)). Making personal workspaces truly optional is a separate, cohesive piece of work (the env var plus three call-site fixes plus accompanying specs) deserving its own spec. This spec assumes every signup — open or invited — creates a personal workspace, matching the codebase's existing invariant. Captured as a follow-up.
-- **OAuth credentials namespacing migration (flat → `oauth:`).** Considered as bundled work, decoupled per panel review (DHH). Gate logic and credentials structure are orthogonal: the gate works against today's flat structure. The namespacing migration is a small standalone PR — two files of ~4 lines each, plus a re-encrypt of `credentials.yml.enc`. Captured as a follow-up. This spec's OAuth dev environment setup section documents the **current** flat structure; the migration PR will update it.
 - **`OauthCredentials` POPO refactor.** Identified during design but deferred — the initializer and helper both read OAuth credentials directly. Worth DRY-ing the next time we touch OAuth. Captured as a follow-up.
 
 ---
@@ -40,7 +39,7 @@ This spec also resolves a developer-experience gap. The OAuth buttons rendered b
 | `POST /registrations` gate-deny status | `422 Unprocessable Entity` | Per Turbo Form adapter conventions: 4xx replaces page content with response body. 422 is the idiomatic "I refuse to process this request"; 403 confuses Turbo's "validation error" treatment. |
 | Routing | Reuse `GET /registrations/new` and `POST /registrations`; render `closed.html.erb` based on policy state | RESTful per project rules — no custom actions, no new routes. The "new registration" resource has one state-dependent representation. |
 | Race-condition handling (two browsers, same token) | Wrap user creation + invitation acceptance in a single transaction; rollback on conflict | Tab A and Tab B both submitting same invitation token would otherwise produce a half-created User in Tab B without workspace membership. Transactional wrapping ensures both succeed or both fail. |
-| OAuth dev setup | Real Google + GitHub OAuth apps; credentials in existing flat structure | OmniAuth `developer` strategy can't exercise `oauth_email_verified?` paths; real apps catch real bugs. Per-environment credentials remain user choice. |
+| OAuth dev setup | Real Google + GitHub OAuth apps; credentials namespaced under `oauth:` | OmniAuth `developer` strategy can't exercise `oauth_email_verified?` paths; real apps catch real bugs. Nested `oauth:` namespace avoids future collision with top-level `google:` (Maps/GCS) or `github:` (Actions) credentials. |
 
 ---
 
@@ -322,7 +321,7 @@ The "no personal workspace for B2B-only deployments" use case is captured as a s
 
 ## OAuth dev environment setup
 
-Documented separately so it can be referenced by future contributors hitting "the OAuth buttons aren't showing in dev." This section reflects the **current flat credentials structure** (`google:` and `github:` as top-level keys); the namespacing migration to `oauth:` is a separate follow-up PR.
+Documented separately so it can be referenced by future contributors hitting "the OAuth buttons aren't showing in dev." Credentials are namespaced under an `oauth:` parent key (avoids collision with future top-level `google:` or `github:` credentials for other services).
 
 ### Step 1 — Google OAuth client
 
@@ -347,12 +346,13 @@ bin/rails credentials:edit --environment=development
 ```
 
 ```yaml
-google:
-  client_id: 1234567890-abc.apps.googleusercontent.com
-  client_secret: GOCSPX-...
-github:
-  client_id: Iv1.abc123
-  client_secret: ghp_...
+oauth:
+  google:
+    client_id: 1234567890-abc.apps.googleusercontent.com
+    client_secret: GOCSPX-...
+  github:
+    client_id: Iv1.abc123
+    client_secret: ghp_...
 ```
 
 Add `config/credentials/development.key` to `.gitignore`. Share the dev key via team password manager, not git.
