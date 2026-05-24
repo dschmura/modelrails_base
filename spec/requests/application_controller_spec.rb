@@ -1,29 +1,54 @@
 require "rails_helper"
 
-RSpec.describe "ApplicationController#signups_open?", type: :request do
-  context "when SIGNUP_MODE is :invite_only with a valid token in session" do
-    let(:invitation) { create(:invitation) }
+RSpec.describe ApplicationController, type: :controller do
+  controller(ApplicationController) do
+    allow_unauthenticated_access only: [ :index ]
 
-    before do
-      allow(Rails.configuration.x.signup).to receive(:mode).and_return(:invite_only)
+    def index
+      signups_open?
+      signups_open?
+      render plain: "ok"
+    end
+  end
+
+  describe "#signups_open?" do
+    context "in :invite_only mode with no token (returns false)" do
+      before { allow(Rails.configuration.x.signup).to receive(:mode).and_return(:invite_only) }
+
+      it "memoizes the result and calls SignupPolicy at most once per request" do
+        call_count = 0
+        allow(SignupPolicy).to receive(:allows_signup?).and_wrap_original do |original, **kwargs|
+          call_count += 1
+          original.call(**kwargs)
+        end
+
+        get :index
+
+        expect(call_count).to eq(1)
+      end
     end
 
-    it "memoizes signups_open? on the controller instance" do
-      # Visit the invitation acceptance route to stash the token in session.
-      get accept_invitation_path(token: invitation.token)
+    context "in :invite_only mode with valid token (returns true)" do
+      let(:invitation) { create(:invitation) }
 
-      # Spy on the policy method to count how many times it's called per request.
-      call_count = 0
-      allow(SignupPolicy).to receive(:allows_signup?).and_wrap_original do |original, **kwargs|
-        call_count += 1
-        original.call(**kwargs)
+      before do
+        allow(Rails.configuration.x.signup).to receive(:mode).and_return(:invite_only)
       end
 
-      get root_path
+      it "memoizes the result and calls SignupPolicy at most once per request" do
+        # Set session manually since this is a controller spec
+        request.session[:pending_invitation_token] = invitation.token
 
-      # signups_open? may be called by the landing page partials. Whether 0 or 1,
-      # it must never exceed 1 per request thanks to memoization.
-      expect(call_count).to be <= 1
+        call_count = 0
+        allow(SignupPolicy).to receive(:allows_signup?).and_wrap_original do |original, **kwargs|
+          call_count += 1
+          original.call(**kwargs)
+        end
+
+        get :index
+
+        expect(call_count).to eq(1)
+      end
     end
   end
 end

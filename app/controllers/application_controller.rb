@@ -15,9 +15,9 @@ class ApplicationController < ActionController::Base
   helper_method :signups_open?
 
   def signups_open?
-    @signups_open ||= SignupPolicy.allows_signup?(
-      token: session[:pending_invitation_token]
-    )
+    return @signups_open if defined?(@signups_open)
+
+    @signups_open = SignupPolicy.allows_signup?(token: session[:pending_invitation_token])
   end
 
   private
