@@ -44,6 +44,7 @@ en:
     create:
       success: "Welcome! Your account has been created."
       rate_limited: "Too many attempts. Please try again later."
+      invitation_consumed: "That invitation is no longer valid. Please ask your workspace administrator for a new one."
   errors:
     form_errors:
       one: "1 error prevented this form from being saved:"

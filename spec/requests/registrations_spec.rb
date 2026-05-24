@@ -233,6 +233,41 @@ RSpec.describe "Registrations", type: :request do
         expect(invitation.reload).to be_accepted
       end
     end
+
+    describe "POST /signup race condition handling" do
+      let(:invitation) { create(:invitation, email: "racer@example.com") }
+      let(:valid_params) do
+        {
+          user: {
+            email_address: "racer@example.com",
+            first_name: "Racer",
+            last_name: "Test",
+            password: "supersecret123",
+            password_confirmation: "supersecret123"
+          }
+        }
+      end
+
+      before do
+        allow(Rails.configuration.x.signup).to receive(:mode).and_return(:invite_only)
+        # Stash the token via the real invitation acceptance route.
+        post accept_invitation_path(token: invitation.token)
+        expect(response).to have_http_status(:found).or have_http_status(:see_other)
+      end
+
+      it "rolls back user creation when invitation acceptance fails (race detection)" do
+        # Simulate the invitation being consumed between gate-pass and accept!
+        allow_any_instance_of(Invitation).to receive(:accept!).and_raise(
+          ActiveRecord::RecordInvalid.new(invitation)
+        )
+
+        expect {
+          post registration_path, params: valid_params
+        }.not_to change(User, :count)
+
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+    end
   end
 
   describe "POST /signup side effects" do

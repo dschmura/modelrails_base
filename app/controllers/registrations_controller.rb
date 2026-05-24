@@ -19,19 +19,30 @@ class RegistrationsController < ApplicationController
     end
 
     @user = User.new(registration_params)
-    if @user.save
-      authentication = @user.authentications.create!(
-        provider: "email",
-        uid: @user.email_address
-      )
-      authentication.generate_verification_token!
-      AuthenticationMailer.verification_email(authentication).deliver_later
-      start_new_session_for(@user)
-      accept_pending_invitation(@user)
-      redirect_to root_path, notice: t(".success")
-    else
+    authentication = nil
+
+    begin
+      ActiveRecord::Base.transaction do
+        @user.save!
+        authentication = @user.authentications.create!(
+          provider: "email",
+          uid: @user.email_address
+        )
+        authentication.generate_verification_token!
+        accept_pending_invitation!(@user)
+      end
+    rescue ActiveRecord::RecordInvalid => e
+      if e.record.is_a?(Invitation)
+        flash.now[:alert] = t(".invitation_consumed")
+      end
       render :new, status: :unprocessable_entity
+      return
     end
+
+    # Transaction committed. Side effects that must run AFTER commit:
+    AuthenticationMailer.verification_email(authentication).deliver_later
+    start_new_session_for(@user)
+    redirect_to root_path, notice: t(".success")
   end
 
   private
@@ -43,11 +54,11 @@ class RegistrationsController < ApplicationController
     )
   end
 
-  def accept_pending_invitation(user)
+  def accept_pending_invitation!(user)
     token = session.delete(:pending_invitation_token)
-    return unless token
+    return if token.blank?
 
     invitation = Invitation.find_by(token: token)
-    invitation&.accept!(user) if invitation&.pending? && !invitation&.expired?
+    invitation&.accept!(user)
   end
 end
