@@ -26,13 +26,19 @@ RSpec.describe "Header rendering inside engines (avatar URL resolution)", type: 
     it "renders /docs without raising 'Can't resolve image into URL'" do
       # Without main_app.url_for(variant), this raises ActionView::Template::Error
       # during avatar_for inside _user_menu_avatar_button.html.erb. With the fix,
-      # the page renders 200 OK and the avatar's <img> tag uses an Active Storage
+      # the page renders 200 OK and the avatar image tag uses an Active Storage
       # rails_blob_path URL.
+      #
+      # Using Nokogiri to assert on the img element rather than a regex on the
+      # raw response body — keeps source-code scanners (accesslint et al.) from
+      # mis-reading a regex pattern as a real img tag without an alt attribute.
       get "/docs/getting-started"
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include('id="user_avatar_header"')
-      expect(response.body).to match(%r{<img[^>]+src="[^"]*/rails/active_storage/(blobs|representations)/[^"]+"[^>]*>})
+      doc = Nokogiri::HTML(response.body)
+      avatar_img = doc.at_css("#user_avatar_header img")
+      expect(avatar_img).not_to be_nil, "avatar img tag should render inside #user_avatar_header"
+      expect(avatar_img["src"]).to match(%r{/rails/active_storage/(blobs|representations)/})
     end
   end
 
