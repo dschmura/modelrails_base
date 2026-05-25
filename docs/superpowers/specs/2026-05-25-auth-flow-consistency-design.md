@@ -2,7 +2,7 @@
 
 **Goal:** Close two gate gaps that surfaced when the invite-required signup PR shipped. OAuth signups for invited users (Branch 3 of `OmniauthCallbacksController#create`) currently pass the gate but never consume the invitation, leaving the new user without their inviting workspace membership. Magic link new-user creation (`MagicLinkCallbacksController#create`) bypasses the gate entirely and never consumes invitations. Extract the now-three transactional signup paths into a single `Signupable` controller concern so the atomicity guarantee (user save + invitation acceptance succeed or fail together) lives in one place.
 
-**Scope:** One new controller concern (`Signupable`), three controller refactors/extensions (`RegistrationsController` refactor, `OmniauthCallbacksController` extension, `MagicLinkCallbacksController` extension), one new initializer spec (CSP form-action coverage), one new partial render (OAuth buttons on closed page), and accompanying unit + request + system spec coverage.
+**Scope:** One new controller concern (`Signupable`), three controller refactors/extensions (`RegistrationsController` refactor, `OmniauthCallbacksController` extension, `MagicLinkCallbacksController` extension), one new initializer spec (CSP form-action coverage), one new partial render (OAuth buttons on closed page), **one migration adding `pending_invitation_token` to `authentications` plus a new `Authentication#claim_pending_invitation!` method** (deferred-acceptance design for the unverified-email OAuth flow), **updates to the email verification controller** to invoke the claim method after marking the auth verified, and accompanying unit + request + system spec coverage.
 
 **Builds on:** `docs/superpowers/specs/2026-05-24-invite-required-signup-design.md` (the parent feature, shipped as PR #172).
 
@@ -43,7 +43,8 @@ Adjacent: while manually testing the OAuth flow, a CSP `form-action 'self'` dire
 | Concern API shape | Block-based atomicity helper: `commit_signup_atomically(user, &block) → bool` | Atomicity is the genuinely-shared concern; everything else (verification email behavior, redirect targets, flash text) is legitimately path-specific. Block pattern keeps controllers distinctive about post-commit. |
 | In-scope adjacencies | CSP source-level spec + OAuth buttons on closed page | Both causally related to the gap fix. CSP spec prevents the exact bug class we just hit. Closed page OAuth buttons gives existing users a one-click recovery path. |
 | Out-of-scope | Magic link rate limit harmonization | Speculative/defensive, no user-visible bug. Deferred. |
-| OAuth unverified-email branch | Also calls `accept_pending_invitation!` | The user doesn't sign in yet (verification pending), but the invitation shouldn't be orphaned while they wait. |
+| OAuth unverified-email branch | **Defer invitation acceptance to email-verification time** (revised post-panel-review per user direction) | Persisting the invitation token on the new pending `Authentication` keeps the invitation acceptable. When the user clicks the verification email link and proves email ownership, `Authentication#claim_pending_invitation!` accepts the invitation then. Orphan risk eliminated; security model intact (invitation requires proof of email control). |
+| Verification controller integration | After `verified_at` is set AND user is signed in, call `authentication.claim_pending_invitation!(Current.user)` with a `rescue Invitation::NotAcceptable` to flash the error without blocking sign-in | A stale invitation at verify-time shouldn't break the email-verification step for an unrelated user-controlled action. |
 
 ---
 
@@ -75,9 +76,13 @@ Adjacent: while manually testing the OAuth flow, a CSP `form-action 'self'` dire
             ▼                           ▼                              ▼
 RegistrationsController       OmniauthCallbacks                MagicLinkCallbacks
       #create                       #create                          #create
-  (existing/refactored)    (branch 3 verified-email block        (NEW gate +
-                            extended; unverified-email branch    transactional wrap)
-                            also calls accept_pending_invitation!)
+  (existing/refactored)    (branch 3 → verified path uses        (NEW gate +
+                            commit_signup_atomically;            transactional wrap)
+                            unverified path PERSISTS the
+                            invitation token on the new
+                            Authentication for later claim
+                            via Authentication#claim_pending_
+                            invitation! at email-verify time)
 ```
 
 ### The atomicity contract
@@ -172,20 +177,20 @@ end
 
 ```ruby
 class Invitation < ApplicationRecord
-  class NotAcceptable < ActiveRecord::RecordInvalid; end
+  class NotAcceptable < StandardError; end
 
   # ... existing code ...
 
   def accept!(user)
     with_lock do
-      raise NotAcceptable.new(self), "Invitation no longer acceptable" unless acceptable?
+      raise NotAcceptable, "Invitation no longer acceptable" unless acceptable?
       # ... existing acceptance logic continues ...
     end
   end
 end
 ```
 
-Subclassing `ActiveRecord::RecordInvalid` means `Invitation::NotAcceptable` is still rescued by any code that catches `RecordInvalid` (backward-compatible with the existing `accept!` callers that don't know about this exception). The concern catches the more specific class first, then falls through to generic `RecordInvalid` for everything else.
+The exception is a standalone `StandardError` subclass — NOT inheriting from `ActiveRecord::RecordInvalid`. Backward compatibility with `rescue RecordInvalid` callers isn't a concern at this point (user direction during panel-fix review), and a flat hierarchy is cleaner. Any existing callers of `Invitation#accept!` that previously rescued `RecordInvalid` for the "not acceptable" case will need to update to `rescue Invitation::NotAcceptable`. Audit: at the time of this spec, the only caller is `Signupable#accept_pending_invitation!` (this spec) and `RegistrationsController#accept_pending_invitation` (the to-be-removed inline version from PR #172). Both rescuers are being rewritten as part of this change.
 
 ### `RegistrationsController#create` (refactor — replaces Task 9's inline pattern)
 
@@ -265,28 +270,85 @@ def handle_unverified_email_oauth(auth_hash)
   @user = create_user_from_oauth(auth_hash)
   pending_auth = nil
 
-  success = commit_signup_atomically(@user) do |user|
-    pending_auth = user.authentications.create!(
+  # Note: this branch does NOT use commit_signup_atomically — it must NOT
+  # consume the invitation yet. Instead, we persist the pending invitation
+  # token on the new Authentication record so it can be claimed when the
+  # user proves email ownership by clicking the verification email link.
+  ApplicationRecord.transaction do
+    @user.save!
+    pending_auth = @user.authentications.create!(
       provider: auth_hash.provider,
       uid: auth_hash.uid,
       email: auth_hash.info.email,
-      verified_at: nil
+      verified_at: nil,
+      pending_invitation_token: session[:pending_invitation_token]
     )
     pending_auth.generate_verification_token!
   end
 
-  if success
-    AuthenticationMailer.verification_email(pending_auth).deliver_later
-    redirect_to new_session_path, notice: t("omniauth_callbacks.create.check_email")
-  else
-    redirect_to new_session_path, alert: t("omniauth_callbacks.create.failure")
+  # Token persisted on the Authentication; safe to remove from session.
+  # Acceptance happens later, in the verification controller's success path.
+  session.delete(:pending_invitation_token)
+
+  AuthenticationMailer.verification_email(pending_auth).deliver_later
+  redirect_to new_session_path, notice: t("omniauth_callbacks.create.check_email")
+rescue ActiveRecord::RecordInvalid
+  redirect_to new_session_path, alert: t("omniauth_callbacks.create.failure")
+end
+```
+
+**Key design — deferred acceptance for unverified-email OAuth (revised per user direction during panel review):** Earlier drafts of this design had the unverified-email branch ALSO call `commit_signup_atomically`, which would consume the invitation immediately. That created an orphan-invitation risk: if email verification never completed, the invitation was already consumed and the user couldn't retry — a new invitation had to be issued. The revised design persists the invitation token on the new (pending) `Authentication` record instead. Acceptance happens in the verification flow once email ownership is proven. If the user never clicks the verification link, the invitation stays pending in the DB and is reclaimable.
+
+### `Authentication#claim_pending_invitation!` (new method on existing model)
+
+```ruby
+# app/models/authentication.rb
+def claim_pending_invitation!(user)
+  return if pending_invitation_token.blank?
+
+  invitation = Invitation.find_by(token: pending_invitation_token)
+  update!(pending_invitation_token: nil) if invitation.nil?
+  return if invitation.nil?
+
+  invitation.accept!(user)
+  update!(pending_invitation_token: nil)
+end
+```
+
+Semantics mirror `Signupable#accept_pending_invitation!` but the token source is the Authentication record's column instead of the session. On `Invitation::NotAcceptable`, the exception propagates (caller decides flash). On success, the column is cleared so the same auth can't re-claim.
+
+### Migration — `db/migrate/YYYYMMDDhhmmss_add_pending_invitation_token_to_authentications.rb`
+
+```ruby
+class AddPendingInvitationTokenToAuthentications < ActiveRecord::Migration[8.1]
+  def change
+    add_column :authentications, :pending_invitation_token, :string
+
+    # Partial index keeps the index small — only the rare authentications
+    # with a pending invitation get indexed. Used by Authentication#claim_pending_invitation!
+    add_index :authentications, :pending_invitation_token,
+              where: "pending_invitation_token IS NOT NULL"
   end
 end
 ```
 
-**Key change:** The unverified-email branch now ALSO calls `commit_signup_atomically` (which calls `accept_pending_invitation!`). The user doesn't sign in yet, but the invitation is consumed and they get the inviting workspace membership. When they eventually click the verification email, they're already a workspace member.
+### Verification controller update
 
-**Why consume invitation BEFORE email verification (DHH panel review concern):** The invitation token is single-use and lives in the session. If verification fails or the user never clicks the email link, the invitation is "consumed" but the user never completes signup — they can't retry without a new invitation. This is a deliberate trade-off: we accept that an abandoned OAuth signup leaves the inviter to issue a new invitation. The alternative (consume only after verification) would require persisting the pending invitation reference across the verification round-trip (probably as a column on `Authentication`), which is a substantially larger change. **The implementer should add an inline comment in `handle_unverified_email_oauth`** stating: "Invitation is consumed now even though sign-in is deferred until email verification. If verification never completes, the invitation is gone and a new one must be issued. See spec section X for rationale."
+The email verification flow lives in whichever controller handles the verification email click (per prior audit, likely `Account::ConnectedAccountsController#verify` OR a separate `Authentications::VerificationsController` — the planner reconciles). Wherever it lives, after the existing logic sets `verified_at` on the Authentication AND signs the user in, add:
+
+```ruby
+# Call this AFTER the user is signed in and authentication.verified_at is set.
+# Wrapped in a rescue so a stale/invalid invitation doesn't block sign-in.
+begin
+  authentication.claim_pending_invitation!(Current.user)
+rescue Invitation::NotAcceptable
+  flash[:alert] = t("registrations.create.invitation_consumed")
+end
+```
+
+The `rescue` is intentional: if the invitation expired or was issued to someone else before verification completed, we DON'T want to fail the email-verification step (that would block sign-in for an unrelated reason). The user gets the flash but proceeds with their now-verified account.
+
+The implementer must reconcile the exact controller and action — the contract is "after verification succeeds, call `claim_pending_invitation!` and handle `NotAcceptable` gracefully."
 
 **For existing-user-via-OAuth (where `find_verified_user_by_email` returns a hit):** `commit_signup_atomically` is safe — `user.save!` on a persisted unchanged record is a no-op, the new authentication is created, and any pending invitation is consumed. Existing users WITH an invitation token in session get the workspace membership too. This is a UX improvement that falls out for free.
 
@@ -425,7 +487,7 @@ describe Signupable do
     it "returns true and commits when block succeeds"
     it "returns false (and leaves flash empty) when user.save! raises RecordInvalid (model validation)"
     it "returns false AND sets flash[:alert] when invitation accept! raises Invitation::NotAcceptable (race)"
-    it "Invitation::NotAcceptable is a subclass of ActiveRecord::RecordInvalid (backward compat)"
+    it "Invitation::NotAcceptable is a standalone StandardError (not a RecordInvalid)"
     it "rolls back user creation when block raises ActiveRecord::Rollback"
     it "consumes session pending_invitation_token on commit"
     it "clears session pending_invitation_token even when block raises Rollback"
@@ -455,10 +517,22 @@ If any of these break after the refactor, the concern's API doesn't match the co
 ### `spec/requests/omniauth_callbacks_spec.rb` (new cases)
 
 - **New-user OAuth signup WITH invitation token, verified email** → User created AND Authentication created AND invitation reload is `:accepted` AND user has membership in inviting workspace
-- **New-user OAuth signup WITH invitation token, unverified email** → User created, pending Authentication created, verification email sent, invitation reload is `:accepted` (consumed even though user not signed in yet)
-- **New-user OAuth signup WITH expired/consumed invitation token in session (race)** → User NOT created (transaction rolled back), 303 redirect to sign-in with failure alert
+- **New-user OAuth signup WITH invitation token, unverified email** → User created, pending Authentication created with `pending_invitation_token` SET to the session token, verification email sent, session token CLEARED, **invitation reload is still `:pending`** (deferred acceptance), no workspace membership yet
+- **New-user OAuth signup WITH expired/consumed invitation token in session (race, verified email path)** → User NOT created (transaction rolled back), 303 redirect to sign-in with failure alert
 - **Existing-user OAuth sign-in WITH invitation token in session** → User signed in normally AND invitation accepted AND new workspace membership added (the "fall-out-for-free" UX improvement)
 - All existing OAuth callback tests still pass (no regressions on the wrap pattern)
+
+### `spec/models/authentication_spec.rb` (new cases for `#claim_pending_invitation!`)
+
+- **`pending_invitation_token` is nil** → no-op, returns nil
+- **token references no invitation** (tampered, expired-and-deleted) → clears the column, returns nil
+- **token references valid pending invitation** → calls `accept!(user)`, clears `pending_invitation_token`, invitation reload is `:accepted`, user has workspace membership
+- **token references non-acceptable invitation** (already accepted, expired, declined) → raises `Invitation::NotAcceptable`; `pending_invitation_token` is NOT cleared (so admin can investigate or user can retry with a fresh invitation manually flipped)
+
+### Verification controller integration test (extend existing spec — name reconciled by planner)
+
+- **Unverified-email OAuth signup → click verification email link → invitation accepted on verify**: end-to-end. User does OAuth with unverified email + invitation token in session. Pending Authentication created with `pending_invitation_token` set. User clicks verification link. After verification: `verified_at` set, user signed in, invitation `:accepted`, workspace membership exists, `pending_invitation_token` cleared.
+- **Verification with a stale `pending_invitation_token`** → verification succeeds (user signs in, `verified_at` set), but flash alert "invitation_consumed" shown; `pending_invitation_token` remains for inspection.
 
 ### `spec/requests/magic_link_callbacks_spec.rb` (new cases)
 
@@ -540,11 +614,13 @@ Each request spec includes the shared example with `perform_signup` and `perform
 ## Edge cases pinned by explicit specs
 
 1. **Token cleanup is CONDITIONAL on acceptance success** (revised per Aaron Patterson's panel review). `session.delete(:pending_invitation_token)` runs ONLY after `invitation.accept!(user)` returns successfully. A failed acceptance (race, validation, crash, or transaction rollback) leaves the token in the session — the user can retry, OR an admin can issue a fresh invitation knowing the original is still technically claimable until it expires. The token is still single-use at the DB level (acceptance flips status to `:accepted`), so retry doesn't grant double membership.
+
+   **What happens to a stranded token over time?** Four natural cleanup vectors handle this without active intervention: (a) Rails session expiry / cookie clearing; (b) sign-in/sign-out rotates the session via `Authenticatable#start_new_session_for`; (c) a subsequent invitation click overwrites `session[:pending_invitation_token]` and successful signup deletes it; (d) the underlying invitation expires after 7 days, making the token inert (next retry fails with `NotAcceptable` flash but doesn't grant any access). A stale token can never grant invalid access — `Invitation#accept!` re-validates `acceptable?` at lock time inside the transaction. We do NOT implement active sweep-cleanup; the speculative cost outweighs the observable harm (UX paper cut, not security risk).
 2. **Existing user OAuth with invitation token still works.** Branch 1 of `OmniauthCallbacksController#create` (existing-identity sign-in) is untouched and does NOT consume invitations. Only Branch 3 (new-user, via `handle_new_user_oauth`) consumes them. An existing user with a pending invitation must click an OAuth provider that hits `handle_new_user_oauth`'s "user exists by email" branch.
 3. **Branch 2 (signed-in user linking new OAuth provider) is untouched.** No invitation logic added there.
 4. **Magic link gate does NOT affect `#show` for existing users.** Only `#create` (which builds a new User) consults `signups_open?`. Existing users clicking magic links can always sign in.
 5. **`MagicLinkToken.consume!` inside the transaction.** Token consumption moves into the outer transaction. Its atomic update semantics (`UPDATE ... WHERE consumed_at IS NULL`) are unchanged. If the token was already consumed, the inner `consume!` returns falsy and we explicitly `raise ActiveRecord::Rollback` to abort the transaction without propagating.
-6. **`Invitation::NotAcceptable` subclass of `RecordInvalid`** preserves backward compatibility for any existing `rescue ActiveRecord::RecordInvalid` callers of `Invitation#accept!` while letting `Signupable` rescue the specific class and set the appropriate flash. Pinned by a unit spec on the exception's inheritance chain.
+6. **`Invitation::NotAcceptable` is a standalone `StandardError`**, NOT inheriting from `ActiveRecord::RecordInvalid`. The two rescue clauses in `Signupable#commit_signup_atomically` catch them independently — `Invitation::NotAcceptable` for invitation-race failures (sets flash), and `ActiveRecord::RecordInvalid` for model-validation failures (no flash; caller renders form with `@user.errors`). Pinned by a unit spec on the exception's class hierarchy.
 
 ---
 
@@ -563,10 +639,14 @@ Each request spec includes the shared example with `perform_signup` and `perform
 - **`Invitation::NotAcceptable < ActiveRecord::RecordInvalid`** is defined on the `Invitation` model. `Invitation#accept!` raises it (not generic `RecordInvalid`) when the invitation is not `acceptable?` at lock time.
 - **`accept_pending_invitation!` deletes the session token ONLY on successful acceptance.** Failed acceptance (race, validation, crash) leaves the token in session for retry. Pinned by spec.
 - `RegistrationsController#create` includes `Signupable` and uses `commit_signup_atomically`; the old inline transaction code is GONE; all existing race-condition specs still pass.
-- `OmniauthCallbacksController#handle_new_user_oauth` includes `Signupable` and uses `commit_signup_atomically` for BOTH verified-email AND unverified-email branches.
+- `OmniauthCallbacksController#handle_new_user_oauth` includes `Signupable`. The **verified-email branch** uses `commit_signup_atomically`. The **unverified-email branch** does its OWN transaction (no concern call) and persists `session[:pending_invitation_token]` onto the new `Authentication` record's `pending_invitation_token` column, then clears the session token. Invitation acceptance is DEFERRED to the email verification flow.
+- Migration `add_pending_invitation_token_to_authentications` exists, adds a string column with a partial index `WHERE pending_invitation_token IS NOT NULL`.
+- `Authentication#claim_pending_invitation!(user)` method exists and behaves per spec (no-op on blank token, no-op + clear on missing invitation, accept + clear on success, raises `Invitation::NotAcceptable` without clearing on stale).
+- The email verification flow (controller TBD by planner) calls `authentication.claim_pending_invitation!(Current.user)` AFTER the user is signed in and `verified_at` is set, with `rescue Invitation::NotAcceptable` setting the appropriate flash without blocking the sign-in.
 - `MagicLinkCallbacksController#create` includes `Signupable`, gates on `signups_open?`, and uses `commit_signup_atomically` for the new-user branch. The `raise ActiveRecord::Rollback` path is inline-commented.
-- Invited user signing up via OAuth (verified email) ends up with workspace membership AND invitation marked accepted.
-- Invited user signing up via OAuth (unverified email) ends up with workspace membership AND invitation marked accepted, even though sign-in is deferred until email verification. Inline comment in `handle_unverified_email_oauth` explains the deliberate trade-off (orphaned invitation if verification never completes; new invitation must be issued).
+- Invited user signing up via OAuth (verified email) ends up with workspace membership AND invitation marked accepted IMMEDIATELY at signup time.
+- Invited user signing up via OAuth (unverified email) ends up with: pending Authentication carrying the invitation token, NO workspace membership yet, invitation reload is still `:pending`, session token cleared. Inline comment in `handle_unverified_email_oauth` explains the deferred-acceptance design.
+- Invited user signing up via OAuth (unverified email) THEN clicking the verification email → `verified_at` set, user signed in, invitation `:accepted`, workspace membership exists, `pending_invitation_token` cleared.
 - Invited user signing up via magic link ends up with workspace membership AND invitation marked accepted.
 - Uninvited user signing up via magic link in `:invite_only` mode → 303 to closed page; no User created; no token consumed.
 - **Concurrent magic-link signup race (Tab A and Tab B same token, simultaneous POST) → exactly one User created, exactly one token consumption, the losing tab redirects to `:invalid`.** Pinned by request spec.
