@@ -91,6 +91,21 @@ class Authentication < ApplicationRecord
     )
   end
 
+  def claim_pending_invitation!(user)
+    return if pending_invitation_token.blank?
+
+    ApplicationRecord.transaction do
+      invitation = Invitation.find_by(token: pending_invitation_token)
+      if invitation.nil?
+        update!(pending_invitation_token: nil)
+        next
+      end
+
+      invitation.accept!(user)
+      update!(pending_invitation_token: nil)
+    end
+  end
+
   private
 
   def broadcast_target

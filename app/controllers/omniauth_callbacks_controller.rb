@@ -1,4 +1,6 @@
 class OmniauthCallbacksController < ApplicationController
+  include Signupable
+
   allow_unauthenticated_access
 
   def create
@@ -110,7 +112,16 @@ class OmniauthCallbacksController < ApplicationController
     end
 
     if oauth_email_verified?(auth_hash)
-      user = find_verified_user_by_email(auth_hash.info.email) || create_user_from_oauth(auth_hash)
+      handle_verified_email_oauth(auth_hash)
+    else
+      handle_unverified_email_oauth(auth_hash)
+    end
+  end
+
+  def handle_verified_email_oauth(auth_hash)
+    @user = find_verified_user_by_email(auth_hash.info.email) || create_user_from_oauth(auth_hash)
+
+    success = commit_signup_atomically(@user) do |user|
       user.authentications.create!(
         provider: normalized_provider(auth_hash),
         uid: auth_hash.uid,
@@ -118,31 +129,54 @@ class OmniauthCallbacksController < ApplicationController
         verified_at: Time.current,
         **oauth_attrs(auth_hash)
       )
-      start_new_session_for(user)
+    end
+
+    if success
+      start_new_session_for(@user)
       redirect_to root_path, notice: t("sessions.create.success")
     else
-      # OAuth provider explicitly reports email as unverified (e.g., Google's
-      # info.email_verified: false). Refuse to auto-link to an existing user
-      # (account-takeover risk) and refuse to auto-verify. Create the user
-      # fresh — if the email already belongs to another account, User
-      # validation/uniqueness raises and the outer rescue surfaces a generic
-      # "linking failed" alert. Otherwise, create the auth as pending and
-      # email a verification link without signing the user in.
+      redirect_to new_session_path, alert: t("omniauth_callbacks.create.linking_failed")
+    end
+  end
+
+  def handle_unverified_email_oauth(auth_hash)
+    # OAuth provider explicitly reports email as unverified (e.g., Google's
+    # info.email_verified: false). Refuse to auto-link to an existing user
+    # (account-takeover risk) and refuse to auto-verify. Create the user
+    # fresh — if the email already belongs to another account, User
+    # validation/uniqueness raises and the outer rescue surfaces a generic
+    # "linking failed" alert. Otherwise, create the auth as pending and
+    # email a verification link without signing the user in.
+    #
+    # NOTE: does NOT call commit_signup_atomically — that concern calls
+    # accept_pending_invitation! which would consume the invitation immediately.
+    # Instead, we persist the invitation token on the pending Authentication so
+    # it can be claimed when the user proves email ownership by clicking the
+    # verification link (Account::ConnectedAccountsController#verify, Task 9).
+    auth = nil
+    ApplicationRecord.transaction do
       user = create_user_from_oauth(auth_hash)
       auth = user.authentications.build(
         provider: normalized_provider(auth_hash),
         uid: auth_hash.uid,
         email: auth_hash.info.email,
+        pending_invitation_token: session[:pending_invitation_token],
         **oauth_attrs(auth_hash)
       )
       auth.assign_verification_token
       auth.save!
-      if EmailRecipientThrottle.allow!(auth.email, kind: :verification)
-        AuthenticationMailer.link_verification_email(auth).deliver_later
-      end
-      redirect_to new_session_path,
-        notice: t("omniauth_callbacks.create.unverified_email_pending", email: auth_hash.info.email)
     end
+
+    # Token is now safely persisted on the Authentication; safe to clear from session.
+    session.delete(:pending_invitation_token)
+
+    # deliver_later runs after the transaction commits (project convention:
+    # deliver_later inside a transaction can enqueue a job that fires on rollback).
+    if EmailRecipientThrottle.allow!(auth.email, kind: :verification)
+      AuthenticationMailer.link_verification_email(auth).deliver_later
+    end
+    redirect_to new_session_path,
+      notice: t("omniauth_callbacks.create.unverified_email_pending", email: auth_hash.info.email)
   end
 
   def fallback_path

@@ -893,6 +893,95 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
     end
 
     # === CRITICAL REGRESSION: Branch 1 (existing identity) must NOT be blocked ===
+    describe "Invited new-user OAuth signup (verified email)" do
+      let(:workspace) { create(:workspace) }
+      let(:invitation) { create(:invitation, invitable: workspace, email: "newoauth@example.com") }
+
+      let(:invited_auth_hash) do
+        OmniAuth::AuthHash.new(
+          provider: "google",
+          uid: "999888",
+          info: { email: "newoauth@example.com", first_name: "New", last_name: "OAuth", email_verified: true },
+          credentials: { token: "tk", refresh_token: "rt", expires_at: 1.hour.from_now.to_i }
+        )
+      end
+
+      before do
+        allow(Rails.configuration.x.signup).to receive(:mode).and_return(:invite_only)
+        OmniAuth.config.mock_auth[:google_oauth2] = invited_auth_hash
+        post accept_invitation_path(token: invitation.token)
+      end
+
+      it "creates the user, accepts the invitation, and adds workspace membership" do
+        expect {
+          get "/auth/google_oauth2/callback"
+        }.to change(User, :count).by(1)
+
+        new_user = User.find_by(email_address: "newoauth@example.com")
+        expect(new_user).to be_present
+        expect(invitation.reload).to be_accepted
+        expect(new_user.workspaces).to include(workspace)
+      end
+
+      it "signs the user in" do
+        get "/auth/google_oauth2/callback"
+        expect(response).to redirect_to(root_path)
+      end
+    end
+
+    describe "Invited new-user OAuth signup (UNverified email)" do
+      let(:workspace) { create(:workspace) }
+      let(:invitation) { create(:invitation, invitable: workspace, email: "unverified@example.com") }
+
+      let(:google_unverified_hash) do
+        OmniAuth::AuthHash.new(
+          provider: "google",
+          uid: "777666",
+          info: { email: "unverified@example.com", first_name: "Pending", last_name: "Verify", email_verified: false },
+          credentials: { token: "tk2", refresh_token: "rt2", expires_at: 1.hour.from_now.to_i }
+        )
+      end
+
+      before do
+        allow(Rails.configuration.x.signup).to receive(:mode).and_return(:invite_only)
+        OmniAuth.config.test_mode = true
+        OmniAuth.config.mock_auth[:google_oauth2] = google_unverified_hash
+        post accept_invitation_path(token: invitation.token)
+      end
+
+      after { OmniAuth.config.mock_auth[:google_oauth2] = nil }
+
+      it "creates the user and a pending Authentication" do
+        expect {
+          get "/auth/google_oauth2/callback"
+        }.to change(User, :count).by(1).and change(Authentication, :count).by(1)
+      end
+
+      it "persists the invitation token on the pending Authentication" do
+        get "/auth/google_oauth2/callback"
+        new_user = User.find_by(email_address: "unverified@example.com")
+        auth = new_user.authentications.last
+        expect(auth.pending_invitation_token).to eq(invitation.token)
+        expect(auth.verified_at).to be_nil
+      end
+
+      it "does NOT consume the invitation yet (deferred to verification)" do
+        get "/auth/google_oauth2/callback"
+        expect(invitation.reload).to be_pending
+        expect(invitation.reload.accepted_at).to be_nil
+      end
+
+      it "clears the session token after persisting onto the Authentication" do
+        get "/auth/google_oauth2/callback"
+        expect(session[:pending_invitation_token]).to be_nil
+      end
+
+      it "does NOT sign the user in (verification still required)" do
+        get "/auth/google_oauth2/callback"
+        expect(response).to redirect_to(new_session_path)
+      end
+    end
+
     context "when SIGNUP_MODE is :invite_only and an existing user signs in via OAuth (Branch 1)" do
       let!(:user) { create(:user) }
       let!(:authentication) do
