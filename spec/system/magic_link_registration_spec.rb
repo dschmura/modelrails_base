@@ -2,6 +2,8 @@ require "rails_helper"
 
 RSpec.describe "Magic link registration", type: :system do
   describe "new user via smart lookup" do
+    before { allow(Rails.configuration.x.signup).to receive(:mode).and_return(:open) }
+
     it "sends a registration link and allows account creation" do
       visit new_session_path
 
