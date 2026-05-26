@@ -147,15 +147,31 @@ class OmniauthCallbacksController < ApplicationController
     # validation/uniqueness raises and the outer rescue surfaces a generic
     # "linking failed" alert. Otherwise, create the auth as pending and
     # email a verification link without signing the user in.
-    user = create_user_from_oauth(auth_hash)
-    auth = user.authentications.build(
-      provider: normalized_provider(auth_hash),
-      uid: auth_hash.uid,
-      email: auth_hash.info.email,
-      **oauth_attrs(auth_hash)
-    )
-    auth.assign_verification_token
-    auth.save!
+    #
+    # NOTE: does NOT call commit_signup_atomically — that concern calls
+    # accept_pending_invitation! which would consume the invitation immediately.
+    # Instead, we persist the invitation token on the pending Authentication so
+    # it can be claimed when the user proves email ownership by clicking the
+    # verification link (Account::ConnectedAccountsController#verify, Task 9).
+    auth = nil
+    ApplicationRecord.transaction do
+      user = create_user_from_oauth(auth_hash)
+      auth = user.authentications.build(
+        provider: normalized_provider(auth_hash),
+        uid: auth_hash.uid,
+        email: auth_hash.info.email,
+        pending_invitation_token: session[:pending_invitation_token],
+        **oauth_attrs(auth_hash)
+      )
+      auth.assign_verification_token
+      auth.save!
+    end
+
+    # Token is now safely persisted on the Authentication; safe to clear from session.
+    session.delete(:pending_invitation_token)
+
+    # deliver_later runs after the transaction commits (project convention:
+    # deliver_later inside a transaction can enqueue a job that fires on rollback).
     if EmailRecipientThrottle.allow!(auth.email, kind: :verification)
       AuthenticationMailer.link_verification_email(auth).deliver_later
     end
