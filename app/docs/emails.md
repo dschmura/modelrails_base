@@ -53,8 +53,8 @@ Tokens are single-use: accepting an invitation, verifying an email, or resetting
 ### New User Registration
 
 1. User submits registration form.
-2. `Authentication` record created with a `verification_token`.
-3. `AuthenticationMailer.verification_email` sent.
+2. Unverified `Authentication` record created.
+3. `AuthenticationMailer.verification_email` sent with a signed, single-use token (`generates_token_for :email_verification`).
 4. User clicks link → email marked as verified.
 5. User can now sign in.
 

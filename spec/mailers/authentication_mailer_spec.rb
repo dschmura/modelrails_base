@@ -3,9 +3,7 @@ require "rails_helper"
 RSpec.describe AuthenticationMailer, type: :mailer do
   describe "#verification_email" do
     let(:user) { create(:user) }
-    let(:authentication) { create(:authentication, user: user) }
-
-    before { authentication.generate_verification_token! }
+    let(:authentication) { create(:authentication, user: user, verified_at: nil) }
 
     it "sends to the user's email" do
       mail = described_class.verification_email(authentication)
@@ -14,7 +12,7 @@ RSpec.describe AuthenticationMailer, type: :mailer do
 
     it "includes the verification link" do
       mail = described_class.verification_email(authentication)
-      expect(mail.body.encoded).to include(authentication.verification_token)
+      expect(mail.body.encoded).to include(email_verification_path)
     end
   end
 
@@ -47,8 +45,7 @@ RSpec.describe AuthenticationMailer, type: :mailer do
         provider: "google",
         uid: "12345",
         email: "alice.work@gmail.com",
-        verification_token: "abc-token-xyz",
-        verification_sent_at: Time.current
+        verified_at: nil
       )
     end
 
@@ -66,8 +63,8 @@ RSpec.describe AuthenticationMailer, type: :mailer do
       expect(mail.subject).to include(I18n.t("application.name"))
     end
 
-    it "includes the verification URL with the token in the body" do
-      expect(mail.body.encoded).to include("verify/abc-token-xyz")
+    it "includes the verification URL in the body" do
+      expect(mail.body.encoded).to include("/connected_accounts/verify/")
     end
 
     it "addresses the user by first name" do

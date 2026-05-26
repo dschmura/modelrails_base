@@ -17,9 +17,9 @@ module Account
     end
 
     def verify
-      auth = Authentication.find_by(verification_token: params[:token])
+      auth = Authentication.find_by_token_for(:email_verification, params[:token])
 
-      if auth.nil? || auth.token_expired?
+      if auth.nil?
         redirect_to(authenticated? ? account_connected_accounts_path : new_session_path,
                     alert: t(".invalid_or_expired"))
         return
@@ -69,19 +69,12 @@ module Account
         redirect_to account_connected_accounts_path,
           alert: t(".already_verified")
       else
-        auth.generate_verification_token!
         if EmailRecipientThrottle.allow!(auth.email, kind: :verification)
           AuthenticationMailer.link_verification_email(auth).deliver_later
         end
         redirect_to account_connected_accounts_path,
           notice: t(".resent", email: auth.email)
       end
-    rescue ActiveRecord::RecordNotUnique
-      # The model retries on RecordNotUnique up to TOKEN_GENERATION_MAX_ATTEMPTS
-      # times. Reaching here means every regenerated token still collided —
-      # effectively impossible with 256 bits of entropy, but defended-in-depth.
-      redirect_to account_connected_accounts_path,
-        alert: t(".token_collision")
     end
 
     def destroy
