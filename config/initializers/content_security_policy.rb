@@ -15,7 +15,13 @@ Rails.application.configure do
     policy.connect_src :self
     policy.frame_src   :none
     policy.base_uri    :self
-    policy.form_action :self
+    # OAuth providers need form-action allowance because CSP evaluates the
+    # entire redirect chain. POST to /auth/:provider returns a 302 to the
+    # provider's consent page, and browsers block that step unless the
+    # provider host is in form-action.
+    policy.form_action :self,
+      "https://accounts.google.com",
+      "https://github.com"
   end
 
   # Generate session nonces for permitted importmap and inline scripts.
