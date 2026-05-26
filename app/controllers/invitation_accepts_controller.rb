@@ -18,7 +18,7 @@ class InvitationAcceptsController < ApplicationController
         else
           redirect_to workspace_path(@invitation.invitable), notice: t(".success")
         end
-      rescue ActiveRecord::RecordInvalid
+      rescue Invitation::NotAcceptable, ActiveRecord::RecordInvalid
         redirect_to root_path, alert: t(".acceptance_failed")
       end
     else

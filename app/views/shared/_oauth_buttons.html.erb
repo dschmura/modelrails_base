@@ -3,6 +3,7 @@
     <% enabled_oauth_providers.each do |provider_key, config| %>
       <%= button_to "/auth/#{provider_key}",
             method: :post,
+            form: { data: { turbo: false } },
             class: "w-full min-h-[var(--form-input-height)] flex items-center justify-center gap-3 px-4 py-3 rounded-md
                     border border-border-strong
                     bg-surface-raised

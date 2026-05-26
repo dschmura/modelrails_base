@@ -340,6 +340,45 @@ RSpec.describe Authentication, type: :model do
     end
   end
 
+  describe "#claim_pending_invitation!" do
+    let(:user) { create(:user) }
+    let(:authentication) { create(:authentication, user: user, pending_invitation_token: nil) }
+
+    it "is a no-op when pending_invitation_token is blank" do
+      expect {
+        authentication.claim_pending_invitation!(user)
+      }.not_to change(user.workspaces, :count)
+    end
+
+    it "clears the token and returns nil when token matches no invitation" do
+      authentication.update!(pending_invitation_token: "no-such-token-anywhere")
+      authentication.claim_pending_invitation!(user)
+      expect(authentication.reload.pending_invitation_token).to be_nil
+    end
+
+    it "accepts the invitation and clears the token on success" do
+      invitation = create(:invitation)
+      authentication.update!(pending_invitation_token: invitation.token)
+
+      authentication.claim_pending_invitation!(user)
+
+      expect(invitation.reload).to be_accepted
+      expect(authentication.reload.pending_invitation_token).to be_nil
+      expect(user.workspaces).to include(invitation.invitable)
+    end
+
+    it "raises Invitation::NotAcceptable and does NOT clear the token when invitation is stale" do
+      invitation = create(:invitation, :expired)
+      authentication.update!(pending_invitation_token: invitation.token)
+
+      expect {
+        authentication.claim_pending_invitation!(user)
+      }.to raise_error(Invitation::NotAcceptable)
+
+      expect(authentication.reload.pending_invitation_token).to eq(invitation.token)
+    end
+  end
+
   describe "broadcasting" do
     let(:user) { create(:user) }
     # Turbo broadcasts to the stream name computed by stream_name_from([user, :authentications]),

@@ -1,4 +1,6 @@
 class Invitation < ApplicationRecord
+  class NotAcceptable < StandardError; end
+
   belongs_to :invitable, polymorphic: true
   belongs_to :role
   belongs_to :invited_by, class_name: "User"
@@ -81,8 +83,8 @@ class Invitation < ApplicationRecord
   def accept!(user)
     transaction do
       lock!
-      raise ActiveRecord::RecordInvalid.new(self), "Invitation already processed" unless pending?
-      raise ActiveRecord::RecordInvalid.new(self), "Invitation expired" if expired?
+      raise NotAcceptable, "Invitation no longer acceptable" unless pending?
+      raise NotAcceptable, "Invitation no longer acceptable" if expired?
       if invitable_type == "Project"
         accept_project_invitation!(user)
       else

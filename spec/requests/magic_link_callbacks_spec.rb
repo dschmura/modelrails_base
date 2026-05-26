@@ -74,6 +74,7 @@ RSpec.describe "Magic Link Callbacks", type: :request do
 
   describe "POST /magic_link_callback/:token" do
     context "valid token and valid user params" do
+      before { allow(Rails.configuration.x.signup).to receive(:mode).and_return(:open) }
       let(:token) { MagicLinkToken.create_for_email("newreg@example.com") }
 
       it "creates the user" do
@@ -111,6 +112,7 @@ RSpec.describe "Magic Link Callbacks", type: :request do
     end
 
     context "valid token but invalid user params" do
+      before { allow(Rails.configuration.x.signup).to receive(:mode).and_return(:open) }
       let(:token) { MagicLinkToken.create_for_email("baddatauser@example.com") }
 
       it "returns unprocessable entity for blank first_name" do
@@ -155,6 +157,73 @@ RSpec.describe "Magic Link Callbacks", type: :request do
         }
         expect(response).to redirect_to(new_session_path)
         expect(flash[:alert]).to be_present
+      end
+    end
+  end
+
+  describe "POST /magic_link_callback/:token (new-user signup)" do
+    let(:workspace) { create(:workspace) }
+    let(:token_record) { create(:magic_link_token, email: "newml@example.com") }
+    let(:params) { { user: { first_name: "Magic", last_name: "Link" } } }
+
+    context "in invite_only mode without an invitation token in session" do
+      before { allow(Rails.configuration.x.signup).to receive(:mode).and_return(:invite_only) }
+
+      it "redirects to new_registration_path with 303 and creates no User" do
+        expect {
+          post magic_link_callback_path(token: token_record.token), params: params
+        }.not_to change(User, :count)
+
+        expect(response).to redirect_to(new_registration_path)
+        expect(response).to have_http_status(:see_other)
+        expect(flash[:alert]).to include(I18n.t("registrations.closed.oauth_blocked"))
+      end
+
+      it "does NOT consume the magic-link token" do
+        post magic_link_callback_path(token: token_record.token), params: params
+        expect(token_record.reload.consumed_at).to be_nil
+      end
+    end
+
+    context "in invite_only mode with a valid invitation token in session" do
+      let(:invitation) { create(:invitation, invitable: workspace, email: "newml@example.com") }
+
+      before do
+        allow(Rails.configuration.x.signup).to receive(:mode).and_return(:invite_only)
+        # POST to the invitation acceptance route — sets session[:pending_invitation_token]
+        post accept_invitation_path(token: invitation.token)
+      end
+
+      it "creates the user, consumes the token, accepts the invitation" do
+        expect {
+          post magic_link_callback_path(token: token_record.token), params: params
+        }.to change(User, :count).by(1)
+
+        expect(token_record.reload.consumed_at).to be_present
+        expect(invitation.reload).to be_accepted
+
+        new_user = User.find_by(email_address: "newml@example.com")
+        expect(new_user.workspaces).to include(workspace)
+      end
+    end
+
+    context "when the magic-link token gets consumed concurrently (race)" do
+      let(:invitation) { create(:invitation, invitable: workspace, email: "newml@example.com") }
+
+      before do
+        allow(Rails.configuration.x.signup).to receive(:mode).and_return(:invite_only)
+        # POST to the invitation acceptance route — sets session[:pending_invitation_token]
+        post accept_invitation_path(token: invitation.token)
+        # Simulate concurrent consumption (returns nil to indicate race-lost)
+        allow(MagicLinkToken).to receive(:consume!).and_return(nil)
+      end
+
+      it "rolls back user creation when token consume returns nil" do
+        expect {
+          post magic_link_callback_path(token: token_record.token), params: params
+        }.not_to change(User, :count)
+
+        expect(invitation.reload).to be_pending
       end
     end
   end

@@ -84,10 +84,10 @@ RSpec.describe "Account Connected Accounts", type: :request do
       end
 
       context "when the user is signed out" do
-        it "redirects to sign-in with sign-in success message" do
+        it "signs the user in and redirects to root" do
           get verify_account_connected_accounts_path(token: auth.verification_token)
-          expect(response).to redirect_to(new_session_path)
-          expect(flash[:notice]).to include("Sign in to continue")
+          expect(response).to redirect_to(root_path)
+          expect(flash[:notice]).to include("linked")
         end
       end
     end
@@ -417,6 +417,53 @@ RSpec.describe "Account Connected Accounts", type: :request do
         end
         expect(other_pending_auth.reload.verification_token).to eq(original_token)
       end
+    end
+  end
+
+  describe "GET verify (new user with pending invitation)" do
+    let(:workspace) { create(:workspace) }
+    let(:invitation) { create(:invitation, invitable: workspace, email: "needsverify@example.com") }
+    let(:user) { create(:user, email_address: "needsverify@example.com") }
+    let(:pending_auth) do
+      auth = user.authentications.build(
+        provider: "google",
+        uid: "verifyme",
+        email: "needsverify@example.com",
+        verified_at: nil,
+        pending_invitation_token: invitation.token
+      )
+      auth.assign_verification_token
+      auth.save!
+      auth
+    end
+
+    it "verifies the auth, signs in the user, claims the invitation, and grants workspace membership" do
+      token = pending_auth.verification_token
+      get verify_account_connected_accounts_path(token: token)
+
+      expect(pending_auth.reload.verified_at).to be_present
+      expect(invitation.reload).to be_accepted
+      expect(user.reload.workspaces).to include(workspace)
+      expect(pending_auth.reload.pending_invitation_token).to be_nil
+    end
+
+    it "shows the invitation_consumed flash if the invitation became stale before verification" do
+      invitation.update!(status: "accepted", accepted_at: 1.minute.ago)
+
+      token = pending_auth.verification_token
+      get verify_account_connected_accounts_path(token: token)
+
+      expect(pending_auth.reload.verified_at).to be_present
+      expect(flash[:alert]).to include(I18n.t("registrations.create.invitation_consumed"))
+    end
+
+    it "does NOT block verification even when invitation claim fails" do
+      invitation.update!(status: "accepted", accepted_at: 1.minute.ago)
+
+      token = pending_auth.verification_token
+      get verify_account_connected_accounts_path(token: token)
+
+      expect(pending_auth.reload.verified_at).to be_present
     end
   end
 

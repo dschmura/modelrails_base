@@ -49,6 +49,45 @@ RSpec.describe Invitation, type: :model do
     end
   end
 
+  describe "Invitation::NotAcceptable" do
+    it "is a standalone StandardError (not an ActiveRecord::RecordInvalid)" do
+      expect(Invitation::NotAcceptable.ancestors).to include(StandardError)
+      expect(Invitation::NotAcceptable.ancestors).not_to include(ActiveRecord::RecordInvalid)
+    end
+  end
+
+  describe "#accept! raise behavior" do
+    let(:user) { create(:user) }
+
+    it "raises Invitation::NotAcceptable when invitation is already accepted" do
+      invitation = create(:invitation, :accepted)
+      expect {
+        invitation.accept!(user)
+      }.to raise_error(Invitation::NotAcceptable, /no longer acceptable/i)
+    end
+
+    it "raises Invitation::NotAcceptable when invitation is expired" do
+      invitation = create(:invitation, :expired)
+      expect {
+        invitation.accept!(user)
+      }.to raise_error(Invitation::NotAcceptable, /no longer acceptable/i)
+    end
+
+    it "raises Invitation::NotAcceptable when invitation is declined" do
+      invitation = create(:invitation, :declined)
+      expect {
+        invitation.accept!(user)
+      }.to raise_error(Invitation::NotAcceptable, /no longer acceptable/i)
+    end
+
+    it "does NOT raise NotAcceptable on a valid pending invitation" do
+      invitation = create(:invitation)
+      expect {
+        invitation.accept!(user)
+      }.not_to raise_error
+    end
+  end
+
   describe "#accept!" do
     let(:workspace) { create(:workspace) }
     let!(:invitation) { create(:invitation, invitable: workspace) }
@@ -62,7 +101,7 @@ RSpec.describe Invitation, type: :model do
       invitation = create(:invitation, invitable: create(:workspace))
       user = create(:user)
       invitation.accept!(user)
-      expect { invitation.accept!(create(:user)) }.to raise_error(ActiveRecord::RecordInvalid)
+      expect { invitation.accept!(create(:user)) }.to raise_error(Invitation::NotAcceptable)
     end
 
     it "sets accepted status" do
