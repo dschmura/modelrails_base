@@ -292,6 +292,7 @@ RSpec.describe "Registrations", type: :request do
 
         expect(invitation.reload).to be_pending
         expect(user.reload.workspaces).not_to include(workspace)
+        expect(flash[:alert]).to eq(I18n.t("account.connected_accounts.verify.email_mismatch"))
       end
     end
   end

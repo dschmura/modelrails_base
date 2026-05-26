@@ -92,6 +92,7 @@ en:
         success: "%{provider} linked. You can sign in with it."
         success_signed_out: "%{provider} linked. Sign in to continue."
         invalid_or_expired: "This confirmation link is invalid or expired. Sign in and request a new one from your connected accounts."
+        email_mismatch: "Your email is verified, but that invitation was sent to a different address. Ask your workspace administrator to invite this email."
       resend_verification:
         resent: "We sent a fresh confirmation link to %{email}."
         already_verified: "That sign-in method is already verified."
