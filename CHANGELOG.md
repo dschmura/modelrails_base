@@ -7,10 +7,16 @@ All notable changes to ModelRails are documented here, organized by phase.
 ### Breaking
 
 - `config/deploy.yml` `servers.web` schema changed from a flat host list to a `hosts:` + `options:` form to support `max-replicas: 1` (#135). Forks that customized `deploy.yml` between v1.4.0 and now must update the structure — see the migration note in `app/docs/deployment.md`.
+- Email verification switched to signed, stateless tokens (`Authentication.generates_token_for :email_verification`); dropped the `authentications.verification_token` and `verification_sent_at` columns and unique index (#178). Verification and OAuth-link confirmation links issued before upgrade stop working.
+
+### Security
+
+- Invitation acceptance is now bound to the invited email and deferred until that email is verified — a leaked invite link can no longer be redeemed, even from a different verified address (#175, #176). Magic-link invitations remain intentionally bearer.
 
 ### Changed
 
 - Avatar notification indicator restored as a severity-colored dot (v2 — supersedes D1's split). Avatar carries the dot on desktop; hamburger button on mobile. Standalone header bell removed; the in-menu Notifications row is the canonical triage entry point. Live updates target three new frames (`notifications_indicator_avatar`, `notifications_indicator_hamburger`, `notifications_menu_count_frame`) plus the aria-live region. AAA contrast preserved via `--color-danger-strong` (the project's graphic-accent token).
+- Email/password signup defers invitation acceptance — the pending invitation is parked on the new email authentication and claimed when the email is verified, rather than granted at signup (#175).
 
 ### Added
 
@@ -26,6 +32,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 - YJIT enabled in production (#129).
 - CI builds the production Docker image on every PR (#134).
 - New deployment, background-jobs, and dev-environment docs at `/docs` (#136).
+- Verification surfaces a clear notice when an invitation was addressed to a different email than the one verified, instead of failing silently (#177).
 
 ### Changed
 
