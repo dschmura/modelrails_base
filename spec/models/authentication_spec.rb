@@ -357,7 +357,7 @@ RSpec.describe Authentication, type: :model do
     end
 
     it "accepts the invitation and clears the token on success" do
-      invitation = create(:invitation)
+      invitation = create(:invitation, email: user.email_address)
       authentication.update!(pending_invitation_token: invitation.token)
 
       authentication.claim_pending_invitation!(user)
@@ -368,7 +368,7 @@ RSpec.describe Authentication, type: :model do
     end
 
     it "raises Invitation::NotAcceptable and does NOT clear the token when invitation is stale" do
-      invitation = create(:invitation, :expired)
+      invitation = create(:invitation, :expired, email: user.email_address)
       authentication.update!(pending_invitation_token: invitation.token)
 
       expect {

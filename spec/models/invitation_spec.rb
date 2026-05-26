@@ -597,5 +597,46 @@ RSpec.describe Invitation, type: :model do
         Invitation.consume!(token: invitation.token, user: user)
       }.to raise_error(Invitation::NotAcceptable)
     end
+
+    context "with expected_email (email-match guard)" do
+      it "accepts when the proven email matches the invitation email (case-insensitive)" do
+        invitation = create(:invitation, invitable: workspace, email: "Invitee@Example.com")
+        matching = create(:user, email_address: "invitee@example.com")
+
+        result = Invitation.consume!(token: invitation.token, user: matching, expected_email: matching.email_address)
+
+        expect(result).to eq(invitation)
+        expect(invitation.reload).to be_accepted
+      end
+
+      it "does not consume when the proven email differs from the invitation email" do
+        invitation = create(:invitation, invitable: workspace, email: "invitee@example.com")
+        other = create(:user, email_address: "someone-else@example.com")
+
+        result = Invitation.consume!(token: invitation.token, user: other, expected_email: other.email_address)
+
+        expect(result).to be_nil
+        expect(invitation.reload).to be_pending
+        expect(workspace.memberships.kept.exists?(user: other)).to be false
+      end
+
+      it "consumes a magic-link invitation (nil email) regardless of expected_email" do
+        invitation = create(:invitation, :magic_link, invitable: workspace)
+        anyone = create(:user, email_address: "anyone@example.com")
+
+        result = Invitation.consume!(token: invitation.token, user: anyone, expected_email: anyone.email_address)
+
+        expect(result).to eq(invitation)
+        expect(invitation.reload).to be_accepted
+      end
+
+      it "skips the guard when expected_email is not provided (direct callers)" do
+        invitation = create(:invitation, invitable: workspace, email: "invitee@example.com")
+        # user's email differs, but no expected_email is passed → no guard
+        result = Invitation.consume!(token: invitation.token, user: user)
+
+        expect(result).to eq(invitation)
+      end
+    end
   end
 end

@@ -95,7 +95,7 @@ class Authentication < ApplicationRecord
     return if pending_invitation_token.blank?
 
     ApplicationRecord.transaction do
-      Invitation.consume!(token: pending_invitation_token, user: user)
+      Invitation.consume!(token: pending_invitation_token, user: user, expected_email: user.email_address)
       update!(pending_invitation_token: nil)
     end
   end
