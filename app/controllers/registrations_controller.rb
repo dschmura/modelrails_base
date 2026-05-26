@@ -31,10 +31,11 @@ class RegistrationsController < ApplicationController
         authentication.generate_verification_token!
         accept_pending_invitation!(@user)
       end
-    rescue ActiveRecord::RecordInvalid => e
-      if e.record.is_a?(Invitation)
-        flash.now[:alert] = t(".invitation_consumed")
-      end
+    rescue Invitation::NotAcceptable
+      flash.now[:alert] = t(".invitation_consumed")
+      render :new, status: :unprocessable_entity
+      return
+    rescue ActiveRecord::RecordInvalid
       render :new, status: :unprocessable_entity
       return
     end
