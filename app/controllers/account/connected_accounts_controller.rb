@@ -33,14 +33,30 @@ module Account
         return
       end
 
+      was_authenticated = authenticated?
+
       auth.verify!
 
-      if authenticated?
+      # For unauthenticated callers verifying their first auth (new-user OAuth
+      # unverified-email flow from Task 8), sign them in now that their email
+      # is proven. This is a one-shot sign-in tied to email verification.
+      start_new_session_for(auth.user) unless was_authenticated
+
+      # Claim any pending invitation that was persisted onto this Authentication
+      # during unverified-email OAuth signup. A stale invitation (consumed by
+      # someone else, expired, etc.) shouldn't block sign-in — surface as flash
+      # but continue.
+      begin
+        auth.claim_pending_invitation!(Current.user)
+      rescue Invitation::NotAcceptable
+        flash[:alert] = t("registrations.create.invitation_consumed")
+      end
+
+      if was_authenticated
         redirect_to account_connected_accounts_path,
           notice: t(".success", provider: auth.display_provider)
       else
-        redirect_to new_session_path,
-          notice: t(".success_signed_out", provider: auth.display_provider)
+        redirect_to root_path, notice: t(".success", provider: auth.display_provider)
       end
     end
 
