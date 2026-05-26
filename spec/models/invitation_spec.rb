@@ -609,15 +609,20 @@ RSpec.describe Invitation, type: :model do
         expect(invitation.reload).to be_accepted
       end
 
-      it "does not consume when the proven email differs from the invitation email" do
+      it "raises EmailMismatch when the proven email differs from the invitation email" do
         invitation = create(:invitation, invitable: workspace, email: "invitee@example.com")
         other = create(:user, email_address: "someone-else@example.com")
 
-        result = Invitation.consume!(token: invitation.token, user: other, expected_email: other.email_address)
+        expect {
+          Invitation.consume!(token: invitation.token, user: other, expected_email: other.email_address)
+        }.to raise_error(Invitation::EmailMismatch)
 
-        expect(result).to be_nil
         expect(invitation.reload).to be_pending
         expect(workspace.memberships.kept.exists?(user: other)).to be false
+      end
+
+      it "is a kind of NotAcceptable so existing boundary rescues still catch it" do
+        expect(Invitation::EmailMismatch.ancestors).to include(Invitation::NotAcceptable)
       end
 
       it "consumes a magic-link invitation (nil email) regardless of expected_email" do

@@ -48,6 +48,8 @@ module Account
       # but continue.
       begin
         auth.claim_pending_invitation!(Current.user)
+      rescue Invitation::EmailMismatch
+        flash[:alert] = t(".email_mismatch")
       rescue Invitation::NotAcceptable
         flash[:alert] = t("registrations.create.invitation_consumed")
       end

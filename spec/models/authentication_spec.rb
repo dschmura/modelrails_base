@@ -377,6 +377,19 @@ RSpec.describe Authentication, type: :model do
 
       expect(authentication.reload.pending_invitation_token).to eq(invitation.token)
     end
+
+    it "raises EmailMismatch and clears the token when the invitation is for a different email" do
+      invitation = create(:invitation, email: "invited@example.com")
+      authentication.update!(pending_invitation_token: invitation.token)
+      # `user`'s email differs from the invitation's address.
+
+      expect {
+        authentication.claim_pending_invitation!(user)
+      }.to raise_error(Invitation::EmailMismatch)
+
+      expect(invitation.reload).to be_pending
+      expect(authentication.reload.pending_invitation_token).to be_nil
+    end
   end
 
   describe "broadcasting" do
