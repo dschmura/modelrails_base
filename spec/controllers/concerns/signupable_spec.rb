@@ -75,7 +75,7 @@ RSpec.describe Signupable, type: :controller do
     end
 
     it "rolls back user creation when invitation accept! raises NotAcceptable" do
-      invitation = create(:invitation, :accepted)
+      invitation = create(:invitation, :accepted, email: "racer@example.com")
       session[:pending_invitation_token] = invitation.token
 
       expect {
@@ -87,7 +87,7 @@ RSpec.describe Signupable, type: :controller do
     end
 
     it "leaves session token in place when invitation NotAcceptable" do
-      invitation = create(:invitation, :expired)
+      invitation = create(:invitation, :expired, email: "retry@example.com")
       session[:pending_invitation_token] = invitation.token
 
       post :create, params: { email_address: "retry@example.com" }
@@ -125,7 +125,7 @@ RSpec.describe Signupable, type: :controller do
     end
 
     it "accepts and clears token on valid invitation" do
-      invitation = create(:invitation)
+      invitation = create(:invitation, email: user.email_address)
       controller.session[:pending_invitation_token] = invitation.token
       controller.send(:accept_pending_invitation!, user)
       expect(invitation.reload).to be_accepted

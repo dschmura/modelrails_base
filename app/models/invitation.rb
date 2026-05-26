@@ -87,11 +87,22 @@ class Invitation < ApplicationRecord
   # when the token is blank or matches nothing. Propagates Invitation::NotAcceptable
   # when the invitation exists but is no longer acceptable, so callers can surface
   # the race; #accept! still owns the pessimistic lock and state transition.
-  def self.consume!(token:, user:)
+  def self.consume!(token:, user:, expected_email: nil)
     return if token.blank?
 
     invitation = find_by(token: token)
     return if invitation.nil?
+
+    # Email-match guard: when an invitation is addressed to a specific email,
+    # only consume it for a caller whose proven email matches. This is what
+    # closes bearer-token redemption — combined with deferring consumption to
+    # email verification, a leaked link can't be claimed from a different
+    # (even verified) address. Magic-link invitations (nil email) stay bearer
+    # by design; direct callers that pass no expected_email skip the check.
+    if invitation.email.present? && expected_email.present? &&
+        !EmailNormalizer.equivalent?(invitation.email, expected_email)
+      return
+    end
 
     invitation.accept!(user)
     invitation
