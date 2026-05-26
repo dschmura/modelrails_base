@@ -93,4 +93,43 @@ RSpec.describe "Invite-only signup flow", type: :system do
     expect(axe_clean_in_both_themes?(axe_options)).to be(true),
       "Accessibility violations found:\n#{axe_violations_in_both_themes(axe_options).join("\n")}"
   end
+
+  scenario "invited user signs up via OAuth (mocked Google)" do
+    invitation = create(:invitation,
+                        email: "oauthinvitee@example.com")
+    workspace  = invitation.invitable
+
+    OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(
+      provider: "google_oauth2",
+      uid: "sys-spec-uid-oauth",
+      info: {
+        email: "oauthinvitee@example.com",
+        first_name: "OAuth",
+        last_name: "Invitee",
+        email_verified: true
+      },
+      credentials: { token: "tk", refresh_token: "rt", expires_at: 1.hour.from_now.to_i }
+    )
+
+    # oauth_enabled? gates the button rendering; stub the helper so the button
+    # appears even without real credentials in the test environment.
+    allow_any_instance_of(OauthHelper).to receive(:enabled_oauth_providers).and_return(
+      { google_oauth2: { name: "Google", icon: "google" } }
+    )
+
+    # Stash the invitation token in session; lands on new_registration_path.
+    post_accept_invitation(invitation.token)
+
+    # Click the Google OAuth button — turbo is disabled on the form so the
+    # browser performs a standard POST to /auth/google_oauth2.
+    click_button I18n.t("oauth.sign_in_with", provider: "Google")
+
+    # The OAuth callback completes the flow and redirects to root.
+    expect(page).to have_current_path(root_path, wait: 10)
+
+    new_user = User.find_by(email_address: "oauthinvitee@example.com")
+    expect(new_user).to be_present
+    expect(new_user.workspaces).to include(workspace)
+    expect(invitation.reload).to be_accepted
+  end
 end
