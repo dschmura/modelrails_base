@@ -94,14 +94,16 @@ class Authentication < ApplicationRecord
   def claim_pending_invitation!(user)
     return if pending_invitation_token.blank?
 
-    invitation = Invitation.find_by(token: pending_invitation_token)
-    if invitation.nil?
-      update!(pending_invitation_token: nil)
-      return
-    end
+    ApplicationRecord.transaction do
+      invitation = Invitation.find_by(token: pending_invitation_token)
+      if invitation.nil?
+        update!(pending_invitation_token: nil)
+        next
+      end
 
-    invitation.accept!(user)
-    update!(pending_invitation_token: nil)
+      invitation.accept!(user)
+      update!(pending_invitation_token: nil)
+    end
   end
 
   private
