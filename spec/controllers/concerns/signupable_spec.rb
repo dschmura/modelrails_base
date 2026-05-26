@@ -20,10 +20,34 @@ RSpec.describe Signupable, type: :controller do
         render plain: "fail", status: :unprocessable_entity
       end
     end
+
+    def create_with_rollback
+      user = User.new(
+        email_address: params[:email_address],
+        first_name: "Rollback",
+        last_name: "Test",
+        password: "supersecret123",
+        password_confirmation: "supersecret123"
+      )
+
+      success = commit_signup_atomically(user) do |_u|
+        # Simulate the magic-link race pattern: the block decides to abort.
+        raise ActiveRecord::Rollback
+      end
+
+      if success
+        render plain: "ok-but-rolled-back"
+      else
+        render plain: "fail", status: :unprocessable_entity
+      end
+    end
   end
 
   before do
-    routes.draw { post "create" => "anonymous#create" }
+    routes.draw do
+      post "create" => "anonymous#create"
+      post "create_with_rollback" => "anonymous#create_with_rollback"
+    end
   end
 
   describe "#commit_signup_atomically" do
@@ -69,6 +93,21 @@ RSpec.describe Signupable, type: :controller do
       post :create, params: { email_address: "retry@example.com" }
 
       expect(session[:pending_invitation_token]).to eq(invitation.token)
+    end
+
+    it "rolls back user creation when the block raises ActiveRecord::Rollback" do
+      # ActiveRecord::Rollback unwinds the transaction without propagating.
+      # commit_signup_atomically returns true (no exception escaped), but the
+      # User is NOT persisted because the transaction rolled back.
+      # This pattern is used by MagicLinkCallbacksController#create to abort
+      # signup when the magic-link token race is lost.
+      expect {
+        post :create_with_rollback, params: { email_address: "rollback@example.com" }
+      }.not_to change(User, :count)
+
+      # The action renders "ok-but-rolled-back" because commit_signup_atomically
+      # returned true (Rollback is caught silently by Rails inside the transaction).
+      expect(response.body).to eq("ok-but-rolled-back")
     end
   end
 

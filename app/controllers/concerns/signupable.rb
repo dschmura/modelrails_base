@@ -13,7 +13,7 @@ module Signupable
   def commit_signup_atomically(user, &block)
     ApplicationRecord.transaction do
       user.save!
-      yield(user) if block_given?
+      yield(user)
       accept_pending_invitation!(user)
     end
     true
