@@ -55,6 +55,8 @@ RSpec.describe "Invitation Accepts", type: :request do
   end
 
   describe "registration with a pending invitation (deferred until verification)" do
+    let!(:invitation) { create(:invitation, invitable: workspace, email: "newuser@example.com") }
+
     it "parks the invitation at registration and joins the workspace after email verification" do
       post accept_invitation_path(token: invitation.token)
 

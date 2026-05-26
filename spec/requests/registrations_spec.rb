@@ -260,6 +260,40 @@ RSpec.describe "Registrations", type: :request do
         expect(user.reload.workspaces).to include(workspace)
       end
     end
+
+    context "when the signup email differs from the invitation email" do
+      let(:workspace) { create(:workspace) }
+      let(:invitation) { create(:invitation, invitable: workspace, email: "invited@example.com") }
+
+      before do
+        allow(Rails.configuration.x.signup).to receive(:mode).and_return(:invite_only)
+        post accept_invitation_path(token: invitation.token)
+        expect(response).to have_http_status(:found).or have_http_status(:see_other)
+      end
+
+      it "creates the account but never grants the invited membership, even after verifying the other email" do
+        post registration_path, params: {
+          user: {
+            email_address: "attacker@example.com",
+            first_name: "Mal",
+            last_name: "Lory",
+            password: "supersecret123",
+            password_confirmation: "supersecret123"
+          }
+        }
+
+        user = User.find_by(email_address: "attacker@example.com")
+        expect(user).to be_present
+
+        # Even after proving control of attacker@example.com, the invitation
+        # (addressed to invited@example.com) must not be claimable.
+        auth = user.authentications.email.first
+        get verify_account_connected_accounts_path(token: auth.verification_token)
+
+        expect(invitation.reload).to be_pending
+        expect(user.reload.workspaces).not_to include(workspace)
+      end
+    end
   end
 
   describe "POST /signup side effects" do
