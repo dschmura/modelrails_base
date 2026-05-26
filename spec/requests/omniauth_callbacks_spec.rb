@@ -893,6 +893,42 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
     end
 
     # === CRITICAL REGRESSION: Branch 1 (existing identity) must NOT be blocked ===
+    describe "Invited new-user OAuth signup (verified email)" do
+      let(:workspace) { create(:workspace) }
+      let(:invitation) { create(:invitation, invitable: workspace, email: "newoauth@example.com") }
+
+      let(:invited_auth_hash) do
+        OmniAuth::AuthHash.new(
+          provider: "google",
+          uid: "999888",
+          info: { email: "newoauth@example.com", first_name: "New", last_name: "OAuth", email_verified: true },
+          credentials: { token: "tk", refresh_token: "rt", expires_at: 1.hour.from_now.to_i }
+        )
+      end
+
+      before do
+        allow(Rails.configuration.x.signup).to receive(:mode).and_return(:invite_only)
+        OmniAuth.config.mock_auth[:google_oauth2] = invited_auth_hash
+        post accept_invitation_path(token: invitation.token)
+      end
+
+      it "creates the user, accepts the invitation, and adds workspace membership" do
+        expect {
+          get "/auth/google_oauth2/callback"
+        }.to change(User, :count).by(1)
+
+        new_user = User.find_by(email_address: "newoauth@example.com")
+        expect(new_user).to be_present
+        expect(invitation.reload).to be_accepted
+        expect(new_user.workspaces).to include(workspace)
+      end
+
+      it "signs the user in" do
+        get "/auth/google_oauth2/callback"
+        expect(response).to redirect_to(root_path)
+      end
+    end
+
     context "when SIGNUP_MODE is :invite_only and an existing user signs in via OAuth (Branch 1)" do
       let!(:user) { create(:user) }
       let!(:authentication) do
