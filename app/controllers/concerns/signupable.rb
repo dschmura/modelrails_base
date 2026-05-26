@@ -34,5 +34,10 @@ module Signupable
       expected_email: user.email_address
     )
     session.delete(:pending_invitation_token) if consumed
+  rescue Invitation::EmailMismatch
+    # The invitation was addressed to a different email than the one being
+    # registered here. Skip it rather than aborting an otherwise legitimate
+    # signup, and drop the token so it isn't retried.
+    session.delete(:pending_invitation_token)
   end
 end

@@ -98,6 +98,12 @@ class Authentication < ApplicationRecord
       Invitation.consume!(token: pending_invitation_token, user: user, expected_email: user.email_address)
       update!(pending_invitation_token: nil)
     end
+  rescue Invitation::EmailMismatch
+    # Wrong-address claim: the transaction rolled back (token still set), so
+    # clear the parked token here — it can never be claimed by this user — and
+    # re-raise so the caller can tell the user why they weren't added.
+    update!(pending_invitation_token: nil)
+    raise
   end
 
   private

@@ -467,6 +467,34 @@ RSpec.describe "Account Connected Accounts", type: :request do
     end
   end
 
+  describe "GET verify (pending invitation addressed to a different email)" do
+    let(:workspace) { create(:workspace) }
+    let(:invitation) { create(:invitation, invitable: workspace, email: "invited@example.com") }
+    let(:user) { create(:user, email_address: "different@example.com") }
+    let(:pending_auth) do
+      auth = user.authentications.build(
+        provider: "email",
+        uid: user.email_address,
+        email: user.email_address,
+        verified_at: nil,
+        pending_invitation_token: invitation.token
+      )
+      auth.assign_verification_token
+      auth.save!
+      auth
+    end
+
+    it "verifies the auth but refuses the mismatched invitation and explains why" do
+      get verify_account_connected_accounts_path(token: pending_auth.verification_token)
+
+      expect(pending_auth.reload.verified_at).to be_present
+      expect(invitation.reload).to be_pending
+      expect(user.reload.workspaces).not_to include(workspace)
+      expect(pending_auth.reload.pending_invitation_token).to be_nil
+      expect(flash[:alert]).to eq(I18n.t("account.connected_accounts.verify.email_mismatch"))
+    end
+  end
+
   describe "DELETE /account/connected_accounts/:id (last verified method protection) - concurrency" do
     let(:user) { create(:user) }
     before { sign_in(user) }

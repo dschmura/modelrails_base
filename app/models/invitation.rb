@@ -1,5 +1,10 @@
 class Invitation < ApplicationRecord
   class NotAcceptable < StandardError; end
+  # Raised when an invitation addressed to a specific email is consumed by a
+  # caller whose proven email differs. Subclasses NotAcceptable so existing
+  # boundary rescues keep working, while callers that care can distinguish a
+  # wrong-address attempt from a stale/used invitation for messaging.
+  class EmailMismatch < NotAcceptable; end
 
   belongs_to :invitable, polymorphic: true
   belongs_to :role
@@ -101,7 +106,7 @@ class Invitation < ApplicationRecord
     # by design; direct callers that pass no expected_email skip the check.
     if invitation.email.present? && expected_email.present? &&
         !EmailNormalizer.equivalent?(invitation.email, expected_email)
-      return
+      raise EmailMismatch
     end
 
     invitation.accept!(user)
