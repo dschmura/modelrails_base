@@ -56,7 +56,7 @@ Configured in `config/initializers/security_headers.rb`:
 The `Trackable` concern logs all model changes to `ActivityLog`. Sensitive attributes are automatically stripped from metadata:
 
 - `token`, `password_digest`, `password_reset_token`
-- `verification_token`, `oauth_token`, `oauth_refresh_token`
+- `oauth_token`, `oauth_refresh_token`
 
 ## Production Recommendations
 

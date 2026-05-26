@@ -60,24 +60,21 @@ RSpec.describe "Account Connected Accounts", type: :request do
         provider: "google",
         uid: "uid-1",
         email: "alice.work@gmail.com",
-        verification_token: "valid-token",
-        verification_sent_at: 1.hour.ago,
         verified_at: nil
       )
     end
 
     context "with a valid, unexpired token" do
       it "marks the authentication verified" do
-        get verify_account_connected_accounts_path(token: auth.verification_token)
+        get verify_account_connected_accounts_path(token: auth.generate_token_for(:email_verification))
         expect(auth.reload.verified_at).to be_present
-        expect(auth.verification_token).to be_nil
       end
 
       context "when the user is signed in" do
         before { sign_in(user) }
 
         it "redirects to connected accounts with success" do
-          get verify_account_connected_accounts_path(token: auth.verification_token)
+          get verify_account_connected_accounts_path(token: auth.generate_token_for(:email_verification))
           expect(response).to redirect_to(account_connected_accounts_path)
           expect(flash[:notice]).to include("linked")
         end
@@ -85,7 +82,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
 
       context "when the user is signed out" do
         it "signs the user in and redirects to root" do
-          get verify_account_connected_accounts_path(token: auth.verification_token)
+          get verify_account_connected_accounts_path(token: auth.generate_token_for(:email_verification))
           expect(response).to redirect_to(root_path)
           expect(flash[:notice]).to include("linked")
         end
@@ -93,15 +90,19 @@ RSpec.describe "Account Connected Accounts", type: :request do
     end
 
     context "with an expired token" do
-      before { auth.update!(verification_sent_at: 25.hours.ago) }
-
       it "does not mark the authentication verified" do
-        get verify_account_connected_accounts_path(token: auth.verification_token)
+        token = auth.generate_token_for(:email_verification)
+        travel(Authentication::TOKEN_LIFETIME + 1.minute) do
+          get verify_account_connected_accounts_path(token: token)
+        end
         expect(auth.reload.verified_at).to be_nil
       end
 
       it "redirects with an invalid-or-expired alert" do
-        get verify_account_connected_accounts_path(token: auth.verification_token)
+        token = auth.generate_token_for(:email_verification)
+        travel(Authentication::TOKEN_LIFETIME + 1.minute) do
+          get verify_account_connected_accounts_path(token: token)
+        end
         expect(flash[:alert]).to include("invalid or expired")
       end
     end
@@ -114,10 +115,11 @@ RSpec.describe "Account Connected Accounts", type: :request do
     end
 
     context "with an already-consumed token" do
-      let(:original_token) { auth.verification_token }
+      # Single-use: the token embeds verified_at, so verifying invalidates it.
+      let(:original_token) { auth.generate_token_for(:email_verification) }
 
       before do
-        original_token  # materialize before verify! clears it
+        original_token  # materialize before verify! invalidates it
         auth.verify!
       end
 
@@ -134,8 +136,6 @@ RSpec.describe "Account Connected Accounts", type: :request do
           provider: "google",
           uid: "uid-other",
           email: "other@example.com",
-          verification_token: "other-token",
-          verification_sent_at: 1.hour.ago,
           verified_at: nil
         )
       end
@@ -163,8 +163,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
       let!(:verified) { user.authentications.create!(provider: "email", uid: user.email_address,
         email: user.email_address, verified_at: Time.current) }
       let!(:pending) { user.authentications.create!(provider: "google", uid: "g-1",
-        email: "alice.work@gmail.com",
-        verification_token: "tok", verification_sent_at: 1.hour.ago, verified_at: nil) }
+        email: "alice.work@gmail.com", verified_at: nil) }
 
       it "blocks removal of the verified auth" do
         delete account_connected_account_path(verified)
@@ -196,8 +195,6 @@ RSpec.describe "Account Connected Accounts", type: :request do
           provider: "google",
           uid: "g-only",
           email: "alice.work@gmail.com",
-          verification_token: "tok",
-          verification_sent_at: 1.hour.ago,
           verified_at: nil
         )
       end
@@ -220,8 +217,6 @@ RSpec.describe "Account Connected Accounts", type: :request do
         provider: "google",
         uid: "uid-2",
         email: "pending@example.com",
-        verification_token: "old-token",
-        verification_sent_at: 1.hour.ago,
         verified_at: nil
       )
     end
@@ -237,12 +232,6 @@ RSpec.describe "Account Connected Accounts", type: :request do
     before { sign_in(user) }
 
     context "with a pending authentication" do
-      it "regenerates the token" do
-        old_token = pending_auth.verification_token
-        post resend_verification_account_connected_account_path(pending_auth)
-        expect(pending_auth.reload.verification_token).not_to eq(old_token)
-      end
-
       it "enqueues a fresh verification email" do
         expect {
           post resend_verification_account_connected_account_path(pending_auth)
@@ -269,58 +258,20 @@ RSpec.describe "Account Connected Accounts", type: :request do
       end
     end
 
-    context "with an auth that is unverified but has no token (edge state)" do
-      let!(:unverified_no_token) do
+    context "with another unverified authentication" do
+      let!(:another_pending) do
         user.authentications.create!(
           provider: "google",
           uid: "uid-edge",
           email: "edge@example.com",
-          verified_at: nil,
-          verification_token: nil
+          verified_at: nil
         )
-      end
-
-      it "regenerates a verification token" do
-        post resend_verification_account_connected_account_path(unverified_no_token)
-        expect(unverified_no_token.reload.verification_token).to be_present
       end
 
       it "enqueues the verification email" do
         expect {
-          post resend_verification_account_connected_account_path(unverified_no_token)
+          post resend_verification_account_connected_account_path(another_pending)
         }.to have_enqueued_mail(AuthenticationMailer, :link_verification_email)
-      end
-    end
-
-    context "with a persistent verification_token collision (token race)" do
-      # Defended-in-depth scenario: the model retries up to
-      # TOKEN_GENERATION_MAX_ATTEMPTS times on RecordNotUnique. If every
-      # regenerated token still collides (effectively impossible with 256
-      # bits of entropy but possible if e.g. SecureRandom is patched in a
-      # broken way), the controller rescues and shows a graceful alert
-      # instead of letting the user see a 500.
-      it "rescues RecordNotUnique and redirects with the token_collision alert" do
-        # Force generate_verification_token! to raise after the model's
-        # internal retries exhaust.
-        allow_any_instance_of(Authentication)
-          .to receive(:generate_verification_token!)
-          .and_raise(ActiveRecord::RecordNotUnique)
-
-        post resend_verification_account_connected_account_path(pending_auth)
-
-        expect(response).to redirect_to(account_connected_accounts_path)
-        expect(flash[:alert]).to include(I18n.t("account.connected_accounts.resend_verification.token_collision"))
-        expect(response).to have_http_status(:found)
-      end
-
-      it "does NOT enqueue a verification email when the token rescue fires" do
-        allow_any_instance_of(Authentication)
-          .to receive(:generate_verification_token!)
-          .and_raise(ActiveRecord::RecordNotUnique)
-
-        expect {
-          post resend_verification_account_connected_account_path(pending_auth)
-        }.not_to have_enqueued_mail(AuthenticationMailer, :link_verification_email)
       end
     end
 
@@ -394,28 +345,18 @@ RSpec.describe "Account Connected Accounts", type: :request do
           provider: "google",
           uid: "other-uid",
           email: "other.work@example.com",
-          verification_token: "other-token",
-          verification_sent_at: 1.hour.ago,
           verified_at: nil
         )
       end
 
       it "does not process the request (IDOR protection via RecordNotFound)" do
         # ApplicationController rescues RecordNotFound and redirects with a generic alert.
-        # This asserts that the scoped lookup (Current.user.authentications.find) blocks
-        # cross-user access — if a future refactor used Authentication.find instead, the
-        # auth would be found and the token would be regenerated (caught by the next example).
-        post resend_verification_account_connected_account_path(other_pending_auth)
-        expect(flash[:alert]).to eq(I18n.t("errors.not_found"))
-      end
-
-      it "does not regenerate the other user's token" do
-        original_token = other_pending_auth.verification_token
-        begin
+        # The scoped lookup (Current.user.authentications.find) blocks cross-user access,
+        # so the other user's auth is never touched and no email is sent.
+        expect {
           post resend_verification_account_connected_account_path(other_pending_auth)
-        rescue ActiveRecord::RecordNotFound
-        end
-        expect(other_pending_auth.reload.verification_token).to eq(original_token)
+        }.not_to have_enqueued_mail(AuthenticationMailer, :link_verification_email)
+        expect(flash[:alert]).to eq(I18n.t("errors.not_found"))
       end
     end
   end
@@ -432,13 +373,12 @@ RSpec.describe "Account Connected Accounts", type: :request do
         verified_at: nil,
         pending_invitation_token: invitation.token
       )
-      auth.assign_verification_token
       auth.save!
       auth
     end
 
     it "verifies the auth, signs in the user, claims the invitation, and grants workspace membership" do
-      token = pending_auth.verification_token
+      token = pending_auth.generate_token_for(:email_verification)
       get verify_account_connected_accounts_path(token: token)
 
       expect(pending_auth.reload.verified_at).to be_present
@@ -450,7 +390,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
     it "shows the invitation_consumed flash if the invitation became stale before verification" do
       invitation.update!(status: "accepted", accepted_at: 1.minute.ago)
 
-      token = pending_auth.verification_token
+      token = pending_auth.generate_token_for(:email_verification)
       get verify_account_connected_accounts_path(token: token)
 
       expect(pending_auth.reload.verified_at).to be_present
@@ -460,7 +400,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
     it "does NOT block verification even when invitation claim fails" do
       invitation.update!(status: "accepted", accepted_at: 1.minute.ago)
 
-      token = pending_auth.verification_token
+      token = pending_auth.generate_token_for(:email_verification)
       get verify_account_connected_accounts_path(token: token)
 
       expect(pending_auth.reload.verified_at).to be_present
@@ -479,13 +419,12 @@ RSpec.describe "Account Connected Accounts", type: :request do
         verified_at: nil,
         pending_invitation_token: invitation.token
       )
-      auth.assign_verification_token
       auth.save!
       auth
     end
 
     it "verifies the auth but refuses the mismatched invitation and explains why" do
-      get verify_account_connected_accounts_path(token: pending_auth.verification_token)
+      get verify_account_connected_accounts_path(token: pending_auth.generate_token_for(:email_verification))
 
       expect(pending_auth.reload.verified_at).to be_present
       expect(invitation.reload).to be_pending

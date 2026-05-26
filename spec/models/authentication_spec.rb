@@ -70,20 +70,29 @@ RSpec.describe Authentication, type: :model do
     end
   end
 
-  describe "email verification" do
-    it "can generate a verification token" do
-      auth = create(:authentication, provider: "email")
-      auth.generate_verification_token!
-      expect(auth.verification_token).to be_present
-      expect(auth.verification_sent_at).to be_present
+  describe "email verification token" do
+    let(:auth) { create(:authentication, provider: "email", verified_at: nil) }
+
+    it "round-trips a signed token back to the same record" do
+      token = auth.generate_token_for(:email_verification)
+      expect(Authentication.find_by_token_for(:email_verification, token)).to eq(auth)
     end
 
-    it "can verify" do
-      auth = create(:authentication, provider: "email")
-      auth.generate_verification_token!
+    it "rejects a tampered or unknown token" do
+      expect(Authentication.find_by_token_for(:email_verification, "not-a-real-token")).to be_nil
+    end
+
+    it "expires the token after TOKEN_LIFETIME" do
+      token = auth.generate_token_for(:email_verification)
+      travel(Authentication::TOKEN_LIFETIME + 1.minute) do
+        expect(Authentication.find_by_token_for(:email_verification, token)).to be_nil
+      end
+    end
+
+    it "invalidates the token once the auth is verified (single-use)" do
+      token = auth.generate_token_for(:email_verification)
       auth.verify!
-      expect(auth.verified_at).to be_present
-      expect(auth.verification_token).to be_nil
+      expect(Authentication.find_by_token_for(:email_verification, token)).to be_nil
     end
   end
 
@@ -96,25 +105,6 @@ RSpec.describe Authentication, type: :model do
     it "returns false when verified_at is nil" do
       auth = create(:authentication)
       expect(auth).not_to be_verified
-    end
-  end
-
-  describe "#verification_token_expired?" do
-    it "returns true when verification_sent_at is nil" do
-      auth = create(:authentication)
-      expect(auth.verification_token_expired?).to be true
-    end
-
-    it "returns true when sent more than 24 hours ago" do
-      auth = create(:authentication)
-      auth.update!(verification_sent_at: 25.hours.ago, verification_token: "test")
-      expect(auth.verification_token_expired?).to be true
-    end
-
-    it "returns false when sent less than 24 hours ago" do
-      auth = create(:authentication)
-      auth.update!(verification_sent_at: 1.hour.ago, verification_token: "test")
-      expect(auth.verification_token_expired?).to be false
     end
   end
 
@@ -145,112 +135,19 @@ RSpec.describe Authentication, type: :model do
     end
 
     describe "#pending?" do
-      it "is true when verified_at is nil and verification_token is present" do
+      it "is true when verified_at is nil" do
         auth.verified_at = nil
-        auth.verification_token = "tok"
         expect(auth.pending?).to be true
       end
 
       it "is false when verified_at is set" do
         auth.verified_at = Time.current
-        auth.verification_token = "tok"
         expect(auth.pending?).to be false
-      end
-
-      it "is false when verification_token is nil" do
-        auth.verified_at = nil
-        auth.verification_token = nil
-        expect(auth.pending?).to be false
-      end
-    end
-
-    describe "#token_expired?" do
-      it "is true when verification_sent_at is older than 24 hours" do
-        auth.verification_sent_at = 25.hours.ago
-        expect(auth.token_expired?).to be true
-      end
-
-      it "is false when within 24 hours" do
-        auth.verification_sent_at = 1.hour.ago
-        expect(auth.token_expired?).to be false
-      end
-
-      it "is false when verification_sent_at is nil" do
-        auth.verification_sent_at = nil
-        expect(auth.token_expired?).to be false
-      end
-    end
-
-    describe "#generate_verification_token!" do
-      let(:auth) { create(:authentication, verified_at: Time.current, verification_token: nil) }
-
-      it "sets a new token" do
-        auth.generate_verification_token!
-        expect(auth.verification_token).to be_present
-        expect(auth.verification_token.length).to be >= 32
-      end
-
-      it "sets verification_sent_at to now" do
-        freeze_time do
-          auth.generate_verification_token!
-          expect(auth.verification_sent_at).to eq(Time.current)
-        end
-      end
-
-      it "clears verified_at (token regeneration invalidates prior verification)" do
-        auth.generate_verification_token!
-        expect(auth.verified_at).to be_nil
-      end
-
-      context "when the generated token collides with an existing auth's verification_token" do
-        let!(:existing_auth) do
-          create(:authentication, :google,
-                 verification_token: "fixed-collision-token",
-                 verification_sent_at: Time.current,
-                 verified_at: nil)
-        end
-
-        it "retries with a fresh token and persists successfully" do
-          # First call to SecureRandom returns the colliding token (forces
-          # RecordNotUnique on the unique index). Retry generates a fresh value.
-          allow(SecureRandom).to receive(:urlsafe_base64)
-            .and_return("fixed-collision-token", "unique-token-after-retry")
-
-          auth.generate_verification_token!
-
-          expect(auth.verification_token).to eq("unique-token-after-retry")
-          expect(auth).to be_persisted
-        end
-
-        it "raises RecordNotUnique after exhausting the retry budget" do
-          # Every attempt returns the same colliding token — retry budget can't help.
-          allow(SecureRandom).to receive(:urlsafe_base64).and_return("fixed-collision-token")
-
-          expect {
-            auth.generate_verification_token!
-          }.to raise_error(ActiveRecord::RecordNotUnique)
-        end
-
-        it "calls SecureRandom up to TOKEN_GENERATION_MAX_ATTEMPTS times before giving up" do
-          allow(SecureRandom).to receive(:urlsafe_base64).and_return("fixed-collision-token")
-
-          expect {
-            auth.generate_verification_token!
-          }.to raise_error(ActiveRecord::RecordNotUnique)
-
-          expect(SecureRandom).to have_received(:urlsafe_base64)
-            .exactly(Authentication::TOKEN_GENERATION_MAX_ATTEMPTS).times
-        end
       end
     end
 
     describe "#verify!" do
-      let(:auth) do
-        create(:authentication,
-          verified_at: nil,
-          verification_token: "abc123",
-          verification_sent_at: 1.hour.ago)
-      end
+      let(:auth) { create(:authentication, verified_at: nil) }
 
       it "sets verified_at to now" do
         freeze_time do
@@ -258,29 +155,19 @@ RSpec.describe Authentication, type: :model do
           expect(auth.verified_at).to eq(Time.current)
         end
       end
-
-      it "clears verification_token" do
-        auth.verify!
-        expect(auth.verification_token).to be_nil
-      end
-
-      it "clears verification_sent_at" do
-        auth.verify!
-        expect(auth.verification_sent_at).to be_nil
-      end
     end
   end
 
   describe "scopes" do
-    let!(:verified) { create(:authentication, verified_at: Time.current, verification_token: nil) }
-    let!(:pending)  { create(:authentication, verified_at: nil, verification_token: "tok", verification_sent_at: 1.hour.ago) }
+    let!(:verified) { create(:authentication, verified_at: Time.current) }
+    let!(:pending)  { create(:authentication, verified_at: nil) }
 
     it ".verified returns rows with verified_at set" do
       expect(Authentication.verified).to include(verified)
       expect(Authentication.verified).not_to include(pending)
     end
 
-    it ".pending returns rows with verified_at nil and token present" do
+    it ".pending returns rows with verified_at nil" do
       expect(Authentication.pending).to include(pending)
       expect(Authentication.pending).not_to include(verified)
     end
@@ -332,7 +219,7 @@ RSpec.describe Authentication, type: :model do
     end
 
     context "when this auth is itself unverified" do
-      let!(:auth) { user.authentications.create!(provider: "email", uid: user.email_address, email: user.email_address, verified_at: nil, verification_token: "tok", verification_sent_at: 1.hour.ago) }
+      let!(:auth) { user.authentications.create!(provider: "email", uid: user.email_address, email: user.email_address, verified_at: nil) }
 
       it "returns false (the auth being deleted isn't a verified auth, so deletion can't reduce the verified count)" do
         expect(auth.only_verified_remaining?).to be false
@@ -407,8 +294,7 @@ RSpec.describe Authentication, type: :model do
 
     it "broadcasts a refresh on update (e.g., verify!)" do
       auth = user.authentications.create!(provider: "google", uid: "g-broadcast-2",
-        email: "test@example.com",
-        verification_token: "tok", verification_sent_at: 1.hour.ago, verified_at: nil)
+        email: "test@example.com", verified_at: nil)
 
       expect {
         auth.verify!

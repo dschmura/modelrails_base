@@ -40,7 +40,6 @@ class OmniauthCallbacksController < ApplicationController
       redirect_to account_connected_accounts_path,
         alert: t("omniauth_callbacks.create.collision_other_user", provider: provider_name)
     elsif auth.pending?
-      auth.generate_verification_token!
       if EmailRecipientThrottle.allow!(auth.email, kind: :verification)
         AuthenticationMailer.link_verification_email(auth).deliver_later
       end
@@ -91,7 +90,6 @@ class OmniauthCallbacksController < ApplicationController
       redirect_to account_connected_accounts_path,
         notice: t("omniauth_callbacks.create.linked", provider: Authentication.display_name_for(normalized_provider(auth_hash)))
     else
-      auth.assign_verification_token
       auth.save!
       if EmailRecipientThrottle.allow!(auth.email, kind: :verification)
         AuthenticationMailer.link_verification_email(auth).deliver_later
@@ -163,7 +161,6 @@ class OmniauthCallbacksController < ApplicationController
         pending_invitation_token: session[:pending_invitation_token],
         **oauth_attrs(auth_hash)
       )
-      auth.assign_verification_token
       auth.save!
     end
 

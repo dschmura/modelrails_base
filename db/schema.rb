@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_26_015755) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_26_174726) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -77,14 +77,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_26_015755) do
     t.string "uid"
     t.datetime "updated_at", null: false
     t.integer "user_id", null: false
-    t.datetime "verification_sent_at"
-    t.string "verification_token"
     t.datetime "verified_at"
     t.index ["pending_invitation_token"], name: "index_authentications_on_pending_invitation_token", where: "pending_invitation_token IS NOT NULL"
     t.index ["provider", "uid"], name: "index_authentications_on_provider_and_uid", unique: true
     t.index ["user_id", "provider"], name: "index_authentications_on_user_id_and_provider", unique: true
     t.index ["user_id"], name: "index_authentications_on_user_id"
-    t.index ["verification_token"], name: "index_authentications_on_verification_token", unique: true
   end
 
   create_table "documents", force: :cascade do |t|

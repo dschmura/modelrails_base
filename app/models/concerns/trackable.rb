@@ -2,7 +2,7 @@ module Trackable
   extend ActiveSupport::Concern
 
   SENSITIVE_ATTRIBUTES = %w[
-    token password_digest password_reset_token verification_token
+    token password_digest password_reset_token
     oauth_token oauth_refresh_token
   ].freeze
 

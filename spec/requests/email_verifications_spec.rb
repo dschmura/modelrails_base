@@ -6,28 +6,24 @@ RSpec.describe "Email Verifications", type: :request do
 
   describe "GET /email_verification" do
     context "with valid token" do
-      before { authentication.generate_verification_token! }
-
       it "verifies the email" do
-        get email_verification_path(token: authentication.verification_token)
+        get email_verification_path(token: authentication.generate_token_for(:email_verification))
         expect(authentication.reload.verified_at).to be_present
       end
 
       it "redirects with success message" do
-        get email_verification_path(token: authentication.verification_token)
+        get email_verification_path(token: authentication.generate_token_for(:email_verification))
         expect(response).to redirect_to(root_path)
         expect(flash[:notice]).to eq(I18n.t("email_verifications.show.success"))
       end
     end
 
     context "with expired token" do
-      before do
-        authentication.generate_verification_token!
-        authentication.update_column(:verification_sent_at, 25.hours.ago)
-      end
-
       it "rejects the verification" do
-        get email_verification_path(token: authentication.verification_token)
+        token = authentication.generate_token_for(:email_verification)
+        travel(Authentication::TOKEN_LIFETIME + 1.minute) do
+          get email_verification_path(token: token)
+        end
         expect(authentication.reload.verified_at).to be_nil
       end
     end

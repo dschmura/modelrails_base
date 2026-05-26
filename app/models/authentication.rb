@@ -26,16 +26,29 @@ class Authentication < ApplicationRecord
 
   TOKEN_LIFETIME = 24.hours
 
+  # Stateless, signed email-verification token (Rails generates_token_for).
+  # Nothing is stored: the token carries the record id and a payload, and
+  # find_by_token_for re-derives it. Embedding verified_at makes the link
+  # single-use — once the auth is verified the payload changes, so any
+  # previously-issued link stops validating. Expiry is enforced by the token
+  # itself (no verification_sent_at bookkeeping, no collision retries).
+  generates_token_for :email_verification, expires_in: TOKEN_LIFETIME do
+    verified_at
+  end
+
   scope :verified, -> { where.not(verified_at: nil) }
-  scope :pending,  -> { where(verified_at: nil).where.not(verification_token: nil) }
+  scope :pending,  -> { where(verified_at: nil) }
   scope :oauth,    -> { where.not(provider: "email") }
 
   def verified?
     verified_at.present?
   end
 
+  # An auth is pending until it's verified. Every unverified auth is created
+  # with a verification email on its way (token minted on demand), so
+  # "not verified" is exactly "awaiting verification".
   def pending?
-    verified_at.nil? && verification_token.present?
+    verified_at.nil?
   end
 
   # True iff (a) this auth is verified AND (b) it's the only verified auth for the user.
@@ -44,51 +57,8 @@ class Authentication < ApplicationRecord
     verified? && user.authentications.verified.count <= 1
   end
 
-  # Returns true only if a token was sent AND is now stale. False when no token was sent.
-  # Used by the OAuth verification flow where the token must already exist (find_by(token:)).
-  def token_expired?
-    verification_sent_at.present? && verification_sent_at < TOKEN_LIFETIME.ago
-  end
-
-  # Returns true if no token was ever sent OR the sent token is now stale.
-  # Pessimistic-nil semantics — used by registration email verification where "no token" means "expired".
-  def verification_token_expired?
-    verification_sent_at.nil? || token_expired?
-  end
-
-  def assign_verification_token
-    assign_attributes(
-      verification_token: SecureRandom.urlsafe_base64(32),
-      verification_sent_at: Time.current,
-      verified_at: nil
-    )
-  end
-
-  # Defensive retry budget for the astronomically-unlikely case where
-  # SecureRandom.urlsafe_base64(32) collides with an existing verification_token
-  # (256 bits of entropy → ~2^-256 per attempt). The unique index on
-  # verification_token would surface a collision as ActiveRecord::RecordNotUnique;
-  # we regenerate and retry rather than 500 the user.
-  TOKEN_GENERATION_MAX_ATTEMPTS = 3
-
-  def generate_verification_token!
-    attempts = 0
-    begin
-      assign_verification_token
-      save!
-    rescue ActiveRecord::RecordNotUnique
-      attempts += 1
-      retry if attempts < TOKEN_GENERATION_MAX_ATTEMPTS
-      raise
-    end
-  end
-
   def verify!
-    update!(
-      verified_at: Time.current,
-      verification_token: nil,
-      verification_sent_at: nil
-    )
+    update!(verified_at: Time.current)
   end
 
   def claim_pending_invitation!(user)

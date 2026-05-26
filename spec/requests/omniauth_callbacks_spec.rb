@@ -104,7 +104,8 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
       user.authentications.create!(
         provider: "google",
         uid: "returning-123",
-        oauth_token: "old_token"
+        oauth_token: "old_token",
+        verified_at: Time.current
       )
     end
 
@@ -229,7 +230,6 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
       user.authentications.create!(
         provider: "google", uid: "google-pending",
         email: "bob.work@gmail.com",
-        verification_token: "old-token", verification_sent_at: 2.hours.ago,
         verified_at: nil
       )
     end
@@ -243,12 +243,6 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
       )
     end
     after { OmniAuth.config.mock_auth.clear; OmniAuth.config.test_mode = false }
-
-    it "regenerates the verification token" do
-      old_token = pending_auth.verification_token
-      get "/auth/google_oauth2/callback"
-      expect(pending_auth.reload.verification_token).not_to eq(old_token)
-    end
 
     it "enqueues a fresh verification email" do
       expect {
@@ -270,12 +264,10 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
         expect(response).to redirect_to(account_connected_accounts_path)
       end
 
-      it "still regenerates the token and sends fresh email" do
-        old_token = pending_auth.verification_token
+      it "still sends a fresh verification email" do
         expect {
           get "/auth/google_oauth2/callback"
         }.to have_enqueued_mail(AuthenticationMailer, :link_verification_email)
-        expect(pending_auth.reload.verification_token).not_to eq(old_token)
       end
     end
   end
@@ -290,7 +282,6 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
       user.authentications.create!(
         provider: "google", uid: "dean-google-uid",
         email: "dean.original@gmail.com",
-        verification_token: "old-token", verification_sent_at: 1.hour.ago,
         verified_at: nil
       )
     end
@@ -325,7 +316,6 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
       alice.authentications.create!(
         provider: "google", uid: "alice-google-uid",
         email: "alice.work@gmail.com",
-        verification_token: "old-token", verification_sent_at: 1.hour.ago,
         verified_at: nil
       )
     end
@@ -340,12 +330,6 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
       )
     end
     after { OmniAuth.config.mock_auth.clear; OmniAuth.config.test_mode = false }
-
-    it "does NOT regenerate Alice's verification token" do
-      old_token = alices_pending.verification_token
-      get "/auth/google_oauth2/callback"
-      expect(alices_pending.reload.verification_token).to eq(old_token)
-    end
 
     it "does NOT enqueue a verification email to Alice" do
       expect {
@@ -481,9 +465,7 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
       it "creates the auth as verified immediately" do
         get "/auth/google_oauth2/callback"
         auth = user.authentications.find_by(provider: "google")
-        expect(auth).to be_verified
-        expect(auth.verification_token).to be_nil
-      end
+        expect(auth).to be_verified      end
 
       it "redirects to connected accounts with linked notice" do
         get "/auth/google_oauth2/callback"
@@ -504,9 +486,7 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
       it "creates the auth as pending (verified_at nil)" do
         get "/auth/google_oauth2/callback"
         auth = user.authentications.find_by(provider: "google")
-        expect(auth.verified_at).to be_nil
-        expect(auth.verification_token).to be_present
-      end
+        expect(auth.verified_at).to be_nil      end
 
       it "captures the OAuth email on the auth row" do
         get "/auth/google_oauth2/callback"
@@ -562,9 +542,7 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
       it "auto-verifies (case-insensitive comparison)" do
         get "/auth/google_oauth2/callback"
         auth = user.authentications.find_by(provider: "google")
-        expect(auth).to be_verified
-        expect(auth.verification_token).to be_nil
-      end
+        expect(auth).to be_verified      end
     end
 
     context "when OAuth email matches user's primary email in a different Unicode form (NFC vs NFD)" do
@@ -594,9 +572,7 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
         get "/auth/google_oauth2/callback"
 
         auth = user.authentications.find_by(provider: "google")
-        expect(auth).to be_verified
-        expect(auth.verification_token).to be_nil
-      end
+        expect(auth).to be_verified      end
     end
 
     context "when OAuth email is missing" do
@@ -633,8 +609,6 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
       user.authentications.create!(
         provider: "google", uid: "google-account-A",
         email: "carol.work@gmail.com",
-        verification_token: "old-token",
-        verification_sent_at: 1.hour.ago,
         verified_at: nil
       )
     end
@@ -723,9 +697,7 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
         }.to change { user.authentications.where(provider: "google").count }.by(1)
 
         auth = user.authentications.find_by(provider: "google")
-        expect(auth.verified_at).to be_nil
-        expect(auth.verification_token).to be_present
-      end
+        expect(auth.verified_at).to be_nil      end
 
       it "sends a verification email" do
         expect {
@@ -757,9 +729,7 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
           .and change(Authentication, :count).by(1)
 
         auth = Authentication.find_by(provider: "google", uid: "newbie-google-uid")
-        expect(auth.verified_at).to be_nil
-        expect(auth.verification_token).to be_present
-      end
+        expect(auth.verified_at).to be_nil      end
 
       it "sends a verification email" do
         expect {
