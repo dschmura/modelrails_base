@@ -21,12 +21,6 @@ RSpec.describe "Email Verification Resends", type: :request do
         }.to have_enqueued_mail(AuthenticationMailer, :verification_email)
       end
 
-      it "generates a fresh token" do
-        old_token = authentication.verification_token
-        post email_verification_resend_path
-        expect(authentication.reload.verification_token).not_to eq(old_token)
-      end
-
       describe "POST when user has no email authentication" do
         before do
           user.authentications.destroy_all

@@ -33,7 +33,6 @@ class RegistrationsController < ApplicationController
         # unverified-OAuth signup path.
         pending_invitation_token: session[:pending_invitation_token]
       )
-      authentication.generate_verification_token!
     end
 
     session.delete(:pending_invitation_token)

@@ -8,7 +8,6 @@ class EmailVerificationResendsController < ApplicationController
     if authentication&.verified?
       redirect_to root_path, notice: t(".already_verified")
     elsif authentication
-      authentication.generate_verification_token!
       AuthenticationMailer.verification_email(authentication).deliver_later
       redirect_to root_path, notice: t(".success")
     else
