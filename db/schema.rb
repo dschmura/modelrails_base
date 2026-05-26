@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_22_120148) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_26_015755) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -72,6 +72,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_22_120148) do
     t.datetime "oauth_expires_at"
     t.string "oauth_refresh_token"
     t.string "oauth_token"
+    t.string "pending_invitation_token"
     t.string "provider"
     t.string "uid"
     t.datetime "updated_at", null: false
@@ -79,6 +80,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_22_120148) do
     t.datetime "verification_sent_at"
     t.string "verification_token"
     t.datetime "verified_at"
+    t.index ["pending_invitation_token"], name: "index_authentications_on_pending_invitation_token", where: "pending_invitation_token IS NOT NULL"
     t.index ["provider", "uid"], name: "index_authentications_on_provider_and_uid", unique: true
     t.index ["user_id", "provider"], name: "index_authentications_on_user_id_and_provider", unique: true
     t.index ["user_id"], name: "index_authentications_on_user_id"
