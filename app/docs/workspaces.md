@@ -42,7 +42,7 @@ The members index supports:
 - **Filter** by role (Owner, Admin, Member, Viewer) or status (Active, Deactivated)
 - **Sort** by name, email, role, or join date
 - **Pagination** via Pagy
- 
+
 ### Changing a Member's Role
 
 Select from the workspace's effective roles (system defaults plus any workspace-specific custom roles).
