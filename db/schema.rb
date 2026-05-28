@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_28_163308) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_28_180618) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -73,6 +73,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_28_163308) do
     t.string "oauth_refresh_token"
     t.string "oauth_token"
     t.string "pending_invitation_token"
+    t.string "pending_join_link_token"
     t.string "provider"
     t.string "uid"
     t.datetime "updated_at", null: false

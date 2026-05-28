@@ -279,6 +279,65 @@ RSpec.describe Authentication, type: :model do
     end
   end
 
+  describe "#claim_pending_join_link!" do
+    let(:user) { create(:user) }
+    let(:authentication) { create(:authentication, user: user, pending_join_link_token: nil) }
+    let(:workspace) { create(:workspace, personal: false, join_policy: "open_link") }
+    let!(:member_role) {
+      Role.find_or_create_by!(slug: "member", workspace_id: nil) { |r|
+        r.name = "Member"
+        r.permissions = { manage_projects: true }
+      }
+    }
+    let(:link) { create(:workspace_join_link, workspace: workspace, created_by: create(:user)) }
+
+    before do
+      allow(Rails.configuration.x.signup).to receive(:permitted_join_strategies).and_return(%i[invite open_link])
+    end
+
+    it "is a no-op when pending_join_link_token is blank" do
+      expect {
+        authentication.claim_pending_join_link!(user)
+      }.not_to change(user.workspaces, :count)
+    end
+
+    it "clears the token and returns nil when the token matches no link" do
+      authentication.update!(pending_join_link_token: "no-such-token")
+      authentication.claim_pending_join_link!(user)
+      expect(authentication.reload.pending_join_link_token).to be_nil
+    end
+
+    it "admits the user as Member and clears the token on success" do
+      authentication.update!(pending_join_link_token: link.token)
+
+      authentication.claim_pending_join_link!(user)
+
+      expect(user.workspaces).to include(workspace)
+      expect(workspace.memberships.find_by!(user: user).role.slug).to eq("member")
+      expect(authentication.reload.pending_join_link_token).to be_nil
+    end
+
+    it "silently clears the token when the link has been revoked" do
+      link.revoke!
+      authentication.update!(pending_join_link_token: link.token)
+
+      expect {
+        authentication.claim_pending_join_link!(user)
+      }.not_to change(user.workspaces, :count)
+      expect(authentication.reload.pending_join_link_token).to be_nil
+    end
+
+    it "silently clears the token when the workspace's policy is no longer open_link" do
+      authentication.update!(pending_join_link_token: link.token)
+      workspace.update!(join_policy: "invite")
+
+      expect {
+        authentication.claim_pending_join_link!(user)
+      }.not_to change(user.workspaces, :count)
+      expect(authentication.reload.pending_join_link_token).to be_nil
+    end
+  end
+
   describe "broadcasting" do
     let(:user) { create(:user) }
     # Turbo broadcasts to the stream name computed by stream_name_from([user, :authentications]),

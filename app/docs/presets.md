@@ -161,7 +161,7 @@ In the browser, after the Owner has set their password and signed in:
 
 The public-SaaS / multi-workspace shape: per-workspace control over how new members join. Workspace admins choose between **invite-only** and a **shareable open link** for each workspace they own. Built incrementally across Reshape 2 slices.
 
-**Current status (Reshape 2a shipped):**
+**Current status (Reshape 2b shipped):**
 
 | Capability | Status |
 |---|---|
@@ -170,7 +170,7 @@ The public-SaaS / multi-workspace shape: per-workspace control over how new memb
 | Workspace settings UI (radio + active link + copy/rotate/revoke) | ✅ |
 | Instance allowlist (`SIGNUP_PERMITTED_JOIN_STRATEGIES`) | ✅ |
 | Flow A — *existing* authenticated user joins via link | ✅ |
-| Flow B — *new* user via link (link opens the signup gate) | ⏳ Reshape 2b |
+| Flow B — *new* user via link (link opens the signup gate) | ✅ |
 | `:domain` strategy (verified-email-domain auto-join) | ⏳ Reshape 3 |
 
 **Setup (Reshape 2a — Flow A):**
@@ -189,7 +189,15 @@ The public-SaaS / multi-workspace shape: per-workspace control over how new memb
 - **Single membership-grant entry point** — both invitation acceptance and link self-join go through `Workspace#admit`, sharing the same lock, capacity, and (under `:shared` posture) role-reconciliation logic.
 - **Settings UI auto-hidden under `:shared` posture** — single-tenant deployments don't see the join-policy section.
 
-**Setup (Reshape 2b — Flow B):** *Not yet built.* When shipped, this will let *new* users (no account yet) use the link to open the signup gate, register, verify their email, and land in the workspace as Member. Track at [#181](https://github.com/dschmura/modelrails_base/issues/181) and `docs/reshape-2-per-workspace-join-policy-spec.md`.
+**Setup (Reshape 2b — Flow B):** Already enabled by the same `SIGNUP_PERMITTED_JOIN_STRATEGIES=invite,open_link` setting from 2a. The Flow B path is automatic:
+
+1. Brand-new visitor (no account) clicks a shareable join link.
+2. `Workspaces::JoinsController#create` stashes the token in `session[:pending_join_token]` and redirects to `/sign-up`.
+3. `SignupPolicy.allows_signup?` checks `workspace_join_acceptable?` — the open-link token opens the gate even under `SIGNUP_MODE=invite_only`. The signup form renders.
+4. Visitor registers. `RegistrationsController#create` parks the token on the new email `Authentication` (`pending_join_link_token`), clears the session, sends the verification email.
+5. Visitor clicks the verification email link. `Account::ConnectedAccountsController#verify` proves email ownership, then `Authentication#claim_pending_join_link!` admits them to the workspace as Member via `Workspace#admit`.
+
+Stale conditions at claim time (link revoked, workspace policy reverted to `:invite`, instance allowlist no longer permits `:open_link`) are silently no-op'd — email verification proceeds and the user lands signed in but without the workspace membership. Capacity errors at claim time surface as a flash without blocking sign-in.
 
 **When to switch presets.**
 

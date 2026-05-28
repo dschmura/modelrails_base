@@ -18,6 +18,7 @@ en:
       create:
         joined: "Welcome to %{workspace}."
         already_member: "You're already a member of %{workspace}."
+        register_first: "Create an account to join %{workspace}."
     sidebar:
       aria_label: "Workspace navigation"
       section_label: "Workspace"
