@@ -158,14 +158,18 @@ class OmniauthCallbacksController < ApplicationController
         provider: normalized_provider(auth_hash),
         uid: auth_hash.uid,
         email: auth_hash.info.email,
+        # Park both pending claims for the deferred-OAuth flow (mirror
+        # registrations_controller).
         pending_invitation_token: session[:pending_invitation_token],
+        pending_join_link_token: session[:pending_join_token],
         **oauth_attrs(auth_hash)
       )
       auth.save!
     end
 
-    # Token is now safely persisted on the Authentication; safe to clear from session.
+    # Tokens are safely persisted on the Authentication; clear from session.
     session.delete(:pending_invitation_token)
+    session.delete(:pending_join_token)
 
     # deliver_later runs after the transaction commits (project convention:
     # deliver_later inside a transaction can enqueue a job that fires on rollback).

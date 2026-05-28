@@ -101,3 +101,47 @@ RSpec.describe "Workspaces::Joins (Flow A: authenticated user joins via link)", 
     end
   end
 end
+
+# Reshape 2b: unauthenticated branch. Top-level describe so it doesn't
+# inherit the Flow A spec's `sign_in(newcomer)` before-hook. Visiting a
+# valid join link without an account stashes the token in the session and
+# routes the visitor through the registration flow. After email
+# verification, claim_pending_join_link! admits them to the workspace.
+RSpec.describe "Workspaces::Joins (Flow B: unauthenticated user via link)", type: :request do
+  let(:workspace) { create(:workspace, personal: false, join_policy: "open_link") }
+  let(:owner) { create(:user) }
+  let!(:owner_role) {
+    Role.find_or_create_by!(slug: "owner", workspace_id: nil) { |r|
+      r.name = "Owner"
+      r.permissions = { manage_workspace: true, manage_members: true, manage_projects: true, manage_settings: true }
+    }
+  }
+  let(:link) { create(:workspace_join_link, workspace: workspace, created_by: owner) }
+
+  before do
+    allow(Rails.configuration.x.signup).to receive(:permitted_join_strategies).and_return(%i[invite open_link])
+    workspace.memberships.create!(user: owner, role: owner_role)
+  end
+
+  it "POST stashes the join token in the session and redirects to signup" do
+    post workspace_join_path(workspace, token: link.token)
+
+    expect(session[:pending_join_token]).to eq(link.token)
+    expect(response).to redirect_to(new_registration_path)
+  end
+
+  it "POST with a revoked link uses the neutral error (no session stash, no info leak)" do
+    link.revoke!
+    post workspace_join_path(workspace, token: link.token)
+
+    expect(session[:pending_join_token]).to be_nil
+    expect(response).to redirect_to(root_path)
+    expect(flash[:alert]).to eq(I18n.t("workspaces.joins.invalid_or_revoked"))
+  end
+
+  it "GET renders the confirmation page without requiring auth" do
+    get workspace_join_path(workspace, token: link.token)
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include(workspace.name)
+  end
+end

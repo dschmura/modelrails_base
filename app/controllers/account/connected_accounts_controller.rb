@@ -54,6 +54,16 @@ module Account
         flash[:alert] = t("registrations.create.invitation_consumed")
       end
 
+      # Reshape 2b: claim any pending workspace join-link token. Stale link
+      # conditions (revoked, policy reverted) are silently no-op'd inside
+      # claim_pending_join_link!; capacity errors propagate and we surface
+      # them as a flash without blocking sign-in.
+      begin
+        auth.claim_pending_join_link!(Current.user)
+      rescue ActiveRecord::RecordInvalid => e
+        flash[:alert] = e.message
+      end
+
       if was_authenticated
         redirect_to account_connected_accounts_path,
           notice: t(".success", provider: auth.display_provider)

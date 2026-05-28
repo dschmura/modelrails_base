@@ -75,4 +75,68 @@ RSpec.describe SignupPolicy do
       expect(SignupPolicy.config_allows_signup?).to be false
     end
   end
+
+  describe ".workspace_join_acceptable?" do
+    let(:workspace) { create(:workspace, personal: false, join_policy: "open_link") }
+    let(:link) { create(:workspace_join_link, workspace: workspace, created_by: create(:user)) }
+
+    before do
+      allow(Rails.configuration.x.signup).to receive(:permitted_join_strategies).and_return(%i[invite open_link])
+    end
+
+    it "returns true for an active link of an open-join workspace" do
+      expect(SignupPolicy.workspace_join_acceptable?(link.token)).to be true
+    end
+
+    it "returns false for a blank or unknown token" do
+      expect(SignupPolicy.workspace_join_acceptable?(nil)).to be false
+      expect(SignupPolicy.workspace_join_acceptable?("")).to be false
+      expect(SignupPolicy.workspace_join_acceptable?("does-not-exist")).to be false
+    end
+
+    it "returns false for a revoked link" do
+      link.revoke!
+      expect(SignupPolicy.workspace_join_acceptable?(link.token)).to be false
+    end
+
+    it "returns false when the workspace's policy isn't open_link" do
+      workspace.update!(join_policy: "invite")
+      expect(SignupPolicy.workspace_join_acceptable?(link.token)).to be false
+    end
+
+    it "returns false when the instance allowlist excludes :open_link" do
+      link  # materialize while permissive allowlist is in effect
+      allow(Rails.configuration.x.signup).to receive(:permitted_join_strategies).and_return(%i[invite])
+      expect(SignupPolicy.workspace_join_acceptable?(link.token)).to be false
+    end
+  end
+
+  describe ".allows_signup? with join_token: kwarg (Reshape 2b)" do
+    let(:workspace) { create(:workspace, personal: false, join_policy: "open_link") }
+    let(:link) { create(:workspace_join_link, workspace: workspace, created_by: create(:user)) }
+
+    before do
+      allow(Rails.configuration.x.signup).to receive(:mode).and_return(:invite_only)
+      allow(Rails.configuration.x.signup).to receive(:permitted_join_strategies).and_return(%i[invite open_link])
+    end
+
+    it "opens the gate when a valid open-link join_token is supplied" do
+      expect(SignupPolicy.allows_signup?(join_token: link.token)).to be true
+    end
+
+    it "keeps the gate closed for an unknown join_token" do
+      expect(SignupPolicy.allows_signup?(join_token: "nope")).to be false
+    end
+
+    it "remains backward-compatible with the existing token: kwarg (invitation path)" do
+      invitation = create(:invitation)
+      expect(SignupPolicy.allows_signup?(token: invitation.token)).to be true
+    end
+
+    it "either kwarg opens the gate (composable)" do
+      invitation = create(:invitation)
+      expect(SignupPolicy.allows_signup?(token: invitation.token, join_token: nil)).to be true
+      expect(SignupPolicy.allows_signup?(token: nil, join_token: link.token)).to be true
+    end
+  end
 end
