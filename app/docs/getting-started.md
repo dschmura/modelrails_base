@@ -129,8 +129,8 @@ Runs automatically when you `git push`. No setup needed beyond `bundle exec left
 | Check | Tool |
 |-------|------|
 | Security scan | Brakeman |
-| Full test suite | RSpec (566+ examples) |
-| Accessibility audit | axe-core WCAG 2AA on every system spec |
+| Full test suite | RSpec (full suite) |
+| Accessibility audit | axe-core WCAG 2.2 AAA on every system spec |
 | Code style | RuboCop |
 
 Pre-commit hooks also auto-fix Ruby style issues on staged files.
