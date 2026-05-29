@@ -10,9 +10,10 @@ Markdowndocs.configure do |config|
   # it renders only by direct URL and is invisible on the /docs index.
   # spec/docs/index_coverage_spec.rb fails CI if a doc is left orphaned.
   config.categories = {
-    # `presets` sits with `getting-started` so "choose your app shape" is part
-    # of the onboarding cluster (and the two become each other's related docs).
-    "Getting Started" => %w[getting-started presets],
+    "Getting Started" => %w[getting-started],
+    # The presets hub + its three per-preset spokes form their own cluster,
+    # placed second so it reads as the next step after "getting started".
+    "Presets" => %w[presets presets-solo presets-single-tenant presets-open-saas],
     "Architecture" => %w[architecture],
     # `notifications` (audience: guide) and `notifications-technical`
     # (audience: technical) are paired companion docs — the mode switcher
