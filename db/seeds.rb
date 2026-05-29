@@ -53,19 +53,19 @@ if TenancyConfig.shared?
   membership = workspace.memberships.find_or_create_by!(user: owner) { |m| m.role = owner_role }
   membership.update!(role: owner_role) unless membership.role_id == owner_role.id
 
-  # Deliver a password-set link so the owner can claim the account. In
-  # production we log the URL for out-of-band delivery (email infra may not
-  # be ready on first boot); in dev/test the mailer runs normally. The log
-  # includes the token's validity window (it's short — deliver promptly) and
-  # the workspace URL so the operator knows where the deployment lives.
+  # Help the owner claim the account. In production we do NOT log a password
+  # token: the link would be minted at deploy time (its short expiry clock
+  # already ticking) and would linger as a live credential in log retention.
+  # Instead, log the workspace URL and point at `tenancy:owner_setup_link`,
+  # which mints a fresh short-lived link on demand, when the operator is ready.
+  # In dev/test the mailer runs normally.
   if Rails.env.production?
     host = ENV.fetch("APP_HOST", "localhost")
-    url_helpers = Rails.application.routes.url_helpers
-    password_url = url_helpers.edit_password_url(token: owner.password_reset_token, host: host)
-    workspace_url = url_helpers.workspace_url(workspace, host: host)
+    workspace_url = Rails.application.routes.url_helpers.workspace_url(workspace, host: host)
     Rails.logger.info "[tenancy] Owner account seeded for #{owner_email}. " \
-      "Password-set URL (valid #{owner.password_reset_token_expires_in.inspect}): #{password_url} " \
-      "Workspace: #{workspace_url}"
+      "Workspace: #{workspace_url}. " \
+      "Run `bin/rails tenancy:owner_setup_link` for a short-lived sign-in link " \
+      "(minted on demand — not logged here)."
   else
     AuthenticationMailer.password_reset_email(owner).deliver_now
   end
