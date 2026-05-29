@@ -28,6 +28,8 @@ rails db:seed       # Seeds default roles
 bin/dev             # Start development server
 ```
 
+**Confirm it worked.** Once the server is up, open <http://localhost:3000> — you should see the public home page. That's a working install: nothing below (OAuth, a master key, `.env`) is required to get this far. `.env` is optional and only needed for production-style runs or Kamal — copy `.env.example` to `.env` if you reach for those (`bin/dev` does not need it).
+
 ### Ruby version as single source of truth
 
 `.tool-versions` is the canonical pin for Ruby (and Node). It feeds three downstream consumers automatically:
@@ -183,9 +185,9 @@ These are referenced in both `app/views/layouts/application.html.erb` and `app/v
 
 To replace with your own branding, swap the files in `public/` keeping the same filenames and sizes. Update `name` and `short_name` in `manifest.webmanifest` to match your app name.
 
-## OAuth Setup
+## OAuth Setup (optional)
 
-Add credentials for Google and GitHub OAuth:
+Email/password and magic-link sign-in work without this — set up OAuth only if you want Google/GitHub sign-in. Add credentials for Google and GitHub OAuth:
 
 ```bash
 bin/rails credentials:edit
@@ -199,3 +201,8 @@ github:
   client_id: your_id
   client_secret: your_secret
 ```
+
+## Next steps
+
+1. **[Choose your app shape →](presets.md)** — Solo, Single-tenant, or Open SaaS. This is the most important decision; it sets signup, onboarding, and workspace behavior.
+2. **[Extend the framework →](extending.md)** — add your own workspace-scoped models, authorization, and features.
