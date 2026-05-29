@@ -92,8 +92,13 @@ class Authentication < ApplicationRecord
       return
     end
 
-    ApplicationRecord.transaction do
+    # The token is a one-shot claim: verify never retries, so once we attempt
+    # admission the token is spent regardless of outcome. Clearing it lives in
+    # `ensure` (not bundled in admit's transaction) so a terminal failure like
+    # capacity rolls back the membership but does NOT resurrect the token.
+    begin
       link.workspace.admit(user, role: link.workspace.default_self_join_role)
+    ensure
       update!(pending_join_link_token: nil)
     end
   end
