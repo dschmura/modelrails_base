@@ -55,11 +55,17 @@ if TenancyConfig.shared?
 
   # Deliver a password-set link so the owner can claim the account. In
   # production we log the URL for out-of-band delivery (email infra may not
-  # be ready on first boot); in dev/test the mailer runs normally.
+  # be ready on first boot); in dev/test the mailer runs normally. The log
+  # includes the token's validity window (it's short — deliver promptly) and
+  # the workspace URL so the operator knows where the deployment lives.
   if Rails.env.production?
     host = ENV.fetch("APP_HOST", "localhost")
-    url = Rails.application.routes.url_helpers.edit_password_url(token: owner.password_reset_token, host: host)
-    Rails.logger.info "[tenancy] Owner account seeded for #{owner_email}. Password-set URL: #{url}"
+    url_helpers = Rails.application.routes.url_helpers
+    password_url = url_helpers.edit_password_url(token: owner.password_reset_token, host: host)
+    workspace_url = url_helpers.workspace_url(workspace, host: host)
+    Rails.logger.info "[tenancy] Owner account seeded for #{owner_email}. " \
+      "Password-set URL (valid #{owner.password_reset_token_expires_in.inspect}): #{password_url} " \
+      "Workspace: #{workspace_url}"
   else
     AuthenticationMailer.password_reset_email(owner).deliver_now
   end

@@ -6,7 +6,9 @@ module Workspaces
     #
     # Atomically rotates: revokes any existing active link + creates a new one.
     # "Rotate" and "Generate" are the same operation — every successful create
-    # leaves exactly one active link.
+    # leaves exactly one active link. The revoke-then-create ordering and the
+    # IMMEDIATE transaction (which serializes concurrent rotates on SQLite) keep
+    # the invariant; a partial unique index enforces it at the DB level too.
     def create
       authorize WorkspaceJoinLink
 

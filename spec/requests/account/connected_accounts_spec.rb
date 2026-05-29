@@ -482,6 +482,46 @@ RSpec.describe "Account Connected Accounts", type: :request do
         expect(pending_auth.reload.pending_join_link_token).to be_nil
       end
     end
+
+    context "with a valid active link (happy path)" do
+      it "verifies, signs in, admits the user as Member, and clears the token" do
+        get verify_account_connected_accounts_path(token: pending_auth.generate_token_for(:email_verification))
+
+        expect(pending_auth.reload.verified_at).to be_present
+        expect(user.reload.workspaces).to include(workspace)
+        expect(workspace.memberships.find_by!(user: user).role.slug).to eq("member")
+        expect(pending_auth.reload.pending_join_link_token).to be_nil
+        expect(flash[:alert]).to be_blank
+        # Unauthenticated caller is signed in once their email is proven.
+        expect(response).to redirect_to(root_path)
+      end
+    end
+
+    context "when the link was revoked between parking and verification" do
+      it "silently no-ops: verifies, clears the token, grants no membership" do
+        link.revoke!
+
+        get verify_account_connected_accounts_path(token: pending_auth.generate_token_for(:email_verification))
+
+        expect(pending_auth.reload.verified_at).to be_present
+        expect(user.reload.workspaces).not_to include(workspace)
+        expect(pending_auth.reload.pending_join_link_token).to be_nil
+        expect(flash[:alert]).to be_blank
+      end
+    end
+
+    context "when the workspace's join policy reverted to invite-only mid-flight" do
+      it "silently no-ops: verifies, clears the token, grants no membership" do
+        workspace.update!(join_policy: "invite")
+
+        get verify_account_connected_accounts_path(token: pending_auth.generate_token_for(:email_verification))
+
+        expect(pending_auth.reload.verified_at).to be_present
+        expect(user.reload.workspaces).not_to include(workspace)
+        expect(pending_auth.reload.pending_join_link_token).to be_nil
+        expect(flash[:alert]).to be_blank
+      end
+    end
   end
 
   describe "DELETE /account/connected_accounts/:id (last verified method protection) - concurrency" do
