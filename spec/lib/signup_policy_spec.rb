@@ -8,15 +8,15 @@ RSpec.describe SignupPolicy do
       end
 
       it "returns true with no token" do
-        expect(SignupPolicy.allows_signup?(token: nil)).to be true
+        expect(SignupPolicy.allows_signup?(invitation_token: nil)).to be true
       end
 
       it "returns true with a blank token" do
-        expect(SignupPolicy.allows_signup?(token: "")).to be true
+        expect(SignupPolicy.allows_signup?(invitation_token: "")).to be true
       end
 
       it "returns true even when the token does not match any invitation" do
-        expect(SignupPolicy.allows_signup?(token: "nonsense")).to be true
+        expect(SignupPolicy.allows_signup?(invitation_token: "nonsense")).to be true
       end
     end
 
@@ -26,40 +26,40 @@ RSpec.describe SignupPolicy do
       end
 
       it "returns false with no token" do
-        expect(SignupPolicy.allows_signup?(token: nil)).to be false
+        expect(SignupPolicy.allows_signup?(invitation_token: nil)).to be false
       end
 
       it "returns false with a blank token" do
-        expect(SignupPolicy.allows_signup?(token: "")).to be false
+        expect(SignupPolicy.allows_signup?(invitation_token: "")).to be false
       end
 
       it "returns false with a non-matching token string" do
-        expect(SignupPolicy.allows_signup?(token: "garbage")).to be false
+        expect(SignupPolicy.allows_signup?(invitation_token: "garbage")).to be false
       end
 
       it "returns false for an expired invitation token" do
         invitation = create(:invitation, :expired)
-        expect(SignupPolicy.allows_signup?(token: invitation.token)).to be false
+        expect(SignupPolicy.allows_signup?(invitation_token: invitation.token)).to be false
       end
 
       it "returns false for an already-accepted invitation" do
         invitation = create(:invitation, :accepted)
-        expect(SignupPolicy.allows_signup?(token: invitation.token)).to be false
+        expect(SignupPolicy.allows_signup?(invitation_token: invitation.token)).to be false
       end
 
       it "returns false for a declined invitation" do
         invitation = create(:invitation, :declined)
-        expect(SignupPolicy.allows_signup?(token: invitation.token)).to be false
+        expect(SignupPolicy.allows_signup?(invitation_token: invitation.token)).to be false
       end
 
       it "returns false for a revoked invitation" do
         invitation = create(:invitation, :revoked)
-        expect(SignupPolicy.allows_signup?(token: invitation.token)).to be false
+        expect(SignupPolicy.allows_signup?(invitation_token: invitation.token)).to be false
       end
 
       it "returns true for a valid pending invitation token" do
         invitation = create(:invitation)
-        expect(SignupPolicy.allows_signup?(token: invitation.token)).to be true
+        expect(SignupPolicy.allows_signup?(invitation_token: invitation.token)).to be true
       end
     end
   end
@@ -128,15 +128,15 @@ RSpec.describe SignupPolicy do
       expect(SignupPolicy.allows_signup?(join_token: "nope")).to be false
     end
 
-    it "remains backward-compatible with the existing token: kwarg (invitation path)" do
+    it "opens the gate via the invitation_token: kwarg (invitation path)" do
       invitation = create(:invitation)
-      expect(SignupPolicy.allows_signup?(token: invitation.token)).to be true
+      expect(SignupPolicy.allows_signup?(invitation_token: invitation.token)).to be true
     end
 
     it "either kwarg opens the gate (composable)" do
       invitation = create(:invitation)
-      expect(SignupPolicy.allows_signup?(token: invitation.token, join_token: nil)).to be true
-      expect(SignupPolicy.allows_signup?(token: nil, join_token: link.token)).to be true
+      expect(SignupPolicy.allows_signup?(invitation_token: invitation.token, join_token: nil)).to be true
+      expect(SignupPolicy.allows_signup?(invitation_token: nil, join_token: link.token)).to be true
     end
   end
 end
