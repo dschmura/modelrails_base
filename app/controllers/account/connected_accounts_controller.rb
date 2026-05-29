@@ -61,7 +61,16 @@ module Account
       begin
         auth.claim_pending_join_link!(Current.user)
       rescue ActiveRecord::RecordInvalid => e
-        flash[:alert] = e.message
+        # "Already a member" is benign here — a pending invitation and a pending
+        # join link can both resolve to the same workspace, so the second claim
+        # is a harmless duplicate the success notice already covers. Only a real
+        # blocker (capacity) warrants an alert, and it gets a localized message
+        # rather than the raw model string. Mirrors Workspaces::JoinsController.
+        # NOTE: this string-match coupling to Workspace#admit's messages is the
+        # second call site; a third should trigger typed errors on #admit.
+        unless e.message.match?(/already a member/i)
+          flash[:alert] = t(".join_link_at_capacity")
+        end
       end
 
       if was_authenticated
