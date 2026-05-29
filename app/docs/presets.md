@@ -199,6 +199,19 @@ The public-SaaS / multi-workspace shape: per-workspace control over how new memb
 
 Stale conditions at claim time (link revoked, workspace policy reverted to `:invite`, instance allowlist no longer permits `:open_link`) are silently no-op'd — email verification proceeds and the user lands signed in but without the workspace membership. Capacity errors at claim time surface as a flash without blocking sign-in.
 
+**Tightening the allowlist on a live app.** Removing `open_link` from `SIGNUP_PERMITTED_JOIN_STRATEGIES` (e.g. reverting to `SIGNUP_PERMITTED_JOIN_STRATEGIES=invite`) takes effect **immediately at runtime** — there is no data migration. `Workspace#open_join?` re-checks the allowlist on every call, so all existing shareable links stop working at once and both Flow A and Flow B silently no-op. Workspaces keep their stored `join_policy: "open_link"` value, but it is now inert.
+
+That stale value has one sharp edge: `join_policy_must_be_permitted_by_instance` validates on **every save**, so a workspace still carrying `open_link` becomes unsaveable — editing any unrelated field (name, color, …) fails with *"Join policy is not permitted by this instance"* — until its policy is reset.
+
+**Reset command.** Reconcile stale workspaces back to a permitted policy from the Rails console (`bin/rails console`). `update_all` is deliberate here — it bypasses the very validation that would otherwise block the fix:
+
+```ruby
+# Reset every workspace still carrying the now-forbidden open_link policy.
+Workspace.where(join_policy: "open_link").update_all(join_policy: "invite")
+```
+
+Their already-issued join links stay in the table but are inert (`open_join?` is `false`). Leave them, or revoke individually via the settings UI or `link.revoke!`.
+
 **When to switch presets.**
 
 - *"I want to lock signup entirely; users should only join via admin invitation."* → keep `SIGNUP_PERMITTED_JOIN_STRATEGIES=invite` and the per-workspace radio defaults to invite — this *is* Solo-default with no further changes.
