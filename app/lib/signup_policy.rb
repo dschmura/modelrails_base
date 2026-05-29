@@ -3,9 +3,9 @@ class SignupPolicy
   # is in :open mode, OR the caller has a valid pending invitation token,
   # OR the caller has a valid workspace join-link token (Reshape 2b).
   # Both token kwargs are independently optional — composable.
-  def self.allows_signup?(token: nil, join_token: nil)
+  def self.allows_signup?(invitation_token: nil, join_token: nil)
     config_allows_signup? ||
-      invitation_acceptable?(token) ||
+      invitation_acceptable?(invitation_token) ||
       workspace_join_acceptable?(join_token)
   end
 

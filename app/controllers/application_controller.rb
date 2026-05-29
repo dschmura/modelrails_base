@@ -18,7 +18,7 @@ class ApplicationController < ActionController::Base
     return @signups_open if defined?(@signups_open)
 
     @signups_open = SignupPolicy.allows_signup?(
-      token: session[:pending_invitation_token],
+      invitation_token: session[:pending_invitation_token],
       join_token: session[:pending_join_token]
     )
   end
