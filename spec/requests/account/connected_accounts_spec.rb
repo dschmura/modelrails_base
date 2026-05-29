@@ -434,6 +434,56 @@ RSpec.describe "Account Connected Accounts", type: :request do
     end
   end
 
+  describe "GET verify (new user with pending join link)" do
+    let(:workspace) { create(:workspace, personal: false, join_policy: "open_link") }
+    let!(:member_role) do
+      Role.find_or_create_by!(slug: "member", workspace_id: nil) { |r| r.name = "Member" }
+    end
+    let(:link) { create(:workspace_join_link, workspace: workspace, created_by: create(:user)) }
+    let(:user) { create(:user, email_address: "joiner@example.com") }
+    let(:pending_auth) do
+      user.authentications.create!(
+        provider: "google",
+        uid: "joinme",
+        email: "joiner@example.com",
+        verified_at: nil,
+        pending_join_link_token: link.token
+      )
+    end
+
+    before do
+      allow(Rails.configuration.x.signup)
+        .to receive(:permitted_join_strategies).and_return(%i[invite open_link])
+    end
+
+    context "when the user is already a member of the link's workspace" do
+      it "verifies and signs in without surfacing the raw 'already a member' error" do
+        workspace.admit(user, role: member_role)
+
+        get verify_account_connected_accounts_path(token: pending_auth.generate_token_for(:email_verification))
+
+        expect(pending_auth.reload.verified_at).to be_present
+        # Benign duplicate: the success notice covers it, nothing alarming.
+        expect(flash[:alert]).to be_blank
+        expect(pending_auth.reload.pending_join_link_token).to be_nil
+      end
+    end
+
+    context "when the link's workspace is at capacity" do
+      it "verifies but surfaces a localized capacity message, not the raw model string" do
+        workspace.update!(max_members: 1)
+        create(:membership, workspace: workspace, user: create(:user), role: member_role)
+
+        get verify_account_connected_accounts_path(token: pending_auth.generate_token_for(:email_verification))
+
+        expect(pending_auth.reload.verified_at).to be_present
+        expect(flash[:alert]).to eq(I18n.t("account.connected_accounts.verify.join_link_at_capacity"))
+        expect(flash[:alert]).not_to include("Workspace is at capacity")
+        expect(pending_auth.reload.pending_join_link_token).to be_nil
+      end
+    end
+  end
+
   describe "DELETE /account/connected_accounts/:id (last verified method protection) - concurrency" do
     let(:user) { create(:user) }
     before { sign_in(user) }

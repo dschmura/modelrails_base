@@ -336,6 +336,21 @@ RSpec.describe Authentication, type: :model do
       }.not_to change(user.workspaces, :count)
       expect(authentication.reload.pending_join_link_token).to be_nil
     end
+
+    it "clears the spent token even when admission fails because the workspace is at capacity" do
+      workspace.update!(max_members: 1)
+      create(:membership, workspace: workspace, user: create(:user), role: member_role)
+      authentication.update!(pending_join_link_token: link.token)
+
+      expect {
+        authentication.claim_pending_join_link!(user)
+      }.to raise_error(ActiveRecord::RecordInvalid, /at capacity/i)
+
+      # The token represents a one-shot claim. A capacity failure is terminal
+      # for this attempt (verify never retries), so the token must not survive
+      # the rollback and linger as orphaned state.
+      expect(authentication.reload.pending_join_link_token).to be_nil
+    end
   end
 
   describe "broadcasting" do
