@@ -1,10 +1,10 @@
 require "rails_helper"
 
 # Exercises the :shared (Single-tenant) bootstrap branch of db/seeds.rb. The
-# production branch logs a password-set link for out-of-band delivery, since
-# email infra may not be ready on first boot — so the log must give the
-# operator everything they need: the URL, how long it stays valid, and where
-# the workspace lives.
+# production branch must tell the operator where the workspace lives and how to
+# get a sign-in link — but it must NOT embed a live password credential in the
+# logs (log retention/aggregation outlives a 15-minute token). It points at the
+# on-demand `tenancy:owner_setup_link` task instead.
 RSpec.describe "db/seeds.rb :shared bootstrap", type: :request do
   let(:env_vars) do
     {
@@ -27,7 +27,7 @@ RSpec.describe "db/seeds.rb :shared bootstrap", type: :request do
     allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new("production"))
   end
 
-  it "logs the password-set URL, its expiry duration, and the workspace URL" do
+  it "logs the workspace URL and points to the setup-link task, without embedding a credential" do
     logged = []
     allow(Rails.logger).to receive(:info) { |msg| logged << msg }
 
@@ -35,9 +35,8 @@ RSpec.describe "db/seeds.rb :shared bootstrap", type: :request do
 
     tenancy_line = logged.find { |m| m.to_s.include?("[tenancy]") }
     expect(tenancy_line).to be_present
-
-    owner = User.find_by!(email_address: "owner@acme.test")
-    expect(tenancy_line).to include(owner.password_reset_token_expires_in.inspect) # e.g. "15 minutes"
-    expect(tenancy_line).to include("/workspaces/acme") # operator's destination
+    expect(tenancy_line).to include("/workspaces/acme")           # operator's destination
+    expect(tenancy_line).to include("tenancy:owner_setup_link")   # on-demand mint, not a logged token
+    expect(tenancy_line).not_to include("/passwords/")            # no live password credential in logs
   end
 end
