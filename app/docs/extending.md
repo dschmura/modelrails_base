@@ -7,6 +7,101 @@ audience: [guide, technical]
 
 # Extending ModelRails
 
+## Adding a workspace-scoped feature
+
+Most features you build are **workspace-scoped**: data a tenant owns that must never leak across workspaces. The framework keeps that **explicit** — there is no magic `default_scope` — so you opt in deliberately at each step. Here is the full path for a new model (say, a `Milestone`).
+
+### 1. Generate the model and run the migration
+
+```bash
+rails generate model Milestone name:string workspace:references
+rails db:migrate
+```
+
+`rails generate model` only *writes* the migration; `rails db:migrate` applies it. Skipping the second command is the most common first mistake.
+
+### 2. Decide how it is tenant-scoped
+
+Two shapes — picking the wrong one is the most common *design* mistake:
+
+- **A workspace-level root** (a top-level thing a workspace owns, like `Project`) → `include Tenanted`, which adds `belongs_to :workspace` and a `for_current_workspace` scope.
+- **A child of something already tenant-scoped** (e.g. a `Comment` on a `Project`) → just `belongs_to :project`. Do **not** add `Tenanted` or a `workspace_id`; it inherits its tenant transitively through the parent. This is exactly why `Resource` and `Document` carry no `workspace_id` — they reach the workspace via `resource → project → workspace`.
+
+```ruby
+# app/models/milestone.rb — a workspace-level root
+class Milestone < ApplicationRecord
+  include Tenanted   # adds belongs_to :workspace + the for_current_workspace scope
+  belongs_to :created_by, class_name: "User"
+  validates :name, presence: true
+end
+```
+
+> **Scoping is explicit, not automatic.** `Tenanted` deliberately installs **no** `default_scope`. You scope every query yourself (step 3). That avoids `default_scope`'s action-at-a-distance, but it means *you* are responsible for never loading a tenant model unscoped.
+
+### 3. Controller — scope through the workspace, and authorize
+
+Include `WorkspaceScoped` (it resolves `@workspace` from the URL slug and sets `Current.workspace`), then query **through the association** — never `Milestone.all`:
+
+```ruby
+# app/controllers/workspaces/milestones_controller.rb
+class Workspaces::MilestonesController < ApplicationController
+  include WorkspaceScoped
+
+  def index
+    authorize Milestone
+    @milestones = @workspace.milestones.kept   # scoped via the association
+  end
+
+  def create
+    authorize Milestone
+    @milestone = @workspace.milestones.build(milestone_params)
+    @milestone.created_by = Current.user
+    # ...
+  end
+end
+```
+
+`@workspace.milestones` is the load-bearing isolation boundary; `Current.workspace` (set by `WorkspaceScoped`) is the defense-in-depth backstop that policies and `for_current_workspace` rely on.
+
+### 4. Authorize with a Pundit policy
+
+Every controller action calls `authorize`. Add a policy that extends `ApplicationPolicy`, which provides `membership` (the current user's membership in `Current.workspace`) and `can?("permission")` (reads that member's role-permission flags):
+
+```ruby
+# app/policies/milestone_policy.rb
+class MilestonePolicy < ApplicationPolicy
+  def index?
+    membership.present?            # any member of the workspace
+  end
+
+  def create?
+    can?("manage_projects")        # gated on a role permission
+  end
+
+  def update?
+    create?
+  end
+
+  def destroy?
+    record.created_by == user || can?("manage_workspace")
+  end
+end
+```
+
+The permission keys (`manage_projects`, `manage_members`, `manage_workspace`, …) live on each role; see [Workspace Administration](/docs/workspaces) for the full list.
+
+### 5. Opt into shared behavior (optional)
+
+Mix in the same concerns the built-in models use, only as needed:
+
+| Concern | Gives you | Requirement |
+|---|---|---|
+| `Discardable` | Soft delete (`discard!`, `.kept` scope) | — |
+| `Trackable` | Activity-log entries when the record changes | — |
+| `Broadcastable` | Turbo Stream broadcasts on change | define a private `broadcast_target` (e.g. `workspace` or the parent record) |
+
+`Project` includes all three; `Resource` broadcasts to its `project`. Copy whichever match your model.
+
 ## Adding a New Resource Type
 
 The Resource registry uses a polymorphic pattern. To add a new type (e.g., `Slideshow`):
@@ -15,6 +110,7 @@ The Resource registry uses a polymorphic pattern. To add a new type (e.g., `Slid
 
 ```bash
 rails generate model Slideshow
+rails db:migrate          # generate writes the migration; this applies it
 ```
 
 ```ruby
@@ -24,6 +120,8 @@ class Slideshow < ApplicationRecord
   has_many :slides, dependent: :destroy
 end
 ```
+
+A resource type is reached through `resource → project → workspace`, so it needs **no** `workspace_id` and does **not** `include Tenanted` — see [Adding a workspace-scoped feature](#adding-a-workspace-scoped-feature) for when a model does.
 
 ### 2. Register the type
 
