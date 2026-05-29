@@ -152,3 +152,9 @@ For fine-grained access (e.g., "can view Document A but not Document B"):
 1. Create a `ResourceShare` model: `user_id`, `resource_id`, `permission` (read/write)
 2. Update `ResourcePolicy` to check both project membership AND resource shares
 3. Resources without shares fall back to project-level permissions
+
+## Next steps
+
+- **[Architecture](architecture.md)** — the request flow, tenancy model, and key directories your new code plugs into.
+- **[Deployment](deployment.md)** — ship it with Kamal once your feature is built.
+- Browse the full **[docs index](/docs)** for feature-specific references (workspaces, notifications, identity, background jobs).

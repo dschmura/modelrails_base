@@ -119,9 +119,15 @@ The workspace switcher auto-hides under this preset because every user has exact
 
 2. Run `bin/setup` (or `bin/rails db:seed` on an existing app). The seed is idempotent — safe to re-run.
 
-3. The seed creates the shared workspace, the Owner user (with a verified email Authentication and an Owner Membership), and sends a password-set link to `TENANCY_OWNER_EMAIL`. In `production`, the link is logged instead of mailed (see the `bin/rails log` output) so the operator can deliver it out-of-band on first boot.
+3. The seed creates the shared workspace and the Owner user (with a verified email Authentication and an Owner Membership). In dev/test it emails a password-set link. In `production` it deliberately does **not** put a credential in the logs (a logged token would linger in log retention past its short expiry); instead it logs the workspace URL and points you to an on-demand task. Mint the Owner's sign-in link when you're ready to use it:
 
-4. The Owner clicks the password-set link, sets a password, signs in. They can then invite other users via the normal invitation flow — **each invitation specifies the role the invitee receives** (Member, Admin, etc.). The Owner remains the single source of new-role-granting authority for the shared workspace; roles can also be changed after signup via the members UI at `/workspaces/:slug/members`.
+   ```bash
+   bin/rails tenancy:owner_setup_link
+   ```
+
+   This prints a fresh, short-lived password-set URL — the expiry clock starts when you run it, not at deploy time. Deliver it to the Owner out-of-band (or run it yourself if you're claiming the account). It doubles as a break-glass Owner login if email delivery is ever down.
+
+4. The Owner opens the password-set link, sets a password, signs in. They can then invite other users via the normal invitation flow — **each invitation specifies the role the invitee receives** (Member, Admin, etc.). The Owner remains the single source of new-role-granting authority for the shared workspace; roles can also be changed after signup via the members UI at `/workspaces/:slug/members`.
 
 **How to verify your setup is Single-tenant.** After running the seed:
 
@@ -216,3 +222,7 @@ Their already-issued join links stay in the table but are inert (`open_join?` is
 
 - *"I want to lock signup entirely; users should only join via admin invitation."* → keep `SIGNUP_PERMITTED_JOIN_STRATEGIES=invite` and the per-workspace radio defaults to invite — this *is* Solo-default with no further changes.
 - *"Everyone should be in one shared workspace with no join UI at all."* → **Single-tenant** preset (Reshape 1).
+
+## Next steps
+
+With your app shape chosen, **[Extending ModelRails →](extending.md)** walks through adding your own workspace-scoped models, authorization, and features on top of it.
