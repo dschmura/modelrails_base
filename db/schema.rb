@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_28_180618) do
+ActiveRecord::Schema[8.1].define(version: 2026_05_29_020530) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -286,6 +286,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_28_180618) do
     t.index ["token"], name: "index_workspace_join_links_on_token", unique: true
     t.index ["workspace_id", "revoked_at"], name: "index_workspace_join_links_on_workspace_id_and_revoked_at"
     t.index ["workspace_id"], name: "index_workspace_join_links_on_workspace_id"
+    t.index ["workspace_id"], name: "index_workspace_join_links_unique_active_per_workspace", unique: true, where: "revoked_at IS NULL"
   end
 
   create_table "workspaces", force: :cascade do |t|
