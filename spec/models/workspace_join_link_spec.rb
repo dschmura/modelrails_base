@@ -24,6 +24,41 @@ RSpec.describe WorkspaceJoinLink, type: :model do
     end
   end
 
+  describe "one active link per workspace (DB partial unique index)" do
+    it "rejects a second active link for the same workspace" do
+      WorkspaceJoinLink.create!(workspace: workspace, created_by: user)
+      expect {
+        WorkspaceJoinLink.create!(workspace: workspace, created_by: user)
+      }.to raise_error(ActiveRecord::RecordNotUnique)
+    end
+
+    it "allows a new active link once the previous one is revoked" do
+      first = WorkspaceJoinLink.create!(workspace: workspace, created_by: user)
+      first.revoke!
+
+      expect {
+        WorkspaceJoinLink.create!(workspace: workspace, created_by: user)
+      }.not_to raise_error
+    end
+
+    it "allows simultaneous active links in different workspaces" do
+      other_workspace = create(:workspace)
+      WorkspaceJoinLink.create!(workspace: workspace, created_by: user)
+
+      expect {
+        WorkspaceJoinLink.create!(workspace: other_workspace, created_by: user)
+      }.not_to raise_error
+    end
+
+    it "allows multiple revoked links for the same workspace (history)" do
+      WorkspaceJoinLink.create!(workspace: workspace, created_by: user, revoked_at: 2.minutes.ago)
+
+      expect {
+        WorkspaceJoinLink.create!(workspace: workspace, created_by: user, revoked_at: 1.minute.ago)
+      }.not_to raise_error
+    end
+  end
+
   describe ".active scope" do
     it "includes links with no revoked_at" do
       active = WorkspaceJoinLink.create!(workspace: workspace, created_by: user)
