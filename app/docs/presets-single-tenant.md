@@ -13,6 +13,48 @@ audience: [guide, technical]
 
 **Who it's for.** Internal company tools, one-org deployments, classroom/cohort tools with central administration — any product where "the workspace" is implicit and there's no need to expose tenancy as a user-facing concept.
 
+## How users relate
+
+Everyone shares **one** workspace. Each person (with how they **sign in**) is a member of the same Acme workspace; signup is invite-only, so people are invited straight in — and there are no personal workspaces:
+
+<svg viewBox="0 0 720 350" width="100%" role="img" aria-label="Single-tenant: everyone is a member of one shared Acme workspace. Alice: Owner, bootstrapped at deploy, signs in with email and password. Bob: Member, joined via invitation, signs in with Google OAuth. Carol: Admin, joined via invitation, signs in with a magic link. There are no personal workspaces and signup is invite-only." fill="none" stroke="currentColor" font-family="ui-sans-serif, system-ui, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 z" fill="currentColor" stroke="none"/>
+    </marker>
+  </defs>
+
+  <circle cx="42" cy="56" r="22" stroke-width="1.5"/>
+  <text x="42" y="62" text-anchor="middle" fill="currentColor" stroke="none" font-size="16" font-weight="700">A</text>
+  <text x="80" y="50" fill="currentColor" stroke="none" font-size="14.5" font-weight="600">Alice</text>
+  <text x="80" y="70" fill="currentColor" stroke="none" font-size="11" opacity="0.7">signs in: email + password</text>
+
+  <circle cx="42" cy="170" r="22" stroke-width="1.5"/>
+  <text x="42" y="176" text-anchor="middle" fill="currentColor" stroke="none" font-size="16" font-weight="700">B</text>
+  <text x="80" y="164" fill="currentColor" stroke="none" font-size="14.5" font-weight="600">Bob</text>
+  <text x="80" y="184" fill="currentColor" stroke="none" font-size="11" opacity="0.7">signs in: Google OAuth</text>
+
+  <circle cx="42" cy="284" r="22" stroke-width="1.5"/>
+  <text x="42" y="290" text-anchor="middle" fill="currentColor" stroke="none" font-size="16" font-weight="700">C</text>
+  <text x="80" y="278" fill="currentColor" stroke="none" font-size="14.5" font-weight="600">Carol</text>
+  <text x="80" y="298" fill="currentColor" stroke="none" font-size="11" opacity="0.7">signs in: magic link</text>
+
+  <rect class="text-accent" x="500" y="120" width="202" height="104" rx="16" stroke-width="2.25"/>
+  <text x="601" y="166" text-anchor="middle" fill="currentColor" stroke="none" font-size="17" font-weight="700">Acme</text>
+  <text x="601" y="188" text-anchor="middle" fill="currentColor" stroke="none" font-size="11.5" opacity="0.7">the shared workspace</text>
+
+  <path class="text-accent" d="M280 54 Q 410 70 496 150" stroke-width="2.25" marker-end="url(#arrow)"/>
+  <text x="368" y="44" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">Owner · bootstrapped</text>
+
+  <path class="text-accent" d="M280 168 Q 392 168 496 172" stroke-width="2.25" marker-end="url(#arrow)"/>
+  <text x="384" y="150" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">Member · via invitation</text>
+
+  <path class="text-accent" d="M280 282 Q 410 274 496 196" stroke-width="2.25" marker-end="url(#arrow)"/>
+  <text x="372" y="300" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">Admin · via invitation</text>
+
+  <text x="360" y="338" text-anchor="middle" fill="currentColor" stroke="none" font-size="11" opacity="0.7">One shared workspace · no personal workspaces · signup is invite-only</text>
+</svg>
+
 **What you get when configured.**
 
 | Knob | Value | Mechanism |

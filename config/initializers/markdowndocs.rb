@@ -4,6 +4,10 @@ Markdowndocs.configure do |config|
   # Path to markdown files
   config.docs_path = Rails.root.join("app", "docs")
 
+  # Allow hand-authored inline SVG diagrams in docs. The sanitizer still
+  # strips scripts/handlers; see markdowndocs CHANGELOG 0.8.0.
+  config.allow_svg = true
+
   # Category → slug mapping
   # Maps category names to arrays of markdown file slugs (filenames without .md)
   # NOTE: every file in app/docs/ must appear in exactly one category here, or

@@ -34,6 +34,48 @@ The public-SaaS / multi-workspace shape: per-workspace control over how new memb
 
 Open SaaS is **Solo-default's tenancy** (personal onboarding, workspace creation on) **plus the `open_link` join strategy** — so a workspace Owner can hand out a shareable join link instead of inviting people one by one.
 
+## How users relate
+
+An example Acme workspace. Each person (with how they **sign in**) connects to the workspace by their **membership** (role · how they joined). Sign-in is email-first and passwordless by default — a magic link unless a password has been set — with Google/GitHub OAuth alongside:
+
+<svg viewBox="0 0 720 350" width="100%" role="img" aria-label="Acme org workspace. Alice: Owner, created the workspace, signs in with a magic link. Bob: Member, joined via a shareable join link, signs in with Google OAuth. Carol: Admin, joined via an invitation, signs in with email and password. Every user also owns a personal workspace; sign-in is email-first and passwordless by default." fill="none" stroke="currentColor" font-family="ui-sans-serif, system-ui, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 z" fill="currentColor" stroke="none"/>
+    </marker>
+  </defs>
+
+  <circle cx="42" cy="56" r="22" stroke-width="1.5"/>
+  <text x="42" y="62" text-anchor="middle" fill="currentColor" stroke="none" font-size="16" font-weight="700">A</text>
+  <text x="80" y="50" fill="currentColor" stroke="none" font-size="14.5" font-weight="600">Alice</text>
+  <text x="80" y="70" fill="currentColor" stroke="none" font-size="11" opacity="0.7">signs in: magic link</text>
+
+  <circle cx="42" cy="170" r="22" stroke-width="1.5"/>
+  <text x="42" y="176" text-anchor="middle" fill="currentColor" stroke="none" font-size="16" font-weight="700">B</text>
+  <text x="80" y="164" fill="currentColor" stroke="none" font-size="14.5" font-weight="600">Bob</text>
+  <text x="80" y="184" fill="currentColor" stroke="none" font-size="11" opacity="0.7">signs in: Google OAuth</text>
+
+  <circle cx="42" cy="284" r="22" stroke-width="1.5"/>
+  <text x="42" y="290" text-anchor="middle" fill="currentColor" stroke="none" font-size="16" font-weight="700">C</text>
+  <text x="80" y="278" fill="currentColor" stroke="none" font-size="14.5" font-weight="600">Carol</text>
+  <text x="80" y="298" fill="currentColor" stroke="none" font-size="11" opacity="0.7">signs in: email + password</text>
+
+  <rect class="text-accent" x="512" y="120" width="190" height="104" rx="16" stroke-width="2.25"/>
+  <text x="607" y="166" text-anchor="middle" fill="currentColor" stroke="none" font-size="17" font-weight="700">Acme</text>
+  <text x="607" y="188" text-anchor="middle" fill="currentColor" stroke="none" font-size="11.5" opacity="0.7">org workspace</text>
+
+  <path class="text-accent" d="M280 54 Q 410 70 508 150" stroke-width="2.25" marker-end="url(#arrow)"/>
+  <text x="372" y="44" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">Owner · created it</text>
+
+  <path class="text-accent" d="M280 168 Q 396 168 508 172" stroke-width="2.25" marker-end="url(#arrow)"/>
+  <text x="384" y="150" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">Member · via join link</text>
+
+  <path class="text-accent" d="M280 282 Q 410 274 508 196" stroke-width="2.25" marker-end="url(#arrow)"/>
+  <text x="372" y="300" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">Admin · via invitation</text>
+
+  <text x="360" y="338" text-anchor="middle" fill="currentColor" stroke="none" font-size="11" opacity="0.7">Each user also owns a personal workspace · password is optional (passwordless by default)</text>
+</svg>
+
 ## Signup posture — pick one
 
 Open SaaS supports two front-door postures. They differ *only* in whether a stranger can create an account with no invitation and no link; both give workspace Owners/Admins identical control over their own members.
