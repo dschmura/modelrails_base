@@ -19,7 +19,7 @@ Everyone shares **one** workspace. Each person (with how they **sign in**) is a 
 
 <svg viewBox="0 0 720 350" width="100%" role="img" aria-label="Single-tenant: everyone is a member of one shared Acme workspace. Alice: Owner, bootstrapped at deploy, signs in with email and password. Bob: Member, joined via invitation, signs in with Google OAuth. Carol: Admin, joined via invitation, signs in with a magic link. There are no personal workspaces and signup is invite-only." fill="none" stroke="currentColor" font-family="ui-sans-serif, system-ui, sans-serif">
   <defs>
-    <marker id="arrow" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto">
+    <marker id="arrow-single-tenant" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto">
       <path d="M0,0 L8,3 L0,6 z" fill="currentColor" stroke="none"/>
     </marker>
   </defs>
@@ -43,13 +43,13 @@ Everyone shares **one** workspace. Each person (with how they **sign in**) is a 
   <text x="601" y="166" text-anchor="middle" fill="currentColor" stroke="none" font-size="17" font-weight="700">Acme</text>
   <text x="601" y="188" text-anchor="middle" fill="currentColor" stroke="none" font-size="11.5" opacity="0.7">the shared workspace</text>
 
-  <path class="text-accent" d="M280 54 Q 410 70 496 150" stroke-width="2.25" marker-end="url(#arrow)"/>
+  <path class="text-accent" d="M280 54 Q 410 70 496 150" stroke-width="2.25" marker-end="url(#arrow-single-tenant)"/>
   <text x="368" y="44" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">Owner · bootstrapped</text>
 
-  <path class="text-accent" d="M280 168 Q 392 168 496 172" stroke-width="2.25" marker-end="url(#arrow)"/>
+  <path class="text-accent" d="M280 168 Q 392 168 496 172" stroke-width="2.25" marker-end="url(#arrow-single-tenant)"/>
   <text x="384" y="150" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">Member · via invitation</text>
 
-  <path class="text-accent" d="M280 282 Q 410 274 496 196" stroke-width="2.25" marker-end="url(#arrow)"/>
+  <path class="text-accent" d="M280 282 Q 410 274 496 196" stroke-width="2.25" marker-end="url(#arrow-single-tenant)"/>
   <text x="372" y="300" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">Admin · via invitation</text>
 
   <text x="360" y="338" text-anchor="middle" fill="currentColor" stroke="none" font-size="11" opacity="0.7">One shared workspace · no personal workspaces · signup is invite-only</text>

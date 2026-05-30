@@ -40,7 +40,7 @@ An example Acme workspace. Each person (with how they **sign in**) connects to t
 
 <svg viewBox="0 0 720 350" width="100%" role="img" aria-label="Acme org workspace. Alice: Owner, created the workspace, signs in with a magic link. Bob: Member, joined via a shareable join link, signs in with Google OAuth. Carol: Admin, joined via an invitation, signs in with email and password. Every user also owns a personal workspace; sign-in is email-first and passwordless by default." fill="none" stroke="currentColor" font-family="ui-sans-serif, system-ui, sans-serif">
   <defs>
-    <marker id="arrow" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto">
+    <marker id="arrow-open-saas" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto">
       <path d="M0,0 L8,3 L0,6 z" fill="currentColor" stroke="none"/>
     </marker>
   </defs>
@@ -64,13 +64,13 @@ An example Acme workspace. Each person (with how they **sign in**) connects to t
   <text x="607" y="166" text-anchor="middle" fill="currentColor" stroke="none" font-size="17" font-weight="700">Acme</text>
   <text x="607" y="188" text-anchor="middle" fill="currentColor" stroke="none" font-size="11.5" opacity="0.7">org workspace</text>
 
-  <path class="text-accent" d="M280 54 Q 410 70 508 150" stroke-width="2.25" marker-end="url(#arrow)"/>
+  <path class="text-accent" d="M280 54 Q 410 70 508 150" stroke-width="2.25" marker-end="url(#arrow-open-saas)"/>
   <text x="372" y="44" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">Owner · created it</text>
 
-  <path class="text-accent" d="M280 168 Q 396 168 508 172" stroke-width="2.25" marker-end="url(#arrow)"/>
+  <path class="text-accent" d="M280 168 Q 396 168 508 172" stroke-width="2.25" marker-end="url(#arrow-open-saas)"/>
   <text x="384" y="150" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">Member · via join link</text>
 
-  <path class="text-accent" d="M280 282 Q 410 274 508 196" stroke-width="2.25" marker-end="url(#arrow)"/>
+  <path class="text-accent" d="M280 282 Q 410 274 508 196" stroke-width="2.25" marker-end="url(#arrow-open-saas)"/>
   <text x="372" y="300" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">Admin · via invitation</text>
 
   <text x="360" y="338" text-anchor="middle" fill="currentColor" stroke="none" font-size="11" opacity="0.7">Each user also owns a personal workspace · password is optional (passwordless by default)</text>
