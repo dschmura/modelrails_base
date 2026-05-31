@@ -126,5 +126,10 @@ gem "view_component", "~> 4.0"
 # Dev-only scaffolding tool that generates app/components/ui/*. Not shipped to
 # production; the host app vendors and owns the generated files.
 group :development do
-  gem "modelrails_ui", git: "https://github.com/dschmura/modelrails_ui.git", tag: "v0.1.0.modelrails.2"
+  gem "modelrails_ui", git: "https://github.com/dschmura/modelrails_ui.git", tag: "v0.2.0"
+
+  # Living documentation / component explorer for the vendored UI::* components
+  # (scaffolded by `rails g modelrails_ui:lookbook`). Mounted at /lookbook in
+  # development only; previews live in spec/components/previews.
+  gem "lookbook"
 end
