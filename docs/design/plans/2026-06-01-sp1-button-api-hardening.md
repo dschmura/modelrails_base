@@ -264,7 +264,9 @@ diff /Users/dschmura/Documents/code/modelrails_base/app/components/ui/button_com
      /Users/dschmura/Documents/code/view_primitives/lib/generators/modelrails_ui/add/templates/button/button_component.rb.tt
 ```
 
-Expected: no differences (the button component template and the vendored component are byte-identical, as they were before this change — only the shared guard was added to both). If they differ, reconcile so the vendored file and the template match.
+Expected: the `coerce_variant` **guard** is identical in both. Parity here is **semantic, not byte-for-byte**: the two repos' rubocop configs format some lines oppositely (e.g. the gem enforces `{default: ""}` for `SIZES`, modelrails_base enforces `{ default: "" }`), and the consuming app's rubocop normalizes generated output anyway. So cosmetic per-repo formatting diffs are expected and harmless; only a divergence in the guard's *logic* needs reconciling.
+
+**Outcome (executed):** the only diff was the pre-existing `SIZES` brace-spacing line (per-repo rubocop) — the guard is identical. Semantic parity holds. This also informs SP4's `:update` tooling, which must diff on normalized/semantic content rather than raw bytes.
 
 ---
 
