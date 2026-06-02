@@ -39,13 +39,13 @@ module UI
     # the complete, copy-paste snippet shown in Lookbook's Source tab.
     def basic; end
 
-    # Pass `size: :lg` for wide content like forms or detail views.
-    def large
-      ui :dialog, title: "Edit profile", description: "Update your display name and preferences.", size: :lg do |d|
-        d.with_trigger { tag.button("Open large dialog", type: "button", class: "btn-secondary") }
-        "Form fields would go here."
-      end
-    end
+    # Edit-modal pattern: form fields inside a dialog using TailwindFormBuilder.
+    # Renders spec/components/previews/ui/dialog_component_preview/with_form.html.erb
+    def with_form; end
+
+    # Destructive confirmation using the prebuilt `shared/confirm_dialog` partial.
+    # Renders spec/components/previews/ui/dialog_component_preview/confirm_destructive.html.erb
+    def confirm_destructive; end
 
     # ## Don't — dialog without a title
     #
@@ -53,11 +53,6 @@ module UI
     # giving screen-reader users the modal's accessible name when focus enters. Without it
     # the modal is announced without context. Always pass a descriptive `title:`.
     # @label Don't · no title (breaks aria-labelledby)
-    def dont_no_title
-      ui :dialog, title: "Untitled" do |d| # ✗ supply a meaningful title:
-        d.with_trigger { tag.button("Open", type: "button", class: "btn-secondary") }
-        "Body content."
-      end
-    end
+    def dont_no_title; end
   end
 end

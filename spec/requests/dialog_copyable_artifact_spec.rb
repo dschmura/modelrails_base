@@ -3,6 +3,14 @@
 require "rails_helper"
 
 RSpec.describe "Dialog copyable artifact", type: :request do
+  %w[basic with_form confirm_destructive dont_no_title].each do |scenario|
+    it "renders the #{scenario} preview scenario" do
+      get "/rails/view_components/ui/dialog_component/#{scenario}"
+      expect(response).to have_http_status(:ok)
+      expect(Nokogiri::HTML(response.body).at_css("dialog")).to be_present
+    end
+  end
+
   it "renders a complete, self-contained dialog (wrapper + trigger + dialog)" do
     get "/rails/view_components/ui/dialog_component/basic"
     expect(response).to have_http_status(:ok)
