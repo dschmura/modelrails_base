@@ -150,7 +150,7 @@ require "rails_helper"
 
 RSpec.describe "Dialog copyable artifact", type: :request do
   it "renders a complete, self-contained dialog (wrapper + trigger + dialog)" do
-    get "/rails/view_components/ui/dialog_component_preview/basic"
+    get "/rails/view_components/ui/dialog_component/basic"
     expect(response).to have_http_status(:ok)
 
     doc = Nokogiri::HTML(response.body)
@@ -247,7 +247,7 @@ require "rails_helper"
 
 RSpec.describe "Complete dialog behavior", type: :system do
   it "opens via its trigger, traps focus, and closes on Escape — accessibly" do
-    visit "/rails/view_components/ui/dialog_component_preview/basic"
+    visit "/rails/view_components/ui/dialog_component/basic"
 
     expect(page).to have_css("dialog[open]", visible: :all, wait: 0).or have_no_css("dialog[open]")
 
@@ -371,7 +371,7 @@ Add to `spec/requests/dialog_copyable_artifact_spec.rb`:
 ```ruby
   %w[basic with_form confirm_destructive dont_no_title].each do |scenario|
     it "renders the #{scenario} preview scenario" do
-      get "/rails/view_components/ui/dialog_component_preview/#{scenario}"
+      get "/rails/view_components/ui/dialog_component/#{scenario}"
       expect(response).to have_http_status(:ok)
       expect(Nokogiri::HTML(response.body).at_css("dialog")).to be_present
     end
