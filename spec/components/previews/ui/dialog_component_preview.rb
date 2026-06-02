@@ -35,15 +35,9 @@ module UI
   class DialogComponentPreview < ViewComponent::Preview
     include UIHelper
 
-    # Standard dialog: trigger button, title, description, and body content.
-    # The `with_trigger` slot renders inside the `modal` controller wrapper so
-    # clicking the button calls `modal#open` automatically.
-    def default
-      ui :dialog, title: "Confirm action", description: "This action cannot be undone." do |d|
-        d.with_trigger { tag.button("Open dialog", type: "button", class: "btn-primary") }
-        "Are you sure you want to proceed? All related data will be permanently removed."
-      end
-    end
+    # Renders spec/components/previews/ui/dialog_component_preview/basic.html.erb —
+    # the complete, copy-paste snippet shown in Lookbook's Source tab.
+    def basic; end
 
     # Pass `size: :lg` for wide content like forms or detail views.
     def large
