@@ -68,9 +68,12 @@ The leverage is discovery + prescribed usage, not call-site terseness.
 - **Form inputs** → `TailwindFormBuilder` (`f.text_field`, `f.text_area`, `f.file_field`).
   Already delegates to `UI::Input/Textarea/FileInput`. The builder owns label/help/error/ARIA.
 - **Model-aware presentational** → helpers (`avatar_for`). Already delegates to `UI::AvatarComponent`.
-- **Standalone primitives** → `render UI::X.new(...)`. Lookbook supplies the exact snippet,
-  so ergonomics come from copy-paste + a stable, greppable, explicit API. No bespoke
-  per-primitive helper DSL (YAGNI; revisit only if call sites prove painful).
+- **Standalone primitives** → the generic `ui` helper: `ui :button, "Save", variant: :primary`
+  (renders the named `UI::*` component, forwarding args; unknown name raises — a boundary
+  guard). One ~5-line dispatcher covers every component, never drifts, and keeps the component
+  class an implementation detail. Lookbook teaches this call (its previews call `ui`), so the
+  catalog and call sites match. Chosen over `render UI::X.new(...)` (leaks the class, verbose)
+  and over per-primitive named helpers (N to maintain, drift-prone).
 
 **Buttons specifically (the worked example):**
 
