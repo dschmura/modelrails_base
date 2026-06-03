@@ -1,0 +1,14 @@
+<%# Sortable name/email + non-sortable role; caption is the accessible name. %>
+<%= ui :data_table,
+      caption: "Team members",
+      columns: [
+        { key: :name,  label: "Name",  sortable: true },
+        { key: :email, label: "Email", sortable: true },
+        { key: :role,  label: "Role" }
+      ],
+      rows: [
+        { name: "Ada Lovelace",   email: "ada@example.com",   role: "Owner" },
+        { name: "Alan Turing",    email: "alan@example.com",  role: "Admin" },
+        { name: "Grace Hopper",   email: "grace@example.com", role: "Member" },
+        { name: "Katherine J.",   email: "kj@example.com",    role: "Member" }
+      ] %>
