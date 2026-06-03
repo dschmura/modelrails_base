@@ -1,15 +1,26 @@
-<%# locals: (title:, id: nil, size: :md, description: nil) -%>
+<%# locals: (title:, id: nil, size: :md, description: nil, trigger: nil, trigger_class: "btn-secondary") -%>
 <%#
-  Thin adapter over the gem-maintained UI::DialogComponent. Renders the <dialog>
-  only (wrapper: false) because callers own the surrounding data-controller="modal"
-  wrapper + trigger button. body_id stays "modal-body" to preserve the Turbo Stream
-  contract (turbo_stream.append "modal-body"). Existing call sites are unchanged.
+  Thin adapter over UI::DialogComponent.
+
+  Surface-only (default, no trigger:): renders ONLY the <dialog> (wrapper: false).
+  Callers own the surrounding data-controller="modal" wrapper + trigger button.
+  body_id stays "modal-body" to preserve the Turbo Stream contract
+  (turbo_stream.append "modal-body"). Existing call sites are unchanged.
+
+  Complete (pass trigger:): renders the data-controller="modal" wrapper + a trigger
+  button + the <dialog> as one copy-paste unit (wrapper: true). body_id uses the
+  component's unique default so multiple complete modals on a page don't collide.
 -%>
-<%= render UI::DialogComponent.new(
-      title: title,
-      id: id,
-      size: size,
-      description: description,
-      wrapper: false,
-      body_id: "modal-body"
-    ) do %><%= yield %><% end %>
+<% if trigger.present? %>
+  <%= render UI::DialogComponent.new(
+        title: title, id: id, size: size, description: description, wrapper: true) do |d| %>
+    <% d.with_trigger do %>
+      <%= tag.button(trigger, type: "button", class: trigger_class) %>
+    <% end %>
+    <%= yield %>
+  <% end %>
+<% else %>
+  <%= render UI::DialogComponent.new(
+        title: title, id: id, size: size, description: description,
+        wrapper: false, body_id: "modal-body") do %><%= yield %><% end %>
+<% end %>
