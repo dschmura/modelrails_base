@@ -1,0 +1,4 @@
+<label for="demo_status_err" class="block text-sm font-medium text-text-heading mb-1">Status</label>
+<%= ui :select, id: "demo_status_err", name: "demo_status_err",
+   options: %w[Draft Published Archived], invalid: true, describedby: "demo-status-error" %>
+<p id="demo-status-error" class="mt-1 text-sm text-danger">Please choose a status.</p>
