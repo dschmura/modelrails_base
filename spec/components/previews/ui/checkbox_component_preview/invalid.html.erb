@@ -1,0 +1,5 @@
+<%# invalid: true sets aria-invalid; describedby: wires the error message id %>
+<div>
+  <%= ui :checkbox, label: "Accept the terms of service", name: "terms", invalid: true, describedby: "terms_error" %>
+  <p id="terms_error" class="mt-1 text-sm text-danger">You must accept the terms to continue.</p>
+</div>

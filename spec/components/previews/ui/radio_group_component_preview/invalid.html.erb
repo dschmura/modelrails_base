@@ -1,0 +1,8 @@
+<%= ui :radio_group, name: "plan", label: "Billing plan", invalid: true,
+  describedby: "plan-error", items: [
+    { value: "free", label: "Free" },
+    { value: "pro", label: "Pro" },
+    { value: "team", label: "Team" }
+  ] %>
+<%# describedby points at this sibling — the error message the group announces %>
+<p id="plan-error" class="mt-2 text-sm text-danger">Choose a billing plan to continue.</p>
