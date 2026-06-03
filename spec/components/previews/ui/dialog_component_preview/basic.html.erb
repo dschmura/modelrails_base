@@ -1,0 +1,21 @@
+<%# locals: () -%>
+<%# The complete, copy-paste dialog: trigger + focus-trapped modal + footer actions. %>
+<%= render "shared/modal",
+      title: "Confirm action",
+      description: "This action cannot be undone.",
+      trigger: "Open dialog",
+      trigger_class: "btn-primary" do %>
+  <p class="text-text-body leading-relaxed">
+    Are you sure you want to proceed? All related data will be permanently removed.
+  </p>
+
+  <div class="flex gap-3 justify-end mt-6 pt-4 border-t border-border">
+    <button type="button" data-action="click->modal#close" class="btn-secondary">
+      <%= t("modals.cancel") %>
+    </button>
+    <%# Wire the confirm action to your use case (form submit, button_to, or a Stimulus action). %>
+    <button type="button" class="btn-primary">
+      <%= t("modals.confirm") %>
+    </button>
+  </div>
+<% end %>

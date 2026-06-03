@@ -1,0 +1,13 @@
+<%# locals: () -%>
+<%# Destructive confirmation: wrapper + trigger around the prebuilt confirm body. %>
+<div data-controller="modal" class="inline">
+  <button type="button" data-action="click->modal#open" class="btn-danger">Delete project</button>
+
+  <%= render "shared/confirm_dialog",
+        title: "Delete project",
+        message: "This cannot be undone. All related data will be permanently removed.",
+        confirm_text: t("modals.delete"),
+        confirm_url: "#",
+        confirm_method: :delete,
+        variant: :danger %>
+</div>
