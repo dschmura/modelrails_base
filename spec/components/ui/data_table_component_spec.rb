@@ -20,11 +20,11 @@ RSpec.describe UI::DataTableComponent, type: :component do
   ].freeze
 
   def render_default(**overrides)
-    render_inline(described_class.new(columns: COLUMNS, rows: ROWS, **overrides))
+    render_inline(described_class.new(columns: DATA_TABLE_COLUMNS, rows: DATA_TABLE_ROWS, **overrides))
   end
 
-  COLUMNS = columns
-  ROWS = rows
+  DATA_TABLE_COLUMNS = columns
+  DATA_TABLE_ROWS = rows
 
   # --- Keyboard-operable sort header + aria-sort -----------------------------
 

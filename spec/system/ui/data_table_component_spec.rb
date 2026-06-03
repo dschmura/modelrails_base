@@ -25,10 +25,10 @@ require "rails_helper"
 RSpec.describe "DataTable component runtime behavior", type: :system do
   DATA_TABLE_PREVIEW = "/rails/view_components/ui/data_table_component"
 
-  WRAPPER     = "[data-controller='data-table']"
-  ROWS        = "tbody[data-data-table-target='body'] tr[data-data-table-row]"
-  NAME_TH     = "thead th[aria-sort]:nth-of-type(1)"  # first sortable th = name
-  EMAIL_TH    = "thead th[aria-sort]:nth-of-type(2)"  # second sortable th = email
+  DATA_TABLE_WRAPPER  = "[data-controller='data-table']"
+  DATA_TABLE_ROW_SEL  = "tbody[data-data-table-target='body'] tr[data-data-table-row]"
+  DATA_TABLE_NAME_TH  = "thead th[aria-sort]:nth-of-type(1)"  # first sortable th = name
+  DATA_TABLE_EMAIL_TH = "thead th[aria-sort]:nth-of-type(2)"  # second sortable th = email
 
   # Read the VISIBLE row order by on-screen vertical position. The controller drives
   # ordering via the sorted #filtered array; we read what the user actually sees
@@ -38,7 +38,7 @@ RSpec.describe "DataTable component runtime behavior", type: :system do
       pw.evaluate(<<~JS)
         (() => {
           const rows = Array.from(
-            document.querySelectorAll(#{ROWS.to_json})
+            document.querySelectorAll(#{DATA_TABLE_ROW_SEL.to_json})
           ).filter(r => getComputedStyle(r).display !== "none");
           rows.sort((a, b) =>
             a.getBoundingClientRect().top - b.getBoundingClientRect().top
@@ -97,9 +97,9 @@ RSpec.describe "DataTable component runtime behavior", type: :system do
 
   describe "AAA accessibility" do
     it "passes AAA in both themes (scoped to the table, no contrast exclude)" do
-      expect(page).to have_css("#{WRAPPER} table")
+      expect(page).to have_css("#{DATA_TABLE_WRAPPER} table")
 
-      scope = [ WRAPPER ]
+      scope = [ DATA_TABLE_WRAPPER ]
       expect(axe_clean_in_both_themes?(include: scope)).to(
         be(true),
         axe_violations_in_both_themes(include: scope).join("\n")
@@ -109,16 +109,16 @@ RSpec.describe "DataTable component runtime behavior", type: :system do
 
   describe "keyboard sort activation" do
     it "reorders the visible rows when a sortable header button is keyboard-activated" do
-      expect(page).to have_css(ROWS, minimum: 4)
+      expect(page).to have_css(DATA_TABLE_ROW_SEL, minimum: 4)
 
       before_order = visible_cell_column(0)
 
       # Enter on the focused Name header button.
-      focused = keyboard_activate(NAME_TH, "Enter")
+      focused = keyboard_activate(DATA_TABLE_NAME_TH, "Enter")
       expect(focused).to(be(true), "the sortable Name header <button> did not accept focus (AAA keyboard contract)")
 
       # Wait for the controller to recompute and re-render.
-      expect(aria_sort_of(NAME_TH)).to eq("ascending")
+      expect(aria_sort_of(DATA_TABLE_NAME_TH)).to eq("ascending")
       after_order = visible_cell_column(0)
 
       expect(after_order).not_to(
@@ -132,8 +132,8 @@ RSpec.describe "DataTable component runtime behavior", type: :system do
 
       # Space on the same header continues the cycle (asc -> desc), proving Space
       # also activates the keyboard-operable button.
-      keyboard_activate(NAME_TH, " ")
-      expect(aria_sort_of(NAME_TH)).to eq("descending")
+      keyboard_activate(DATA_TABLE_NAME_TH, " ")
+      expect(aria_sort_of(DATA_TABLE_NAME_TH)).to eq("descending")
       desc_order = visible_cell_column(0)
       expect(desc_order).to(
         eq(before_order.sort.reverse),
@@ -144,20 +144,20 @@ RSpec.describe "DataTable component runtime behavior", type: :system do
 
   describe "aria-sort flip cycle" do
     it "cycles the activated th ascending -> descending -> none while the other reads none throughout" do
-      expect(aria_sort_of(NAME_TH)).to eq("none")
-      expect(aria_sort_of(EMAIL_TH)).to eq("none")
+      expect(aria_sort_of(DATA_TABLE_NAME_TH)).to eq("none")
+      expect(aria_sort_of(DATA_TABLE_EMAIL_TH)).to eq("none")
 
-      keyboard_activate(NAME_TH, "Enter")
-      expect(aria_sort_of(NAME_TH)).to eq("ascending")
-      expect(aria_sort_of(EMAIL_TH)).to eq("none")
+      keyboard_activate(DATA_TABLE_NAME_TH, "Enter")
+      expect(aria_sort_of(DATA_TABLE_NAME_TH)).to eq("ascending")
+      expect(aria_sort_of(DATA_TABLE_EMAIL_TH)).to eq("none")
 
-      keyboard_activate(NAME_TH, "Enter")
-      expect(aria_sort_of(NAME_TH)).to eq("descending")
-      expect(aria_sort_of(EMAIL_TH)).to eq("none")
+      keyboard_activate(DATA_TABLE_NAME_TH, "Enter")
+      expect(aria_sort_of(DATA_TABLE_NAME_TH)).to eq("descending")
+      expect(aria_sort_of(DATA_TABLE_EMAIL_TH)).to eq("none")
 
-      keyboard_activate(NAME_TH, "Enter")
-      expect(aria_sort_of(NAME_TH)).to eq("none")
-      expect(aria_sort_of(EMAIL_TH)).to eq("none")
+      keyboard_activate(DATA_TABLE_NAME_TH, "Enter")
+      expect(aria_sort_of(DATA_TABLE_NAME_TH)).to eq("none")
+      expect(aria_sort_of(DATA_TABLE_EMAIL_TH)).to eq("none")
     end
   end
 
@@ -166,8 +166,8 @@ RSpec.describe "DataTable component runtime behavior", type: :system do
     # `role` column (index 2) is interleaved. Sorting email must order rows by EMAIL
     # values, proving #columnIndex maps the right cell (the latent-bug fix).
     it "orders rows by email values when the second sortable column is sorted" do
-      keyboard_activate(EMAIL_TH, "Enter")
-      expect(aria_sort_of(EMAIL_TH)).to eq("ascending")
+      keyboard_activate(DATA_TABLE_EMAIL_TH, "Enter")
+      expect(aria_sort_of(DATA_TABLE_EMAIL_TH)).to eq("ascending")
 
       emails = visible_cell_column(1) # email column cell index
       expect(emails).to(
@@ -189,8 +189,8 @@ RSpec.describe "DataTable component runtime behavior", type: :system do
   describe "live region on filter" do
     it "writes the localized result count and resets all aria-sort to none" do
       # Establish a non-none aria-sort first, so we can prove filter RESETS it.
-      keyboard_activate(NAME_TH, "Enter")
-      expect(aria_sort_of(NAME_TH)).to eq("ascending")
+      keyboard_activate(DATA_TABLE_NAME_TH, "Enter")
+      expect(aria_sort_of(DATA_TABLE_NAME_TH)).to eq("ascending")
 
       fill_in_search("ada")
 
@@ -204,17 +204,17 @@ RSpec.describe "DataTable component runtime behavior", type: :system do
         "live region should announce the localized result count; got #{status_text.inspect}"
       )
 
-      expect(aria_sort_of(NAME_TH)).to eq("none")
-      expect(aria_sort_of(EMAIL_TH)).to eq("none")
+      expect(aria_sort_of(DATA_TABLE_NAME_TH)).to eq("none")
+      expect(aria_sort_of(DATA_TABLE_EMAIL_TH)).to eq("none")
     end
   end
 
   describe "44px target geometry (WCAG 2.5.5 AAA)" do
     it "renders the search control, a sortable header button, and a pager button >= 44px" do
-      search_h = measure_min_dimension("#{WRAPPER} label", "height")
-      sort_btn_h = measure_min_dimension("#{NAME_TH} button", "height")
+      search_h = measure_min_dimension("#{DATA_TABLE_WRAPPER} label", "height")
+      sort_btn_h = measure_min_dimension("#{DATA_TABLE_NAME_TH} button", "height")
       # The default preview renders the footer (per_page default 10 > 0) with prev/next.
-      pager_h = measure_min_dimension("#{WRAPPER} button[aria-label]", "height")
+      pager_h = measure_min_dimension("#{DATA_TABLE_WRAPPER} button[aria-label]", "height")
 
       aggregate_failures do
         expect(search_h).to be_present
