@@ -85,6 +85,13 @@ export default class extends Controller {
     const end   = perPage > 0 ? start + perPage : total
 
     this.#allRows.forEach(row => { row.style.display = "none" })
+    // Re-insert the filtered rows in SORTED order so the DOM matches the sort.
+    // The previous display-only approach left the tbody in its original order,
+    // so aria-sort announced an order the visible rows did not actually have
+    // (a WCAG false state) and sort was a visible no-op on a single page.
+    // appendChild MOVES each node, so iterating the sorted array reorders the
+    // tbody; filtered-out rows stay hidden and their position is irrelevant.
+    rows.forEach(row => this.bodyTarget.appendChild(row))
     rows.slice(start, end).forEach(row => { row.style.display = "" })
 
     if (this.hasPageLabelTarget) {
