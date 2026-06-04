@@ -1,0 +1,4 @@
+en:
+  modelrails_ui:
+    spinner:
+      loading: "Loading…"
