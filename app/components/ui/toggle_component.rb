@@ -22,12 +22,20 @@ module UI
   # ## Sizes
   # `default` · `sm` · `lg` — all rendered >=44px tall (the AAA target-size floor).
   class ToggleComponent < ApplicationComponent
+    # Hover and selected are intentionally DISTINCT surfaces so clicking to select
+    # gives immediate feedback (the prior version painted both `bg-surface-sunken`,
+    # so an off item already looked selected on hover and the click produced no
+    # visible change). Off-hover is the neutral `surface-sunken`; the selected (on)
+    # state is the tinted `interactive-subtle` / `text-interactive` pairing (AAA,
+    # same as badge `:secondary`). Hover is scoped to `data-[state=off]` so a
+    # selected toggle keeps its tinted look on hover instead of reverting to neutral.
     BASE = "inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap " \
-           "transition-[color,box-shadow] outline-none hover:bg-surface-sunken hover:text-text-muted " \
+           "transition-[color,box-shadow] outline-none " \
+           "data-[state=off]:hover:bg-surface-sunken data-[state=off]:hover:text-text-body " \
            "focus-visible:border-border-focus focus-visible:ring-[3px] focus-visible:ring-interactive-focus " \
            "disabled:pointer-events-none disabled:opacity-50 " \
            "aria-invalid:border-danger-border aria-invalid:ring-danger  " \
-           "data-[state=on]:bg-surface-sunken data-[state=on]:text-text-heading " \
+           "data-[state=on]:bg-interactive-subtle data-[state=on]:text-interactive " \
            "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
 
     # AAA 2.5.5 target-size floor: every size renders >=44px tall (h-11 = 44px).
