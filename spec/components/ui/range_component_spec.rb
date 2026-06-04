@@ -28,6 +28,13 @@ RSpec.describe UI::RangeComponent, type: :component do
     expect(page).to have_css("input.accent-interactive")
   end
 
+  # invalid: drives a visible danger ring on the slider, not just aria-invalid.
+  it "carries a danger ring token for the invalid state" do
+    render_inline(described_class.new)
+
+    expect(page).to have_css('input.aria-invalid\\:ring-danger')
+  end
+
   it "sets aria-invalid when invalid" do
     render_inline(described_class.new(invalid: true))
 
