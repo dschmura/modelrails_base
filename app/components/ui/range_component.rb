@@ -25,6 +25,15 @@ module UI
   #   slider is conventionally labeled by a separate form label. On error, pass
   #   `invalid: true` and point `describedby:` at the error element's id.
   #
+  # ## Optional value readout (`show_value: true`)
+  # By default this renders a bare native slider. Pass `show_value: true` to also
+  # render an associated `<output for="<id>">` that mirrors the current value. The
+  # `<output>` is an implicit `role="status"` live region, kept in sync with the
+  # slider by the tiny `range` Stimulus controller (`range_controller.js`): the
+  # input carries `data-action="input->range#sync"` and both elements are
+  # `data-range-target`s. The SSR text starts at `value:` (or the native midpoint
+  # when `value:` is nil) and the controller resyncs on connect.
+  #
   # No fail-loud guard — there's no enum axis to validate.
   class RangeComponent < ApplicationComponent
     BASE = "w-full cursor-pointer appearance-none rounded-full bg-surface-sunken outline-none " \
@@ -43,13 +52,17 @@ module UI
     # min / max / step / value: native range attributes
     #   invalid:     sets `aria-invalid="true"` (absent when false)
     #   describedby: sets `aria-describedby` (link to the error/hint element id)
-    def initialize(min: 0, max: 100, step: 1, value: nil, invalid: false, describedby: nil, **html_attrs)
+    #   show_value:  also renders an associated `<output>` readout synced by the
+    #                `range` Stimulus controller (default false = bare slider)
+    def initialize(min: 0, max: 100, step: 1, value: nil, invalid: false, describedby: nil,
+                   show_value: false, **html_attrs)
       @min   = min
       @max   = max
       @step  = step
       @value = value
       @invalid = invalid
       @describedby = describedby
+      @show_value = show_value
       # External-label association: an id is ALWAYS emitted so a sibling
       # `<label for>` can target this control. Prefer an explicit id, fall back to a
       # sanitized name, then a stable per-instance id.
@@ -59,7 +72,22 @@ module UI
     end
 
     def call
-      content_tag(:input, nil, **range_attrs)
+      # Default: a bare native slider (output byte-identical to the pre-readout
+      # component). With `show_value:` the slider is wrapped beside an `<output>`
+      # readout that the `range` controller keeps in sync.
+      return content_tag(:input, nil, **range_attrs) unless @show_value
+
+      content_tag(:div, class: "flex items-center gap-3", data: { controller: "range" }) do
+        safe_join([
+          content_tag(:input, nil, **range_attrs.merge(
+            data: { "range-target" => "input", action: "input->range#sync" }
+          )),
+          content_tag(:output, output_text,
+            for: @id,
+            class: "text-sm tabular-nums text-text-body min-w-[3ch] text-right",
+            data: { "range-target" => "output" })
+        ])
+      end
     end
 
     private
@@ -77,6 +105,13 @@ module UI
       attrs["aria-invalid"] = "true" if @invalid
       attrs["aria-describedby"] = @describedby if @describedby.present?
       attrs
+    end
+
+    # Initial SSR readout text: the supplied value, or the native midpoint when
+    # nil so the server-rendered text matches the slider's default thumb position.
+    # The `range` controller resyncs on connect either way.
+    def output_text
+      @value.nil? ? ((@min + @max) / 2) : @value
     end
   end
 end

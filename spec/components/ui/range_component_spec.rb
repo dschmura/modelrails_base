@@ -69,4 +69,42 @@ RSpec.describe UI::RangeComponent, type: :component do
 
     expect(page).to have_css("input[type='range'][id]")
   end
+
+  # --- show_value: opt-in <output> readout (STRUCTURE) ---
+  # The live readout sync (drag the slider -> <output> text updates) is verified by
+  # the 0b browser spec, not here — the render harness has no JS runtime, so we
+  # assert the wiring (data-controller / data-action / targets) the `range`
+  # Stimulus controller hooks into, not the runtime behavior.
+
+  it "wraps the input in the range controller when show_value is true" do
+    render_inline(described_class.new(show_value: true))
+
+    expect(page).to have_css("div[data-controller='range'] input[type='range']")
+  end
+
+  it "wires the input target and sync action when show_value is true" do
+    render_inline(described_class.new(show_value: true))
+
+    expect(page).to have_css("input[data-range-target='input'][data-action~='input->range#sync']")
+  end
+
+  it "renders an output targeting the input id with the AAA token" do
+    render_inline(described_class.new(id: "vol", value: 60, show_value: true))
+
+    expect(page).to have_css("output[for='vol'][data-range-target='output'].text-text-body", text: "60")
+  end
+
+  it "uses the native midpoint for the output when value is nil" do
+    render_inline(described_class.new(min: 0, max: 100, show_value: true))
+
+    expect(page).to have_css("output[data-range-target='output']", text: "50")
+  end
+
+  # Default (show_value omitted) is byte-unchanged: no wrapper, no output.
+  it "omits the output and range controller by default" do
+    render_inline(described_class.new)
+
+    expect(page).not_to have_css("[data-controller='range']")
+    expect(page).not_to have_css("output")
+  end
 end

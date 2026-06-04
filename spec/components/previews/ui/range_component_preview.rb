@@ -24,6 +24,11 @@ module UI
   # - **You supply:** the visible label as an EXTERNAL `<label for="<id>">` — unlike
   #   checkbox, this component does NOT bundle a label. On error, pass `invalid: true`
   #   and point `describedby:` at the error element's id.
+  #
+  # ## Optional value readout
+  # Pass `show_value: true` to render an associated `<output>` (an implicit
+  # `role="status"` live region) that mirrors the slider, kept in sync by the
+  # `range` Stimulus controller. The default stays a bare native slider.
   class RangeComponentPreview < ViewComponent::Preview
     include UIHelper
 
@@ -31,8 +36,14 @@ module UI
     def default
     end
 
-    # A pre-positioned slider via `value:`.
-    def with_value
+    # `value:` PRE-POSITIONS the thumb only — it does NOT display the number.
+    # For a visible readout use `show_value: true` (see with_value_display).
+    def initial_value
+    end
+
+    # `show_value: true` renders an associated `<output>` readout that mirrors the
+    # slider live (synced by the `range` controller). Drag the thumb to see it update.
+    def with_value_display
     end
 
     # Error state: `aria-invalid="true"` plus `aria-describedby` wired to a sibling
