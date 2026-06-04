@@ -69,6 +69,14 @@ RSpec.describe UI::SwitchComponent, type: :component do
     expect(page).not_to have_css("input[aria-invalid]")
   end
 
+  # The TRACK carries a peer-aria-invalid danger ring so an invalid switch is visible
+  # (the peer input gets aria-invalid; the later-sibling track reacts).
+  it "renders a peer-aria-invalid danger ring on the track" do
+    render_inline(described_class.new(name: "notifications"))
+
+    expect(page).to have_css('span.peer-aria-invalid\\:ring-danger')
+  end
+
   it "sets aria-describedby on the input when describedby is given" do
     render_inline(described_class.new(name: "notifications", describedby: "notify_hint"))
 

@@ -16,7 +16,21 @@ RSpec.describe UI::SelectComponent, type: :component do
     render_inline(described_class.new(options: %w[A B]))
 
     expect(page).to have_css("select.border-border-strong")
-    expect(page).to have_css('select.focus\\:ring-interactive-focus')
+    expect(page).to have_css('select.focus-visible\\:ring-interactive-focus')
+  end
+
+  # WCAG 2.5.5 target size: the control sits at the 44px floor (--form-input-height).
+  it "meets the 44px target floor" do
+    render_inline(described_class.new(options: %w[A B]))
+
+    expect(page).to have_css('select.min-h-\\[var\\(--form-input-height\\)\\]')
+  end
+
+  # invalid: drives a visible danger ring/border, not just aria-invalid.
+  it "carries a danger ring token for the invalid state" do
+    render_inline(described_class.new(options: %w[A B]))
+
+    expect(page).to have_css('select.aria-invalid\\:ring-danger')
   end
 
   it "marks the right option as selected" do

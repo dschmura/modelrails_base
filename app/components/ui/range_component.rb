@@ -39,6 +39,7 @@ module UI
     BASE = "w-full cursor-pointer appearance-none rounded-full bg-surface-sunken outline-none " \
            "h-2 accent-interactive " \
            "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-interactive-focus " \
+           "aria-invalid:ring-danger " \
            "disabled:pointer-events-none disabled:opacity-50 " \
            "[&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none " \
            "[&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-interactive " \
