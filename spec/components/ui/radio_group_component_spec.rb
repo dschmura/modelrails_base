@@ -98,4 +98,12 @@ RSpec.describe UI::RadioGroupComponent, type: :component do
     expect(page).to have_css("input.border-interactive")
     expect(page).to have_css("input.accent-interactive")
   end
+
+  # Standard library 3px focus ring (not ring-1), matching the other form controls.
+  it "renders inputs with the standard 3px focus ring" do
+    render_inline(described_class.new(name: "plan", label: "Billing plan", items: plan_items))
+
+    expect(page).to have_css('input.focus-visible\\:ring-\\[3px\\]')
+    expect(page).to have_css('input.focus-visible\\:ring-interactive-focus')
+  end
 end

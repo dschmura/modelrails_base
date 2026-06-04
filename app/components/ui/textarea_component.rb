@@ -6,7 +6,8 @@ module UI
     # with UI::InputComponent) so the builder can delegate to it invisibly.
     BASE   = "block w-full rounded-md border px-3 py-2 placeholder:text-text-muted " \
              "focus:outline-none focus:ring-2 min-h-[var(--form-input-height)]"
-    NORMAL = "border-border-strong bg-surface-raised text-text-heading focus:ring-interactive-focus"
+    NORMAL = "border-border-strong bg-surface-raised text-text-heading focus:ring-interactive-focus " \
+             "disabled:cursor-not-allowed disabled:opacity-50"
     ERROR  = "border-danger ring-2 ring-danger bg-danger-surface text-danger focus:ring-danger"
 
     # value:       textarea body (builder-driven); falls back to block content for standalone use
