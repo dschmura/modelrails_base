@@ -48,10 +48,23 @@ RSpec.describe UI::ToggleComponent, type: :component do
     }.to raise_error(ArgumentError)
   end
 
-  # AAA semantic token (the design-token guarantee), not raw Tailwind:
-  it "renders with an AAA semantic token" do
+  # AAA semantic tokens (the design-token guarantee), not raw Tailwind. Selected
+  # (on) uses the tinted interactive-subtle surface — DISTINCT from the neutral
+  # off-hover surface — so clicking to select gives immediate visible feedback.
+  it "renders the selected state as a distinct tinted surface" do
     render_inline(described_class.new("Bold", pressed: true))
 
-    expect(page).to have_css('button.data-\\[state\\=on\\]\\:bg-surface-sunken')
+    expect(page).to have_css('button.data-\\[state\\=on\\]\\:bg-interactive-subtle')
+    expect(page).to have_css('button.data-\\[state\\=on\\]\\:text-interactive')
+  end
+
+  # Hover is scoped to the OFF state so a selected toggle keeps its tinted look on
+  # hover. Regression guard: the prior unscoped hover:bg-surface-sunken made the
+  # hover surface identical to the selected surface.
+  it "scopes the neutral hover to the off state" do
+    render_inline(described_class.new("Bold"))
+
+    expect(page).to have_css('button.data-\\[state\\=off\\]\\:hover\\:bg-surface-sunken')
+    expect(page).not_to have_css('button.hover\\:bg-surface-sunken')
   end
 end
