@@ -123,6 +123,12 @@ gem "lexxy", "~> 0.9.14.beta"
 # GENERATES the components in development and is excluded from production.
 gem "view_component", "~> 4.0"
 
+# Runtime dependency of the vendored ApplicationComponent#cn helper: tailwind_merge
+# resolves conflicting Tailwind utilities so a per-instance `class:` passthrough
+# overrides a component's base utility (e.g. `class: "rounded-full"` beats base
+# `rounded-md`). Loaded in production, so it MUST stay a top-level gem.
+gem "tailwind_merge"
+
 # Dev-only scaffolding tool that generates app/components/ui/*. Not shipped to
 # production; the host app vendors and owns the generated files.
 group :development do
