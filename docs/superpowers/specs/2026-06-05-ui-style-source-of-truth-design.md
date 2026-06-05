@@ -100,9 +100,17 @@ Ruby normal-vs-error branch.
 - **`UI::FileInputComponent`** → new `.form-file` class (the `file:*` styling currently in
   `FILE_FIELD_CLASSES`); component applies it. `.form-file` is canonical for file inputs.
 - **`TailwindFormBuilder`** — `FIELD_BASE`/`FIELD_NORMAL`/`FIELD_ERROR`/`FILE_FIELD_CLASSES`
-  deleted; `select_html_options` applies `.form-field`; the orphaned `field_options` method is
-  **removed**.
-- **`.form-input`** (flat, direct-use in ~32 files) is **unchanged**.
+  deleted; `select_html_options` applies `.form-field` **and sets `aria-invalid="true"` on error**
+  (parity check — DHH: verify input/textarea/file already do, then bring `<select>` in line so the
+  `[aria-invalid]` error styling actually triggers for selects); the orphaned `field_options` method
+  is **removed**.
+- **`.form-input`** (flat, direct-use in ~32 files) is **unchanged** (kept, not renamed — avoids
+  32-file churn; a CSS comment disambiguates it from `.form-field`).
+- **Disabled-select micro-change (Adam, accepted):** `.form-field` includes
+  `disabled:cursor-not-allowed disabled:opacity-50` (matching the component); the old `FIELD_NORMAL`
+  used by `<select>` did **not**, so disabled selects *gain* that affordance. This is the one
+  intentional pixel-difference — a consistency fix, not a regression. Verify it reads acceptably
+  (opacity-50 on `bg-surface-raised`) in screenshot review.
 
 ### Tie-back to the agent-rules paradigm
 
@@ -125,17 +133,51 @@ and splitting `.prose`/Rouge syntax CSS into partials.
 
 ## Testing
 
-Contract is **no visual change**:
+Contract is **no visual change**. The gate is layered (panel decision: lean on existing real-CSS
+coverage rather than build a bespoke compiled-CSS CI step):
 
-- Existing system specs (forms, buttons, registration validation) stay green; CI axe specs gate
-  AAA contrast.
-- Add a component render/parity test: `UI::ButtonComponent(variant: :primary)` emits
-  `class="btn-primary"`; each variant emits its mapped class(es); `UI::InputComponent(invalid: true)`
-  emits `class="form-field"` + `aria-invalid="true"`; `UI::FileInputComponent` emits `class="form-file"`.
-- When verifying compiled Tailwind output, grep the **declaration value** (e.g. the resolved
-  `background-color`), not the escaped selector, and run a positive control first.
-- Browser screenshot review before push (a form page + a `.btn-*` page, light and dark) confirms
-  pixel-parity.
+1. **Component specs → class-name assertions.** The *current* `button_component_spec.rb` asserts
+   individual utilities (`bg-interactive`, `hover:bg-interactive-hover`, …) — those **will break**
+   once the component emits `class="btn-primary"`, so the plan rewrites them to assert the mapped
+   class(es): `UI::ButtonComponent(variant: :primary)` → `btn-primary`; `UI::InputComponent(invalid: true)`
+   → `form-field` + `aria-invalid="true"`; `UI::FileInputComponent` → `form-file`. Comment the
+   input test to note the `aria-invalid` → `.form-field[aria-invalid]` CSS coupling it locks.
+   (This asserts the component hands off to the right class — *not* that the CSS is correct.)
+2. **Real-CSS visual gate = existing specs.** A class-name assertion can't catch a broken/deleted
+   `.btn-primary` rule. That is gated by the **existing system + AAA-axe specs**, which render real
+   pages through the *compiled* Tailwind — a button that lost its background fails axe contrast / the
+   system expectation. These stay green; that's the actual "no visual change" enforcement.
+3. **Screenshot review pre-push** — a form page + a `.btn-*` page, light and dark — for human
+   confidence on pixel-parity (per the project's design-change workflow).
+4. **Turbo Stream sanity** (Jorge): confirm a `.btn-primary` submit / `.form-field` input rendered
+   inside a Turbo Stream response displays correctly — safe by construction (CSS arrives with the
+   HTML; Turbo morphing doesn't re-run styles), documented so it isn't a surprise.
+
+When manually probing compiled Tailwind, grep the **declaration value** (resolved `background-color`),
+not the escaped selector, and run a positive control first. (A standing compiled-CSS CI check was
+considered and deferred — the system+axe specs already exercise the real CSS.)
+
+## Panel review refinements (2026-06-05)
+
+Expert panel (Adam Wathan, Dave Thomas, DHH, Jorge Manrubia, Joël Quenneville, Léonie Watson;
+Sandi Metz + Jim Weirich synthesis) **signed off on the architecture — 0 blockers.** Endorsed as
+correct: CSS-class-canonical, the `aria-invalid`-driven error state, and the accepted tailwind-merge
+override loss (treated as variant-discipline enforcement, not a regression). Incorporated refinements:
+
+- **Pre-implementation call-site scan (DHH):** grep for `UI::ButtonComponent(... class: "<utility>")`
+  call sites that rely on `cn`/tailwind-merge overriding a button utility (e.g. `class: "bg-…"`).
+  Rewrite any to a `variant:` (or a non-conflicting utility like `w-full`). Document the small,
+  in-app breaking change in the PR. Non-conflicting layout utilities (`w-full`, `mt-2`) still work.
+- **Component docstrings (Dave):** update `UI::ButtonComponent` / `UI::InputComponent` docs so the
+  stale "Reproduces the host app's .btn-* system" comment becomes "**applies** the app's `.btn-*` /
+  `.form-field` classes; this copy intentionally diverges from the gem's self-contained version
+  (token-owning host)."
+- **CSS disambiguation comment:** in `application.css`, document the two field variants —
+  `.form-field` (raised: `bg-surface-raised`, form-builder inputs/selects) vs `.form-input` (flat:
+  `bg-surface`, inline/chrome controls). Names kept; comment carries the intent.
+- **Léonie verify during implementation:** confirm `text-danger` on `bg-danger-surface` clears 7:1
+  AAA (already CI-gated — double-check on a rendered error); and that focus moves to the
+  `role="alert"` error summary on form re-render (best practice, not a blocker).
 
 ## Files touched
 
