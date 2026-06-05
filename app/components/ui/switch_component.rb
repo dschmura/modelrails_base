@@ -41,6 +41,7 @@ module UI
     TRACK   = "pointer-events-none absolute inset-0 rounded-full border border-transparent shadow-xs " \
               "transition-all bg-surface-sunken peer-checked:bg-interactive " \
               "peer-focus-visible:border-border-focus peer-focus-visible:ring-[3px] peer-focus-visible:ring-interactive-focus " \
+              "peer-aria-invalid:ring-2 peer-aria-invalid:ring-danger " \
               "peer-disabled:opacity-50"
     THUMB   = "pointer-events-none absolute inset-y-0 left-px my-auto z-10 block size-4 rounded-full " \
               "bg-surface-raised ring-0 transition-transform " \

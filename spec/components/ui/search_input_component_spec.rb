@@ -90,4 +90,15 @@ RSpec.describe UI::SearchInputComponent, type: :component do
 
     expect(page).to have_css("input[type='search'][name='q'][placeholder='Find a thing…']")
   end
+
+  # The default placeholder is i18n-resolved (falls back to "Search…"), never a
+  # hardcoded string — a placeholder is set by default but is only a hint, not a name.
+  it "resolves the default placeholder via i18n" do
+    render_inline(described_class.new(name: "q"))
+
+    placeholder = page.find("input[type='search']")["placeholder"]
+
+    expect(placeholder).not_to be_nil
+    expect(placeholder.to_s).not_to be_empty
+  end
 end

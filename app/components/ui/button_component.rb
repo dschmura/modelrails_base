@@ -52,11 +52,13 @@ module UI
 
     # Fail loud on an unknown variant in development/test so misuse is caught
     # immediately; fall back to :primary in production so a bad variant never
-    # 500s a page. `defined?(Rails)` keeps this correct in the gem's Rails-less tests.
+    # 500s a page. The Rails.respond_to?(:env) guard stays correct even when the Rails
+    # module is defined but Rails.env isn't booted (the gem's Rails-less tests load
+    # rails/generators, which defines Rails without Rails.env).
     def coerce_variant(variant)
       return variant if VARIANTS.key?(variant)
 
-      unless defined?(Rails) && Rails.env.production?
+      unless defined?(Rails) && Rails.respond_to?(:env) && Rails.env.production?
         raise ArgumentError,
           "UI::ButtonComponent: unknown variant #{variant.inspect}. " \
           "Expected one of: #{VARIANTS.keys.join(", ")}."

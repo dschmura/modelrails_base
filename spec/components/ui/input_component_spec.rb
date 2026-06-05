@@ -34,4 +34,10 @@ RSpec.describe UI::InputComponent, type: :component do
     expect(input["aria-describedby"]).to be_nil
     expect(input["aria-required"]).to be_nil
   end
+
+  it "applies disabled styling to a normal (non-invalid) field" do
+    render_inline(described_class.new(name: "q"))
+
+    expect(page.find("input")[:class]).to include("disabled:cursor-not-allowed", "disabled:opacity-50")
+  end
 end

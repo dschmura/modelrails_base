@@ -24,6 +24,7 @@ RSpec.describe UI::TextareaComponent, type: :component do
     ta = page.find("textarea")
     expect(ta.text.strip).to eq("typed")
     expect(ta[:class]).to include("border-border-strong")
+    expect(ta[:class]).to include("disabled:cursor-not-allowed", "disabled:opacity-50")
     expect(ta["aria-invalid"]).to be_nil
   end
 end

@@ -29,4 +29,16 @@ RSpec.describe UI::AlertComponent, type: :component do
     expect { render_inline(described_class.new(variant: :bogus)) }
       .to raise_error(ArgumentError)
   end
+
+  it "passes through html attributes onto the root" do
+    render_inline(described_class.new(title: "Heads up", id: "save-alert", data: { testid: "alert" }))
+
+    expect(page).to have_css("div#save-alert[role='status'][data-testid='alert']")
+  end
+
+  it "merges a caller-supplied class onto the root without clobbering the variant tokens" do
+    render_inline(described_class.new(title: "Heads up", class: "mt-4"))
+
+    expect(page).to have_css("div.mt-4.bg-surface-raised")
+  end
 end
