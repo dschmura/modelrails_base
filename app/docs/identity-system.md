@@ -73,7 +73,6 @@ Two utility classes handle the two use cases:
 | Class | OKLCH Values | Purpose |
 |-------|-------------|---------|
 | `.bg-hue-initials` | L=0.35, C=0.20 | Initials circle background (dark, high chroma) |
-| `.bg-hue-interactive` | L=0.40, C=0.15 | Branding accents (slightly lighter, lower chroma) |
 
 ### Why OKLCH?
 

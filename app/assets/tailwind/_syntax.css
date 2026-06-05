@@ -1,0 +1,224 @@
+/* Rouge syntax highlighting (markdowndocs fenced code). Custom props so colors swap in
+   dark mode; neutral tones follow the app's primitive palette. */
+
+:root {
+  /* Foreground tokens pinned to L* ≤ ~38% for WCAG 2.2 AAA (7:1) on the light surface
+     (hue/chroma from the Tailwind palette; only lightness tightened). */
+  --syntax-comment:    var(--neutral-700);                 /* tighten for AAA */
+  --syntax-comment-alt: var(--neutral-700);
+  --syntax-keyword:    oklch(38% 0.155 313.029);   /* ~purple-800 */
+  --syntax-string:     oklch(38% 0.154 150.069);   /* ~green-800 */
+  --syntax-number:     oklch(38% 0.153 232.652);   /* ~blue-800 */
+  --syntax-error:      oklch(38% 0.213 27.518);    /* ~red-800 */
+  --syntax-error-bg:   oklch(97.1% 0.013 17.38);   /* ~red-50 (background, unchanged) */
+  --syntax-type:       oklch(38% 0.18 27.325);     /* ~red-800 (chroma slightly reduced for gamut at L* 38) */
+  --syntax-operator:   var(--neutral-700);
+  --syntax-name:       oklch(38% 0.136 202.677);   /* ~cyan-800 */
+  --syntax-builtin:    oklch(38% 0.158 313.556);   /* ~purple-800 */
+  --syntax-function:   oklch(38% 0.153 232.652);   /* ~blue-800 */
+  --syntax-escape:     oklch(38% 0.174 38.402);    /* ~orange-800 */
+  --syntax-tag:        oklch(38% 0.154 150.069);   /* ~green-800 */
+  --syntax-heading:    var(--neutral-900);
+  --syntax-namespace:  var(--neutral-800);
+  --syntax-insert-bg:  oklch(98.2% 0.018 155.826);   /* ~green-50 */
+  --syntax-whitespace: var(--neutral-300);
+  --syntax-prompt:     var(--neutral-500);
+}
+
+.dark {
+  /* Foreground tokens pinned to L* ≥ ~85% for AAA on the dark surface
+     (chroma reduced slightly to stay in sRGB gamut). */
+  --syntax-comment:    var(--neutral-300);                 /* tighten for AAA */
+  --syntax-comment-alt: var(--neutral-300);
+  --syntax-keyword:    oklch(85% 0.13 310.872);   /* ~purple-300 */
+  --syntax-string:     oklch(85% 0.13 151.711);   /* ~green-300 */
+  --syntax-number:     oklch(85% 0.12 235.169);   /* ~blue-300 */
+  --syntax-error:      oklch(85% 0.13 22.216);    /* ~red-300 */
+  --syntax-error-bg:   transparent;
+  --syntax-type:       oklch(85% 0.13 22.216);    /* ~red-300 */
+  --syntax-operator:   var(--neutral-300);
+  --syntax-name:       oklch(85% 0.12 211.53);    /* ~cyan-300 */
+  --syntax-builtin:    oklch(85% 0.13 310.872);   /* ~purple-300 */
+  --syntax-function:   oklch(85% 0.12 235.169);   /* ~blue-300 */
+  --syntax-escape:     oklch(85% 0.13 55.613);    /* ~orange-300 */
+  --syntax-tag:        oklch(85% 0.13 151.711);   /* ~green-300 */
+  --syntax-heading:    var(--neutral-100);
+  --syntax-namespace:  var(--neutral-100);
+  --syntax-insert-bg:  transparent;
+  --syntax-whitespace: var(--neutral-600);
+  --syntax-prompt:     var(--neutral-300);
+}
+
+.highlight {
+  @apply bg-surface rounded-lg p-4 overflow-x-auto text-sm;
+}
+
+.highlight .hll {
+  @apply bg-warning-surface;
+}
+
+/* Comments */
+.highlight .c,
+.highlight .cm,
+.highlight .c1,
+.highlight .cs {
+  color: var(--syntax-comment);
+  font-style: italic;
+}
+
+.highlight .cp {
+  color: var(--syntax-comment-alt);
+  font-weight: 700;
+}
+
+/* Errors */
+.highlight .err {
+  color: var(--syntax-error);
+  background-color: var(--syntax-error-bg);
+}
+
+/* Keywords */
+.highlight .k,
+.highlight .kc,
+.highlight .kd,
+.highlight .kn,
+.highlight .kp,
+.highlight .kr,
+.highlight .ow {
+  color: var(--syntax-keyword);
+  font-weight: 600;
+}
+
+.highlight .kt {
+  color: var(--syntax-type);
+  font-weight: 600;
+}
+
+/* Operators */
+.highlight .o {
+  color: var(--syntax-operator);
+}
+
+/* Generic styles */
+.highlight .gd {
+  color: var(--syntax-error);
+  background-color: var(--syntax-error-bg);
+}
+
+.highlight .ge {
+  font-style: italic;
+}
+
+.highlight .gr,
+.highlight .gt {
+  color: var(--syntax-error);
+}
+
+.highlight .gh {
+  color: var(--syntax-heading);
+  font-weight: 700;
+}
+
+.highlight .gi {
+  color: var(--syntax-string);
+  background-color: var(--syntax-insert-bg);
+}
+
+.highlight .go,
+.highlight .gp {
+  color: var(--syntax-prompt);
+}
+
+.highlight .gp {
+  font-weight: 700;
+}
+
+.highlight .gs {
+  font-weight: 700;
+}
+
+.highlight .gu {
+  color: var(--syntax-operator);
+  font-weight: 700;
+}
+
+/* Numbers */
+.highlight .m,
+.highlight .mf,
+.highlight .mh,
+.highlight .mi,
+.highlight .mo,
+.highlight .il {
+  color: var(--syntax-number);
+}
+
+/* Strings */
+.highlight .s,
+.highlight .sb,
+.highlight .sc,
+.highlight .s2,
+.highlight .sh,
+.highlight .si,
+.highlight .sx,
+.highlight .s1 {
+  color: var(--syntax-string);
+}
+
+.highlight .sd {
+  color: var(--syntax-string);
+  font-style: italic;
+}
+
+.highlight .se,
+.highlight .sr {
+  color: var(--syntax-escape);
+}
+
+.highlight .ss {
+  color: var(--syntax-name);
+}
+
+/* Names */
+.highlight .na,
+.highlight .no,
+.highlight .nd,
+.highlight .ni,
+.highlight .nl,
+.highlight .nv,
+.highlight .vc,
+.highlight .vg,
+.highlight .vi {
+  color: var(--syntax-name);
+}
+
+.highlight .nb,
+.highlight .bp {
+  color: var(--syntax-builtin);
+}
+
+.highlight .nc,
+.highlight .nf {
+  color: var(--syntax-function);
+}
+
+.highlight .nc {
+  font-weight: 600;
+}
+
+.highlight .ne {
+  color: var(--syntax-error);
+  font-weight: 700;
+}
+
+.highlight .nn {
+  color: var(--syntax-namespace);
+}
+
+.highlight .nt {
+  color: var(--syntax-tag);
+}
+
+/* Whitespace */
+.highlight .w {
+  color: var(--syntax-whitespace);
+}
