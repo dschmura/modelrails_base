@@ -15,5 +15,7 @@ RSpec.describe UI::FileInputComponent, type: :component do
     expect(inp["aria-describedby"]).to eq("user_avatar-error")
     expect(inp[:class]).to include("file:bg-interactive")
     expect(inp[:class]).to include("file:min-h-[var(--form-input-height)]")
+    expect(inp[:class]).to include("disabled:cursor-not-allowed", "disabled:opacity-50")
+    expect(inp[:class]).to include("aria-invalid:ring-danger")
   end
 end

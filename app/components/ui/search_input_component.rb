@@ -51,8 +51,8 @@ module UI
     #   invalid:     sets `aria-invalid="true"` (drives the error border/ring tokens)
     #   describedby: sets `aria-describedby` (link to hint/error element ids)
     # Everything else (name, id, value, data-*, ...) passes through.
-    def initialize(placeholder: "Search…", label: nil, required: false, invalid: false, describedby: nil, **html_attrs)
-      @placeholder = placeholder
+    def initialize(placeholder: nil, label: nil, required: false, invalid: false, describedby: nil, **html_attrs)
+      @placeholder = placeholder || I18n.t("modelrails_ui.search_input.placeholder", default: "Search…")
       @label       = label || I18n.t("modelrails_ui.search_input.label", default: "Search")
       @required    = required
       @invalid     = invalid

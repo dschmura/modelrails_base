@@ -8,7 +8,9 @@ module UI
     BASE = "block w-full text-sm text-text-body " \
            "file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium " \
            "file:bg-interactive file:text-text-on-interactive hover:file:bg-interactive-hover " \
-           "file:cursor-pointer file:min-h-[var(--form-input-height)]"
+           "file:cursor-pointer file:min-h-[var(--form-input-height)] " \
+           "disabled:cursor-not-allowed disabled:opacity-50 " \
+           "aria-invalid:border-danger-border aria-invalid:ring-danger"
 
     # accept:   MIME types or extensions, e.g. "image/*" or ".pdf,.docx"
     # multiple: allow selecting multiple files

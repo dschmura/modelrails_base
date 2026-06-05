@@ -45,17 +45,20 @@ module UI
     # title: and description: are kwarg shorthands for plain-text content.
     # Use slots (with_alert_title / with_alert_description) for rich HTML.
     # Slots take precedence over kwargs when both are provided.
-    def initialize(variant: :default, title: nil, description: nil)
+    def initialize(variant: :default, title: nil, description: nil, **html_attrs)
       @variant = coerce_variant(variant.to_sym)
       @title = title
       @description = description
+      @extra_class = html_attrs.delete(:class)
+      @html_attrs = html_attrs
     end
 
     def call
       content_tag(:div, safe_join([ resolved_title, resolved_description ].compact),
+        **@html_attrs,
         role: ROLES.fetch(@variant),
         "aria-live": LIVE.fetch(@variant),
-        class: cn(OUTER_CLASSES, VARIANTS.fetch(@variant)))
+        class: cn(OUTER_CLASSES, VARIANTS.fetch(@variant), @extra_class))
     end
 
     class TitleComponent < ApplicationComponent
