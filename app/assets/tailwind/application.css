@@ -1,7 +1,6 @@
 @import "tailwindcss";
 
-/* Dark mode: class-based toggle via .dark on <html> instead of media query.
-   This allows a three-way user preference (light/dark/system). */
+/* Class-based dark (not prefers-color-scheme) — enables a 3-way light/dark/system preference. */
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* Design token layers */
@@ -9,10 +8,10 @@
 @import "./tokens/_semantic.css";
 @import "./tokens/_signals.css";
 @import "./tokens/_spacing.css";
+@import "./_prose.css";
+@import "./_syntax.css";
 
-/* Register semantic tokens as Tailwind utilities via @theme inline.
-   "inline" is required because these reference CSS custom properties
-   that change under .dark — Tailwind needs to inline the var() references. */
+/* @theme inline (not @theme): these alias custom props that swap under .dark, so the var() refs must be inlined. */
 @theme inline {
   /* Surfaces */
   --color-surface: var(--color-surface);
@@ -87,15 +86,7 @@
   --modal-animation-duration: var(--modal-animation-duration);
 }
 
-/* ==========================================================================
-   Layout utilities
-   ==========================================================================
-   These wrap recurring layout primitives so templates can express intent
-   directly. Currently: narrow page-level container (max-w-2xl) suited for
-   settings, account, and form-centric flows. A wider variant
-   (.page-container-wide, max-w-4xl/6xl) can be added when a page needs it
-   — don't override max-width inline; introduce the named variant instead.
-   ========================================================================== */
+/* Need a wider page? add a named variant (e.g. .page-container-wide) — don't override max-width inline. */
 
 @layer utilities {
   .page-container {
@@ -103,33 +94,17 @@
   }
 }
 
-/* ==========================================================================
-   Component utilities
-   ==========================================================================
-   Encapsulate recurring view patterns. These are NOT theme tokens — they
-   are composition rules for repeated structural and interactive patterns.
-
-   Naming policy:
-   - .btn-text* are a color-variant family of one base text-button style.
-     They share .btn-touch-target sizing/centering when used as buttons.
-   - .action-group is a flex container with consistent inline gap; will
-     grow constraints (flex-wrap, flex-row-reverse, etc.) over time.
-   ========================================================================== */
+/* Component utilities — composition rules for repeated view patterns (not theme tokens). */
 
 @layer components {
-  /* Touch-target sizing for interactive buttons.
-     44x44 minimum matches WCAG 2.2 AAA target size + --form-input-height,
-     so buttons paired with form inputs visually align. */
+  /* 44×44 min = WCAG 2.2 AAA target size; shares --form-input-height so buttons align with inputs. */
   .btn-touch-target {
     @apply inline-flex items-center justify-center px-2;
     min-height: var(--form-input-height);
     min-width: var(--form-input-height);
   }
 
-  /* Base text-only button styling.
-     Color, font-size, and weight stay in the template — this rule only
-     handles cross-cutting concerns (focus ring base, hover behavior,
-     rounded corners, semantic underline). */
+  /* Text-only button base; color/size stay at the call site. */
   .btn-text {
     @apply font-medium underline rounded;
     @apply focus-visible:outline-none focus-visible:ring-2;
@@ -145,29 +120,14 @@
     @apply text-interactive focus-visible:ring-interactive-focus;
   }
 
-  /* Inline flex container for trailing button groups (Resend / Cancel,
-     Edit / Delete, etc.). Consumes --space-action-group-gap so spacing
-     stays consistent across the app. */
+  /* Trailing button-group container; --space-action-group-gap keeps inline spacing consistent. */
   .action-group {
     @apply inline-flex items-center;
     gap: var(--space-action-group-gap);
   }
 
-  /* Solid filled button family. Three variants share base shape (sizing,
-     focus ring scaffold, cursor); each diverges only on color/contrast.
-     Pair with --form-input-height so buttons align with form inputs.
-
-     Usage:
-       <button class="btn-primary">Save</button>
-       <%= button_to "Delete", url, class: "btn-danger" %>
-       <%= link_to "Cancel", path, class: "btn-secondary" %>
-
-     Variant choice:
-       .btn-primary   — main CTA (workspace creates, form submits)
-       .btn-secondary — neutral action (cancel, dismiss)
-       .btn-danger    — destructive action (delete, revoke)
-
-     For text-only buttons (no fill), use .btn-text + .btn-text-* (above). */
+  /* Filled button family (primary/secondary/danger) — canonical button styling.
+     Usage + variant guidance: Lookbook / UI::ButtonComponent / .modelrails_ui/agent-rules.md. */
   .btn-primary {
     @apply inline-flex items-center justify-center px-4 rounded-md font-medium cursor-pointer;
     @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
@@ -192,14 +152,7 @@
     min-height: var(--form-input-height);
   }
 
-  /* Base styling for <select> and <input type="time"|"text"|...> form
-     controls. Absorbs the repeated `min-h-[44px] px-3 rounded-md bg-surface
-     text-text-body border border-border-strong focus:outline-none focus:ring-2
-     focus:ring-interactive-focus` chain that appeared on 6+ inputs across
-     the preferences page (panel review — Steve Schoger + Adam Wathan). The
-     min-height variable keeps controls visually aligned with .btn-* siblings
-     at the 44px AAA-target line; `py-2` gives consistent optical sizing for
-     browser-default vertical padding that doesn't always match the 44px box. */
+  /* .form-input: flat field for inline/chrome controls. */
   .form-input {
     @apply px-3 py-2 rounded-md cursor-pointer;
     @apply bg-surface text-text-body border border-border-strong;
@@ -207,12 +160,8 @@
     min-height: var(--form-input-height);
   }
 
-  /* Two field-control variants — pick by surface context, not by element:
-     - .form-field  (raised: bg-surface-raised + text-text-heading): form-builder-managed
-       inputs / textareas / selects. Error state is attribute-driven (.form-field[aria-invalid]).
-     - .form-input  (flat:   bg-surface + text-text-body): inline / chrome controls
-       (header search, user-menu, footer) sitting directly on the page surface.
-     Both are AAA-tuned and aligned to --form-input-height. */
+  /* Two field variants by surface context: .form-field (raised — builder inputs/selects;
+     error via [aria-invalid]) vs .form-input (flat — inline/chrome controls). See PR #238. */
   .form-field {
     @apply block w-full rounded-md border px-3 py-2 placeholder:text-text-muted focus:outline-none focus:ring-2 min-h-[var(--form-input-height)];
     @apply border-border-strong bg-surface-raised text-text-heading focus:ring-interactive-focus disabled:cursor-not-allowed disabled:opacity-50;
@@ -222,8 +171,7 @@
     @apply border-danger ring-2 ring-danger bg-danger-surface text-danger focus:ring-danger;
   }
 
-  /* File input — the file:* button styling; error state via aria-invalid:* utilities
-     (a 1:1 move of the component's former FILE_FIELD_CLASSES). */
+  /* File input — file:* styling; error via aria-invalid:* utilities. See PR #238. */
   .form-file {
     @apply block w-full text-sm text-text-body;
     @apply file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium;
@@ -234,25 +182,14 @@
   }
 }
 
-/* ==========================================================================
-   OKLCH Hue-based Background Utilities
-   Used with style="--hue: <value>" to apply dynamic colors without full
-   inline background-color declarations (CSP-safer).
-   bg-hue-initials: L=0.35, C=0.20 — AAA contrast with white text
-   bg-hue-interactive: L=0.40, C=0.15 — accent/dot color for workspace branding
-   ========================================================================== */
+/* bg-hue-initials: per-workspace dynamic color via style="--hue: N" (avoids inline
+   background-color → CSP-safer). L=0.35 C=0.20 = AAA with white text. */
 
 .bg-hue-initials {
   background-color: oklch(0.35 0.2 var(--hue, 210));
 }
 
-.bg-hue-interactive {
-  background-color: oklch(0.40 0.15 var(--hue, 210));
-}
-
-/* ==========================================================================
-   Dialog / Modal Backdrop
-   ========================================================================== */
+/* Dialog backdrop (animated via @starting-style). */
 
 dialog::backdrop {
   background: var(--modal-backdrop);
@@ -272,19 +209,10 @@ dialog[open]::backdrop {
   }
 }
 
-/* ==========================================================================
-   Workspace Branding Override
-   ==========================================================================
-   When a workspace has a primary_color, two OKLCH literals are set on
-   <main>: --ws-primary-light (L=0.40, hits 7:1 AAA on white surface) and
-   --ws-primary-dark (L=0.78, hits 7:1 AAA on slate-800 surface). This is
-   the two-variable scheme that replaces the v1 single-variable +
-   color-mix(... toward white) approach — the old shape produced flaky
-   AAA contrast in CI's Playwright/axe renderer because OKLCH color-mix
-   resolution lifted the dark-mode brand color to L≈58 (6.2:1 ratio),
-   failing AAA 7:1 every hue. Direct OKLCH literals are deterministic
-   across renderers. See project_flaky_tests_followup.md §2 for the
-   investigation that led here. */
+/* Workspace branding: two OKLCH literals (--ws-primary-light/dark set on <main>), NOT
+   color-mix toward white. color-mix lifted the dark-mode brand to L≈58 (6.2:1), failing
+   AAA 7:1 in CI's axe renderer; direct literals are deterministic. See PR #81 +
+   docs/superpowers/specs/2026-04-16-workspace-oklch-unification-design.md. */
 
 [data-workspace-branded] {
   --color-interactive: var(--ws-primary-light);
@@ -300,11 +228,7 @@ dialog[open]::backdrop {
   --color-interactive-subtle: color-mix(in oklch, var(--ws-primary-dark) 15%, black);
 }
 
-/* Personal workspace context — solo users spend most of their time
-   here, so it deserves an intentional treatment rather than the
-   "unstyled org" defaults. The desaturated slate ramp (sourced from
-   our existing --neutral-* primitives) is AAA-verified and matches
-   the spec's "deliberate desaturated slate/zinc" guidance. */
+/* Personal workspace: deliberate desaturated-slate treatment (AAA-verified), not the unstyled-org default. */
 [data-workspace-kind="personal"] {
   --color-interactive: var(--neutral-700);
   --color-interactive-hover: var(--neutral-900);
@@ -325,373 +249,7 @@ dialog[open]::backdrop {
    Symlink created by: ln -sf $(bundle show markdowndocs)/app/views vendor/markdowndocs_views */
 @source "../../../vendor/markdowndocs_views/**/*.erb";
 
-/* ==========================================================================
-   Prose Styles (documentation pages rendered by Markdowndocs)
-   The gem wraps rendered markdown in <div class="prose prose-indigo">.
-   Tailwind 4 resets all element styles, so we define them here.
-   ========================================================================== */
-
-.prose {
-  @apply text-text-body leading-relaxed;
-}
-
-.prose p {
-  @apply text-base mb-4;
-}
-
-.prose h1 {
-  @apply text-4xl font-bold text-text-heading mb-6 mt-8;
-}
-
-.prose h1:first-child {
-  @apply mt-0;
-}
-
-.prose h2 {
-  @apply text-3xl font-semibold text-text-heading mb-4 mt-10 pb-2 border-b border-border;
-}
-
-.prose h3 {
-  @apply text-2xl font-semibold text-text-heading mb-3 mt-8;
-}
-
-.prose h4 {
-  @apply text-xl font-semibold text-text-heading mb-2 mt-6;
-}
-
-.prose h5 {
-  @apply text-lg font-semibold text-text-heading mb-2 mt-4;
-}
-
-.prose h6 {
-  @apply text-base font-semibold text-text-heading mb-2 mt-4;
-}
-
-.prose a {
-  @apply text-accent underline transition-colors duration-150;
-  text-decoration-color: color-mix(in oklch, var(--color-accent) 50%, transparent);
-}
-
-.prose a:hover {
-  @apply text-accent-hover;
-  text-decoration-color: var(--color-accent);
-}
-
-.prose strong {
-  @apply font-semibold text-text-heading;
-}
-
-.prose em {
-  @apply italic;
-}
-
-.prose del, .prose s, .prose strike {
-  @apply line-through text-text-muted;
-}
-
-.prose ul {
-  @apply list-disc list-outside ml-6 mb-4;
-}
-
-.prose ol {
-  @apply list-decimal list-outside ml-6 mb-4;
-}
-
-.prose ul li,
-.prose ol li {
-  @apply mb-2 text-base;
-}
-
-.prose li > ul,
-.prose li > ol {
-  @apply mt-2 mb-0;
-}
-
-.prose blockquote {
-  @apply pl-4 py-2 my-6 italic text-text-muted bg-surface-sunken rounded-md;
-  border-left: 4px solid var(--color-accent);
-}
-
-.prose code {
-  @apply px-1.5 py-0.5 bg-surface-sunken text-text-heading text-sm font-mono rounded-md;
-}
-
-.prose pre code {
-  @apply p-0 bg-transparent text-sm leading-relaxed block;
-}
-
-.prose pre {
-  @apply mb-6 p-4 bg-surface border border-border rounded-lg overflow-x-auto;
-}
-
-/* Wide tables scroll within the content column instead of spilling under the
-   right TOC sidebar. `display:block` turns the table into its own scroll
-   container (same pattern as `.prose pre`); the inner rows keep table layout. */
-.prose table {
-  @apply block w-full max-w-full mb-6 overflow-x-auto;
-  border-collapse: collapse;
-}
-
-.prose table th {
-  @apply bg-surface-sunken border border-border-strong px-4 py-2 text-left font-semibold text-text-heading;
-}
-
-.prose table td {
-  @apply border border-border-strong px-4 py-2;
-}
-
-.prose img {
-  @apply max-w-full h-auto rounded-lg shadow-sm my-6;
-}
-
-.prose hr {
-  @apply my-8 border-border-strong;
-}
-
-.prose input[type="checkbox"] {
-  @apply mr-2 rounded-md;
-}
-
-.prose input[type="checkbox"]:disabled {
-  @apply opacity-60;
-}
-
-/* ==========================================================================
-   Syntax Highlighting (Rouge / GitHub Theme)
-   Used by Markdowndocs for fenced code blocks.
-
-   Uses custom properties so colors switch automatically in dark mode,
-   and neutral tones follow the app's primitive palette (slate → zinc etc.).
-   ========================================================================== */
-
-:root {
-  /* All foreground syntax tokens land at L* ≤ ~38% to clear WCAG 2.2 AAA
-     (7:1) against the light surface background. Hue/chroma preserved from
-     the Tailwind reference palette — only lightness is tightened. */
-  --syntax-comment:    var(--neutral-700);                 /* tighten for AAA */
-  --syntax-comment-alt: var(--neutral-700);
-  --syntax-keyword:    oklch(38% 0.155 313.029);   /* ~purple-800 */
-  --syntax-string:     oklch(38% 0.154 150.069);   /* ~green-800 */
-  --syntax-number:     oklch(38% 0.153 232.652);   /* ~blue-800 */
-  --syntax-error:      oklch(38% 0.213 27.518);    /* ~red-800 */
-  --syntax-error-bg:   oklch(97.1% 0.013 17.38);   /* ~red-50 (background, unchanged) */
-  --syntax-type:       oklch(38% 0.18 27.325);     /* ~red-800 (chroma slightly reduced for gamut at L* 38) */
-  --syntax-operator:   var(--neutral-700);
-  --syntax-name:       oklch(38% 0.136 202.677);   /* ~cyan-800 */
-  --syntax-builtin:    oklch(38% 0.158 313.556);   /* ~purple-800 */
-  --syntax-function:   oklch(38% 0.153 232.652);   /* ~blue-800 */
-  --syntax-escape:     oklch(38% 0.174 38.402);    /* ~orange-800 */
-  --syntax-tag:        oklch(38% 0.154 150.069);   /* ~green-800 */
-  --syntax-heading:    var(--neutral-900);
-  --syntax-namespace:  var(--neutral-800);
-  --syntax-insert-bg:  oklch(98.2% 0.018 155.826);   /* ~green-50 */
-  --syntax-whitespace: var(--neutral-300);
-  --syntax-prompt:     var(--neutral-500);
-}
-
-.dark {
-  /* All foreground syntax tokens land at L* ≥ ~85% to clear WCAG 2.2 AAA
-     (7:1) against the dark surface background. Chroma reduced slightly at
-     the higher L* to stay within sRGB gamut. */
-  --syntax-comment:    var(--neutral-300);                 /* tighten for AAA */
-  --syntax-comment-alt: var(--neutral-300);
-  --syntax-keyword:    oklch(85% 0.13 310.872);   /* ~purple-300 */
-  --syntax-string:     oklch(85% 0.13 151.711);   /* ~green-300 */
-  --syntax-number:     oklch(85% 0.12 235.169);   /* ~blue-300 */
-  --syntax-error:      oklch(85% 0.13 22.216);    /* ~red-300 */
-  --syntax-error-bg:   transparent;
-  --syntax-type:       oklch(85% 0.13 22.216);    /* ~red-300 */
-  --syntax-operator:   var(--neutral-300);
-  --syntax-name:       oklch(85% 0.12 211.53);    /* ~cyan-300 */
-  --syntax-builtin:    oklch(85% 0.13 310.872);   /* ~purple-300 */
-  --syntax-function:   oklch(85% 0.12 235.169);   /* ~blue-300 */
-  --syntax-escape:     oklch(85% 0.13 55.613);    /* ~orange-300 */
-  --syntax-tag:        oklch(85% 0.13 151.711);   /* ~green-300 */
-  --syntax-heading:    var(--neutral-100);
-  --syntax-namespace:  var(--neutral-100);
-  --syntax-insert-bg:  transparent;
-  --syntax-whitespace: var(--neutral-600);
-  --syntax-prompt:     var(--neutral-300);
-}
-
-.highlight {
-  @apply bg-surface rounded-lg p-4 overflow-x-auto text-sm;
-}
-
-.highlight .hll {
-  @apply bg-warning-surface;
-}
-
-/* Comments */
-.highlight .c,
-.highlight .cm,
-.highlight .c1,
-.highlight .cs {
-  color: var(--syntax-comment);
-  font-style: italic;
-}
-
-.highlight .cp {
-  color: var(--syntax-comment-alt);
-  font-weight: 700;
-}
-
-/* Errors */
-.highlight .err {
-  color: var(--syntax-error);
-  background-color: var(--syntax-error-bg);
-}
-
-/* Keywords */
-.highlight .k,
-.highlight .kc,
-.highlight .kd,
-.highlight .kn,
-.highlight .kp,
-.highlight .kr,
-.highlight .ow {
-  color: var(--syntax-keyword);
-  font-weight: 600;
-}
-
-.highlight .kt {
-  color: var(--syntax-type);
-  font-weight: 600;
-}
-
-/* Operators */
-.highlight .o {
-  color: var(--syntax-operator);
-}
-
-/* Generic styles */
-.highlight .gd {
-  color: var(--syntax-error);
-  background-color: var(--syntax-error-bg);
-}
-
-.highlight .ge {
-  font-style: italic;
-}
-
-.highlight .gr,
-.highlight .gt {
-  color: var(--syntax-error);
-}
-
-.highlight .gh {
-  color: var(--syntax-heading);
-  font-weight: 700;
-}
-
-.highlight .gi {
-  color: var(--syntax-string);
-  background-color: var(--syntax-insert-bg);
-}
-
-.highlight .go,
-.highlight .gp {
-  color: var(--syntax-prompt);
-}
-
-.highlight .gp {
-  font-weight: 700;
-}
-
-.highlight .gs {
-  font-weight: 700;
-}
-
-.highlight .gu {
-  color: var(--syntax-operator);
-  font-weight: 700;
-}
-
-/* Numbers */
-.highlight .m,
-.highlight .mf,
-.highlight .mh,
-.highlight .mi,
-.highlight .mo,
-.highlight .il {
-  color: var(--syntax-number);
-}
-
-/* Strings */
-.highlight .s,
-.highlight .sb,
-.highlight .sc,
-.highlight .s2,
-.highlight .sh,
-.highlight .si,
-.highlight .sx,
-.highlight .s1 {
-  color: var(--syntax-string);
-}
-
-.highlight .sd {
-  color: var(--syntax-string);
-  font-style: italic;
-}
-
-.highlight .se,
-.highlight .sr {
-  color: var(--syntax-escape);
-}
-
-.highlight .ss {
-  color: var(--syntax-name);
-}
-
-/* Names */
-.highlight .na,
-.highlight .no,
-.highlight .nd,
-.highlight .ni,
-.highlight .nl,
-.highlight .nv,
-.highlight .vc,
-.highlight .vg,
-.highlight .vi {
-  color: var(--syntax-name);
-}
-
-.highlight .nb,
-.highlight .bp {
-  color: var(--syntax-builtin);
-}
-
-.highlight .nc,
-.highlight .nf {
-  color: var(--syntax-function);
-}
-
-.highlight .nc {
-  font-weight: 600;
-}
-
-.highlight .ne {
-  color: var(--syntax-error);
-  font-weight: 700;
-}
-
-.highlight .nn {
-  color: var(--syntax-namespace);
-}
-
-.highlight .nt {
-  color: var(--syntax-tag);
-}
-
-/* Whitespace */
-.highlight .w {
-  color: var(--syntax-whitespace);
-}
-
-/* ==========================================================================
-   Biscuit Cookie Consent Banner — Theme Overrides
-   Override gem CSS tokens to match site theme.
-   ========================================================================== */
+/* Biscuit (cookie-consent gem): re-map its CSS vars to our theme tokens. */
 
 .biscuit-banner {
   --biscuit-bg: var(--color-surface-raised);
@@ -731,12 +289,8 @@ dialog[open]::backdrop {
   outline-offset: 2px;
 }
 
-/* ==========================================================================
-   Accessibility-simulation filters (shared/_a11y_sim, development only).
-   Classes only ever applied to <body> by the a11y-sim Stimulus controller,
-   which is itself only rendered in Rails.env.development?. These rules are
-   effectively dead code in production.
-   ========================================================================== */
+/* a11y-sim filters: applied to <body> only by the dev-only a11y-sim Stimulus controller —
+   intentionally inert in production (not dead code). */
 
 body.a11y-sim-blur         { filter: blur(2.5px); }
 body.a11y-sim-grayscale    { filter: grayscale(1); }
@@ -744,31 +298,17 @@ body.a11y-sim-deuteranopia { filter: url(#a11y-sim-deuteranopia); }
 body.a11y-sim-low_contrast { filter: contrast(0.5); }
 body.a11y-sim-cataract     { filter: blur(1.5px) contrast(0.8) brightness(1.1); }
 
-/* ==========================================================================
-   Override Biscuit's post-consent floating "Manage cookies" button.
-   We render our own footer-integrated link instead. The gem's button
-   remains in the DOM (footer_controller dispatches clicks to it).
-   ========================================================================== */
+/* Hide Biscuit's floating "Manage cookies" button — we use a footer link that
+   dispatches clicks to it (the gem button stays in the DOM). */
 
 .biscuit-manage-link {
   display: none !important;
 }
 
-/* ==========================================================================
-   Animations
-   ==========================================================================
-   Tailwind v4 generates `animate-*` utilities from `--animate-*` theme
-   variables. We use a non-inline @theme block here because animation
-   values are static (no var() references that swap under .dark).
-   ========================================================================== */
+/* @theme (not inline): animation values are static — no var() refs to swap under .dark. */
 
-/* Attention pulse for danger-severity notification bells.
-   2s scale cycle (1 → 1.15 → 1) — communicates "active signal" via
-   motion rather than the previous opacity fade (which read as a
-   broken/loading state). Uses standalone `scale` CSS property so it
-   composes cleanly with the bell's standalone `rotate: -20deg`.
-   Wrapped via `motion-safe:` in the partial — suppressed under
-   prefers-reduced-motion. */
+/* Danger-bell attention pulse. `scale` (not opacity — read as loading) composes with the
+   bell's standalone `rotate`; gated motion-safe: in the partial. */
 @theme {
   --animate-pulse-danger: pulse-danger 2s ease-in-out infinite;
 }

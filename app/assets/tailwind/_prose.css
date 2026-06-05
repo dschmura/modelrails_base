@@ -1,0 +1,127 @@
+/* Prose styles for markdowndocs output (wrapped in <div class="prose prose-indigo">).
+   Tailwind v4 resets element styles, so headings/lists/code/etc. are defined here. */
+
+.prose {
+  @apply text-text-body leading-relaxed;
+}
+
+.prose p {
+  @apply text-base mb-4;
+}
+
+.prose h1 {
+  @apply text-4xl font-bold text-text-heading mb-6 mt-8;
+}
+
+.prose h1:first-child {
+  @apply mt-0;
+}
+
+.prose h2 {
+  @apply text-3xl font-semibold text-text-heading mb-4 mt-10 pb-2 border-b border-border;
+}
+
+.prose h3 {
+  @apply text-2xl font-semibold text-text-heading mb-3 mt-8;
+}
+
+.prose h4 {
+  @apply text-xl font-semibold text-text-heading mb-2 mt-6;
+}
+
+.prose h5 {
+  @apply text-lg font-semibold text-text-heading mb-2 mt-4;
+}
+
+.prose h6 {
+  @apply text-base font-semibold text-text-heading mb-2 mt-4;
+}
+
+.prose a {
+  @apply text-accent underline transition-colors duration-150;
+  text-decoration-color: color-mix(in oklch, var(--color-accent) 50%, transparent);
+}
+
+.prose a:hover {
+  @apply text-accent-hover;
+  text-decoration-color: var(--color-accent);
+}
+
+.prose strong {
+  @apply font-semibold text-text-heading;
+}
+
+.prose em {
+  @apply italic;
+}
+
+.prose del, .prose s, .prose strike {
+  @apply line-through text-text-muted;
+}
+
+.prose ul {
+  @apply list-disc list-outside ml-6 mb-4;
+}
+
+.prose ol {
+  @apply list-decimal list-outside ml-6 mb-4;
+}
+
+.prose ul li,
+.prose ol li {
+  @apply mb-2 text-base;
+}
+
+.prose li > ul,
+.prose li > ol {
+  @apply mt-2 mb-0;
+}
+
+.prose blockquote {
+  @apply pl-4 py-2 my-6 italic text-text-muted bg-surface-sunken rounded-md;
+  border-left: 4px solid var(--color-accent);
+}
+
+.prose code {
+  @apply px-1.5 py-0.5 bg-surface-sunken text-text-heading text-sm font-mono rounded-md;
+}
+
+.prose pre code {
+  @apply p-0 bg-transparent text-sm leading-relaxed block;
+}
+
+.prose pre {
+  @apply mb-6 p-4 bg-surface border border-border rounded-lg overflow-x-auto;
+}
+
+/* Wide tables scroll within the content column instead of spilling under the
+   right TOC sidebar. `display:block` turns the table into its own scroll
+   container (same pattern as `.prose pre`); the inner rows keep table layout. */
+.prose table {
+  @apply block w-full max-w-full mb-6 overflow-x-auto;
+  border-collapse: collapse;
+}
+
+.prose table th {
+  @apply bg-surface-sunken border border-border-strong px-4 py-2 text-left font-semibold text-text-heading;
+}
+
+.prose table td {
+  @apply border border-border-strong px-4 py-2;
+}
+
+.prose img {
+  @apply max-w-full h-auto rounded-lg shadow-sm my-6;
+}
+
+.prose hr {
+  @apply my-8 border-border-strong;
+}
+
+.prose input[type="checkbox"] {
+  @apply mr-2 rounded-md;
+}
+
+.prose input[type="checkbox"]:disabled {
+  @apply opacity-60;
+}
