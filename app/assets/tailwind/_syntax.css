@@ -1,15 +1,9 @@
-/* ==========================================================================
-   Syntax Highlighting (Rouge / GitHub Theme)
-   Used by Markdowndocs for fenced code blocks.
-
-   Uses custom properties so colors switch automatically in dark mode,
-   and neutral tones follow the app's primitive palette (slate → zinc etc.).
-   ========================================================================== */
+/* Rouge syntax highlighting (markdowndocs fenced code). Custom props so colors swap in
+   dark mode; neutral tones follow the app's primitive palette. */
 
 :root {
-  /* All foreground syntax tokens land at L* ≤ ~38% to clear WCAG 2.2 AAA
-     (7:1) against the light surface background. Hue/chroma preserved from
-     the Tailwind reference palette — only lightness is tightened. */
+  /* Foreground tokens pinned to L* ≤ ~38% for WCAG 2.2 AAA (7:1) on the light surface
+     (hue/chroma from the Tailwind palette; only lightness tightened). */
   --syntax-comment:    var(--neutral-700);                 /* tighten for AAA */
   --syntax-comment-alt: var(--neutral-700);
   --syntax-keyword:    oklch(38% 0.155 313.029);   /* ~purple-800 */
@@ -32,9 +26,8 @@
 }
 
 .dark {
-  /* All foreground syntax tokens land at L* ≥ ~85% to clear WCAG 2.2 AAA
-     (7:1) against the dark surface background. Chroma reduced slightly at
-     the higher L* to stay within sRGB gamut. */
+  /* Foreground tokens pinned to L* ≥ ~85% for AAA on the dark surface
+     (chroma reduced slightly to stay in sRGB gamut). */
   --syntax-comment:    var(--neutral-300);                 /* tighten for AAA */
   --syntax-comment-alt: var(--neutral-300);
   --syntax-keyword:    oklch(85% 0.13 310.872);   /* ~purple-300 */

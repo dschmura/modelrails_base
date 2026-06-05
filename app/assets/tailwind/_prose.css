@@ -1,8 +1,5 @@
-/* ==========================================================================
-   Prose Styles (documentation pages rendered by Markdowndocs)
-   The gem wraps rendered markdown in <div class="prose prose-indigo">.
-   Tailwind 4 resets all element styles, so we define them here.
-   ========================================================================== */
+/* Prose styles for markdowndocs output (wrapped in <div class="prose prose-indigo">).
+   Tailwind v4 resets element styles, so headings/lists/code/etc. are defined here. */
 
 .prose {
   @apply text-text-body leading-relaxed;
