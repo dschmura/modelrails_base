@@ -1,0 +1,12 @@
+<div class="p-24 flex justify-center">
+  <%= render(UI::HoverCardComponent.new) do |c| %>
+    <% c.with_trigger do %>
+      <a href="#" class="underline">@dave</a>
+    <% end %>
+    <div class="space-y-1">
+      <p class="font-medium text-text-heading">Dave Chmura</p>
+      <p class="text-text-body">Building modelrails_ui.</p>
+      <a href="#" class="text-text-body underline">View profile</a>
+    </div>
+  <% end %>
+</div>
