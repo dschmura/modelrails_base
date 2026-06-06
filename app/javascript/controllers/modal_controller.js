@@ -2,7 +2,11 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = ["dialog", "panel"]
-  static values = { open: { type: Boolean, default: false } }
+  static values = {
+    open: { type: Boolean, default: false },
+    enterTransform: { type: String, default: "scale(1)" },
+    leaveTransform: { type: String, default: "scale(0.95)" }
+  }
 
   connect() {
     this.prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -84,19 +88,19 @@ export default class extends Controller {
   animateIn() {
     if (this.prefersReducedMotion) {
       this.panelTarget.style.opacity = "1"
-      this.panelTarget.style.transform = "scale(1)"
+      this.panelTarget.style.transform = this.enterTransformValue
       document.dispatchEvent(new CustomEvent("modal:opened"))
       return
     }
 
     this.panelTarget.style.opacity = "0"
-    this.panelTarget.style.transform = "scale(0.95)"
+    this.panelTarget.style.transform = this.leaveTransformValue
     requestAnimationFrame(() => {
       const duration = getComputedStyle(document.documentElement)
         .getPropertyValue("--modal-animation-duration").trim() || "200ms"
       this.panelTarget.style.transition = `opacity ${duration} ease-out, transform ${duration} ease-out`
       this.panelTarget.style.opacity = "1"
-      this.panelTarget.style.transform = "scale(1)"
+      this.panelTarget.style.transform = this.enterTransformValue
 
       const ms = parseInt(duration, 10) || 200
       setTimeout(() => {
@@ -116,7 +120,7 @@ export default class extends Controller {
       .getPropertyValue("--modal-animation-duration").trim() || "200ms"
     this.panelTarget.style.transition = `opacity ${duration} ease-in, transform ${duration} ease-in`
     this.panelTarget.style.opacity = "0"
-    this.panelTarget.style.transform = "scale(0.95)"
+    this.panelTarget.style.transform = this.leaveTransformValue
 
     const ms = parseInt(duration, 10) || 200
     this.closeTimer = setTimeout(() => {
