@@ -1,0 +1,10 @@
+<%= render(UI::DrawerComponent.new(
+      title: "Share document",
+      description: "Choose how to share this document with others.")) do |c| %>
+  <% c.with_trigger { "Share" } %>
+  <% c.with_footer do %>
+    <button type="button" class="btn-secondary" data-action="click->modal#close">Cancel</button>
+    <button type="button" class="btn-primary">Share</button>
+  <% end %>
+  <p class="text-sm text-text-body">Recipients can view but not edit this document.</p>
+<% end %>

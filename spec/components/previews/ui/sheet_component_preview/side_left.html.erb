@@ -1,0 +1,13 @@
+<%= render(UI::SheetComponent.new(
+      title: "Navigation",
+      description: "Browse sections of the application.",
+      side: :left)) do |c| %>
+  <% c.with_trigger { "Open navigation" } %>
+  <nav aria-label="Sheet navigation">
+    <ul class="space-y-1 text-sm text-text-body">
+      <li>Dashboard</li>
+      <li>Settings</li>
+      <li>Help</li>
+    </ul>
+  </nav>
+<% end %>
