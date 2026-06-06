@@ -1,0 +1,6 @@
+<%= render(UI::DrawerComponent.new(
+      title: "More options",
+      description: "Select an option below or close to return.")) do |c| %>
+  <% c.with_trigger { "Open drawer" } %>
+  <p class="text-sm text-text-body">Drawer body content goes here. Slide up from the bottom edge on mobile.</p>
+<% end %>
