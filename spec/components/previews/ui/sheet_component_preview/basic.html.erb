@@ -1,0 +1,7 @@
+<%= render(UI::SheetComponent.new(
+      title: "Filters",
+      description: "Narrow down the list by applying one or more filters.",
+      side: :right)) do |c| %>
+  <% c.with_trigger { "Open filters" } %>
+  <p class="text-sm text-text-body">Filter controls go here. The panel slides in from the right edge.</p>
+<% end %>

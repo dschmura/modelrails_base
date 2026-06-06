@@ -1,0 +1,7 @@
+<%= render(UI::SheetComponent.new(
+      title: "Quick actions",
+      description: "Choose an action to perform.",
+      side: :bottom)) do |c| %>
+  <% c.with_trigger { "Open actions" } %>
+  <p class="text-sm text-text-body">Action list goes here. The panel slides in from the bottom edge.</p>
+<% end %>
