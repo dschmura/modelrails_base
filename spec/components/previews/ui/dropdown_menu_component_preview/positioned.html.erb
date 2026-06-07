@@ -1,0 +1,8 @@
+<div class="p-24 flex justify-end">
+  <%= render(UI::DropdownMenuComponent.new(side: :bottom, align: :end)) do |c| %>
+    <% c.with_trigger { "Filters" } %>
+    <% c.with_item { "Newest first" } %>
+    <% c.with_item { "Oldest first" } %>
+    <% c.with_item { "A–Z" } %>
+  <% end %>
+</div>

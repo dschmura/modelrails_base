@@ -1,0 +1,13 @@
+<%# Center the trigger in the viewport so BOTH side:top and side:bottom have room — %>
+<%# the menu is position:fixed and auto-flips to stay on-screen, so a top-anchored %>
+<%# trigger near the frame edge would otherwise flip downward and look like bottom. %>
+<div class="flex min-h-screen items-center justify-center p-12">
+  <%= render(UI::DropdownMenuComponent.new(side: side, align: align)) do |c| %>
+    <% c.with_trigger { "Menu (#{side}/#{align})" } %>
+    <% c.with_item { "First action" } %>
+    <% c.with_item { "Second action" } %>
+    <% c.with_item(disabled: true) { "Disabled action" } %>
+    <% c.with_item(separator: true) %>
+    <% c.with_item { "Last action" } %>
+  <% end %>
+</div>
