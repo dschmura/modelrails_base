@@ -1,0 +1,10 @@
+<div class="p-24 flex justify-center">
+  <%= render(UI::DropdownMenuComponent.new) do |c| %>
+    <% c.with_trigger { "Actions" } %>
+    <% c.with_item { "Edit" } %>
+    <% c.with_item { "Duplicate" } %>
+    <% c.with_item(disabled: true) { "Archive" } %>
+    <% c.with_item(separator: true) %>
+    <% c.with_item(href: "#") { "Open docs" } %>
+  <% end %>
+</div>
