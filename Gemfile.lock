@@ -1,7 +1,7 @@
 GIT
   remote: https://github.com/dschmura/modelrails_ui.git
-  revision: 8781792b534a6db545575b24c540bf74c298ac81
-  branch: harden/menu-widgets-band
+  revision: c6d73f7626eb62f631f734d54eee5a21cabb6c18
+  branch: modelrails/harden
   specs:
     modelrails_ui (0.2.0)
       railties (>= 7.1)
