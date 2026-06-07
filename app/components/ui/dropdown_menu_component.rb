@@ -114,13 +114,12 @@ module UI
     private
 
     def wrapper_attrs
+      caller_data = @html_attrs.delete(:data) || {}
+      caller_style = @html_attrs.delete(:style)
       {
         class: cn("relative inline-block", @extra_class),
-        style: "anchor-name: --#{@id}",
-        data: {
-          controller: "menu",
-          action: "click@document->menu#closeOnClickOutside"
-        }
+        style: [ "anchor-name: --#{@id}", caller_style ].compact.join("; "),
+        data: { controller: "menu", action: "click@document->menu#closeOnClickOutside" }.merge(caller_data)
       }.merge(@html_attrs)
     end
 
