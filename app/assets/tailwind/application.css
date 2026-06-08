@@ -92,6 +92,15 @@
   .page-container {
     @apply max-w-2xl mx-auto px-4;
   }
+
+  /* AAA focus indicator (converged-conventions B5): an OFFSET OUTLINE, not a ring.
+     outline is OS-drawn → survives overflow:hidden clipping AND forced-colors/High-Contrast
+     (box-shadow rings vanish in both → WCAG 2.4.7 fail). Uniform --color-interactive-focus
+     regardless of control tone. Apply as `focus-ring` on any focusable control. */
+  .focus-ring:focus-visible {
+    outline: 2px solid var(--color-interactive-focus);
+    outline-offset: 2px;
+  }
 }
 
 /* Component utilities — composition rules for repeated view patterns (not theme tokens). */
