@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/dschmura/modelrails_ui.git
-  revision: 302827beb299de0d1449a6ef46cc83ea9b6f4c4d
+  revision: 3c0b063c15896d07c430f82c845bcd09e04083b2
   branch: harden/menubar
   specs:
     modelrails_ui (0.2.0)

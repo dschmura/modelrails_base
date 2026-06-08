@@ -82,4 +82,22 @@ RSpec.describe "Menubar component accessibility", type: :system do
     bar_item("File").send_keys("e") # → Edit
     expect(focused_text).to eq("Edit")
   end
+
+  it "clicking another bar item closes the open submenu (mouse mutual exclusion)" do
+    bar_item("File").click
+    expect(bar_item("File")["aria-expanded"]).to eq("true")
+
+    bar_item("Edit").click # File's closeOnClickOutside fires as Edit's toggle opens Edit
+    expect(bar_item("Edit")["aria-expanded"]).to eq("true")
+    expect(bar_item("File")["aria-expanded"]).to eq("false")
+    expect(page).to have_css("[role='menu']:not([hidden])", count: 1)
+  end
+
+  it "clicking outside closes the open submenu" do
+    bar_item("File").click
+    expect(page).to have_css("[role='menu']:not([hidden])")
+
+    page.driver.with_playwright_page { |pw| pw.mouse.click(5, 5) }
+    expect(page).to have_css("[role='menu'][hidden]", visible: :all)
+  end
 end

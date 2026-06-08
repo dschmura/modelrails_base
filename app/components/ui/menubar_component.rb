@@ -26,14 +26,17 @@ module UI
 
     BAR = "flex items-center gap-1 rounded-md border border-border bg-surface-raised p-1 shadow-xs"
 
-    # label: the menubar's accessible name (aria-label), e.g. "Main".
-    def initialize(label: "Menu", **html_attrs)
+    # label: the menubar's accessible name (aria-label), e.g. "Main". Required — a generic
+    # default would silently pass axe's name-present check while leaving the role=menubar
+    # container under-named (and ambiguous when a page has more than one).
+    def initialize(label:, **html_attrs)
       @label = label
       @extra_class = html_attrs.delete(:class)
       @html_attrs = html_attrs
     end
 
     def call
+      caller_data = @html_attrs.delete(:data) || {}
       content_tag(:div, safe_join(menus),
         role: "menubar",
         "aria-label": @label,
@@ -42,7 +45,7 @@ module UI
           controller: "menubar",
           menubar_menu_outlet: "[data-menubar-item]",
           action: "keydown->menubar#navigate focusin->menubar#syncRoving"
-        },
+        }.merge(caller_data),
         **@html_attrs)
     end
   end

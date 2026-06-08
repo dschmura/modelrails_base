@@ -70,7 +70,14 @@ module UI
       caller_data = @html_attrs.delete(:data) || {}
       content_tag(:div, safe_join([ trigger_button, submenu_panel ]),
         class: cn("relative", @extra_class),
-        data: { controller: "menu", menubar_item: "" }.merge(caller_data),
+        # closeOnClickOutside gives the band its mutual exclusion: clicking another bar item
+        # is "outside" this wrapper, so this submenu closes as the other opens (matches
+        # dropdown_menu/context_menu; the keyboard ←/→-follow path closes explicitly instead).
+        data: {
+          controller: "menu",
+          menubar_item: "",
+          action: "click@document->menu#closeOnClickOutside"
+        }.merge(caller_data),
         **@html_attrs)
     end
 
