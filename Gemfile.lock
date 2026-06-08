@@ -1,7 +1,7 @@
 GIT
   remote: https://github.com/dschmura/modelrails_ui.git
-  revision: 326a6ca98f5945a32f8008837745ca20669c2795
-  branch: harden/context-menu
+  revision: c4dae5a3ef1150cb1429d91168a9fb759ae050ac
+  branch: modelrails/harden
   specs:
     modelrails_ui (0.2.0)
       railties (>= 7.1)
