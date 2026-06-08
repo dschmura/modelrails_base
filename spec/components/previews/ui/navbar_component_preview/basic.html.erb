@@ -1,0 +1,17 @@
+<div class="min-h-96">
+  <%= render(UI::NavbarComponent.new(
+    brand: "Acme",
+    brand_href: "#",
+    label: "Main",
+    items: [
+      { label: "Dashboard", href: "#", active: true },
+      { label: "Pricing", href: "#" },
+      { label: "Docs", href: "#" }
+    ]
+  )) do %>
+    <a href="#" class="btn-primary">Sign in</a>
+  <% end %>
+  <div class="p-12 text-text-muted">
+    <p>Page content. Resize narrow (&lt; 768px) to reveal the hamburger + mobile menu.</p>
+  </div>
+</div>
