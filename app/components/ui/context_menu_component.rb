@@ -45,6 +45,8 @@ module UI
       el[:href] = href if href
       el[:type] = "button" unless href
       el[:"aria-disabled"] = "true" if disabled
+      # `el` splats LAST so the ARIA/Stimulus wiring (role/tabindex/class/data) always wins
+      # over caller attrs — callers may add attrs but cannot break the menu contract.
       content_tag(tag_name, capture(&block), **attrs, **el)
     end
 
