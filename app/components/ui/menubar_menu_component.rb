@@ -36,7 +36,7 @@ module UI
               "font-medium outline-none " \
               "hover:bg-surface-sunken hover:text-text-heading " \
               "focus-visible:bg-surface-sunken focus-visible:text-text-heading " \
-              "aria-expanded:bg-surface-sunken " \
+              "aria-expanded:bg-surface-sunken aria-expanded:text-text-heading " \
               "aria-disabled:opacity-60 aria-disabled:cursor-not-allowed aria-disabled:pointer-events-none"
 
     # Submenu panel — CSS anchor positioning (bottom_start, below the bar item, start-aligned,
