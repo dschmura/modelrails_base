@@ -1,7 +1,7 @@
 GIT
   remote: https://github.com/dschmura/modelrails_ui.git
-  revision: 2a2bf9950a4dd88dbf6d58ea2231f613e254eb13
-  branch: harden/breadcrumb-pagination
+  revision: 1b4eecfa1cd36fc97f2a16d34fefba0841810424
+  branch: modelrails/harden
   specs:
     modelrails_ui (0.2.0)
       railties (>= 7.1)
