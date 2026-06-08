@@ -1,7 +1,7 @@
 GIT
   remote: https://github.com/dschmura/modelrails_ui.git
-  revision: cae4ee8eac7de5e0236b7f9be4677c720a4f2725
-  branch: harden/menubar
+  revision: 9fb6ac696e8036a90bd20438cd3196af7ec1f5d4
+  branch: modelrails/harden
   specs:
     modelrails_ui (0.2.0)
       railties (>= 7.1)
