@@ -1,0 +1,16 @@
+<%# ✗ Hand-rolled footer: <div> rows of links (not a <ul>) and an icon-only %>
+<%# social link with no accessible name. Screen readers can't list these as %>
+<%# navigation, and the icon link announces only its href. Pass `columns:` instead. %>
+<footer class="border-t bg-surface-raised">
+  <div class="container mx-auto px-6 py-10">
+    <div class="mb-10 flex flex-wrap gap-6">
+      <div class="text-sm text-text-muted">Features</div>
+      <div class="text-sm text-text-muted">Pricing</div>
+      <div class="text-sm text-text-muted">About</div>
+      <a href="#" class="text-text-muted">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="10"/></svg>
+      </a>
+    </div>
+    <p class="text-sm text-text-muted">© 2026 Acme Inc.</p>
+  </div>
+</footer>

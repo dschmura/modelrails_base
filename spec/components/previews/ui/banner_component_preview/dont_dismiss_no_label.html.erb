@@ -1,0 +1,8 @@
+<%# ✗ A bare icon-only close button with no aria-label is announced as just "button". %>
+<%# The component always names its dismiss control (i18n "Dismiss") — never hand-roll this. %>
+<div role="region" aria-label="Announcement" class="flex items-center gap-3 rounded-lg border border-border bg-surface-raised p-4 text-sm text-text-body">
+  <div class="flex-1">We use cookies to improve your experience.</div>
+  <button type="button" class="-m-1 shrink-0 rounded-md p-1 text-current focus-ring">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+  </button>
+</div>
