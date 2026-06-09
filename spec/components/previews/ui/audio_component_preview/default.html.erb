@@ -1,0 +1,5 @@
+<div data-test="audio">
+  <%= render(UI::AudioComponent.new) do |a| %>
+    <% a.with_source(src: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.mp3", type: "audio/mpeg") %>
+  <% end %>
+</div>

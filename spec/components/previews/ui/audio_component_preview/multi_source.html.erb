@@ -1,0 +1,6 @@
+<div data-test="audio">
+  <%= render(UI::AudioComponent.new(loop: true)) do |a| %>
+    <% a.with_source(src: "/audio/clip.ogg", type: "audio/ogg") %>
+    <% a.with_source(src: "/audio/clip.mp3", type: "audio/mpeg") %>
+  <% end %>
+</div>
