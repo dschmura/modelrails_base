@@ -13,7 +13,11 @@ module UI
     #   end
 
     TRACK_CLS = "flex transition-transform duration-300 motion-reduce:transition-none"
-    SLIDE_CLS = "min-w-full shrink-0"
+    # w-full (definite, not min-w-full) so a percentage-width child resolves against
+    # it instead of falling back to the image's intrinsic width and overflowing the
+    # slide; overflow-hidden flips the flex min-width:auto to 0 so wide content can't
+    # widen the slide past one frame (else translateX(-100%) lands slides partially).
+    SLIDE_CLS = "w-full shrink-0 overflow-hidden"
 
     BTN_BASE  = "absolute top-1/2 z-10 -translate-y-1/2 inline-flex size-11 items-center justify-center " \
                 "rounded-full bg-surface-raised/80 backdrop-blur border border-border shadow-sm " \

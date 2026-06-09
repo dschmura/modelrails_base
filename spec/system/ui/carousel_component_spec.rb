@@ -40,6 +40,26 @@ RSpec.describe "Carousel component accessibility", type: :system do
     expect(transform).not_to eq("none") # the track moved
 
     expect(page).to have_css("[data-carousel-target='dots'] button:nth-child(2)[aria-current='true']")
+
+    # ...and slide 2 lands FLUSH at the container's left edge — not partially
+    # scrolled. Regression guard for the slide-width fix: `min-w-full` let a wide
+    # image overflow the slide to its intrinsic 600px while the track translated by
+    # one 448px container-width, leaving slide 2 offset ~152px into the viewport.
+    # Wait for the transition to settle, then measure the offset.
+    offset = page.evaluate_async_script(<<~JS)
+      const done = arguments[0]
+      const track = document.querySelector("[data-carousel-target='track']")
+      const measure = () => {
+        const container = document.querySelector("[data-test='carousel'] .overflow-hidden")
+        const slide2 = track.querySelectorAll("[aria-roledescription='slide']")[1]
+        done(Math.round(slide2.getBoundingClientRect().left - container.getBoundingClientRect().left))
+      }
+      let settled = false
+      const finish = () => { if (!settled) { settled = true; measure() } }
+      track.addEventListener("transitionend", finish, { once: true })
+      setTimeout(finish, 600)
+    JS
+    expect(offset.abs).to be <= 2
   end
 
   it "autoplay: pause flips the live region to polite (WCAG 2.2.2 mechanism)" do
