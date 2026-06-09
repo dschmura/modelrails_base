@@ -1,0 +1,6 @@
+<div data-test="video">
+  <%= render(UI::VideoComponent.new) do |v| %>
+    <% v.with_source(src: "/video/demo.mp4", type: "video/mp4") %>
+    <% v.with_track(src: "/video/en.vtt", kind: :captions, label: "English", srclang: "en", default: true) %>
+  <% end %>
+</div>

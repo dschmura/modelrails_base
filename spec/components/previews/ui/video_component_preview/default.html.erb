@@ -1,0 +1,7 @@
+<%# Inline 1x1 data-URI poster + local source path: axe checks markup, not loaded %>
+<%# pixels, and external media URLs can hang/flake the headless browser. %>
+<div data-test="video">
+  <%= render(UI::VideoComponent.new(poster: "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==")) do |v| %>
+    <% v.with_source(src: "/video/demo.mp4", type: "video/mp4") %>
+  <% end %>
+</div>
