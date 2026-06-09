@@ -198,17 +198,19 @@ module UI
         "https://maps.google.com/maps?q=#{CGI.escape(@query)}&output=embed"
       elsif @url
         return @url if @url.include?("output=embed") || @url.match?(%r{/maps/embed})
-        uri = URI.parse(@url)
-        q = CGI.parse(uri.query.to_s)["q"]&.first
-        if q
-          "https://maps.google.com/maps?q=#{CGI.escape(q)}&output=embed"
-        else
-          sep = @url.include?("?") ? "&" : "?"
-          "#{@url}#{sep}output=embed"
+        begin
+          uri = URI.parse(@url)
+          q = URI.decode_www_form(uri.query.to_s).to_h["q"]
+          if q
+            "https://maps.google.com/maps?q=#{CGI.escape(q)}&output=embed"
+          else
+            sep = @url.include?("?") ? "&" : "?"
+            "#{@url}#{sep}output=embed"
+          end
+        rescue URI::InvalidURIError, ArgumentError
+          nil
         end
       end
-    rescue URI::InvalidURIError
-      nil
     end
 
     def yandex_maps_url
@@ -238,9 +240,9 @@ module UI
       if uri.host&.include?("youtu.be")
         uri.path.delete_prefix("/")
       elsif uri.host&.include?("youtube.com")
-        CGI.parse(uri.query.to_s)["v"]&.first
+        URI.decode_www_form(uri.query.to_s).to_h["v"]
       end
-    rescue URI::InvalidURIError
+    rescue URI::InvalidURIError, ArgumentError
       nil
     end
 
