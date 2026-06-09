@@ -1,0 +1,6 @@
+<%# #field-scope wraps the field so the 0b axe audit scopes to the component, not the host chrome (dev theme toggle). %>
+<div id="field-scope" class="max-w-md">
+  <%= ui :form_field, label: "Email", id: "preview_email" do |f| %>
+    <%= ui :input, type: "email", name: "email", **f.input_attrs %>
+  <% end %>
+</div>
