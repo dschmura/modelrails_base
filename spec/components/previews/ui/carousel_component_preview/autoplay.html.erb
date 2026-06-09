@@ -1,0 +1,7 @@
+<%# Real picsum photos; autoplaying carousel (3s) with a WCAG 2.2.2 pause/play toggle. %>
+<div data-test="carousel" class="max-w-md">
+  <%= render(UI::CarouselComponent.new(label: "Auto gallery", autoplay: 3000)) do |c| %>
+    <% c.with_slide { tag.img(src: "https://picsum.photos/id/1024/800/400", alt: "Auto one", class: "w-full") } %>
+    <% c.with_slide { tag.img(src: "https://picsum.photos/id/1043/800/400", alt: "Auto two", class: "w-full") } %>
+  <% end %>
+</div>

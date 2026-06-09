@@ -1,0 +1,9 @@
+<%# Real picsum photos so the carousel demo is photo-quality; the 0b spec asserts %>
+<%# layout/behavior (flush slide, aria-current, transform), never image loading. %>
+<div data-test="carousel" class="max-w-md">
+  <%= render(UI::CarouselComponent.new(label: "Featured photos")) do |c| %>
+    <% c.with_slide { tag.img(src: "https://picsum.photos/id/1015/800/400", alt: "Slide one", class: "w-full") } %>
+    <% c.with_slide { tag.img(src: "https://picsum.photos/id/1016/800/400", alt: "Slide two", class: "w-full") } %>
+    <% c.with_slide { tag.img(src: "https://picsum.photos/id/1018/800/400", alt: "Slide three", class: "w-full") } %>
+  <% end %>
+</div>
