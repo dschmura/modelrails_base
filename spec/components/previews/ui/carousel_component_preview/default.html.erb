@@ -1,0 +1,14 @@
+<%# Inline solid-color SVG data-URIs as slide images: real markup + alts, no %>
+<%# network fetch (external image hosts can hang/flake the headless browser). %>
+<%
+  one   = "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='600'%20height='300'%3E%3Crect%20width='600'%20height='300'%20fill='%23166534'/%3E%3C/svg%3E"
+  two   = "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='600'%20height='300'%3E%3Crect%20width='600'%20height='300'%20fill='%23475569'/%3E%3C/svg%3E"
+  three = "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='600'%20height='300'%3E%3Crect%20width='600'%20height='300'%20fill='%230c4a6e'/%3E%3C/svg%3E"
+%>
+<div data-test="carousel" class="max-w-md">
+  <%= render(UI::CarouselComponent.new(label: "Featured photos")) do |c| %>
+    <% c.with_slide { tag.img(src: one, alt: "Slide one", class: "w-full") } %>
+    <% c.with_slide { tag.img(src: two, alt: "Slide two", class: "w-full") } %>
+    <% c.with_slide { tag.img(src: three, alt: "Slide three", class: "w-full") } %>
+  <% end %>
+</div>

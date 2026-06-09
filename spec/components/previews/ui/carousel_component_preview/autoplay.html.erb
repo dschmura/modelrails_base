@@ -1,0 +1,10 @@
+<%
+  auto_one = "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='600'%20height='300'%3E%3Crect%20width='600'%20height='300'%20fill='%237c2d12'/%3E%3C/svg%3E"
+  auto_two = "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='600'%20height='300'%3E%3Crect%20width='600'%20height='300'%20fill='%231e3a8a'/%3E%3C/svg%3E"
+%>
+<div data-test="carousel" class="max-w-md">
+  <%= render(UI::CarouselComponent.new(label: "Auto gallery", autoplay: 3000)) do |c| %>
+    <% c.with_slide { tag.img(src: auto_one, alt: "Auto one", class: "w-full") } %>
+    <% c.with_slide { tag.img(src: auto_two, alt: "Auto two", class: "w-full") } %>
+  <% end %>
+</div>
