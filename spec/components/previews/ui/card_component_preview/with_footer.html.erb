@@ -1,0 +1,15 @@
+<div id="card-scope" class="max-w-md">
+  <%= ui :card, class: "max-w-sm" do %>
+    <%= ui :card_header do %>
+      <%= ui :card_title, "Delete project", level: 2 %>
+      <%= ui :card_description, "This permanently removes the project and its data." %>
+    <% end %>
+    <%= ui :card_content do %>
+      <p class="text-sm text-text-body">You can export your data before deleting.</p>
+    <% end %>
+    <%= ui :card_footer, class: "justify-end gap-2" do %>
+      <%= ui :button, "Cancel", variant: :secondary %>
+      <%= ui :button, "Delete", variant: :destructive %>
+    <% end %>
+  <% end %>
+</div>

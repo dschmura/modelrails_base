@@ -1,0 +1,11 @@
+<div id="card-scope" class="max-w-md">
+  <h1 class="text-text-heading mb-4 text-xl font-bold">Settings</h1>
+
+  <%# ✗ Under an <h1>, the next heading should be <h2> — the default <h3> skips a level. %>
+  <%= ui :card, class: "max-w-sm" do %>
+    <%= ui :card_header do %>
+      <%= ui :card_title, "Profile" %>
+      <%= ui :card_description, "Default level: 3 skips <h2> here — pass level: 2 instead." %>
+    <% end %>
+  <% end %>
+</div>

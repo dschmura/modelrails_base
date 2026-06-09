@@ -1,0 +1,12 @@
+<div id="lg-scope" class="max-w-md">
+  <%# ✗ <div> rows with click handlers: not a list, not focusable, invisible to AT. %>
+  <%# Use ui :list_group with link/button rows instead — real <ul>/<li> + <a>/<button>. %>
+  <div class="divide-y divide-border overflow-hidden rounded-lg border border-border bg-surface">
+    <div class="flex items-center justify-between px-4 py-3 text-sm text-text-heading" data-action="click->nav#go">
+      Dashboard
+    </div>
+    <div class="flex items-center justify-between px-4 py-3 text-sm text-text-heading" data-action="click->nav#go">
+      Settings
+    </div>
+  </div>
+</div>

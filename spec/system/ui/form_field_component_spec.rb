@@ -15,12 +15,14 @@ require "rails_helper"
 # toggle). No color-contrast exclude — a real contrast failure on the field's text
 # (label / hint / error / input) would still fail this spec.
 RSpec.describe "FormField component accessibility", type: :system do
-  SCOPE = [ "#field-scope" ].freeze
+  # `let`, not a top-level constant (a constant inside describe leaks to ::SCOPE and
+  # collides across scoped 0b specs → axe scopes to the wrong selector).
+  let(:scope) { [ "#field-scope" ] }
 
   def expect_aaa_in_both_themes
-    expect(axe_clean_in_both_themes?(include: SCOPE)).to(
+    expect(axe_clean_in_both_themes?(include: scope)).to(
       be(true),
-      axe_violations_in_both_themes(include: SCOPE).join("\n")
+      axe_violations_in_both_themes(include: scope).join("\n")
     )
   end
 
