@@ -1,0 +1,7 @@
+<%# youtu.be short form (not the ?v= form): on this Ruby the component's %>
+<%# extract_youtube_id hits `CGI.parse`, which is undefined here — a real gem %>
+<%# defect tracked in the Phase B report. The short form yields the identical %>
+<%# <iframe title="YouTube video"> this 0b proves. %>
+<div data-test="embed" class="max-w-xl">
+  <%= render(UI::EmbedComponent.new(url: "https://youtu.be/dQw4w9WgXcQ")) %>
+</div>
