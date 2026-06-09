@@ -1,0 +1,5 @@
+<div id="field-scope" class="max-w-md">
+  <%= ui :form_field, label: "Email", hint: "We'll never share it.", id: "preview_email" do |f| %>
+    <%= ui :input, type: "email", name: "email", **f.input_attrs %>
+  <% end %>
+</div>
