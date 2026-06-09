@@ -1,0 +1,5 @@
+<%# The full watch?v= form exercises extract_youtube_id's query-parse path %>
+<%# (URI.decode_www_form — the Ruby-4.0 CGI.parse fix, gem #36). %>
+<div data-test="embed" class="max-w-xl">
+  <%= render(UI::EmbedComponent.new(url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ")) %>
+</div>
