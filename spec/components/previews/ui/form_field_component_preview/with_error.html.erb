@@ -1,0 +1,5 @@
+<div id="field-scope" class="max-w-md">
+  <%= ui :form_field, label: "Email", error: "is not a valid address", id: "preview_email" do |f| %>
+    <%= ui :input, type: "email", name: "email", value: "not-an-email", **f.input_attrs %>
+  <% end %>
+</div>
