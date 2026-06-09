@@ -1,7 +1,9 @@
-<%# Inline 1x1 data-URI poster + local source path: axe checks markup, not loaded %>
-<%# pixels, and external media URLs can hang/flake the headless browser. %>
-<div data-test="video">
-  <%= render(UI::VideoComponent.new(poster: "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==")) do |v| %>
-    <% v.with_source(src: "/video/demo.mp4", type: "video/mp4") %>
+<%# Real poster (picsum, as the image/picture previews use) + a reliable sample %>
+<%# source, so the Lookbook preview shows an actual video frame and plays. The 0b %>
+<%# spec only asserts the <video> markup + axe (never media loading), so external %>
+<%# media is safe here — same precedent as the picsum-backed image previews. %>
+<div data-test="video" class="max-w-md">
+  <%= render(UI::VideoComponent.new(poster: "https://picsum.photos/id/1015/640/360")) do |v| %>
+    <% v.with_source(src: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4", type: "video/mp4") %>
   <% end %>
 </div>

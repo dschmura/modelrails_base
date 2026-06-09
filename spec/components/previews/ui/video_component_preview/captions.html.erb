@@ -1,6 +1,9 @@
-<div data-test="video">
-  <%= render(UI::VideoComponent.new) do |v| %>
-    <% v.with_source(src: "/video/demo.mp4", type: "video/mp4") %>
-    <% v.with_track(src: "/video/en.vtt", kind: :captions, label: "English", srclang: "en", default: true) %>
+<%# Real media + a self-contained data-URI WebVTT track, so the captions demo %>
+<%# actually works with zero external dependency. The 0b spec asserts the %>
+<%# <track kind="captions"> element + axe; the data URI makes it a real caption. %>
+<div data-test="video" class="max-w-md">
+  <%= render(UI::VideoComponent.new(poster: "https://picsum.photos/id/1016/640/360")) do |v| %>
+    <% v.with_source(src: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4", type: "video/mp4") %>
+    <% v.with_track(src: "data:text/vtt;charset=utf-8,WEBVTT%0A%0A00:00:00.000%20--%3E%2000:00:05.000%0AEnglish%20captions%20(demo).", kind: :captions, label: "English", srclang: "en", default: true) %>
   <% end %>
 </div>
