@@ -1,0 +1,11 @@
+<%# #cb-scope wraps the bubbles so the 0b axe audit scopes to the component, not the host chrome (dev theme toggle). %>
+<div id="cb-scope" class="max-w-md">
+  <div class="flex flex-col gap-4">
+    <%= ui :chat_bubble, author: "Ada Lovelace", timestamp: "10:32 AM" do %>
+      I'll check and get back to you shortly.
+    <% end %>
+    <%= ui :chat_bubble, sent: true, author: "You", timestamp: "10:34 AM" do %>
+      Sounds great, see you then!
+    <% end %>
+  </div>
+</div>

@@ -1,0 +1,14 @@
+<%# ✗ Who spoke is shown only by side + fill. Sighted users infer it; with no author: %>
+<%# and the sr-only direction label removed, a screen-reader user would get nothing. %>
+<%# Keep the built-in sr-only label, or pass author: to name the speaker. %>
+<%# #cb-scope wraps the bubbles so the 0b axe audit scopes to the component, not the host chrome. %>
+<div id="cb-scope" class="max-w-md">
+  <div class="flex flex-col gap-4">
+    <%= ui :chat_bubble do %>
+      Did you get my last message?
+    <% end %>
+    <%= ui :chat_bubble, sent: true do %>
+      Yes — replying now.
+    <% end %>
+  </div>
+</div>
