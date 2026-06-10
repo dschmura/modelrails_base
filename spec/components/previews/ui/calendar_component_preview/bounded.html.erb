@@ -1,0 +1,6 @@
+<%# min/max disable out-of-range days; disabled day buttons drop out of pointer/keyboard reach. %>
+<%= ui :calendar,
+      month: Date.new(2026, 6, 1),
+      selected: Date.new(2026, 6, 10),
+      min: Date.new(2026, 6, 5),
+      max: Date.new(2026, 6, 20) %>

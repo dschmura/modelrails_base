@@ -1,0 +1,4 @@
+<%# 12-hour mode: the hour spinbutton caps at 12 and an AM/PM spinbutton appears. %>
+<div class="p-8 pb-72">
+  <%= render(UI::TimepickerComponent.new(label: "Appointment", value: "11:15", format: :h12, name: "event[time]")) %>
+</div>

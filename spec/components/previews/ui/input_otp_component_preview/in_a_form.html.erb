@@ -1,0 +1,5 @@
+<%# Cells post as otp[0]…otp[5]; the first cell autofills an SMS one-time-code. %>
+<form>
+  <%= ui :input_otp, name: "otp", length: 6 %>
+  <%= ui :button, "Verify", type: "submit" %>
+</form>
