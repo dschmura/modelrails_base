@@ -82,6 +82,10 @@ module UI
       ui :badge, label, variant: variant.to_sym, tone: tone.to_sym
     end
 
+    # Every AAA-proven variant × tone cell on one screen.
+    def showcase
+    end
+
     # ## Don't — a badge as an action
     #
     # A badge is presentational. Don't wire a click handler onto a bare badge to fake

@@ -63,4 +63,17 @@ RSpec.describe "Badge component accessibility", type: :system do
       )
     end
   end
+
+  it "showcase renders every proven cell and passes AAA in both themes" do
+    visit "#{BADGE_PREVIEW}/showcase"
+
+    # All 9 proven cells render; scope the audit to the showcase subtree so
+    # host-chrome best-practice advisories stay out (no color-contrast exclude).
+    expect(page).to have_css("[data-showcase=badge] span.rounded-full", minimum: 9)
+    scope = [ "[data-showcase=badge]" ]
+    expect(axe_clean_in_both_themes?(include: scope)).to(
+      be(true),
+      axe_violations_in_both_themes(include: scope).join("\n")
+    )
+  end
 end
