@@ -27,25 +27,32 @@ module UI
     include UIHelper
 
     # The default, high-emphasis action. Aim for one primary per view.
-    def primary; end
+    def primary
+    end
 
     # Neutral / secondary action, usually paired beside a primary.
-    def secondary; end
+    def secondary
+    end
 
     # Destructive *styling*. For a real delete, drive it with `button_to` and this variant's class.
-    def danger; end
+    def danger
+    end
 
     # Low-emphasis inline action that reads like a link.
-    def text_interactive; end
+    def text_interactive
+    end
 
     # Button-styled link: pass `href:` and the component renders an `<a>`.
-    def link; end
+    def link
+    end
 
-    # Edit `label` and `variant` live to explore the component.
+    # Edit `label` and the two-axis `variant`/`tone` cell live. Only the AAA-proven
+    # cells are offered (an unproven pairing raises in dev).
     # @param label text
-    # @param variant select [primary, secondary, danger, text, text_interactive, text_danger]
-    def playground(label: "Button", variant: :primary)
-      ui :button, label, variant: variant.to_sym
+    # @param cell select [solid/primary, solid/danger, outline/neutral, text/primary, text/danger]
+    def playground(label: "Button", cell: "solid/primary")
+      variant, tone = cell.split("/")
+      ui :button, label, variant: variant.to_sym, tone: tone.to_sym
     end
 
     # ## Don't — icon-only button with no accessible name
@@ -54,6 +61,7 @@ module UI
     # Prefer visible text; if the design is truly icon-only, pass a label:
     # `ui :button, "★", variant: :secondary, "aria-label": "Add to favorites"`.
     # @label Don't · icon-only without a label
-    def dont_icon_only_without_label; end
+    def dont_icon_only_without_label
+    end
   end
 end

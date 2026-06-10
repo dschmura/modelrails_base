@@ -71,11 +71,14 @@ module UI
     def link_href
     end
 
-    # Edit `label` and `variant` live to explore the component.
+    # Edit `label` and the two-axis `variant`/`tone` cell live. Only the 9 AAA-proven
+    # cells are offered (signals live on the SOFT variant as tinted chips; an unproven
+    # pairing raises in dev).
     # @param label text
-    # @param variant select [default, secondary, info, success, warning, danger, destructive, outline, ghost, link]
-    def playground(label: "Badge", variant: :default)
-      ui :badge, label, variant: variant.to_sym
+    # @param cell select [solid/primary, soft/primary, soft/info, soft/success, soft/warning, soft/danger, outline/neutral, ghost/neutral, link/primary]
+    def playground(label: "Badge", cell: "soft/primary")
+      variant, tone = cell.split("/")
+      ui :badge, label, variant: variant.to_sym, tone: tone.to_sym
     end
 
     # ## Don't — a badge as an action
