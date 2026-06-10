@@ -1,0 +1,12 @@
+<%= ui :command, size: :lg do |cmd| %>
+  <% cmd.with_trigger { ui :button, "Search…", variant: :outline, tone: :neutral } %>
+
+  <div class="<%= UI::CommandComponent::GROUP_WRAPPER %>" data-command-group>
+    <p class="<%= UI::CommandComponent::GROUP %>">Recent</p>
+    <button type="button" class="<%= UI::CommandComponent::ITEM %>" data-command-value="Q3 revenue report">
+      Q3 revenue report
+      <span class="<%= UI::CommandComponent::SHORTCUT %>">⌘1</span>
+    </button>
+    <button type="button" class="<%= UI::CommandComponent::ITEM %>" data-command-value="Onboarding checklist">Onboarding checklist</button>
+  </div>
+<% end %>
