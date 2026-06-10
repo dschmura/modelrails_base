@@ -1,0 +1,6 @@
+<%# locals: () -%>
+<div data-showcase="banner" class="flex flex-col gap-4">
+  <% %i[default info success warning destructive].each do |variant| %>
+    <%= ui :banner, "This is a #{variant} banner.", variant: variant, label: "#{variant.to_s.capitalize} announcement" %>
+  <% end %>
+</div>

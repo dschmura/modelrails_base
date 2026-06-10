@@ -42,6 +42,10 @@ module UI
     def dismissible
     end
 
+    # Every AAA-proven variant on one screen.
+    def showcase
+    end
+
     # ## Don't — a dismiss control without an accessible name
     #
     # An icon-only close button with no `aria-label` is an unnamed button to screen
