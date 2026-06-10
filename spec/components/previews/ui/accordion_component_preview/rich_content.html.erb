@@ -1,0 +1,12 @@
+<%= ui :accordion do |accordion| %>
+  <% accordion.with_item(title: "Pricing", open: true) do %>
+    <ul class="list-disc space-y-1 pl-4 text-text-body">
+      <li>Starter — free forever</li>
+      <li>Pro — $12/month</li>
+      <li>Enterprise — contact us</li>
+    </ul>
+  <% end %>
+  <% accordion.with_item(title: "Support") do %>
+    <p class="text-text-body">Email support on every plan; priority on Pro and above.</p>
+  <% end %>
+<% end %>
