@@ -50,6 +50,10 @@ module UI
     def with_slots
     end
 
+    # Every AAA-proven tone on one screen.
+    def showcase
+    end
+
     # ## Don't — an empty alert
     #
     # An alert with no title and no description renders an empty live region —

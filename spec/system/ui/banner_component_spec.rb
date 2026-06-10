@@ -40,4 +40,15 @@ RSpec.describe "Banner component accessibility", type: :system do
     expect(page).to have_css("[role='region'] button[aria-label].focus-ring")
     expect_aaa_in_both_themes
   end
+
+  it "showcase renders every variant and passes AAA in both themes" do
+    visit "/rails/view_components/ui/banner_component/showcase"
+
+    expect(page).to have_css("[data-showcase=banner]", minimum: 1)
+    scope = [ "[data-showcase=banner]" ]
+    expect(axe_clean_in_both_themes?(include: scope)).to(
+      be(true),
+      axe_violations_in_both_themes(include: scope).join("\n")
+    )
+  end
 end
