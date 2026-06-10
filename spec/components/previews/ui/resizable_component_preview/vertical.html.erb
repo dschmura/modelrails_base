@@ -1,0 +1,14 @@
+<%= ui :resizable, direction: :vertical, aria_label: "Resize editor", class: "h-80" do |r| %>
+  <% r.with_panel(min: 20, max: 80, default: 60) do %>
+    <div class="p-4 text-sm text-text-body">
+      <p class="font-medium text-text-heading">Editor</p>
+      <p class="mt-1">Tab to the divider, then press Arrow Up / Down to resize.</p>
+    </div>
+  <% end %>
+  <% r.with_panel do %>
+    <div class="p-4 text-sm text-text-body">
+      <p class="font-medium text-text-heading">Console</p>
+      <p class="mt-1">Home / End jump the divider to its min / max.</p>
+    </div>
+  <% end %>
+<% end %>

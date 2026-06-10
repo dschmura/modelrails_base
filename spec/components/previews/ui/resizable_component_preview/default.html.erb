@@ -1,0 +1,14 @@
+<%= ui :resizable, direction: :horizontal, class: "h-64" do |r| %>
+  <% r.with_panel(min: 20, max: 80, default: 35) do %>
+    <div class="p-4 text-sm text-text-body">
+      <p class="font-medium text-text-heading">Sidebar</p>
+      <p class="mt-1">Tab to the divider, then press Arrow Left / Right to resize.</p>
+    </div>
+  <% end %>
+  <% r.with_panel do %>
+    <div class="p-4 text-sm text-text-body">
+      <p class="font-medium text-text-heading">Main</p>
+      <p class="mt-1">Or drag the divider with the mouse.</p>
+    </div>
+  <% end %>
+<% end %>

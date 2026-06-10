@@ -1,0 +1,20 @@
+<%= ui :command do |cmd| %>
+  <% cmd.with_trigger { ui :button, "⌘K", variant: :outline, tone: :neutral } %>
+
+  <div class="<%= UI::CommandComponent::GROUP_WRAPPER %>" data-command-group>
+    <p class="<%= UI::CommandComponent::GROUP %>">Pages</p>
+    <button type="button" class="<%= UI::CommandComponent::ITEM %>" data-command-value="Dashboard">
+      Dashboard
+      <span class="<%= UI::CommandComponent::SHORTCUT %>">⌘D</span>
+    </button>
+    <button type="button" class="<%= UI::CommandComponent::ITEM %>" data-command-value="Settings">Settings</button>
+  </div>
+
+  <hr class="<%= UI::CommandComponent::SEPARATOR %>">
+
+  <div class="<%= UI::CommandComponent::GROUP_WRAPPER %>" data-command-group>
+    <p class="<%= UI::CommandComponent::GROUP %>">Actions</p>
+    <button type="button" class="<%= UI::CommandComponent::ITEM %>" data-command-value="New document">New document</button>
+    <button type="button" class="<%= UI::CommandComponent::ITEM %>" data-command-value="Invite teammate">Invite teammate</button>
+  </div>
+<% end %>

@@ -1,0 +1,5 @@
+<%# ✗ "QR code" names the graphic but not its payload — a screen-reader user can't %>
+<%# tell where it leads. Describe the destination instead. %>
+<%= ui :qr_code,
+      src: "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://example.com",
+      alt: "QR code" %>
