@@ -8,7 +8,7 @@ module UI
   # itself is NOT bundled; add it to your importmap before use:
   #
   #   # config/importmap.rb
-  #   pin "chart.js", to: "https://esm.sh/chart.js@4"
+  #   pin "chart.js", to: "https://cdn.jsdelivr.net/npm/chart.js@4/+esm"
   #
   # ## Usage
   #   ui :chart, type: :bar, label: "Quarterly revenue vs. costs",
