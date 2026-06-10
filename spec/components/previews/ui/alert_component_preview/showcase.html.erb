@@ -1,0 +1,6 @@
+<%# locals: () -%>
+<div data-showcase="alert" class="flex flex-col gap-4 max-w-xl">
+  <% %i[neutral info success warning danger].each do |tone| %>
+    <%= ui :alert, tone: tone, title: tone.to_s.capitalize, description: "A #{tone} alert message." %>
+  <% end %>
+</div>

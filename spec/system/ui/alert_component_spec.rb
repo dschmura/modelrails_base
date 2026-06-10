@@ -41,4 +41,15 @@ RSpec.describe "Alert component accessibility", type: :system do
       )
     end
   end
+
+  it "showcase renders every tone and passes AAA in both themes" do
+    visit "/rails/view_components/ui/alert_component/showcase"
+
+    expect(page).to have_css("[data-showcase=alert]", minimum: 1)
+    scope = [ "[data-showcase=alert]" ]
+    expect(axe_clean_in_both_themes?(include: scope)).to(
+      be(true),
+      axe_violations_in_both_themes(include: scope).join("\n")
+    )
+  end
 end

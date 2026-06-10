@@ -56,6 +56,10 @@ module UI
       ui :button, label, variant: variant.to_sym, tone: tone.to_sym
     end
 
+    # Every AAA-proven variant × tone cell on one screen.
+    def showcase
+    end
+
     # ## Don't — icon-only button with no accessible name
     #
     # An icon-only button **must** carry an `aria-label:`, or screen-reader users hear nothing.
