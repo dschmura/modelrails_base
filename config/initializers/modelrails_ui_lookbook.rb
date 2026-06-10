@@ -15,4 +15,5 @@ if Rails.env.development? || Rails.env.test?
 
   Rails.application.config.lookbook.preview_paths = [ preview_dir ] if Rails.env.development?
   Rails.application.config.lookbook.page_paths = [ Rails.root.join("spec/components/previews/pages").to_s ] if Rails.env.development?
+  Rails.application.config.lookbook.preview_display_options = { theme: %w[light dark] } if Rails.env.development?
 end
