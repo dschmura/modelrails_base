@@ -12,6 +12,7 @@
 
 **Reference — verified mechanisms (lookbook-2.3.14):**
 - `@logical_path` tag: `lib/lookbook/entities/concerns/locatable_entity.rb:71` ("Can be altered using the `@logical_path` tag"); read via `fetch_config(:logical_path)`.
+- **EXEMPLAR FINDING (Task 1, live-verified):** use the **UNQUOTED** form `# @logical_path Forms & Inputs` — lookbook-2.3.14 consumes the tag text verbatim (`PathUtils.to_path` just string-joins), so a quoted `"Forms & Inputs"` leaks the quotes into the nav label + URL. The tag value is the trimmed rest of the line. All 8 section names round-trip cleanly through `name.titleize` (the label derivation), so the unquoted names render exactly as the approved labels.
 - Pages load from `config.lookbook.page_paths`; page route `/lookbook/pages/*path`; `00_` prefix sets priority + is stripped (`page_entity.rb:21`).
 - Embed helper: `lib/lookbook/helpers/page_helper.rb:27` — `embed(preview, scenario = nil, **opts)`.
 
@@ -68,7 +69,7 @@ In `button_component_preview.rb`, insert the tag as the last line of the class d
 
 ```ruby
   #   `solid/primary` · `solid/danger` · `outline/neutral` · `text/primary` · `text/danger`
-  # @logical_path "Actions"
+  # @logical_path Actions
   class ButtonComponentPreview < ViewComponent::Preview
 ```
 
@@ -76,7 +77,7 @@ In `button_component_preview.rb`, insert the tag as the last line of the class d
 
 - [ ] **Step 3: Mirror the same tag into the app button preview**
 
-Apply the identical edit to the app file `spec/components/previews/ui/button_component_preview.rb` (same anchor, same `# @logical_path "Actions"`).
+Apply the identical edit to the app file `spec/components/previews/ui/button_component_preview.rb` (same anchor, same `# @logical_path Actions`).
 
 - [ ] **Step 4: Verify live in the app's Lookbook**
 
@@ -176,7 +177,8 @@ class TestLookbookLogicalPaths < Minitest::Test
 
   def declared_logical_path(component)
     src = File.read(File.join(PREVIEW_ROOT, "#{component}_component_preview.rb"))
-    src[/^\s*#\s*@logical_path\s+"([^"]+)"/, 1]
+    # Unquoted form: value is the trimmed rest of the line (see EXEMPLAR FINDING).
+    src[/^\s*#\s*@logical_path\s+(.+?)\s*$/, 1]
   end
 
   def test_every_preview_is_in_the_expected_map
@@ -226,9 +228,8 @@ TestLookbookLogicalPaths::EXPECTED.each do |component, section|
   src = File.read(path)
   next if src.match?(/^\s*#\s*@logical_path\s/)        # already tagged (e.g. button)
 
-  updated = src.sub(/^(\s*)class \w+ComponentPreview < ViewComponent::Preview/) do
-    indent = Regexp.last_match(1)
-    "#{indent}# @logical_path \"#{section}\"\n#{indent}class #{$&.strip.sub(/^class /, '')}"
+  updated = src.sub(/^(\s*)(class \w+ComponentPreview < ViewComponent::Preview)/) do
+    "#{Regexp.last_match(1)}# @logical_path #{section}\n#{Regexp.last_match(1)}#{Regexp.last_match(2)}"
   end
   abort "FAILED to anchor #{component}" if updated == src
   File.write(path, updated)
@@ -507,7 +508,7 @@ RSpec.describe "Lookbook preview logical_path coverage" do
   components.each do |component|
     it "#{component} declares its expected @logical_path" do
       src = File.read(preview_root.join("#{component}_component_preview.rb"))
-      actual = src[/^\s*#\s*@logical_path\s+"([^"]+)"/, 1]
+      actual = src[/^\s*#\s*@logical_path\s+(.+?)\s*$/, 1]
       expect(actual).not_to be_nil, "#{component}: missing @logical_path tag"
       expect(sections).to include(actual)
       expect(actual).to eq(expected[component])
@@ -570,7 +571,7 @@ EXPECTED.each do |component, section|
   src = File.read(path)
   next if src.match?(/^\s*#\s*@logical_path\s/)
   updated = src.sub(/^(\s*)(class \w+ComponentPreview < ViewComponent::Preview)/) do
-    "#{Regexp.last_match(1)}# @logical_path \"#{section}\"\n#{Regexp.last_match(1)}#{Regexp.last_match(2)}"
+    "#{Regexp.last_match(1)}# @logical_path #{section}\n#{Regexp.last_match(1)}#{Regexp.last_match(2)}"
   end
   abort "FAILED to anchor #{component}" if updated == src
   File.write(path, updated)
