@@ -80,7 +80,7 @@ Overlays differ on three axes: whether they **block the page** with a scrim, how
 | `sheet`        | a side panel: navigation, filters, secondary forms | drawer |
 | `drawer`       | a bottom sheet: mobile-friendly secondary actions  | sheet |
 
-<%= embed UI::DialogComponentPreview, :basic %>
+<%= embed UI::DialogComponentPreview %>
 
 ## Floating — anchored to a trigger, no scrim
 
@@ -90,7 +90,7 @@ Overlays differ on three axes: whether they **block the page** with a scrim, how
 | `hover_card` | a rich preview on hover (e.g. a user card)     | popover |
 | `tooltip`    | a label-only string on hover/focus             | popover |
 
-<%= embed UI::PopoverComponentPreview, :basic %>
+<%= embed UI::PopoverComponentPreview %>
 
 ## Menus — a list of commands
 
@@ -100,7 +100,7 @@ Overlays differ on three axes: whether they **block the page** with a scrim, how
 | `context_menu`  | actions from right-click / long-press      | dropdown_menu |
 | `menubar`       | a persistent app menu bar (File / Edit / …) | dropdown_menu |
 
-<%= embed UI::DropdownMenuComponentPreview, :basic %>
+<%= embed UI::DropdownMenuComponentPreview %>
 ```
 
 ## Sourcing rule (accuracy)
@@ -160,3 +160,29 @@ sibling in that `@logical_path` section.
 1. Lookbook 2.3.14 subdir-group behavior (else flat fallback).
 2. Exact guard-spec placement/`require` to match repo conventions.
 3. Final reconciliation of table copy against the 10 previews' `## Use when` blocks.
+
+## Update (2026-06-11) — embed form forced by grouping; Overview regression fixed
+
+Browser verification surfaced a runtime failure the static guard could not: `embed Class, :basic`
+resolved to **nil** and raised `ActionView::Template::Error`. Root cause: the catalog-wide
+`@!group Overview/Examples/Reference` grouping (#273/#274) nests every leaf scenario inside a
+group, so a preview's *top-level* scenarios are the group names — `scenario(:basic)` finds
+nothing. The proven Overview landing page (`00_overview.md.erb`, #270) had the **same** breakage
+(its `embed …, :primary|:info|:default` all resolved nil) — a silent regression no test caught,
+because nothing rendered the Pages.
+
+Decisions taken (approved):
+
+- **Embed form:** use the scenario-less default form `<%= embed UI::FooComponentPreview %>`, which
+  renders the preview's default scenario (the first group). This is the only universally
+  resolvable form under grouping. It renders the whole "examples" group (2–3 scenarios) rather
+  than one leaf — accepted.
+- **Overview regression fixed in the same change** (its three embeds switched to the default form).
+- **Guard rewritten** to cover *all* Pages (`pages/**/*.md.erb`): it forbids the `embed Klass, :leaf`
+  form (which resolves nil under grouping) and asserts each embedded preview exists with ≥1 scenario.
+  It stays static source analysis — `Lookbook` is a **development-only gem, undefined in the test
+  env**, so registry resolution (`Lookbook::Engine.previews`) is not available to RSpec. The
+  convention the guard enforces *guarantees* resolution instead.
+- **Render truth is browser-only here.** A method-existence guard + a 2972-example suite both
+  passed while two pages threw template errors; only loading the page exposed it. Manual both-theme
+  eyeball remains the final gate before push.
