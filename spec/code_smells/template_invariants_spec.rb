@@ -312,6 +312,67 @@ RSpec.describe "Template invariants" do
     end
   end
 
+  describe "CI scans the production image for OS-level CVEs" do
+    # brakeman covers app code and bundler-audit covers gem deps, but neither
+    # sees the OS packages baked into ruby:slim (glibc, openssl, sqlite3,
+    # libvips). The image scan is the third layer. Policy: it runs on
+    # Dockerfile-affecting PRs plus a weekly schedule — NOT on every PR —
+    # because new base-image CVEs appear without any code change and would
+    # red-flag unrelated green branches (same drift mode as the 2026-06-09
+    # bundler-audit oauth2 CVE).
+    let(:scan_workflow_path) { root.join(".github/workflows/image_scan.yml") }
+    let(:scan_workflow_raw) { File.read(scan_workflow_path) }
+    let(:scan_workflow) { YAML.safe_load(scan_workflow_raw, aliases: true) }
+    # Psych (YAML 1.1) parses the unquoted `on:` trigger key as boolean true.
+    let(:triggers) { scan_workflow[true] }
+    let(:scan_job) { scan_workflow.dig("jobs", "scan_image") }
+    let(:scan_steps) { Array(scan_job && scan_job["steps"]) }
+
+    it "has an image_scan workflow with a scan_image job" do
+      expect(File.exist?(scan_workflow_path)).to be(true),
+        "expected .github/workflows/image_scan.yml — without it, OS-package CVEs in the " \
+        "production image are invisible (brakeman/bundler-audit don't scan the image layer)"
+      expect(scan_job).not_to be_nil, "expected a `scan_image` job in image_scan.yml"
+    end
+
+    it "runs weekly AND on Dockerfile-affecting PRs (not every PR)" do
+      expect(triggers).to include("schedule"),
+        "expected a schedule trigger so new base-image CVEs surface without waiting " \
+        "for the next Dockerfile change"
+      expect(triggers.dig("pull_request", "paths")).to include("Dockerfile"),
+        "expected pull_request.paths to include Dockerfile so image-affecting changes " \
+        "are scanned pre-merge"
+    end
+
+    it "builds with the shared GHA layer cache and loads the image for the scanner" do
+      build_step = scan_steps.find { |s| s["uses"].to_s.include?("docker/build-push-action") }
+      expect(build_step).not_to be_nil, "expected a docker/build-push-action build step"
+
+      expect(build_step.dig("with", "cache-from").to_s).to include("type=gha"),
+        "expected cache-from: type=gha so the scan reuses docker_build's layers " \
+        "instead of paying a cold build"
+      expect(build_step.dig("with", "load")).to be(true),
+        "expected load: true — without it the image exists only in the build cache " \
+        "and the scanner has nothing to scan"
+    end
+
+    it "fails the run on fixable HIGH/CRITICAL CVEs (the policy gate)" do
+      trivy_step = scan_steps.find { |s| s["uses"].to_s.include?("trivy-action") }
+      expect(trivy_step).not_to be_nil, "expected an aquasecurity/trivy-action scan step"
+
+      with = trivy_step["with"] || {}
+      expect(with["severity"].to_s).to match(/CRITICAL/),
+        "expected severity to include CRITICAL"
+      expect(with["severity"].to_s).to match(/HIGH/),
+        "expected severity to include HIGH"
+      expect(with["exit-code"].to_s).to eq("1"),
+        "expected exit-code: 1 so HIGH/CRITICAL findings fail the run (report-only scans rot)"
+      expect(with["ignore-unfixed"]).to be(true),
+        "expected ignore-unfixed: true — Debian-stable bases always carry unfixed CVEs; " \
+        "gating on them would make the scan permanently red and ignored"
+    end
+  end
+
   describe "Production topology safety (Rosa Gutiérrez + Ops panel, #130)" do
     # SQLite-on-Rails templates have non-obvious deploy hazards: rolling deploys
     # can race two containers on the same SQLite file; recurring jobs running in
