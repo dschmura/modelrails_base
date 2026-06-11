@@ -10,7 +10,7 @@ A multi-tenant SaaS starter kit built on Rails 8.1.
 - **Assets:** Propshaft, Importmaps
 - **Auth:** Rails 8 authentication generator, magic links, OmniAuth (Google, GitHub), Pundit
 - **Real-Time:** Turbo Stream broadcasts (morph-based refresh)
-- **Content:** Action Text (Trix rich text editor)
+- **Content:** Action Text with [Lexxy](https://github.com/basecamp/lexxy) (Lexical-based rich text editor)
 - **Docs:** Markdowndocs engine at `/docs` (deployment, background jobs, getting started, architecture, security, …)
 - **Testing:** RSpec, FactoryBot, Capybara, Playwright, axe-core (WCAG 2.2 AAA), Bullet (N+1 detection)
 - **Security:** Rate limiting, security headers, CSP, Pwned password check
