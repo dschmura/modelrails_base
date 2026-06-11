@@ -173,6 +173,17 @@ RSpec.describe "Template invariants" do
       expect(chown).to be < user,
         "USER 1000:1000 must come after the chown so the ownership change runs as root"
     end
+
+    it "applies Debian security updates in the base stage (apt-get upgrade)" do
+      # Docker Hub rebuilds ruby:slim on Debian point releases, NOT on interim
+      # security updates — so a freshly pulled base can still carry packages
+      # Debian already fixed (first image scan caught an OpenSSL heap UAF and
+      # a poppler overflow exactly this way). `apt-get upgrade -y` in our own
+      # base stage is the only reliable patch path between base rebuilds.
+      expect(dockerfile).to match(/apt-get upgrade -y/),
+        "expected `apt-get upgrade -y` in the base stage so Debian security fixes land " \
+        "even when the ruby:slim base image lags the Debian repos"
+    end
   end
 
   describe "Devcontainer matches production runtime (Option C: shared base image)" do
@@ -380,6 +391,40 @@ RSpec.describe "Template invariants" do
       expect(build_step.dig("with", "load")).to be(true),
         "expected load: true — without it the image exists only in the build cache " \
         "and the scanner has nothing to scan"
+    end
+
+    it "scheduled runs bypass the layer cache (a cached apt layer hides current package state)" do
+      # The first real scan proved this: the GHA-cached apt layer carried
+      # OpenSSL/poppler packages that Debian had already fixed. A weekly scan
+      # against cached layers answers "what did we build last time", not
+      # "what would we ship if we rebuilt today".
+      build_step = scan_steps.find { |s| s["uses"].to_s.include?("docker/build-push-action") }
+      next if build_step.nil?
+
+      no_cache = build_step.dig("with", "no-cache").to_s
+      expect(no_cache).to include("schedule"),
+        "expected no-cache to be conditional on the schedule event " \
+        "(e.g. no-cache: ${{ github.event_name == 'schedule' }})"
+    end
+
+    it ".trivyignore entries each carry a rationale and a Revisit marker" do
+      # The exception path only works if exceptions stay temporary and
+      # explained. Every ignored CVE needs (a) a comment block above it and
+      # (b) an explicit `Revisit:` line so the entry has an expiry trigger.
+      trivyignore = root.join(".trivyignore")
+      next unless File.exist?(trivyignore)
+
+      blocks = File.read(trivyignore).split(/\n\s*\n/)
+      cve_blocks = blocks.select { |b| b.match?(/^(CVE|GHSA)-/) }
+      expect(cve_blocks).not_to be_empty, ".trivyignore exists but ignores nothing — delete it"
+
+      cve_blocks.each do |block|
+        cve = block[/^(?:CVE|GHSA)-\S+/]
+        expect(block.lines.any? { |l| l.start_with?("#") }).to be(true),
+          "#{cve}'s block has no comment — every ignored CVE needs a rationale"
+        expect(block).to match(/Revisit:/i),
+          "#{cve}'s block has no `Revisit:` line — exceptions need an expiry trigger"
+      end
     end
 
     it "fails the run on fixable HIGH/CRITICAL CVEs (the policy gate)" do

@@ -42,12 +42,17 @@ jobs:
       # load: true exports the image into the local Docker daemon — without
       # it the image exists only in the build cache and Trivy has nothing
       # to scan.
+      # no-cache on scheduled runs: a cached apt layer answers "what did we
+      # build last time", not "what would we ship if we rebuilt today" — the
+      # first scan flagged OpenSSL/poppler packages Debian had already fixed,
+      # hidden behind a stale cached layer.
       - name: Build production image
         uses: docker/build-push-action@v7
         with:
           context: .
           push: false
           load: true
+          no-cache: ${{ github.event_name == 'schedule' }}
           platforms: linux/amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max
