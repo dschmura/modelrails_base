@@ -106,11 +106,17 @@ Overlays differ on three axes: whether they **block the page** with a scrim, how
 ## Sourcing rule (accuracy)
 
 Every "reach for it when" / "otherwise →" cell is **sourced from the target component's own
-`## Use when` / `## Don't use when` doc-comment**, not invented. Confirmed during brainstorm:
-`drawer` = bottom sheet (slides up), `sheet` = side panel (slides from edge) — and each
-component's "Don't use when" already names its sibling (`drawer` → "side panel → use `sheet`").
-This keeps the page consistent with component truth at authoring time and is the basis for the
-drift guard below.
+documented purpose**, not invented. The doc-comment template is not uniform across hardening
+waves: the **modal-surface family** (dialog / alert_dialog / drawer / sheet — Wave 4) carries
+explicit `## Use when` / `## Don't use when` blocks (and each "Don't use when" already names
+its sibling — `drawer` → "side panel → use `sheet`"); the **floating and menu families**
+(popover / tooltip / hover_card; dropdown_menu / context_menu / menubar — Waves 5–6) document
+purpose in their `# # Title` description + accessibility contract instead. Either way the row
+is sourced, not guessed: `drawer` = bottom sheet (slides up), `sheet` = side panel (slides
+from an edge), `popover` = non-modal click-toggled panel (focus not trapped), `tooltip` =
+label-only hint, `hover_card` = rich hover preview, `context_menu` = right-click/Shift+F10
+menu, `menubar` = persistent app menu bar. This keeps the page consistent with component truth
+at authoring time and is the basis for the drift guard below.
 
 **WRITING STEP:** before finalizing copy, re-read all 10 Overlays previews' `## Use when` /
 `## Don't use when` blocks and reconcile any wording the table compresses.
