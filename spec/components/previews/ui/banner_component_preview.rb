@@ -24,6 +24,7 @@ module UI
   #
   # ## Variants
   # `default` · `info` · `success` · `warning` · `destructive`
+  # @display background bleed
   # @logical_path Feedback & Status
   class BannerComponentPreview < ViewComponent::Preview
     include UIHelper

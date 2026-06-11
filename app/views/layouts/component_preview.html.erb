@@ -9,7 +9,15 @@
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
   </head>
-  <body class="bg-surface-raised text-text-body p-6">
+  <%# Background is driven by a per-preview `@display background <value>` tag (space-separated — a colon makes the parser read `background:` as the key and the option silently never applies) (sunken ·
+      surface · bleed); default is the raised host surface. Raised containers (card,
+      data_table) opt into `sunken` so their edges are visible; page chrome (navbar,
+      footer, …) opts into `bleed` for edge-to-edge rendering. %>
+  <body class="<%= {
+        "sunken" => "bg-surface-sunken p-6",
+        "surface" => "bg-surface p-6",
+        "bleed" => "bg-surface p-0"
+      }.fetch(params.dig(:lookbook, :display, :background), "bg-surface-raised p-6") %> text-text-body">
     <%# Theme is driven by Lookbook's `theme` display option (toolbar dropdown); the
         non-Lookbook host (VC preview controller) renders light, and the axe harness
         forces .dark itself. %>
