@@ -91,7 +91,9 @@ rename the app identity everywhere it is hardcoded:
 | Kamal service name | `config/deploy.yml` (`service:`) | Tags Docker containers; collides if two apps share a host |
 | Docker image name | `config/deploy.yml` (`image:`) | Must match your registry path |
 | Storage volume names | `config/deploy.yml` (`volumes:`) | Renaming later orphans the old volume — do it before first deploy |
-| npm package name | `package.json` / `package-lock.json` | Cosmetic |
+| PWA app name | `public/manifest.webmanifest` + `app/views/pwa/manifest.json.erb` | Shown on the home screen if users install the PWA |
+| CI image tags | `.github/workflows/ci.yml` + `image_scan.yml` (`tags:`) | Local-only build tags; cosmetic but confusing if stale |
+| npm lockfile name | `package-lock.json` | Auto-derived from the directory name — regenerates on `npm install` |
 | App display name | `config/locales/en/*.yml` (product/brand strings) | All UI text is I18n-keyed |
 
 Then bootstrap your own secrets — credentials are deliberately **not** committed:
