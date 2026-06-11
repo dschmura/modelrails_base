@@ -57,7 +57,7 @@ jobs:
       # package yet; gating on them would make this permanently red and
       # trained-away. The gate is "a fix exists and we haven't taken it".
       - name: Scan for HIGH/CRITICAL CVEs with a fix available
-        uses: aquasecurity/trivy-action@0.36.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: modelrails_base:scan-${{ github.sha }}
           severity: CRITICAL,HIGH
