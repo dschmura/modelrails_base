@@ -200,6 +200,22 @@ RSpec.describe "User menu dropdown", type: :system do
       expect(page).to have_current_path(edit_account_profile_path)
     end
 
+    # Regression: the Notifications row lives inside
+    # <turbo-frame id="notifications_menu_count_frame"> (so the broadcaster
+    # can swap just the [N new] count). A bare link inside a frame navigates
+    # THAT frame — the index response has no matching frame, so Turbo renders
+    # "Content missing" in the dropdown instead of loading the page. The link
+    # must break out to _top.
+    it "Notifications link navigates to the full notifications index (breaks out of the count frame)" do
+      find("#user-menu-button").click
+      within "#user-menu" do
+        find("a[href='#{account_notifications_path}']").click
+      end
+      expect(page).to have_current_path(account_notifications_path)
+      expect(page).to have_css("h1", text: I18n.t("notifications.index.heading"))
+      expect(page).to have_no_text("Content missing")
+    end
+
     it "sign out ends session" do
       find("#user-menu-button").click
       click_button I18n.t("navigation.sign_out")
