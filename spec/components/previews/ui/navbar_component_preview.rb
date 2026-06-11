@@ -19,6 +19,7 @@ module UI
   #   behind a hamburger disclosure (`aria-expanded`/`aria-controls`, Escape and
   #   outside-click close, focus returns to the trigger).
   # - **You supply:** the brand slot and the link items.
+  # @display background bleed
   # @logical_path Navigation
   class NavbarComponentPreview < ViewComponent::Preview
     include UIHelper

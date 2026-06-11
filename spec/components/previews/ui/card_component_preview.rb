@@ -25,6 +25,7 @@ module UI
   #
   # ## Related
   # `list_group` · `avatar` · `badge`
+  # @display background sunken
   # @logical_path Data Display
   class CardComponentPreview < ViewComponent::Preview
     include UIHelper
