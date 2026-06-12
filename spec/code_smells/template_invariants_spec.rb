@@ -594,4 +594,44 @@ RSpec.describe "Template invariants" do
         "#{offenders.join(', ')}. The template ships zero credentials; see README."
     end
   end
+
+  describe "Fork seams (downstream disentanglement — see /docs/forking)" do
+    it "keeps brand identity strings in the fork-owned brand locale file" do
+      brand_path = Rails.root.join("config/locales/en/brand.en.yml")
+      expect(File.exist?(brand_path)).to be(true),
+        "expected config/locales/en/brand.en.yml — the fork-owned home of brand strings (see /docs/forking)"
+      brand = YAML.load_file(brand_path)
+      expect(brand.dig("en", "application", "name")).to be_present,
+        "expected en.application.name in config/locales/en/brand.en.yml — brand identity strings live in the fork-owned file (see /docs/forking)"
+      expect(brand.dig("en", "application", "description")).to be_present,
+        "expected en.application.description in config/locales/en/brand.en.yml — brand identity strings live in the fork-owned file (see /docs/forking)"
+      expect(brand.dig("en", "footer", "copyright")).to be_present,
+        "expected en.footer.copyright in config/locales/en/brand.en.yml — brand identity strings live in the fork-owned file (see /docs/forking)"
+    end
+
+    it "defines no brand strings in template-owned locale files (forks edit brand.en.yml only)" do
+      app_locale = YAML.load_file(Rails.root.join("config/locales/en/application.en.yml"))
+      expect(app_locale.dig("en", "application", "name")).to be_nil,
+        "expected en.application.name to be absent from config/locales/en/application.en.yml — " \
+        "brand strings must live in brand.en.yml so forks edit one file without touching template-owned locales (see /docs/forking)"
+      expect(app_locale.dig("en", "application", "description")).to be_nil,
+        "expected en.application.description to be absent from config/locales/en/application.en.yml — " \
+        "brand strings must live in brand.en.yml so forks edit one file without touching template-owned locales (see /docs/forking)"
+      expect(app_locale.dig("en", "footer", "copyright")).to be_nil,
+        "expected en.footer.copyright to be absent from config/locales/en/application.en.yml — " \
+        "brand strings must live in brand.en.yml so forks edit one file without touching template-owned locales (see /docs/forking)"
+    end
+
+    it "still resolves the brand translations after the move (the views did not change)" do
+      expect(I18n.exists?("application.name")).to be(true),
+        "expected I18n key application.name to resolve — brand.en.yml must define en.application.name " \
+        "so views using t('application.name') keep working after the brand-seam split (see /docs/forking)"
+      expect(I18n.exists?("application.description")).to be(true),
+        "expected I18n key application.description to resolve — brand.en.yml must define en.application.description " \
+        "so views using t('application.description') keep working after the brand-seam split (see /docs/forking)"
+      expect(I18n.exists?("footer.copyright")).to be(true),
+        "expected I18n key footer.copyright to resolve — brand.en.yml must define en.footer.copyright " \
+        "so views using t('footer.copyright') keep working after the brand-seam split (see /docs/forking)"
+    end
+  end
 end
