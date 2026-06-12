@@ -226,9 +226,45 @@ bin/kamal dbc               # = bin/rails dbconsole with credentials
 | `kamal deploy` from devcontainer fails with "docker: command not found" | `docker-outside-of-docker` feature not active | `.devcontainer/devcontainer.json` features; rebuild container |
 | Two containers visible during deploy | `max-replicas: 1` missing on `servers.web.options` | Restore the setting; SQLite cannot tolerate this |
 
+## Deploying without Kamal
+
+Kamal is this template's default deployment path, not a requirement. Nothing in
+app code reads Kamal-specific configuration, so the app runs anywhere that can
+provide the contract below — Hatchbox and similar managed platforms included.
+Ignore `config/deploy.yml`, `.kamal/`, and `bin/kamal`; leave them in place so
+upstream template merges stay clean (see [Forking](forking)).
+
+Run `bin/deploy-guide` to get pointed at the right guide for your target.
+
+### The portable contract
+
+Required on any platform:
+
+| Requirement | Detail |
+|---|---|
+| `RAILS_MASTER_KEY` | Contents of `config/credentials/production.key` |
+| Persistent `storage/` | Writable, survives deploys — holds the SQLite databases and Active Storage files |
+| Health check | Rails' built-in `/up` endpoint |
+| `SOLID_QUEUE_IN_PUMA=true` | **Without it no background jobs run** (so no emails). Kamal's deploy.yml sets it; a managed platform won't. Alternative: run `bin/jobs` as a separate worker process |
+| `RAILS_HOST` | Your app's hostname — mailer links default to `example.com` otherwise |
+
+Optional tuning, all with working defaults: `WEB_CONCURRENCY` (1),
+`RAILS_MAX_THREADS` (3), `JOB_CONCURRENCY` (1), `RAILS_LOG_LEVEL` (info).
+Preset and seed variables (`SIGNUP_MODE`, `SIGNUP_PERMITTED_JOIN_STRATEGIES`,
+`TENANCY_*`) are documented in [Presets](presets) and `.env.example`.
+
+### The constraint that follows you everywhere
+
+SQLite is single-writer, so run **exactly one web instance**. Scaling to a
+second server on a managed platform is the same corruption risk as removing
+`max-replicas: 1` under Kamal. Graduate to a networked database first (see the
+[Solid Queue topology](#solid-queue-topology) graduation checklist above) —
+that constraint belongs to the app, not to the deploy tool.
+
 ## See also
 
 - [Getting Started](/docs/getting-started) — Dev environment + CI pipeline overview
 - [Background Jobs](/docs/background-jobs) — Solid Queue topology, named queues, recurring jobs
 - [Security](/docs/security) — Auth, headers, rate limiting
+- [Forking](/docs/forking) — Identity rename, fork-owned files, pulling upstream updates
 - `config/deploy.yml` — Inline comments document every option (Donal McBreen's "deploy.yml IS the documentation" principle)
