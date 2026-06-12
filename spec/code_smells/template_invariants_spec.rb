@@ -674,5 +674,14 @@ RSpec.describe "Template invariants" do
         .to include("Fork seam: add your app's domain seeds BELOW this line"),
         "db/seeds.rb needs the end-of-template marker so forks add seeds below it (see /docs/forking)"
     end
+
+    it "documents every merge=ours path in the forking guide (no silent contract drift)" do
+      gitattributes = File.read(Rails.root.join(".gitattributes"))
+      guide = File.read(Rails.root.join("app/docs/forking.md"))
+      gitattributes.scan(/^(\S+) merge=ours$/).flatten.each do |path|
+        expect(guide).to include(path),
+          "#{path} is marked merge=ours in .gitattributes but not mentioned in app/docs/forking.md"
+      end
+    end
   end
 end
