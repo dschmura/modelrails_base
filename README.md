@@ -82,38 +82,23 @@ OAuth is optional — email/password sign-up works without it.
 
 ## Forking this template
 
-This repo is an upstream template: fork it, build your app, and periodically merge
-upstream improvements back in (`git merge upstream/main`). Before your first commit,
-rename the app identity everywhere it is hardcoded:
-
-| What | Where | Notes |
-| ---- | ----- | ----- |
-| Ruby module name | `config/application.rb` (`module ModelrailsBase`) | `bin/rails app:update` won't do this for you |
-| Kamal service name | `config/deploy.yml` (`service:`) | Tags Docker containers; collides if two apps share a host |
-| Docker image name | `config/deploy.yml` (`image:`) | Must match your registry path |
-| Storage volume names | `config/deploy.yml` (`volumes:`) | Renaming later orphans the old volume — do it before first deploy |
-| PWA app name | `public/manifest.webmanifest` + `app/views/pwa/manifest.json.erb` | Shown on the home screen if users install the PWA |
-| CI image tags | `.github/workflows/ci.yml` + `image_scan.yml` (`tags:`) | Local-only build tags; cosmetic but confusing if stale |
-| npm lockfile name | `package-lock.json` | Auto-derived from the directory name — regenerates on `npm install` |
-| App display name | `config/locales/en/*.yml` (product/brand strings) | All UI text is I18n-keyed |
-
-Then bootstrap your own secrets — credentials are deliberately **not** committed:
+This repo is an upstream template: clone it with full history, build your product
+in fork-owned files, and merge upstream improvements back in periodically.
 
 ```bash
-# Generates config/credentials/<env>.yml.enc + .key (keys are gitignored)
-bin/rails credentials:edit --environment development
-bin/rails credentials:edit --environment production
+git clone git@github.com:dschmura/modelrails_base.git myapp
+cd myapp
+git remote rename origin upstream
+git remote set-url --push upstream DISABLED
+git remote add origin git@github.com:YOU/myapp.git   # an empty repo — no README/license
+git push -u origin main
+git config merge.ours.driver true                    # activates the fork-owned merge driver
 ```
 
-Add OAuth keys (structure above) and `mailer.from` as needed. Your fork may commit
-its own `.yml.enc` blobs (normal for a private app — the keys stay gitignored);
-`.kamal/secrets` reads `config/credentials/production.key` at deploy time. For
-production you'll also set `RAILS_HOST`, pick a tenancy preset (`TENANCY_ONBOARDING`),
-and choose a signup mode — see `.env.example` and the in-app docs at `/docs`
-(deployment, presets), which your fork inherits automatically.
-
-If multiple forks will share a cookie domain, customize the session cookie key in an
-initializer (`config/initializers/session_store.rb`).
+The complete guide — identity-rename checklist, secrets bootstrap, the fork-owned
+file contract, and the upstream-update workflow — lives in
+[app/docs/forking.md](app/docs/forking.md), rendered at `/docs/forking` in the
+running app. Your fork inherits it.
 
 ## What's included (Phase 1)
 
