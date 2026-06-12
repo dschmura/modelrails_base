@@ -633,5 +633,15 @@ RSpec.describe "Template invariants" do
         "expected I18n key footer.copyright to resolve — brand.en.yml must define en.footer.copyright " \
         "so views using t('footer.copyright') keep working after the brand-seam split (see /docs/forking)"
     end
+
+    it "draws product routes from the fork-owned config/routes/app.rb" do
+      expect(File.read(Rails.root.join("config/routes.rb"))).to include("draw(:app)"),
+        "expected config/routes.rb to call draw(:app) — product routes live in the fork-owned config/routes/app.rb (see /docs/forking)"
+      app_routes_path = Rails.root.join("config/routes/app.rb")
+      expect(File.exist?(app_routes_path)).to be(true),
+        "expected config/routes/app.rb — the fork-owned home of product routes (see /docs/forking)"
+      expect(File.read(app_routes_path)).to include('root "pages#home"'),
+        "expected the root route in config/routes/app.rb — it moved there from config/routes.rb (see /docs/forking)"
+    end
   end
 end
