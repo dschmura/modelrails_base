@@ -218,7 +218,7 @@ arrive through the merge (the driver keeps yours):
 git log --oneline main..upstream/main -- \
   app/views/pages app/controllers/pages_controller.rb \
   config/locales/en/pages.en.yml config/locales/en/brand.en.yml \
-  config/routes/app.rb README.md
+  config/routes/app.rb config/markdowndocs_categories.local.yml README.md
 ```
 
 If a commit there looks like a fix you want, cherry-pick it after the merge:
