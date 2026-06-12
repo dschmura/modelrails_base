@@ -21,6 +21,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Added
 
+- `bin/deploy-guide` — target-aware deployment guidance (kamal / self-host / managed), plus a "Deploying without Kamal" portable-contract section in `app/docs/deployment.md` for Hatchbox-style platforms.
 - Lookbook component explorer at `/lookbook` (development-only) for the vendored `UI::*` components — `modelrails_ui` upgraded to v0.2.0 plus the `lookbook` gem; preview classes live in `spec/components/previews`.
 - Vendored `UI::*` ViewComponents (button, input, textarea, file_input, dialog, avatar) via the dev-only `modelrails_ui` scaffolding gem; the form-field builder, `shared/_modal`, and `avatar_for` delegate to them with no rendered-output change — `view_component` is a runtime dependency, `modelrails_ui` is development-only.
 - Appearance destination time-zone picker — explicit `override=true` submit to `Account::Preferences::TimezonesController#update`; the existing browser beacon's write-on-blank guard preserves the explicit choice on subsequent visits (closes #154).
