@@ -225,7 +225,7 @@ RSpec.describe "Template invariants" do
     it "mounts a named volume for the bundle cache (survives container rebuilds)" do
       mounts = Array(devcontainer["mounts"])
 
-      expect(mounts).to include(match(/modelrails-bundle-cache/)),
+      expect(mounts).to include(match(/bundle-cache/)),
         "expected a named volume mount for /usr/local/bundle to avoid re-installing gems " \
         "on every devcontainer rebuild. Mounts: #{mounts.inspect}"
     end
@@ -642,6 +642,37 @@ RSpec.describe "Template invariants" do
         "expected config/routes/app.rb — the fork-owned home of product routes (see /docs/forking)"
       expect(File.read(app_routes_path)).to include('root "pages#home"'),
         "expected the root route in config/routes/app.rb — it moved there from config/routes.rb (see /docs/forking)"
+    end
+
+    it "marks fork-owned paths merge=ours so upstream syncs keep the fork's version" do
+      gitattributes = File.read(Rails.root.join(".gitattributes"))
+      %w[
+        app/views/pages/**
+        app/controllers/pages_controller.rb
+        config/locales/en/pages.en.yml
+        config/locales/en/brand.en.yml
+        config/routes/app.rb
+        config/markdowndocs_categories.local.yml
+        README.md
+      ].each do |path|
+        expect(gitattributes).to match(/^#{Regexp.escape(path)} merge=ours$/),
+          "expected .gitattributes to mark #{path} merge=ours"
+      end
+    end
+
+    it "activates the fork merge driver from bin/setup, gated on the upstream remote" do
+      setup_script = File.read(Rails.root.join("bin/setup"))
+      expect(setup_script).to include("merge.ours.driver"),
+        "bin/setup must activate the merge=ours driver for forks"
+      expect(setup_script).to include("git remote get-url upstream"),
+        "driver activation must be gated on an upstream remote existing — " \
+        "the template repo itself must never set the driver"
+    end
+
+    it "marks the fork extension point in db/seeds.rb" do
+      expect(File.read(Rails.root.join("db/seeds.rb")))
+        .to include("Fork seam: add your app's domain seeds BELOW this line"),
+        "db/seeds.rb needs the end-of-template marker so forks add seeds below it (see /docs/forking)"
     end
   end
 end
