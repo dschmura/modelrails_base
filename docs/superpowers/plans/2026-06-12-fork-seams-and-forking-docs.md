@@ -22,7 +22,11 @@
 - Files loaded by `draw(:app)` contain the **bare** routing DSL (no `Rails.application.routes.draw do` wrapper) — Rails instance_evals them in the mapper.
 - `spec/docs/index_coverage_spec.rb` reads `Markdowndocs.configuration.categories` (the booted, post-merge value) — it needs **no changes** for the overlay seam.
 - The only spec asserting a brand literal is `spec/code_smells/template_invariants_spec.rb:228` (`/modelrails-bundle-cache/`). Lookbook preview fixtures mention "ModelRails" as sample copy but assert nothing.
-- In-app docs need YAML frontmatter (`title`, `description`, `keywords`, `audience: [guide, technical]`) and a category entry in `config/initializers/markdowndocs.rb`, or `index_coverage_spec` fails (that failure is Task 6's red step).
+- In-app docs need YAML frontmatter (`title`, `description`, `keywords`, `audience: [guide, technical]`) and a category entry in `config/initializers/markdowndocs.rb`, or `index_coverage_spec` fails (one of Task 6's red steps).
+- A custom `merge=ours` driver fires ONLY during a content-level three-way merge — i.e., when BOTH sides changed the file since the merge base. If only upstream changed a fork-owned file, the merge takes upstream's version silently (no conflict, driver never runs). If the fork customized it, the driver keeps the fork's version silently — **including over upstream security fixes**. The guide documents both behaviors and a sync-time check (panel finding, Scott Chacon seat).
+- The driver activates via `git config merge.ours.driver true` per clone. `bin/setup` is the activation point, gated on `git remote get-url upstream` succeeding — the template repo itself must NOT set the driver (it would mis-resolve the template's own PR merges that touch fork-owned paths).
+- Initializers cannot reference autoloaded (`app/lib`) constants under Zeitwerk; the Task 4 loader therefore lives in `lib/` and is `require`d explicitly by the initializer.
+- `db/seeds.rb` is `default_roles` + the tenancy-preset bootstrap (template-owned); fork additions go below an explicit end-of-template marker added in Task 3.
 
 ---
 
@@ -37,8 +41,11 @@
 | `config/routes/app.rb` | Create | Fork-owned product routes |
 | `config/routes.rb` | Modify | Replace 4 product routes with `draw(:app)` |
 | `.gitattributes` | Modify | `merge=ours` markers for fork-owned paths |
-| `config/initializers/markdowndocs.rb` | Modify | Merge optional local categories file |
-| `spec/docs/markdowndocs_local_categories_spec.rb` | Create | Behavior spec for the overlay merge |
+| `bin/setup` | Modify | Activate merge driver when an `upstream` remote exists |
+| `db/seeds.rb` | Modify | End-of-template marker for fork seed additions |
+| `lib/markdowndocs_local_categories.rb` | Create | Overlay merge unit (required by the initializer) |
+| `config/initializers/markdowndocs.rb` | Modify | Categories assigned through the overlay loader |
+| `spec/lib/markdowndocs_local_categories_spec.rb` | Create | Unit spec for the overlay merge (Tempfile fixtures) |
 | `spec/code_smells/template_invariants_spec.rb` | Modify | New "Fork seams" describe + brand-agnostic volume regex |
 | `CHANGELOG.md` | Modify | One-line entry under [Unreleased] |
 
@@ -48,6 +55,7 @@
 | --- | --- | --- |
 | `app/docs/forking.md` | Create | The full forking guide (rendered at `/docs/forking`) |
 | `config/initializers/markdowndocs.rb` | Modify | Register `forking` under Guides |
+| `spec/code_smells/template_invariants_spec.rb` | Modify | Contract-sync invariant (merge=ours paths ↔ guide) |
 | `README.md` | Modify | Slim the forking section to clone commands + pointer |
 | `CHANGELOG.md` | Modify | One-line entry |
 | GitHub issues ×3 | Create | Trigger-based backlog (rename script, CSP seam, theme seam) |
@@ -241,12 +249,26 @@ Append inside the `describe "Fork seams …"` block:
           "expected .gitattributes to mark #{path} merge=ours"
       end
     end
+
+    it "activates the fork merge driver from bin/setup, gated on the upstream remote" do
+      setup_script = File.read(Rails.root.join("bin/setup"))
+      expect(setup_script).to include("merge.ours.driver"),
+        "bin/setup must activate the merge=ours driver for forks"
+      expect(setup_script).to include("git remote get-url upstream"),
+        "driver activation must be gated on an upstream remote existing — " \
+        "the template repo itself must never set the driver"
+    end
+
+    it "marks the fork extension point in db/seeds.rb" do
+      expect(File.read(Rails.root.join("db/seeds.rb")))
+        .to include("Fork seam: add your app's domain seeds BELOW this line")
+    end
 ```
 
 - [ ] **Step 2: Run, verify red**
 
 Run: `bundle exec rspec spec/code_smells/template_invariants_spec.rb -e "Fork seams"`
-Expected: 1 failure (no merge=ours entries yet).
+Expected: 3 failures (no merge=ours entries, no bin/setup driver block, no seeds marker).
 
 - [ ] **Step 3: Append the entries to `.gitattributes`**
 
@@ -255,9 +277,12 @@ Append to the existing `.gitattributes` (after the credentials lines):
 ```text
 
 # Fork-owned paths — downstream forks rewrite these wholesale; upstream
-# freezes them. In a fork, run `git config merge.ours.driver true` once
-# (see /docs/forking) and `git merge upstream/main` auto-resolves these
-# paths in the fork's favor. Inert in this repo (driver unset upstream).
+# freezes them. With the driver active in a fork (bin/setup runs
+# `git config merge.ours.driver true` when an upstream remote exists),
+# a sync where BOTH sides changed one of these files resolves to the
+# fork's version. Files the fork never touched still take upstream's
+# changes — the driver only runs on two-sided changes. See /docs/forking.
+# Inert in this repo (driver deliberately unset upstream).
 app/views/pages/** merge=ours
 app/controllers/pages_controller.rb merge=ours
 config/locales/en/pages.en.yml merge=ours
@@ -267,9 +292,38 @@ config/markdowndocs_categories.local.yml merge=ours
 README.md merge=ours
 ```
 
-`db/seeds.rb` is deliberately **not** listed — its preset section is template-owned; forks extend below it (documented in PR B).
+`db/seeds.rb` is deliberately **not** listed — its preset section is template-owned; forks extend below a marker (added in Step 5).
 
-- [ ] **Step 4: Make the devcontainer volume assertion brand-agnostic**
+- [ ] **Step 4: Activate the driver from bin/setup (forks only)**
+
+In `bin/setup`, after the `puts "== Installing dependencies =="` / `system("bundle check") || system!("bundle install")` lines, insert:
+
+```ruby
+  # Fork seam: downstream forks have an `upstream` remote (see /docs/forking).
+  # Activate the merge=ours driver for fork-owned paths there. Deliberately
+  # NOT set in the template repo itself — it would silently mis-resolve the
+  # template's own PR merges that touch fork-owned paths.
+  if system("git remote get-url upstream", out: File::NULL, err: File::NULL)
+    system! "git config merge.ours.driver true"
+    puts "\n== Fork detected (upstream remote) — merge=ours driver activated =="
+  end
+```
+
+The `system(..., out: File::NULL, err: File::NULL)` form returns true/false without printing; this repo has no `upstream` remote, so running `bin/setup` here must NOT set the driver (verify with `git config merge.ours.driver` → empty output).
+
+- [ ] **Step 5: Add the fork extension marker to db/seeds.rb**
+
+Append to the end of `db/seeds.rb`:
+
+```ruby
+
+# === Template seeds end here =================================================
+# Fork seam: add your app's domain seeds BELOW this line. Upstream owns
+# everything above it; keeping your additions below the marker keeps
+# `git merge upstream/main` conflicts away. See /docs/forking.
+```
+
+- [ ] **Step 6: Make the devcontainer volume assertion brand-agnostic**
 
 In `spec/code_smells/template_invariants_spec.rb` around line 228 (inside `it "mounts a named volume for the bundle cache (survives container rebuilds)"`), change:
 
@@ -285,124 +339,138 @@ to:
 
 (If the failure-message string on the following line also names `modelrails-bundle-cache`, generalize it to `bundle-cache` too.) This lets a renamed fork rename the devcontainer volume without touching template-owned specs.
 
-- [ ] **Step 5: Run, verify green**
+- [ ] **Step 7: Run, verify green**
 
 Run: `bundle exec rspec spec/code_smells/template_invariants_spec.rb`
-Expected: all examples in the file pass (the whole file, not just the new describe — Step 4 touched an existing example).
+Expected: all examples in the file pass (the whole file, not just the new describe — Step 6 touched an existing example). Also verify the driver gate: `git config merge.ours.driver` prints nothing in this repo.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add spec/code_smells/template_invariants_spec.rb .gitattributes
-git commit -m "feat(fork-seams): merge=ours contract for fork-owned paths; brand-agnostic volume invariant"
+git add spec/code_smells/template_invariants_spec.rb .gitattributes bin/setup db/seeds.rb
+git commit -m "feat(fork-seams): merge=ours contract, bin/setup driver activation, seeds fork marker"
 ```
 
 ### Task 4: Markdowndocs local-categories overlay
 
 **Files:**
 
-- Create: `spec/docs/markdowndocs_local_categories_spec.rb`
+- Create: `lib/markdowndocs_local_categories.rb`
+- Create: `spec/lib/markdowndocs_local_categories_spec.rb`
 - Modify: `config/initializers/markdowndocs.rb`
 
-- [ ] **Step 1: Write the failing behavior spec**
+Panel amendment (Joël Quenneville): the merge logic is an extracted, explicitly-required unit — NOT inline initializer code tested via stub+reload. Initializers can't reference autoloaded `app/lib` constants under Zeitwerk, so the loader lives in `lib/` and the initializer `require`s it.
 
-The merge logic lives in an initializer, which can't be called as a unit — so the spec stubs the local file into existence, re-`load`s the initializer, asserts the merged result, and restores the real configuration in `ensure`. Create `spec/docs/markdowndocs_local_categories_spec.rb`:
+- [ ] **Step 1: Write the failing unit spec**
+
+Create `spec/lib/markdowndocs_local_categories_spec.rb`:
 
 ```ruby
 require "rails_helper"
 
-# Fork seam: the markdowndocs initializer merges an optional fork-owned
-# categories file (config/markdowndocs_categories.local.yml) into the template
-# category map, so a downstream fork registers its own /docs pages without
-# editing template-owned files. The file is deliberately absent upstream —
-# these specs stub it into existence. See /docs/forking.
-RSpec.describe "Markdowndocs local categories overlay" do
-  let(:initializer) { Rails.root.join("config/initializers/markdowndocs.rb") }
-  let(:local_path) { Rails.root.join("config/markdowndocs_categories.local.yml") }
+RSpec.describe MarkdowndocsLocalCategories do
+  let(:template) { { "Guides" => %w[extending], "Features" => %w[accounts] } }
 
-  def stub_local_file(categories)
-    allow(File).to receive(:exist?).and_call_original
-    allow(File).to receive(:exist?).with(local_path).and_return(true)
-    allow(YAML).to receive(:load_file).and_call_original
-    allow(YAML).to receive(:load_file).with(local_path).and_return(categories)
+  def with_local_file(content)
+    Tempfile.create(["categories", ".yml"]) do |f|
+      f.write(content)
+      f.flush
+      yield Pathname.new(f.path)
+    end
   end
 
-  def restore_real_configuration
-    allow(File).to receive(:exist?).and_call_original
-    allow(YAML).to receive(:load_file).and_call_original
-    load initializer
+  it "returns the template map untouched when no local file exists (this repo)" do
+    missing = Rails.root.join("config/markdowndocs_categories.local.yml")
+    expect(File.exist?(missing)).to be(false)
+    expect(described_class.merge(template, missing)).to eq(template)
   end
 
-  it "merges fork categories into the template map" do
-    stub_local_file("My Product" => %w[my-feature])
-    load initializer
-    expect(Markdowndocs.configuration.categories["My Product"]).to eq(%w[my-feature])
-    expect(Markdowndocs.configuration.categories["Getting Started"]).to eq(%w[getting-started])
-  ensure
-    restore_real_configuration
+  it "adds new fork categories alongside template ones" do
+    with_local_file("My Product:\n  - my-feature\n") do |path|
+      result = described_class.merge(template, path)
+      expect(result["My Product"]).to eq(%w[my-feature])
+      expect(result["Guides"]).to eq(%w[extending])
+    end
   end
 
   it "appends fork slugs when the fork extends an existing template category" do
-    stub_local_file("Guides" => %w[my-guide])
-    load initializer
-    expect(Markdowndocs.configuration.categories["Guides"]).to include("extending", "my-guide")
-  ensure
-    restore_real_configuration
+    with_local_file("Guides:\n  - my-guide\n") do |path|
+      expect(described_class.merge(template, path)["Guides"]).to eq(%w[extending my-guide])
+    end
   end
 
-  it "leaves the template map untouched when no local file exists (this repo)" do
-    expect(File.exist?(local_path)).to be(false)
-    expect(Markdowndocs.configuration.categories).to include("Getting Started", "Guides")
+  it "treats an empty local file as no categories" do
+    with_local_file("") do |path|
+      expect(described_class.merge(template, path)).to eq(template)
+    end
   end
 end
 ```
 
 - [ ] **Step 2: Run, verify red**
 
-Run: `bundle exec rspec spec/docs/markdowndocs_local_categories_spec.rb`
-Expected: 2 failures ("My Product" key absent; "my-guide" not in Guides). The third example passes today.
+Run: `bundle exec rspec spec/lib/markdowndocs_local_categories_spec.rb`
+Expected: load error — `uninitialized constant MarkdowndocsLocalCategories`.
 
-- [ ] **Step 3: Implement the merge in the initializer**
+- [ ] **Step 3: Write the loader**
 
-In `config/initializers/markdowndocs.rb`, change the categories assignment. Replace `config.categories = {` … `}` (lines 16–29) so the hash is assigned to a local and merged (keep the existing comments and hash contents verbatim):
+Create `lib/markdowndocs_local_categories.rb`:
 
 ```ruby
-  template_categories = {
-    "Getting Started" => %w[getting-started],
-    # The presets hub + its three per-preset spokes form their own cluster,
-    # placed second so it reads as the next step after "getting started".
-    "Presets" => %w[presets presets-solo presets-single-tenant presets-open-saas],
-    "Architecture" => %w[architecture],
-    # `notifications` (audience: guide) and `notifications-technical`
-    # (audience: technical) are paired companion docs — the mode switcher
-    # shows whichever matches the viewer's mode, with no cross-category
-    # split. Listing both here keeps the topic discoverable from the
-    # canonical "Features" category in either mode.
-    "Features" => %w[accounts workspaces projects identity-system emails notifications notifications-technical],
-    "Guides" => %w[extending security ui-patterns components accessibility deployment background-jobs troubleshooting]
-  }
+# Fork seam: merges the optional fork-owned categories file
+# (config/markdowndocs_categories.local.yml — absent upstream) into the
+# template's /docs category map, so a downstream fork registers its own docs
+# pages without editing template-owned files. Same-named categories append.
+# Required explicitly by config/initializers/markdowndocs.rb (initializers
+# cannot reference autoloaded constants under Zeitwerk). See /docs/forking.
+module MarkdowndocsLocalCategories
+  def self.merge(template_categories, local_path)
+    return template_categories unless File.exist?(local_path)
 
-  # Fork seam: a downstream fork registers its own docs pages in
-  # config/markdowndocs_categories.local.yml (absent upstream) instead of
-  # editing this initializer. Same-named categories append. See /docs/forking.
-  local_path = Rails.root.join("config/markdowndocs_categories.local.yml")
-  local_categories = File.exist?(local_path) ? YAML.load_file(local_path) || {} : {}
-  config.categories = template_categories.merge(local_categories) do |_category, template_slugs, fork_slugs|
-    template_slugs + fork_slugs
+    local_categories = YAML.load_file(local_path) || {}
+    template_categories.merge(local_categories) do |_category, template_slugs, fork_slugs|
+      template_slugs + fork_slugs
+    end
   end
+end
 ```
 
 The merge block matters: without it, a fork extending `"Guides"` would *replace* the template's slugs, orphaning template docs and tripping `index_coverage_spec`'s stale-slug guard.
 
 - [ ] **Step 4: Run, verify green**
 
-Run: `bundle exec rspec spec/docs/`
-Expected: both spec files pass (`index_coverage_spec` needs no changes — it reads the booted, post-merge configuration).
+Run: `bundle exec rspec spec/lib/markdowndocs_local_categories_spec.rb`
+Expected: 4 examples, 0 failures.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Wire the initializer through the loader**
+
+In `config/initializers/markdowndocs.rb`, add at the very top (after `# frozen_string_literal: true`):
+
+```ruby
+require_relative "../../lib/markdowndocs_local_categories"
+```
+
+Then change the categories assignment: rename the `config.categories = {` … `}` hash (lines 16–29) to a local `template_categories = {` … `}` (keep the existing comments and hash contents verbatim) and assign through the loader:
+
+```ruby
+  # Fork seam: a downstream fork registers its own docs pages in
+  # config/markdowndocs_categories.local.yml (absent upstream) instead of
+  # editing this initializer. Same-named categories append. See /docs/forking.
+  config.categories = MarkdowndocsLocalCategories.merge(
+    template_categories,
+    Rails.root.join("config/markdowndocs_categories.local.yml")
+  )
+```
+
+- [ ] **Step 6: Run, verify nothing regressed**
+
+Run: `bundle exec rspec spec/docs/ spec/lib/markdowndocs_local_categories_spec.rb`
+Expected: 0 failures (`index_coverage_spec` needs no changes — it reads the booted, post-merge configuration; with no local file upstream, the booted map is identical to before).
+
+- [ ] **Step 7: Commit**
 
 ```bash
-git add spec/docs/markdowndocs_local_categories_spec.rb config/initializers/markdowndocs.rb
+git add lib/markdowndocs_local_categories.rb spec/lib/markdowndocs_local_categories_spec.rb config/initializers/markdowndocs.rb
 git commit -m "feat(fork-seams): docs categories overlay via markdowndocs_categories.local.yml"
 ```
 
@@ -436,8 +504,10 @@ Four seams so downstream forks (first: sonicpics) edit fork-created files instea
 
 - **Brand locale file** — `config/locales/en/brand.en.yml` now defines `application.name`, `application.description`, `footer.copyright`. Zero call-site changes (views already used `t()`).
 - **Routes seam** — `draw(:app)` loads fork-owned `config/routes/app.rb` (root + marketing pages moved there). Minimal subset of the panel-deferred full routes split.
-- **Fork-owned contract** — `.gitattributes` marks pages views/controller, marketing + brand locales, `routes/app.rb`, the local categories file, and README `merge=ours` (driver is opt-in per clone; inert upstream). Devcontainer volume invariant made brand-agnostic (`/bundle-cache/`).
-- **Docs categories overlay** — `config/markdowndocs_categories.local.yml` (absent upstream) merges into the category map; same-named categories append. `index_coverage_spec` unchanged — it reads the booted config.
+- **Fork-owned contract** — `.gitattributes` marks pages views/controller, marketing + brand locales, `routes/app.rb`, the local categories file, and README `merge=ours`. The driver resolves two-sided changes in the fork's favor; `bin/setup` activates it only when an `upstream` remote exists (so the template repo itself never sets it). `db/seeds.rb` gets an explicit end-of-template marker. Devcontainer volume invariant made brand-agnostic (`/bundle-cache/`).
+- **Docs categories overlay** — `lib/markdowndocs_local_categories.rb` merges the optional `config/markdowndocs_categories.local.yml` (absent upstream) into the category map; same-named categories append. Unit-tested with Tempfile fixtures; `index_coverage_spec` unchanged — it reads the booted config.
+
+Shaped by a five-seat template-practitioner panel review (Jumpstart Pro / Bullet Train / thoughtbot / git-mechanics personas) — see the design doc's amendments section.
 
 Docs PR (forking guide at `/docs/forking`) follows and documents all four.
 EOF
@@ -461,6 +531,7 @@ Expected: all green. If infra-transient (all jobs fail in 2–30s at setup), `gh
 
 - Create: `app/docs/forking.md`
 - Modify: `config/initializers/markdowndocs.rb` (register the slug)
+- Modify: `spec/code_smells/template_invariants_spec.rb` (contract↔docs sync invariant)
 
 - [ ] **Step 1: Branch off PR A's branch**
 
@@ -470,7 +541,27 @@ git checkout -b docs/forking-guide   # from feat/fork-seams — the guide docume
 
 (If PR A has already merged, branch from updated `main` instead.)
 
-- [ ] **Step 2: Create the doc (this is also the red step)**
+- [ ] **Step 2: Write the failing contract-sync invariant**
+
+Panel amendment (Joël Quenneville): the fork-owned list must not drift between `.gitattributes` and the guide. Append inside the `describe "Fork seams …"` block in `spec/code_smells/template_invariants_spec.rb`:
+
+```ruby
+    it "documents every merge=ours path in the forking guide (no silent contract drift)" do
+      gitattributes = File.read(Rails.root.join(".gitattributes"))
+      guide = File.read(Rails.root.join("app/docs/forking.md"))
+      gitattributes.scan(/^(\S+) merge=ours$/).flatten.each do |path|
+        expect(guide).to include(path),
+          "#{path} is marked merge=ours in .gitattributes but not mentioned in app/docs/forking.md"
+      end
+    end
+```
+
+- [ ] **Step 3: Run, verify red**
+
+Run: `bundle exec rspec spec/code_smells/template_invariants_spec.rb -e "Fork seams"`
+Expected: 1 failure — `Errno::ENOENT` (no `app/docs/forking.md` yet).
+
+- [ ] **Step 4: Create the doc**
 
 Create `app/docs/forking.md` with exactly this content:
 
@@ -495,7 +586,19 @@ Three things make the merges cheap:
 2. **Fork-owned files** — everything you are expected to rewrite (marketing pages,
    brand strings, your routes, your docs) lives in files upstream never edits again.
 3. **A merge driver** — fork-owned paths are marked `merge=ours` in
-   `.gitattributes`, so syncs resolve them in your favor automatically.
+   `.gitattributes`, so when both you and upstream changed one, the sync keeps
+   your version (details in [Fork-owned files](#fork-owned-files)).
+
+**Is this model right for you?** If you just want a starting point and never
+plan to pull template improvements, skip the machinery: clone, delete the
+`upstream` remote, and own everything (the thoughtbot Suspenders model). This
+guide earns its keep when you want upstream fixes and features flowing into
+your app for years.
+
+Two pieces of shared machinery already update the easy way — the design system
+(`modelrails_ui`) and the docs engine (`markdowndocs`) are gems, so improvements
+to them arrive via `bundle update`, no merge involved. The merge workflow covers
+everything else: the application code around the gems.
 
 ## Start a new app
 
@@ -514,23 +617,46 @@ git remote set-url --push upstream DISABLED   # a stray `git push upstream` now 
 git remote add origin git@github.com:YOU/myapp.git
 git push -u origin main
 
-# Activate the fork-owned merge driver (one-time, per clone)
+# Activate the fork-owned merge driver (bin/setup also does this for you,
+# but doing it now means your very first merge is already covered)
 git config merge.ours.driver true
+```
+
+Two things you'll notice afterwards, both intentional:
+
+- `git remote -v` shows upstream's push URL as `DISABLED`. That string is not a
+  real URL — it makes any accidental `git push upstream` fail loudly instead of
+  writing to the template.
+- Your `main` tracks `origin/main` (your repo), so plain `git pull` stays inside
+  your app. Upstream only enters when you explicitly run `git merge upstream/main`.
+
+Finally, record the cut point in the template repo — it answers "which template
+version is myapp based on?" forever:
+
+```bash
+# in your modelrails_base checkout
+git tag forks/myapp-baseline main && git push origin forks/myapp-baseline
 ```
 
 > **Why not GitHub's "Use this template" button, or a GitHub fork?** "Use this
 > template" squashes the entire history into one unrelated commit — every later
 > `git merge upstream/main` would need `--allow-unrelated-histories` and conflict
-> on everything. And GitHub will not fork a repository into the account that
-> already owns it. Clone + re-pointed remotes gives you a private repo **and**
-> mergeable history.
+> on everything both sides touched. And GitHub will not fork a repository into
+> the account that already owns it. Clone + re-pointed remotes gives you a
+> private repo **and** mergeable history.
 
-Every teammate's clone of your new repository repeats the two one-time commands:
+**Every teammate** who clones your new repository needs the upstream remote once
+(`bin/setup` then activates the merge driver automatically — it detects the
+remote):
 
 ```bash
 git remote add upstream git@github.com:dschmura/modelrails_base.git
-git config merge.ours.driver true
+bin/setup
 ```
+
+To verify the driver on any clone: `git config merge.ours.driver` should print
+`true`. If it prints nothing, fork-owned files will conflict like ordinary files
+on your next sync.
 
 ## Rename the identity
 
@@ -601,13 +727,30 @@ on every sync.
 | `config/markdowndocs_categories.local.yml` | Registers your own docs pages on this `/docs` index |
 | `README.md` | Your product's README |
 
-One caveat to know: with the driver active, upstream changes to these paths are
-**silently discarded** in your fork — that is the point; they're yours. If you
-ever want an upstream improvement to one of them (say, a marketing-page
-restyle), cherry-pick it deliberately.
+### How the merge driver actually behaves
 
-`db/seeds.rb` is shared ground: the tenancy-preset bootstrap at the top is
-template-owned; add your domain seeds below it.
+The `merge=ours` driver is a conflict *resolver*, not a wall. During a sync:
+
+- **You customized the file, upstream changed it too** → the driver keeps
+  **your** version, silently — no conflict shown. This is the common case: you
+  rewrite all of these paths early, that's why they're on the list.
+- **You never touched the file, upstream changed it** → upstream's version
+  flows in normally. The driver only runs when *both* sides changed a file.
+
+Two consequences worth understanding:
+
+**You can silently miss upstream fixes.** If upstream patches a bug in a file
+you've customized (say `pages_controller.rb`), your next sync keeps your version
+and the fix never arrives — with no warning. The update recipe below includes a
+one-command check for exactly this.
+
+**The driver must be active.** `bin/setup` activates it on any clone that has an
+`upstream` remote. Without it, these paths conflict like ordinary files — verify
+with `git config merge.ours.driver` → `true`.
+
+`db/seeds.rb` is shared ground rather than fork-owned: everything above the
+"Fork seam" marker at the bottom is template-owned; add your domain seeds below
+the marker.
 
 ### Adding your own docs page
 
@@ -625,33 +768,88 @@ orphaned pages across both maps automatically.
 
 ## Pull upstream updates
 
+### 1. Look before you merge
+
 ```bash
 git fetch upstream
-git log --oneline main..upstream/main   # review what's coming; read CHANGELOG.md too
+git log --oneline main..upstream/main   # what's coming
+```
 
+Read `CHANGELOG.md` on `upstream/main` first — breaking changes and migrations
+are called out under [Unreleased]. If a change sounds structural (schema,
+`deploy.yml`), read its PR before merging, not after.
+
+Then check whether upstream touched files **you own** — those changes will NOT
+arrive through the merge (the driver keeps yours):
+
+```bash
+git log --oneline main..upstream/main -- \
+  app/views/pages app/controllers/pages_controller.rb \
+  config/locales/en/pages.en.yml config/locales/en/brand.en.yml \
+  config/routes/app.rb README.md
+```
+
+If a commit there looks like a fix you want, cherry-pick it after the merge:
+`git cherry-pick <sha>`, then adapt it to your version of the file.
+
+### 2. Merge on a branch
+
+```bash
 git checkout -b chore/upstream-sync-$(date +%F)
 git merge upstream/main
 ```
 
-Conflict doctrine:
+### 3. If you hit conflicts
 
 | Conflict in | Resolution |
 | ----------- | ---------- |
-| Fork-owned paths | None — the merge driver already kept yours |
-| Identity values (`config/deploy.yml` service/image/volumes, `config/application.rb` module) | Keep your names; take structural changes around them |
+| Fork-owned paths | Shouldn't happen — the driver keeps yours. If it does, the driver isn't active: `git merge --abort`, run `git config merge.ours.driver true`, merge again |
+| Identity values (`config/deploy.yml` service/image/volumes, `config/application.rb` module) | Keep your names; take any structural changes around them |
+| `Gemfile` | Keep **both** sides' gems, then regenerate the lockfile |
+| `Gemfile.lock`, `package-lock.json` | Never hand-merge: `git checkout --theirs <file>`, then `bundle install` / `npm install`, commit the regenerated result |
 | Behavior (app code, specs, config) | Take theirs — unless you deliberately diverged, in which case consider sending your version upstream instead |
-| `Gemfile.lock`, `package-lock.json` | Never hand-merge: take either side, then `bundle install` / `npm install` and commit the regenerated files |
+| Two migrations, same timestamp | Keep both; rename yours to a later timestamp with `git mv`, then re-run `bin/rails db:migrate` |
+| Upstream renamed/moved a file you'd edited | Re-apply your edit at the new location, delete the old file. If the same resolution recurs every sync, turn on `git config rerere.enabled true` so git replays it for you |
 
-Then prove the merge:
+A conflict looks like this — your side on top, upstream's below:
+
+```text
+<<<<<<< HEAD
+    primary_cta: "Start organizing your photos"
+=======
+    primary_cta: "Get started free"
+>>>>>>> upstream/main
+```
+
+Decide which line the file should have (here it's your marketing copy — keep
+yours), delete the other line and all three marker lines, then `git add` the
+file. That's the whole skill; the doctrine table tells you which side to favor.
+
+### 4. Prove the merge
 
 ```bash
 bin/rails db:migrate    # upstream may ship migrations
 bundle exec rspec       # full suite green before the PR
 ```
 
-Open a pull request into your app's main branch like any other change. A good
-cadence is after each meaningful upstream change, or monthly — small merges stay
-small.
+Open a pull request into your app's main branch like any other change.
+
+### If something looks wrong after the merge
+
+- **A fork-owned file changed unexpectedly** — the driver wasn't active during
+  the merge. Restore your version from before the sync:
+  `git restore --source=main <path>`, commit, then fix the driver config.
+- **Bundler errors** — regenerate instead of debugging the lockfile:
+  `git checkout --theirs Gemfile.lock && bundle install`.
+- **Tests fail** — run the failing spec alone, then
+  `git diff upstream/main -- <file>` on the code it covers to see whether your
+  divergence or the upstream change broke it.
+
+### Cadence
+
+Merge after each meaningful upstream change — don't bank up months of drift.
+Small frequent merges conflict less than one big annual one; if upstream is
+busy, a fixed weekly sync keeps every merge boring.
 
 ## Contribute a fix back
 
@@ -662,11 +860,20 @@ exists as a commit in your app:
 ```bash
 cd ../modelrails_base
 git checkout -b fix/thing main
-git remote add myapp ../myapp && git fetch myapp
+git remote add myapp git@github.com:YOU/myapp.git   # or ../myapp for a local checkout
+git fetch myapp
 git cherry-pick <sha>
 ```
 
-Strip anything product-specific before opening the PR.
+Three guardrails before you open the PR:
+
+- **Only template-owned files.** If the commit also touches fork-owned paths
+  (your README, pages, brand strings), it would pollute the template — split the
+  commit, or port the change by hand instead of cherry-picking.
+- **Regular commits only, never merge commits** — cherry-picking a merge commit
+  needs `-m` and rarely does what you meant.
+- **Strip anything product-specific** (names, copy, config values) so the change
+  reads as a template improvement.
 
 ## Stay mergeable
 
@@ -677,20 +884,25 @@ Strip anything product-specific before opening the PR.
   else, that's an upstream bug; report or fix it upstream.
 - **Product routes only in `config/routes/app.rb`** — leave `config/routes.rb`
   to the template.
+- **Gemfile: add, don't pin.** Append your gems with loose constraints
+  (`"~> 1.0"`); pinning exact versions or git branches conflicts with upstream's
+  dependency bumps every sync.
 - **Treat `UI::*` primitives as upstream-owned** — extend by composing new
   components rather than editing the primitives; the planned design-system
   update engine will regenerate them.
-- **When you must edit a template file** (adding a nav item, a new Gemfile
-  entry), make the edit additive — append rather than rewrite — so the merge has
-  one obvious resolution.
+- **Layouts and shared partials are template-owned but not frozen.** Adding a
+  nav link to the header partial is fine — insert lines, don't restructure, so a
+  future conflict has one obvious resolution.
+- **When you must edit any template file** (an initializer, `application.rb`),
+  make the edit additive — append rather than rewrite.
 ````
 
-- [ ] **Step 3: Run, verify red**
+- [ ] **Step 5: Run, verify the second red**
 
 Run: `bundle exec rspec spec/docs/index_coverage_spec.rb`
 Expected: 1 failure — `forking` is an uncategorized orphan. (This is the natural failing test for doc registration.)
 
-- [ ] **Step 4: Register the slug**
+- [ ] **Step 6: Register the slug**
 
 In `config/initializers/markdowndocs.rb`, change the Guides line inside `template_categories`:
 
@@ -698,18 +910,18 @@ In `config/initializers/markdowndocs.rb`, change the Guides line inside `templat
     "Guides" => %w[extending security ui-patterns components accessibility deployment background-jobs troubleshooting forking]
 ```
 
-- [ ] **Step 5: Run, verify green + render check**
+- [ ] **Step 7: Run, verify green + render check**
 
-Run: `bundle exec rspec spec/docs/`
-Expected: 0 failures.
+Run: `bundle exec rspec spec/docs/ spec/code_smells/template_invariants_spec.rb`
+Expected: 0 failures (index coverage, contract-sync invariant, and the rest of the invariants file).
 
 Run: `bin/dev` (or existing server), visit `http://localhost:3000/docs/forking` — page renders with title, tables, and code blocks intact; it appears under Guides on `/docs`. (Render truth is browser-only — do this, don't skip it.)
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add app/docs/forking.md config/initializers/markdowndocs.rb
-git commit -m "docs: in-app forking guide at /docs/forking"
+git add app/docs/forking.md config/initializers/markdowndocs.rb spec/code_smells/template_invariants_spec.rb
+git commit -m "docs: in-app forking guide at /docs/forking + contract-sync invariant"
 ```
 
 ### Task 7: README slimming
@@ -843,5 +1055,34 @@ EOF
 
 - Spec's "update `index_coverage_spec`" requirement dropped: verified unnecessary (it reads the booted, post-merge `Markdowndocs.configuration.categories`). The spec doc's assumption is superseded by Task 4's design.
 - Spec's "layout meta description" call-site edit dropped: verified the layout already uses `t("application.description")`.
-- Added (not in spec, found during planning): brand-agnostic devcontainer-volume regex (Task 3 Step 4) — the only spec asserting a brand literal.
+- Added (not in spec, found during planning): brand-agnostic devcontainer-volume regex (Task 3 Step 6) — the only spec asserting a brand literal.
 - All invariant assertions are presence-based, never `eq("ModelRails")`, so a renamed fork passes them unmodified.
+
+## Panel amendments (2026-06-12, applied)
+
+Five-seat template-practitioner review (Chris Oliver, Colin Jilbert, Andrew
+Culver, Joël Quenneville, Scott Chacon personas). Consensus: architecture sound;
+the following precision fixes are folded into the tasks above:
+
+1. **merge=ours semantics corrected** (Scott + Colin): driver fires only on
+   two-sided changes; guide now documents both behaviors, the silent-discard
+   hazard for customized files, and a pre-merge check + cherry-pick escape hatch
+   (Task 6 guide §"How the merge driver actually behaves" and §"Look before you merge").
+2. **Task 4 redesigned** (Joël): extracted `lib/markdowndocs_local_categories.rb`
+   unit + Tempfile spec; no initializer reload, no global File/YAML stubs.
+3. **Driver activation in bin/setup** (Scott/Culver/Colin), gated on
+   `git remote get-url upstream` — the template repo must never set the driver
+   (it would mis-resolve its own PR merges). Task 3 Step 4 + invariant.
+4. **db/seeds.rb fork marker** (Colin): explicit end-of-template comment,
+   invariant-backed (Task 3 Step 5).
+5. **Contract-sync invariant** (Joël): every merge=ours path must be named in
+   forking.md (Task 6 Step 2).
+6. **Guide additions** (Chris/Colin/Culver/Scott/Joël): pre-merge CHANGELOG +
+   fork-owned-paths check, worked conflict example, doctrine rows for Gemfile /
+   migration timestamps / upstream renames + rerere, post-merge troubleshooting,
+   contribute-back guardrails, DISABLED push-URL and branch-tracking notes,
+   baseline tag, teammate setup via bin/setup, "is this model right for you"
+   (Suspenders) paragraph, gem-trajectory paragraph, Gemfile add-don't-pin and
+   layout-partials bullets.
+7. **Baseline tagging** (Chris): one-line `git tag forks/<app>-baseline` step in
+   the guide's "Start a new app".

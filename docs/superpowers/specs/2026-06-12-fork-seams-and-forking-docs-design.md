@@ -191,3 +191,38 @@ checklist table moves out (single source of truth in the doc).
 
 After both PRs merge: walk through `app/docs/forking.md` literally to create
 sonicpics; any friction found is a docs bug to fix upstream before fork #2.
+
+## Panel amendments (2026-06-12)
+
+A five-seat template-practitioner panel (Chris Oliver, Colin Jilbert, Andrew
+Culver, Joël Quenneville, Scott Chacon personas; Sandi Metz + Jim Weirich
+facilitation) reviewed the implementation plan. Consensus: architecture sound —
+clone+merge over gem-extraction explicitly endorsed for this scale — with
+precision fixes, all applied to the plan. Where this section conflicts with the
+seam descriptions above, the amendments win:
+
+1. **merge=ours semantics** (supersedes Seam 3's "auto-resolve" wording): the
+   driver fires only when BOTH sides changed a file since the merge base.
+   Untouched fork-owned files still receive upstream changes; customized ones
+   silently keep the fork's version — including over upstream security fixes.
+   The guide documents both behaviors, a pre-merge check of upstream commits to
+   fork-owned paths, and a cherry-pick escape hatch.
+2. **Driver activation is automated**: `bin/setup` runs
+   `git config merge.ours.driver true` when (and only when) an `upstream`
+   remote exists. The template repo must never set the driver — it would
+   mis-resolve its own PR merges touching fork-owned paths.
+3. **Seam 4 implementation** (supersedes the inline-initializer description):
+   the merge lives in `lib/markdowndocs_local_categories.rb`, explicitly
+   `require`d by the initializer (Zeitwerk forbids autoloaded constants in
+   initializers) and unit-tested with Tempfile fixtures — no stub+reload.
+4. **db/seeds.rb** gets an explicit end-of-template marker; fork seeds go below it.
+5. **Contract-sync invariant**: every merge=ours path must appear in
+   `app/docs/forking.md` (drift between contract and docs fails CI).
+6. **Guide scope grew** (teachability findings): pre-merge CHANGELOG ritual,
+   worked conflict example, doctrine rows for Gemfile / migration timestamps /
+   upstream renames (+ `git rerere`), post-merge troubleshooting, contribute-back
+   guardrails (template-owned paths only, no merge commits), `DISABLED` push-URL
+   and branch-tracking notes, baseline tagging (`git tag forks/<app>-baseline`),
+   "is this model right for you" (generate-and-own alternative), and a
+   gem-trajectory note (modelrails_ui/markdowndocs already update via
+   `bundle update`; the merge workflow covers the app around the gems).
