@@ -519,6 +519,21 @@ RSpec.describe "Template invariants" do
         "expected digest_mailer to be routed to the `mailers` queue so it shows up in " \
         "queue-level observability (was on `default` — sharing with DB sweep jobs)"
     end
+
+    it "database.yml declares journal_mode WAL explicitly so forks inherit the durability posture" do
+      rendered = ERB.new(File.read(root.join("config/database.yml"))).result
+      db = YAML.safe_load(rendered, aliases: true)
+
+      expect(db.dig("default", "pragmas", "journal_mode")).to eq("wal"),
+        "expected `pragmas: { journal_mode: wal }` in database.yml's default block. Rails 8.1 " \
+        "defaults to WAL, but the template makes it explicit so a fork reads the production " \
+        "durability/concurrency posture here instead of inferring it from adapter defaults " \
+        "(Nate Berkopec, #304). `pragmas:` merges over Rails' DEFAULT_PRAGMAS — the other tuned " \
+        "defaults (synchronous: normal, foreign_keys, mmap_size) are preserved."
+      expect(db.dig("default", "timeout")).to eq(5000),
+        "expected `timeout: 5000` — installs the sqlite3 busy handler so writers wait up to 5s " \
+        "for the lock (NOT the busy_timeout PRAGMA; see spec/config/sqlite_pragmas_spec.rb)"
+    end
   end
 
   describe "Devops architecture is documented for forkers (app/docs surface)" do
