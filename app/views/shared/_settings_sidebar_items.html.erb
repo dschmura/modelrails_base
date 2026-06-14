@@ -75,10 +75,10 @@
           active: current_page?(edit_account_theme_preference_path) %>
   <% else %>
     <%# Profile routes to workspaces#edit which authorizes via
-        Workspaces::ProfilePolicy (manage_settings permission). Consult
-        ProfilePolicy directly so sidebar visibility matches the
-        destination controller's authorize call. %>
-    <% if Workspaces::ProfilePolicy.new(Current.user, current_workspace).update? %>
+        Workspaces::ProfilePolicy (manage_settings permission) — not the
+        record's default WorkspacePolicy — so pass policy_class: to keep
+        sidebar visibility matched to the destination controller's authorize. %>
+    <%= render_nav_item_if_permitted(current_workspace, action: :update?, policy_class: Workspaces::ProfilePolicy) do %>
       <%= render "shared/settings_sidebar_item",
             label: t("settings.sidebar.items.profile"),
             href: edit_workspace_path(current_workspace),
@@ -111,9 +111,9 @@
     <%# Limits & Plan routes to workspaces/settings#edit which authorizes via
         Workspaces::SettingsPolicy (manage_settings permission). The default
         WorkspacePolicy#update? checks manage_workspace — a different permission
-        held by Owners but not Admins. We consult SettingsPolicy directly so
-        sidebar visibility matches the destination controller's authorize call. %>
-    <% if Workspaces::SettingsPolicy.new(Current.user, current_workspace).update? %>
+        held by Owners but not Admins — so pass policy_class: to keep sidebar
+        visibility matched to the destination controller's authorize call. %>
+    <%= render_nav_item_if_permitted(current_workspace, action: :update?, policy_class: Workspaces::SettingsPolicy) do %>
       <%= render "shared/settings_sidebar_item",
             label: t("settings.sidebar.items.limits_and_plan"),
             href: edit_workspace_settings_path(current_workspace),

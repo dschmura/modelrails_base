@@ -54,6 +54,33 @@ RSpec.describe SettingsNavigationHelper, type: :helper do
       output = helper.render_nav_item_if_permitted(membership, action: :index?) { "RENDERED" }
       expect(output).to eq("RENDERED")
     end
+
+    context "with an explicit policy_class:" do
+      it "yields when the given policy class permits the action" do
+        allow(Workspaces::SettingsPolicy).to receive(:new)
+          .with(user, workspace).and_return(instance_double(Workspaces::SettingsPolicy, update?: true))
+
+        output = helper.render_nav_item_if_permitted(
+          workspace, action: :update?, policy_class: Workspaces::SettingsPolicy
+        ) { "RENDERED" }
+        expect(output).to eq("RENDERED")
+      end
+
+      # Discriminator: the record's inferred policy (WorkspacePolicy) would
+      # permit, but the explicitly-requested SettingsPolicy denies — so a nil
+      # result proves the helper consults the given class, not the inferred one.
+      it "consults the given policy class instead of inferring from the record" do
+        allow(WorkspacePolicy).to receive(:new)
+          .and_return(instance_double(WorkspacePolicy, update?: true))
+        allow(Workspaces::SettingsPolicy).to receive(:new)
+          .with(user, workspace).and_return(instance_double(Workspaces::SettingsPolicy, update?: false))
+
+        output = helper.render_nav_item_if_permitted(
+          workspace, action: :update?, policy_class: Workspaces::SettingsPolicy
+        ) { "RENDERED" }
+        expect(output).to be_nil
+      end
+    end
   end
 
   describe "#current_workspace_announcement_for_aria_live" do
