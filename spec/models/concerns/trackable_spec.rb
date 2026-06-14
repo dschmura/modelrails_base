@@ -68,6 +68,16 @@ RSpec.describe Trackable, type: :model do
         Workspace.create!(name: "Should still work")
       }.to change(Workspace, :count).by(1)
     end
+
+    it "logs the failing record's class and id so the silent loss is debuggable" do
+      allow(ActivityLog).to receive(:create!).and_raise(ActiveRecord::RecordInvalid.new(ActivityLog.new))
+      allow(Rails.logger).to receive(:warn).and_call_original
+
+      workspace = Workspace.create!(name: "Logged Failure")
+
+      expect(Rails.logger).to have_received(:warn)
+        .with(a_string_including("Workspace", workspace.id.to_s))
+    end
   end
 
   describe "workspace resolution" do

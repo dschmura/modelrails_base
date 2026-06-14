@@ -22,11 +22,7 @@ class ProjectMembershipPolicy < ApplicationPolicy
   private
 
   def project
-    if record.is_a?(ProjectMembership)
-      record.project
-    else
-      Current.project
-    end
+    record.respond_to?(:project) ? record.project : Current.project
   end
 
   def project_membership

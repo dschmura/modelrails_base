@@ -84,4 +84,19 @@ RSpec.describe ResourcePolicy do
       expect(described_class.new(ws_owner, resource).destroy?).to be true
     end
   end
+
+  # project_membership resolves the project from the record when it carries one,
+  # else from Current.project. index?/create? authorize against the class (no
+  # instance), which exercises the Current.project fallback branch.
+  describe "when the record is the class (Current.project fallback)" do
+    before { Current.project = project }
+
+    it "allows a project member to index" do
+      expect(described_class.new(editor_user, Resource).index?).to be true
+    end
+
+    it "denies a workspace member who is not on the project" do
+      expect(described_class.new(non_member, Resource).index?).to be false
+    end
+  end
 end

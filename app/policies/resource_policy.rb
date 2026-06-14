@@ -26,7 +26,7 @@ class ResourcePolicy < ApplicationPolicy
   private
 
   def project_membership
-    project = record.is_a?(Resource) ? record.project : Current.project
+    project = record.respond_to?(:project) ? record.project : Current.project
     @project_membership ||= project&.project_memberships&.find_by(user: user)
   end
 
