@@ -1,9 +1,7 @@
 <section aria-labelledby="notifications-heading"
-         class="max-w-3xl mx-auto px-4 py-8
-                sm:px-6
-                lg:px-8">
+         class="max-w-4xl mx-auto px-4 py-16">
   <h1 id="notifications-heading"
-      class="text-2xl font-semibold text-text-heading mb-6">
+      class="text-3xl font-bold text-text-heading mb-6">
     <%= t("notifications.index.heading") %>
   </h1>
 
@@ -12,9 +10,7 @@
   <%= render "bulk_actions" %>
 
   <% if @notifications.empty? %>
-    <p class="text-text-body">
-      <%= t("notifications.index.empty_all") %>
-    </p>
+    <%= render "shared/empty_state", message: t("notifications.index.empty_all") %>
   <% else %>
     <ul class="bg-surface-raised border border-border rounded-lg divide-y divide-border overflow-hidden"
         aria-label="<%= t("notifications.index.heading") %>">

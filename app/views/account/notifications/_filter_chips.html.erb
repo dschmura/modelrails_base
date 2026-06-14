@@ -1,4 +1,9 @@
 <%# locals: (current_filter:) -%>
+<%# Filter chips are interactive 44px touch-target toggles (a navigation
+    pattern), NOT the badge primitive — badges are non-interactive status
+    labels and wouldn't carry the 44x44 target AAA needs. The codified pattern
+    is active=solid (bg-interactive + on-color) / inactive=outline
+    (surface + border), built from semantic tokens. See #295. -%>
 <%
   chips = [
     { key: "all",                path: account_notifications_path },
