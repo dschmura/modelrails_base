@@ -21,6 +21,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Added
 
+- Fork-owned brand-color seam: `app/assets/tailwind/tokens/_brand.css` (`merge=ours`, imported after `_primitives.css`) lets a fork swap its primary palette family without editing the template-owned defaults or hitting merge conflicts — the color twin of `brand.en.yml`. Ships empty (zero compiled bytes); see `docs/theming.md` (#313).
 - Deployment docs: Thruster's automatic X-Sendfile offload documented with an explicit "don't configure `x_sendfile_header`" guard (breaks non-Thruster deploys), plus a health-check-timeout troubleshooting entry.
 - `bin/deploy-guide` — target-aware deployment guidance (kamal / self-host / managed), plus a "Deploying without Kamal" portable-contract section in `app/docs/deployment.md` for Hatchbox-style platforms.
 - Lookbook component explorer at `/lookbook` (development-only) for the vendored `UI::*` components — `modelrails_ui` upgraded to v0.2.0 plus the `lookbook` gem; preview classes live in `spec/components/previews`.

@@ -21,4 +21,5 @@ config/locales/en/pages.en.yml merge=ours
 config/locales/en/brand.en.yml merge=ours
 config/routes/app.rb merge=ours
 config/markdowndocs_categories.local.yml merge=ours
+app/assets/tailwind/tokens/_brand.css merge=ours
 README.md merge=ours
