@@ -98,4 +98,35 @@ RSpec.describe "Sessions new-device detection", type: :request do
       }.not_to change { Noticed::Event.where(type: "SignInFromNewDeviceNotifier").count }
     end
   end
+
+  # The new-device hook is best-effort: a DB/queue hiccup must never break
+  # sign-in. But the rescue is narrowed to ActiveRecord errors (on this
+  # SQLite + Solid Queue stack, even a "queue down" surfaces as one), so a
+  # genuine programming bug propagates instead of being silently masked.
+  describe "POST /session — device-detection error handling" do
+    let(:mac_ua) { "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_2) AppleWebKit/605.1.15" }
+
+    it "swallows infrastructure (ActiveRecord) errors so sign-in still succeeds" do
+      allow(SignInFromNewDeviceNotifier).to receive(:with)
+        .and_raise(ActiveRecord::StatementInvalid.new("simulated DB hiccup"))
+
+      post session_path,
+        params: { email_address: user.email_address, password: "SecureP@ssw0rd123!" },
+        headers: { "User-Agent" => mac_ua }
+
+      expect(response).to have_http_status(:redirect)
+      expect(user.sessions.count).to eq(1)
+    end
+
+    it "lets an unexpected programming error surface instead of masking it" do
+      allow(SignInFromNewDeviceNotifier).to receive(:with)
+        .and_raise(NoMethodError.new("undefined method 'boom'"))
+
+      expect {
+        post session_path,
+          params: { email_address: user.email_address, password: "SecureP@ssw0rd123!" },
+          headers: { "User-Agent" => mac_ua }
+      }.to raise_error(NoMethodError)
+    end
+  end
 end

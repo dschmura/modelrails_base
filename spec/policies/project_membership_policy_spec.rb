@@ -48,4 +48,21 @@ RSpec.describe ProjectMembershipPolicy do
       expect(described_class.new(editor_user, creator_pm).toggle_pin?).to be false
     end
   end
+
+  # The `project` resolver has two branches: read the record's own project when
+  # the record carries one, else fall back to Current.project. index? authorizes
+  # against the class (no instance), so it exercises the fallback branch.
+  describe "index? when the record is the class (Current.project fallback)" do
+    before { Current.project = project }
+
+    it "allows a project member" do
+      expect(described_class.new(creator_user, ProjectMembership).index?).to be true
+    end
+
+    it "denies a workspace member who is not on the project" do
+      outsider = create(:user)
+      create(:membership, user: outsider, workspace: workspace)
+      expect(described_class.new(outsider, ProjectMembership).index?).to be false
+    end
+  end
 end

@@ -34,7 +34,7 @@ module Trackable
       metadata: metadata
     )
   rescue ActiveRecord::RecordInvalid => e
-    Rails.logger.warn("Activity tracking failed: #{e.message}")
+    Rails.logger.warn("Activity tracking failed for #{self.class.name}##{id} (#{action}): #{e.message}")
   end
 
   def resolve_workspace_for_activity
