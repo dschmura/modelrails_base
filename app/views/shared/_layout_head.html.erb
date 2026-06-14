@@ -1,0 +1,17 @@
+<%# <head> shared by the application and settings layouts: title, meta, theme
+    bootstrap, CSP/CSRF, and asset tags. Rendered inside <html> by each layout. -%>
+  <head>
+    <title><%= content_for(:title) || t("application.name") %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="description" content="<%= content_for(:description) || t("application.description") %>">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <%= render "shared/theme_script" %>
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= stylesheet_link_tag "biscuit/biscuit", "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
