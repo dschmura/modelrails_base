@@ -4,17 +4,27 @@ This application uses a three-layer design token system. Tokens provide accessib
 
 ## Quick Start: Retheme the Primary Color
 
-To change the primary color from sky to purple, open `app/assets/tailwind/tokens/_primitives.css` and replace `sky` with `purple` in the primary section:
+Brand-color overrides live in `app/assets/tailwind/tokens/_brand.css` — a
+**fork-owned** file (see [Forking](forking)) that ships empty and is imported
+*after* the defaults, so anything you set there wins. To change the primary
+color from sky to purple, uncomment the primary block in `_brand.css` and point
+it at the purple family:
 
 ```css
-/* Before */
---primary-700: var(--color-sky-700);
-
-/* After */
---primary-700: var(--color-purple-700);
+/* In app/assets/tailwind/tokens/_brand.css */
+:root {
+  --primary-700: var(--color-purple-700);
+  /* …and the other shades, 50–950 */
+}
 ```
 
-Replace all 11 shades (50-950) and the entire UI updates — buttons, links, focus rings, hover states.
+Set all 11 shades (50-950) and the entire UI updates — buttons, links, focus
+rings, hover states. The defaults stay in `_primitives.css` (upstream-owned), so
+you keep inheriting improvements to everything you didn't override.
+
+> **AAA caveat:** swapping the family shifts the contrast ratios the semantic
+> layer was tuned against. This project's axe check proves AAA (7:1) only in CI,
+> not locally — push and read CI before shipping a rebrand.
 
 ## Architecture
 
@@ -32,7 +42,10 @@ Each palette has 11 shades (50-950) that reference Tailwind CSS custom propertie
 
 To retheme, swap the Tailwind color family. The semantic layer doesn't change — it references the primitive aliases, not the Tailwind colors.
 
-Primitives are defined in `app/assets/tailwind/tokens/_primitives.css`.
+Primitives are defined in `app/assets/tailwind/tokens/_primitives.css` (the
+upstream-owned defaults). Forks override them in the fork-owned
+`app/assets/tailwind/tokens/_brand.css`, imported immediately after — see the
+Quick Start above.
 
 ### Layer 2: Semantic Tokens
 
