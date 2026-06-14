@@ -65,9 +65,12 @@ module Authenticatable
     # exactly the moment we recognize as "successful sign-in" — and not on
     # every authenticated request (resume_session does not call this).
     #
-    # Best-effort: any error here MUST NOT break sign-in. The Notifier itself
-    # rescues RecordNotUnique to dedupe, but unexpected failures (queue down,
-    # JSON column write hiccup) should still let the user in. Log + swallow.
+    # Best-effort: a DB/queue hiccup here MUST NOT break sign-in. Both writes
+    # this method makes (the Notifier's bulk insert, record_browser!'s
+    # update_column) go through ActiveRecord, and on this SQLite + Solid Queue
+    # stack even a "queue down" surfaces as an ActiveRecord error — so that is
+    # the only class we swallow. A non-AR failure (e.g. NoMethodError) is a real
+    # bug and propagates rather than being silently masked (#305).
     def detect_and_record_new_device(user)
       ua = request.user_agent.to_s
       os = parse_os_from_user_agent(ua)
@@ -77,7 +80,7 @@ module Authenticatable
       end
 
       user.record_browser!(ua, os)
-    rescue => e
+    rescue ActiveRecord::ActiveRecordError => e
       Rails.logger.warn("[new-device-detection] swallowed error for user=#{user.id}: #{e.class}: #{e.message}")
     end
 
