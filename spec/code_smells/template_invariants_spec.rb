@@ -711,4 +711,47 @@ RSpec.describe "Template invariants" do
         "_brand.css must be imported AFTER _primitives.css so a fork's overrides win the cascade (see docs/theming.md)"
     end
   end
+
+  describe "CI lint tooling is version-pinned (no silent drift across CI, local, and forks)" do
+    let(:package_json) { JSON.parse(File.read(root.join("package.json"))) }
+    let(:ci) { File.read(root.join(".github/workflows/ci.yml")) }
+
+    it "pins the npm lint tools in package.json devDependencies at exact versions" do
+      dev = package_json["devDependencies"] || {}
+      %w[@herb-tools/linter markdownlint-cli].each do |pkg|
+        version = dev[pkg]
+        expect(version).to be_present,
+          "expected #{pkg} in package.json devDependencies (lockfile-pinned), not an unpinned global install (see #299)"
+        expect(version).to match(/\A\d+\.\d+\.\d+\z/),
+          "expected #{pkg} pinned to an exact version (no ^ or ~) so CI, local, and forks run the same linter — got #{version.inspect}"
+      end
+    end
+
+    it "installs lint tools via the lockfile in CI, not unpinned global installs" do
+      expect(ci).to include("npm ci"),
+        "CI should install the pinned devDependencies with `npm ci`"
+      expect(ci).not_to match(/npm install -g.*(markdownlint|herb)/),
+        "CI must not `npm install -g` the linters unpinned — they drift on every release (see #299)"
+    end
+
+    it "invokes the linters from the local pinned install (npx), not a bare global command" do
+      expect(File.read(root.join("lib/tasks/markdown_lint.rake"))).to include("npx markdownlint"),
+        "markdown:check must run the pinned local markdownlint via npx, not a bare global `markdownlint`"
+      expect(File.read(root.join("lib/tasks/erb_lint.rake"))).to include("npx herb-lint"),
+        "erb:check must run the pinned local herb-lint via npx, not a bare global `herb-lint`"
+    end
+
+    it "installs node dependencies in bin/setup so the pinned linters are present locally" do
+      expect(File.read(root.join("bin/setup"))).to match(/npm ci|npm install/),
+        "bin/setup must install node deps so `npx markdownlint`/`herb-lint` resolve the pinned versions (no manual `npm install -g`)"
+    end
+
+    it "does not force brakeman to the latest released version (same drift anti-pattern)" do
+      # Active code only — an explanatory comment naming the removed flag is fine.
+      active = File.read(root.join("bin/brakeman")).lines.reject { |line| line.strip.start_with?("#") }.join
+      expect(active).not_to include("--ensure-latest"),
+        "bin/brakeman --ensure-latest fails CI the moment a newer brakeman ships, on every branch with no code change — " \
+        "bump deliberately instead (see #299; the drift it caused is PR #319)"
+    end
+  end
 end
