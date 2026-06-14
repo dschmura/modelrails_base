@@ -87,11 +87,8 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends libvips42t64
 
-      - name: Install markdownlint-cli
-        run: npm install -g markdownlint-cli
-
-      - name: Install herb linter
-        run: npm install -g @herb-tools/linter
+      - name: Install pinned lint tools (markdownlint-cli, @herb-tools/linter)
+        run: npm ci
 
       - name: Check markdown
         run: bundle exec rake markdown:check
