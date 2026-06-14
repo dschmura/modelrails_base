@@ -16,10 +16,15 @@ module SettingsNavigationHelper
   # action. By consulting the *same* policy/action the destination controller
   # authorizes against, we keep sidebar visibility and controller authorization
   # in lockstep — no separate SidebarPolicy to drift from the source of truth.
-  def render_nav_item_if_permitted(record, action:, &block)
+  #
+  # Pass policy_class: when the record has more than one scoped policy and the
+  # convention-inferred one isn't the gate to consult — e.g. a Workspace is
+  # authorized by Workspaces::SettingsPolicy / Workspaces::ProfilePolicy rather
+  # than the default WorkspacePolicy for those destinations.
+  def render_nav_item_if_permitted(record, action:, policy_class: nil, &block)
     return nil unless block_given?
 
-    policy = Pundit.policy(current_user, record)
+    policy = policy_class ? policy_class.new(current_user, record) : Pundit.policy(current_user, record)
     return nil unless policy.public_send(action)
 
     capture(&block)
