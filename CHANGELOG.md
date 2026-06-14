@@ -55,6 +55,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Bug fixes
 
+- Settings-hub Turbo morph is now actually active (#327). `turbo_refreshes_with method: :morph` buffers its meta tags into `:head` via `provide`, but neither layout had a `yield :head` to render them, so the morph meta never emitted and the hub silently fell back to `replace`. The shared `_layout_head` now yields `:head` and the settings layout provides the morph meta before it renders — the announcer dedup and idiomorph-safe switcher IDs were already built for this.
 - Single-tenant preset: invitation-driven signups now adopt the invitation's role instead of being stuck at the `onboard_workspace` callback's placeholder Member. Solo-default (`:personal`) semantics are unchanged.
 
 ### Changed

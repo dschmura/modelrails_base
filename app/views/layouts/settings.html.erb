@@ -2,6 +2,11 @@
 <html lang="<%= I18n.locale %>"
       data-controller="theme"
       data-theme-theme-value="<%= current_user_theme %>">
+<%# Turbo morph for the settings hub (#327). Must run before the head partial
+    so its provide(:head) is buffered when _layout_head yields :head. The
+    settings-announcer controller and the switcher's idiomorph-safe IDs are
+    built for this. %>
+<% turbo_refreshes_with method: :morph %>
 <%= render "shared/layout_head" %>
 
   <body class="min-h-screen flex flex-col bg-surface-raised text-text-heading">
