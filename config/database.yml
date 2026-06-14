@@ -7,7 +7,20 @@
 default: &default
   adapter: sqlite3
   max_connections: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  # `timeout` installs a Ruby-level busy handler (the sqlite3 gem's
+  # busy_handler_timeout) so writers wait up to 5s for the lock. This is NOT
+  # the SQLite `busy_timeout` PRAGMA — `PRAGMA busy_timeout` reads 0 on the
+  # live connection even though this is set, and that's expected. Don't add a
+  # `busy_timeout` pragma below: it would replace this handler. (See #304 and
+  # spec/config/sqlite_pragmas_spec.rb.)
   timeout: 5000
+  # Rails 8.1 already defaults journal_mode to WAL; we declare it explicitly so
+  # a fork reads the production durability/concurrency posture here rather than
+  # inferring it from adapter defaults. `pragmas:` MERGES over Rails'
+  # DEFAULT_PRAGMAS — synchronous: normal, foreign_keys, mmap_size, cache_size
+  # are still applied; we only pin the one a fork is most likely to regress.
+  pragmas:
+    journal_mode: wal
 
 development:
   primary:
