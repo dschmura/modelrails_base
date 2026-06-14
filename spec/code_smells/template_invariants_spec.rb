@@ -653,6 +653,7 @@ RSpec.describe "Template invariants" do
         config/locales/en/brand.en.yml
         config/routes/app.rb
         config/markdowndocs_categories.local.yml
+        app/assets/tailwind/tokens/_brand.css
         README.md
       ].each do |path|
         expect(gitattributes).to match(/^#{Regexp.escape(path)} merge=ours$/),
@@ -694,6 +695,20 @@ RSpec.describe "Template invariants" do
           "#{file.delete_prefix("#{Rails.root}/")} hardcodes the brand name #{brand_name.inspect} — " \
           "brand strings live only in fork-owned brand.en.yml (see /docs/forking)"
       end
+    end
+
+    it "lets forks override brand colors in a fork-owned file imported after the template defaults" do
+      brand_css = Rails.root.join("app/assets/tailwind/tokens/_brand.css")
+      expect(File.exist?(brand_css)).to be(true),
+        "expected app/assets/tailwind/tokens/_brand.css — the fork-owned brand-color override file (see /docs/forking)"
+
+      app_css = File.read(Rails.root.join("app/assets/tailwind/application.css"))
+      primitives_at = app_css.index("./tokens/_primitives.css")
+      brand_at = app_css.index("./tokens/_brand.css")
+      expect(brand_at).not_to be_nil,
+        "application.css must @import ./tokens/_brand.css so a fork's color overrides take effect"
+      expect(brand_at).to be > primitives_at,
+        "_brand.css must be imported AFTER _primitives.css so a fork's overrides win the cascade (see docs/theming.md)"
     end
   end
 end

@@ -102,6 +102,7 @@ find again.
 | Docker image name | `config/deploy.yml` (`image:`) | Must match your registry path |
 | Storage volume names | `config/deploy.yml` (`volumes:`) | Renaming later orphans the old volume — do it before first deploy |
 | Brand strings | `config/locales/en/brand.en.yml` | Product name, description, copyright — fork-owned, one file |
+| Brand colors | `config/locales/en/brand.en.yml`'s visual twin: `app/assets/tailwind/tokens/_brand.css` | Optional — swap the primary palette family here; re-prove AAA in CI ([Theming](theming)) |
 | Marketing copy | `config/locales/en/pages.en.yml` + `app/views/pages/` | Fork-owned — rewrite wholesale |
 | PWA app name | `public/manifest.webmanifest` + `app/views/pwa/manifest.json.erb` | Shown on the home screen if users install the PWA |
 | CI image tags | `.github/workflows/ci.yml` + `image_scan.yml` (`tags:`) | Local-only build tags; cosmetic but confusing if stale |
@@ -157,6 +158,7 @@ on every sync.
 | `app/views/pages/**`, `app/controllers/pages_controller.rb` | Your marketing/static pages |
 | `config/routes/app.rb` | Your product's routes (loaded by `draw(:app)`) |
 | `config/markdowndocs_categories.local.yml` | Registers your own docs pages on this `/docs` index |
+| `app/assets/tailwind/tokens/_brand.css` | Brand-color overrides — swap the primary palette family ([Theming](theming)) |
 | `README.md` | Your product's README |
 
 ### How the merge driver actually behaves
@@ -218,7 +220,8 @@ arrive through the merge (the driver keeps yours):
 git log --oneline main..upstream/main -- \
   app/views/pages app/controllers/pages_controller.rb \
   config/locales/en/pages.en.yml config/locales/en/brand.en.yml \
-  config/routes/app.rb config/markdowndocs_categories.local.yml README.md
+  config/routes/app.rb config/markdowndocs_categories.local.yml \
+  app/assets/tailwind/tokens/_brand.css README.md
 ```
 
 If a commit there looks like a fix you want, cherry-pick it after the merge:
