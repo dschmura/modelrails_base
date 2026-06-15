@@ -5,9 +5,7 @@
       <%= t("workspaces.projects.index.title") %>
     </h1>
     <%= link_to t("workspaces.projects.index.new_project"), new_workspace_project_path(@workspace),
-          class: "min-h-[var(--form-input-height)] flex items-center px-4 rounded-md
-                  bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium
-                  focus-ring" %>
+          class: "btn-primary" %>
   </div>
 
   <% if @projects.any? %>

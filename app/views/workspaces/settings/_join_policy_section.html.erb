@@ -40,9 +40,7 @@
 
     <div class="pt-2">
       <%= f.submit t("workspaces.settings.join_policy.save"),
-            class: "btn-touch-target inline-flex items-center px-4 py-2 rounded-md
-                    bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium
-                    focus-ring" %>
+            class: "btn-primary" %>
     </div>
   <% end %>
 
@@ -98,9 +96,7 @@
           <%= button_to t("workspaces.settings.join_policy.generate"),
                 workspace_join_links_path(workspace),
                 method: :post,
-                class: "btn-touch-target inline-flex items-center px-4 py-2 rounded-md
-                        bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium
-                        focus-ring" %>
+                class: "btn-primary" %>
         </div>
       <% end %>
     </div>
