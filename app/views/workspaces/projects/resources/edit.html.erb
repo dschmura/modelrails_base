@@ -51,9 +51,6 @@
     <%= render "workspaces/projects/resources/types/#{@resource.resourceable_type.underscore}_form", form: form %>
 
     <%= submit_tag t("workspaces.projects.resources.edit.submit"),
-          class: "w-full min-h-[var(--form-input-height)] rounded-md px-4 py-2
-                  bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium
-                  focus-ring
-                  cursor-pointer" %>
+          class: "btn-primary w-full" %>
   <% end %>
 </div>

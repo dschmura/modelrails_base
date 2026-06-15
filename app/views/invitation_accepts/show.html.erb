@@ -15,16 +15,11 @@
     <%= button_to t("invitation_accepts.show.accept"),
           accept_invitation_path(token: @invitation.token),
           method: :post,
-          class: "mt-8 w-full min-h-[var(--form-input-height)] rounded-md px-4 py-2
-                  bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium
-                  focus-ring
-                  cursor-pointer" %>
+          class: "btn-primary mt-8 w-full" %>
   <% else %>
     <div class="mt-8 space-y-4">
       <%= link_to t("invitation_accepts.show.sign_in"), new_session_path,
-            class: "block w-full min-h-[var(--form-input-height)] flex items-center justify-center rounded-md px-4 py-2
-                    bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium
-                    focus-ring" %>
+            class: "btn-primary w-full" %>
       <%= link_to t("invitation_accepts.show.register"), new_registration_path,
             class: "block w-full min-h-[var(--form-input-height)] flex items-center justify-center rounded-md px-4 py-2
                     border border-interactive text-interactive font-medium

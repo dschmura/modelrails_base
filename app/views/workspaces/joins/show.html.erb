@@ -13,9 +13,7 @@
     <%= button_to t("workspaces.joins.show.join_button", workspace: @workspace.name),
           workspace_join_path(@workspace, token: @link.token),
           method: :post,
-          class: "btn-touch-target inline-flex items-center px-4 py-2 rounded-md
-                  bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium
-                  focus-ring" %>
+          class: "btn-primary" %>
 
     <%= link_to t("workspaces.joins.show.cancel"), root_path,
           class: "btn-touch-target inline-flex items-center px-4 py-2 rounded-md

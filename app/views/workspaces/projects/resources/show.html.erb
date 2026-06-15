@@ -27,9 +27,7 @@
     <% if policy(@resource).update? %>
       <%= link_to t("workspaces.projects.resources.show.edit"),
             edit_workspace_project_resource_path(@workspace, @project, @resource),
-            class: "min-h-[var(--form-input-height)] flex items-center px-4 rounded-md
-                    bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium
-                    focus-ring" %>
+            class: "btn-primary" %>
     <% end %>
   </div>
 

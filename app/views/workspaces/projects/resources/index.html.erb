@@ -7,9 +7,7 @@
     <% if policy(Resource).create? %>
       <%= link_to t("workspaces.projects.resources.index.new_resource"),
             new_workspace_project_resource_path(@workspace, @project),
-            class: "min-h-[var(--form-input-height)] flex items-center px-4 rounded-md
-                    bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium
-                    focus-ring" %>
+            class: "btn-primary" %>
     <% end %>
   </div>
 
