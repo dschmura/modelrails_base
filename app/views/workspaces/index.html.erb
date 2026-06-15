@@ -6,9 +6,7 @@
     </h1>
     <% if TenancyConfig.workspace_creation_enabled? %>
       <%= link_to t("workspaces.index.new_workspace"), new_workspace_path,
-            class: "btn-touch-target inline-flex items-center px-4 py-2 rounded-md
-                    bg-interactive hover:bg-interactive-hover text-text-on-interactive font-medium
-                    focus-ring" %>
+            class: "btn-primary" %>
     <% end %>
   </div>
 
