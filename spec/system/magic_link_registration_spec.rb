@@ -1,9 +1,12 @@
 require "rails_helper"
 
 RSpec.describe "Magic link registration", type: :system do
-  describe "new user via smart lookup" do
-    before { allow(Rails.configuration.x.signup).to receive(:mode).and_return(:open) }
+  # Pin signup mode to :open for every registration spec. The test boot default is
+  # :invite_only, so a stray empty-form POST (a Playwright native-validation race in
+  # the missing-name spec) would otherwise hit the create gate and render "invitation only".
+  before { allow(Rails.configuration.x.signup).to receive(:mode).and_return(:open) }
 
+  describe "new user via smart lookup" do
     it "sends a registration link and allows account creation" do
       visit new_session_path
 
