@@ -2,7 +2,7 @@
 # fail fast instead of surprising at request time. See app/docs/presets.md
 # for the preset configuration contract.
 
-valid_onboarding = %i[personal shared]
+valid_onboarding = [ :personal, :shared, :none ]
 unless valid_onboarding.include?(Rails.configuration.x.tenancy.onboarding)
   raise "Invalid TENANCY_ONBOARDING: #{Rails.configuration.x.tenancy.onboarding.inspect}. " \
         "Must be one of: #{valid_onboarding.join(', ')}"
