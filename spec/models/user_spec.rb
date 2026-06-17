@@ -578,4 +578,43 @@ RSpec.describe User, type: :model do
       expect { create(:user) }.to raise_error(/shared workspace/i)
     end
   end
+
+  describe "#onboard_workspace under :none posture" do
+    before do
+      allow(Rails.configuration.x.tenancy).to receive(:onboarding).and_return(:none)
+    end
+
+    it "creates no workspace on sign-up" do
+      user = create(:user)
+      expect(user.workspaces).to be_empty
+      expect(user.memberships).to be_empty
+    end
+
+    it "assigns no personal_workspace_id" do
+      user = create(:user)
+      expect(user.personal_workspace_id).to be_nil
+      expect(user.personal_workspace).to be_nil
+    end
+
+    it "dispatches to an explicit no-op (does not call create_personal_workspace)" do
+      expect_any_instance_of(User).not_to receive(:create_personal_workspace)
+      expect_any_instance_of(User).not_to receive(:join_shared_workspace)
+      create(:user)
+    end
+  end
+
+  describe "factory trait :with_zero_workspaces" do
+    it "builds a user with no workspaces and no personal_workspace_id" do
+      user = create(:user, :with_zero_workspaces)
+      expect(user.workspaces).to be_empty
+      expect(user.memberships).to be_empty
+      expect(user.personal_workspace_id).to be_nil
+    end
+
+    it "still produces a persisted, valid user" do
+      user = create(:user, :with_zero_workspaces)
+      expect(user).to be_persisted
+      expect(user).to be_valid
+    end
+  end
 end

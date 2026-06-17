@@ -21,5 +21,15 @@ FactoryBot.define do
         user.update!(avatar_source: "upload")
       end
     end
+
+    # Silences the after_create :onboard_workspace callback for THIS instance
+    # so the user persists with zero workspaces and no personal_workspace_id.
+    # Used by zero-workspace crash-safety specs. The singleton override is
+    # instance-scoped and does not leak to other factory calls.
+    trait :with_zero_workspaces do
+      after(:build) do |user|
+        user.define_singleton_method(:onboard_workspace) { nil }
+      end
+    end
   end
 end
