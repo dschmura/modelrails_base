@@ -26,7 +26,7 @@ module Authenticatable
     end
 
     def redirect_if_authenticated
-      redirect_to root_path, notice: t("authentication.already_signed_in") if resume_session
+      redirect_to authenticated_home_path, notice: t("authentication.already_signed_in") if resume_session
     end
 
     def require_authentication

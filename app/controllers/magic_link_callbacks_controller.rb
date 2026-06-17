@@ -19,7 +19,7 @@ class MagicLinkCallbacksController < ApplicationController
         return
       end
       start_new_session_for(@user)
-      redirect_to root_path, notice: t(".signed_in")
+      redirect_to after_authentication_url, notice: t(".signed_in")
     else
       @token = params[:token]
       @email = token_record.email
@@ -65,7 +65,7 @@ class MagicLinkCallbacksController < ApplicationController
 
     if success && token_consumed
       start_new_session_for(@user)
-      redirect_to root_path, notice: t(".registered")
+      redirect_to after_authentication_url, notice: t(".registered")
     elsif @user.errors.any?
       # User failed model validation — re-render the registration form.
       @token = params[:token]

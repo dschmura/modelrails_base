@@ -48,7 +48,7 @@ class OmniauthCallbacksController < ApplicationController
     else
       auth.update!(oauth_attrs(auth_hash))
       start_new_session_for(auth.user)
-      redirect_to root_path, notice: t("sessions.create.success")
+      redirect_to after_authentication_url, notice: t("sessions.create.success")
     end
   end
 
@@ -131,7 +131,7 @@ class OmniauthCallbacksController < ApplicationController
 
     if success
       start_new_session_for(@user)
-      redirect_to root_path, notice: t("sessions.create.success")
+      redirect_to after_authentication_url, notice: t("sessions.create.success")
     else
       redirect_to new_session_path, alert: t("omniauth_callbacks.create.linking_failed")
     end
