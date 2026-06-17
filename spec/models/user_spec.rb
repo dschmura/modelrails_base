@@ -602,4 +602,19 @@ RSpec.describe User, type: :model do
       create(:user)
     end
   end
+
+  describe "factory trait :with_zero_workspaces" do
+    it "builds a user with no workspaces and no personal_workspace_id" do
+      user = create(:user, :with_zero_workspaces)
+      expect(user.workspaces).to be_empty
+      expect(user.memberships).to be_empty
+      expect(user.personal_workspace_id).to be_nil
+    end
+
+    it "still produces a persisted, valid user" do
+      user = create(:user, :with_zero_workspaces)
+      expect(user).to be_persisted
+      expect(user).to be_valid
+    end
+  end
 end
