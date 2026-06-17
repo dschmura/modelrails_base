@@ -26,7 +26,7 @@ module Authenticatable
     end
 
     def redirect_if_authenticated
-      redirect_to root_path, notice: t("authentication.already_signed_in") if resume_session
+      redirect_to authenticated_home_path, notice: t("authentication.already_signed_in") if resume_session
     end
 
     def require_authentication
@@ -47,7 +47,16 @@ module Authenticatable
     end
 
     def after_authentication_url
-      session.delete(:return_to_after_authenticating) || root_url
+      session.delete(:return_to_after_authenticating) || authenticated_home_path
+    end
+
+    # The post-sign-in home for an authenticated user with no saved return_to.
+    # Workspace-agnostic (a user may have no workspace under :none onboarding).
+    # Forks override this ONE method to repoint the landing (e.g. me_path)
+    # without touching session / return_to logic. redirect_to accepts a path,
+    # and a saved return_to is already an absolute URL.
+    def authenticated_home_path
+      root_path
     end
 
     def start_new_session_for(user)

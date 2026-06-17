@@ -41,6 +41,25 @@ RSpec.describe TenancyConfig do
     end
   end
 
+  describe "under :none onboarding" do
+    before do
+      allow(Rails.configuration.x.tenancy).to receive(:onboarding).and_return(:none)
+    end
+
+    it "reports onboarding as :none" do
+      expect(described_class.onboarding).to eq(:none)
+    end
+
+    it "reports neither personal? nor shared?" do
+      expect(described_class).not_to be_personal
+      expect(described_class).not_to be_shared
+    end
+
+    it "resolves no shared workspace" do
+      expect(described_class.shared_workspace).to be_nil
+    end
+  end
+
   describe "workspace_creation_enabled?" do
     it "is false when configured :disabled" do
       allow(Rails.configuration.x.tenancy).to receive(:workspace_creation).and_return(:disabled)
