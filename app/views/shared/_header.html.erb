@@ -25,6 +25,9 @@
         <div class="hidden md:block">
           <%= render "shared/theme_toggle", style: :icon %>
         </div>
+        <% if authenticated? %>
+          <%= render "shared/workspace_switcher" %>
+        <% end %>
         <%= render "shared/user_menu", context: :desktop %>
 
         <%# Mobile menu button. Header-accordion pattern (Path Z) — tapping

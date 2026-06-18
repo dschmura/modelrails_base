@@ -19,6 +19,8 @@ en:
         joined: "Welcome to %{workspace}."
         already_member: "You're already a member of %{workspace}."
         register_first: "Create an account to join %{workspace}."
+    switcher:
+      label: "Workspaces"
     sidebar:
       aria_label: "Workspace navigation"
       section_label: "Workspace"
