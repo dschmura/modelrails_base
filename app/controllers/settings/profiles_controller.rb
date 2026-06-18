@@ -1,6 +1,5 @@
 module Settings
   class ProfilesController < ApplicationController
-    include PersonalWorkspaceContext
     layout "settings"
 
     def edit

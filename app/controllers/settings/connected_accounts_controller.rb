@@ -1,6 +1,5 @@
 module Settings
   class ConnectedAccountsController < ApplicationController
-    include PersonalWorkspaceContext
     layout "settings"
 
     allow_unauthenticated_access only: :verify
