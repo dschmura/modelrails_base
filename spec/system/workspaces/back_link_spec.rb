@@ -17,9 +17,9 @@ RSpec.describe "Workspace back-link navigation", type: :system do
   let(:back_label) { I18n.t("navigation.back_to_workspace", workspace: workspace.name) }
 
   describe "on settings-hub pages (post route-consolidation panel review)" do
-    # The settings hub sidebar's workspace switcher is the canonical
-    # context-escape from settings — clicking another workspace (or the
-    # current workspace's entry) navigates to that workspace's dashboard.
+    # The header workspace switcher (#workspace-switcher-button, Phase 2b)
+    # is the canonical context-escape from settings — clicking another
+    # workspace navigates to that workspace's dashboard.
     # The redundant <nav>-wrapped back-link was removed from settings
     # layout after a Jason Fried-led panel review found it created visual
     # divorce between the sidebar and the main content.

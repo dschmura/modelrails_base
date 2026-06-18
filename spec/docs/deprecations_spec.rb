@@ -23,8 +23,8 @@ RSpec.describe "docs/deprecations.md", type: :model do
   # The two active presentation-layer call-sites listed in the doc must remain
   # findable so contributors know exactly where to look when the removal
   # trigger fires. We match on the helper/file name, not the full line.
-  # Note: _settings_sidebar_switcher was removed from the settings sidebar in
-  # Phase 2c-1 Task 2 (header switcher supersedes it) — no longer tracked here.
+  # Note: _settings_sidebar_switcher was removed from both sidebars in
+  # Phase 2c-1 Tasks 2+3 (header switcher supersedes it) — no longer tracked here.
   it "mentions settings_context_kind (settings_navigation_helper debt call-site)" do
     expect(content).to include("settings_context_kind")
   end
