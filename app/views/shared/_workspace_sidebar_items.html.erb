@@ -1,17 +1,15 @@
-<%# locals: (workspaces:, current_workspace:, id_suffix: "") -%>
-<%# Chrome-free workspace-sidebar contents — workspace switcher + nav items.
+<%# locals: (current_workspace:, id_suffix: "") -%>
+<%# Chrome-free workspace-sidebar contents — workspace nav items.
     Rendered both inside `_workspace_sidebar` (which adds the <aside>
     landmark + sidebar visual chrome for the desktop column) AND directly
     into the mobile-accordion content_for slot (no chrome — contents flow
     inline alongside the rest of the accordion items, matching the
     modelrails_agent_os mobile pattern). The mobile path passes
-    `id_suffix: "-mobile"` so the switcher's button/menu IDs and the
-    section-label ID are unique across the two coexisting renders. -%>
+    `id_suffix: "-mobile"` so the section-label ID is unique across the
+    two coexisting renders.
+    The workspace switcher now lives exclusively in the header
+    (#workspace-switcher-button, Phase 2b) — not in the sidebar. -%>
 <% section_label_id = "workspace-sidebar-section-label#{id_suffix}" %>
-<%= render "shared/settings_sidebar_switcher",
-      workspaces: workspaces,
-      current_workspace: current_workspace,
-      id_suffix: id_suffix %>
 
 <%# Visual divider + section label — matches agent_os mobile rhythm
     and gives the desktop sidebar the same scannable layout. Section

@@ -28,9 +28,9 @@ RSpec.describe "Settings sidebar account Profile aria-label", type: :request do
     I18n.t("settings.sidebar.aria_labels.profile_personal")
   end
 
-  # GET /account/profile/edit renders the settings layout with the personal
-  # workspace as Current.workspace (via PersonalWorkspaceContext), so
-  # settings_context_kind returns :personal and the account items render.
+  # GET /account/profile/edit renders the settings layout with Current.workspace
+  # nil (account routes are workspace-independent), so settings_context_kind
+  # returns :personal (nil guard) and the account items render.
   describe "GET /account/profile/edit (personal context)" do
     before { get edit_settings_profile_path }
 

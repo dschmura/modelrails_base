@@ -1,12 +1,13 @@
-<%# locals: (workspaces:, current_workspace:, id_suffix: "") -%>
-<%# Chrome-free settings-sidebar contents — workspace switcher + nav items.
+<%# locals: (current_workspace:, id_suffix: "") -%>
+<%# Chrome-free settings-sidebar contents — nav items only.
     Rendered both inside `_settings_sidebar` (which adds the <aside>
     landmark + sidebar visual chrome for the desktop column) AND directly
     into the mobile-accordion content_for slot (no chrome — contents flow
     inline alongside the rest of the accordion items, matching the
-    modelrails_agent_os mobile pattern). The mobile path passes
-    `id_suffix: "-mobile"` so the switcher's button/menu IDs and the
-    section-label ID are unique across the two coexisting renders.
+    modelrails_agent_os mobile pattern).
+
+    Workspace switching is handled by the header switcher (#workspace-switcher-button)
+    added in Phase 2b — the former in-sidebar switcher has been removed.
 
     Adding a new sidebar item:
     1. Add i18n keys in config/locales/en/settings.en.yml:
@@ -20,15 +21,6 @@
     The sidebar's source of truth for visibility IS the destination controller's Pundit
     policy — never introduce a separate SidebarPolicy. -%>
 <% section_label_id = "settings-sidebar-section-label#{id_suffix}" %>
-<%= render "shared/settings_sidebar_switcher",
-      workspaces: workspaces,
-      current_workspace: current_workspace,
-      id_suffix: id_suffix %>
-
-<%# Visual divider between switcher and section nav — matches the
-    modelrails_agent_os mobile-accordion rhythm and gives the desktop
-    sidebar the same scannable section layout. %>
-<hr class="my-3 border-border">
 
 <%# Section label. Personal context covers account-level settings
     (Profile, Notifications, Security, Appearance); org context covers
