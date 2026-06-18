@@ -121,7 +121,7 @@ en:
         cannot_deactivate_last_owner: "Cannot deactivate the last owner."
         left: "You left %{workspace}."
         cannot_leave_last_owner: "You can't leave — you're the last owner. Transfer ownership first."
-        cannot_leave_personal: "You can't leave your personal workspace."
+        cannot_leave_personal: "You can't leave your workspace."
       reactivate:
         reactivated: "Member reactivated."
       transfer_ownership:
