@@ -26,7 +26,7 @@ Markdowndocs.configure do |config|
     # shows whichever matches the viewer's mode, with no cross-category
     # split. Listing both here keeps the topic discoverable from the
     # canonical "Features" category in either mode.
-    "Features" => %w[accounts workspaces projects identity-system emails notifications notifications-technical],
+    "Features" => %w[accounts accounts-and-identity workspaces projects identity-system emails notifications notifications-technical],
     "Guides" => %w[extending security ui-patterns components accessibility deployment background-jobs troubleshooting forking]
   }
 

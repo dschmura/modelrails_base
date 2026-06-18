@@ -23,7 +23,7 @@ RSpec.describe "config/initializers/tenancy.rb" do
         valid_onboarding = %i[personal shared none]
         onboarding = :none
         unless valid_onboarding.include?(onboarding)
-          raise "Invalid TENANCY_ONBOARDING: #{onboarding.inspect}"
+          raise "Invalid WORKSPACE_ON_SIGNUP: #{onboarding.inspect}"
         end
       end.not_to raise_error
     end

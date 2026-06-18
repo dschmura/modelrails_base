@@ -15,7 +15,7 @@ en:
           description: "Email/password, Google and GitHub OAuth, email verification, password reset, and account locking — all built in."
         workspaces:
           title: "Workspaces"
-          description: "Multi-tenant workspaces with roles, permissions, invitations, and branding. Personal workspace on sign-up."
+          description: "Multi-tenant workspaces with roles, permissions, invitations, and branding. Your workspace on sign-up."
         projects:
           title: "Projects"
           description: "Lightweight collaboration spaces with creator/editor/viewer roles, pinning, and project-level invitations."
