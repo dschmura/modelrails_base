@@ -17,7 +17,6 @@ module Settings
     #     the visible summary value) and updates the page-level aria-live
     #     region. Falls back to an HTML redirect with flash notice.
     class TimezonesController < ApplicationController
-      include PersonalWorkspaceContext
       layout "settings"
 
       # TZInfo::Timezone.all_identifiers is the full IANA database (~598

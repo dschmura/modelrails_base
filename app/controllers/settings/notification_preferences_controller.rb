@@ -2,7 +2,6 @@
 
 module Settings
   class NotificationPreferencesController < ApplicationController
-    include PersonalWorkspaceContext
     layout "settings"
 
     before_action :set_preferences

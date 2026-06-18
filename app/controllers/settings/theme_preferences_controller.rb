@@ -1,6 +1,5 @@
 module Settings
   class ThemePreferencesController < ApplicationController
-    include PersonalWorkspaceContext
     layout "settings"
 
     def edit

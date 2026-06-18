@@ -9,7 +9,8 @@ require "rails_helper"
 # Post-D1 addition: an "All workspaces" link (workspaces#index) was added
 # between identity and sign-out so signed-in users on non-workspace-scoped
 # pages (marketing landing, auth flows) have an in-product path to their
-# workspaces list — the only place the sidebar switcher does NOT render.
+# workspaces list. The header workspace switcher (Phase 2b) only renders on
+# workspace-scoped pages — the workspaces index is outside that scope.
 RSpec.describe "User menu dropdown", type: :system do
   let(:user) { create(:user, first_name: "Jane", last_name: "Doe") }
 

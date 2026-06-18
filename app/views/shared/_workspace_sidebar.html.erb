@@ -1,18 +1,16 @@
-<%# locals: (workspaces:, current_workspace:) -%>
+<%# locals: (current_workspace:) -%>
 <%# Desktop workspace-sidebar wrapper — provides the <aside> landmark
-    and the boxed sidebar visual chrome. Contents (switcher + workspace
-    nav items) live in _workspace_sidebar_items.html.erb, which is also
-    rendered directly into the mobile-accordion content_for slot
-    WITHOUT this chrome so the sidebar contents flow inline rather than
-    as a nested sidebar.
+    and the boxed sidebar visual chrome. Contents (workspace nav items)
+    live in _workspace_sidebar_items.html.erb, which is also rendered
+    directly into the mobile-accordion content_for slot WITHOUT this
+    chrome so the sidebar contents flow inline rather than as a nested
+    sidebar.
 
-    Mirrors the agent_os Notion/Linear pattern: switcher at top,
-    workspace nav in the middle, settings link at bottom (Path Y Phase B).
-    The Settings hub has its own sidebar (_settings_sidebar) with
-    destination-specific nav items. -%>
+    The workspace switcher now lives exclusively in the header
+    (#workspace-switcher-button, Phase 2b). The Settings hub has its
+    own sidebar (_settings_sidebar) with destination-specific nav items. -%>
 <aside aria-label="<%= t("workspaces.sidebar.aria_label") %>"
        class="w-64 shrink-0 px-4 py-6 border-r border-border bg-surface">
   <%= render "shared/workspace_sidebar_items",
-        workspaces: workspaces,
         current_workspace: current_workspace %>
 </aside>
