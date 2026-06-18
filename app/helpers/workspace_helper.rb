@@ -1,4 +1,16 @@
 module WorkspaceHelper
+  # Workspaces shown in the header context switcher, preloaded for the chip
+  # (logo + role), N+1-safe.
+  def switcher_workspaces
+    Current.user.workspaces.kept.includes(:logo_attachment, memberships: :role)
+  end
+
+  # The workspace the switcher trigger reflects: the active one on a workspace
+  # page, else the last-visited one remembered in the session (e.g. on /me).
+  def switcher_current_workspace
+    Current.workspace || Current.user.workspaces.kept.find_by(id: session[:current_workspace_id])
+  end
+
   WORKSPACE_ICON_SIZES = {
     sm: { css: "w-8 h-8", px: 32, text: "text-xs" },
     md: { css: "w-10 h-10", px: 40, text: "text-sm" },
