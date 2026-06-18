@@ -51,7 +51,7 @@ module ModelrailsBase
       ENV.fetch("SIGNUP_PERMITTED_JOIN_STRATEGIES", "invite").split(",").map { |s| s.strip.to_sym }
 
     # Tenancy preset configuration. See app/docs/presets.md.
-    config.x.tenancy.onboarding          = ENV.fetch("TENANCY_ONBOARDING", "personal").to_sym
+    config.x.tenancy.onboarding          = ENV.fetch("WORKSPACE_ON_SIGNUP", "personal").to_sym
     config.x.tenancy.workspace_creation  = ENV.fetch("TENANCY_WORKSPACE_CREATION", "enabled").to_sym
     config.x.tenancy.shared_workspace_slug = ENV["TENANCY_SHARED_WORKSPACE_SLUG"]
   end

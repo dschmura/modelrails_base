@@ -4,7 +4,7 @@
 
 valid_onboarding = [ :personal, :shared, :none ]
 unless valid_onboarding.include?(Rails.configuration.x.tenancy.onboarding)
-  raise "Invalid TENANCY_ONBOARDING: #{Rails.configuration.x.tenancy.onboarding.inspect}. " \
+  raise "Invalid WORKSPACE_ON_SIGNUP: #{Rails.configuration.x.tenancy.onboarding.inspect}. " \
         "Must be one of: #{valid_onboarding.join(', ')}"
 end
 
@@ -16,5 +16,5 @@ end
 
 if Rails.configuration.x.tenancy.onboarding == :shared &&
    Rails.configuration.x.tenancy.shared_workspace_slug.blank?
-  raise "TENANCY_SHARED_WORKSPACE_SLUG is required when TENANCY_ONBOARDING=shared"
+  raise "TENANCY_SHARED_WORKSPACE_SLUG is required when WORKSPACE_ON_SIGNUP=shared"
 end
