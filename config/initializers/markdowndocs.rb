@@ -17,9 +17,9 @@ Markdowndocs.configure do |config|
   # spec/docs/index_coverage_spec.rb fails CI if a doc is left orphaned.
   template_categories = {
     "Getting Started" => %w[getting-started],
-    # The presets hub + its three per-preset spokes form their own cluster,
+    # The presets hub + its four per-preset spokes form their own cluster,
     # placed second so it reads as the next step after "getting started".
-    "Presets" => %w[presets presets-solo presets-single-tenant presets-open-saas],
+    "Presets" => %w[presets presets-solo presets-single-tenant presets-open-saas presets-none],
     "Architecture" => %w[architecture],
     # `notifications` (audience: guide) and `notifications-technical`
     # (audience: technical) are paired companion docs — the mode switcher
