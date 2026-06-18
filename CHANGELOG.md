@@ -31,6 +31,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Added
 
+- `:none` onboarding posture (`TENANCY_ONBOARDING=none`) — signup creates no workspace; identity lives at the User level; workspaces are created or joined through explicit product flows. Pairs with an overridable `authenticated_home_path` private method that every post-auth path routes through (sessions, magic-link, OAuth, registrations, `redirect_if_authenticated`); forks override one method to land users on a workspace-agnostic home. See `app/docs/presets-none.md` (#343).
 - Fork-owned brand-color seam: `app/assets/tailwind/tokens/_brand.css` (`merge=ours`, imported after `_primitives.css`) lets a fork swap its primary palette family without editing the template-owned defaults or hitting merge conflicts — the color twin of `brand.en.yml`. Ships empty (zero compiled bytes); see `docs/theming.md` (#313).
 - Deployment docs: Thruster's automatic X-Sendfile offload documented with an explicit "don't configure `x_sendfile_header`" guard (breaks non-Thruster deploys), plus a health-check-timeout troubleshooting entry.
 - `bin/deploy-guide` — target-aware deployment guidance (kamal / self-host / managed), plus a "Deploying without Kamal" portable-contract section in `app/docs/deployment.md` for Hatchbox-style platforms.
@@ -58,9 +59,12 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 - Settings-hub Turbo morph is now actually active (#327). `turbo_refreshes_with method: :morph` buffers its meta tags into `:head` via `provide`, but neither layout had a `yield :head` to render them, so the morph meta never emitted and the hub silently fell back to `replace`. The shared `_layout_head` now yields `:head` and the settings layout provides the morph meta before it renders — the announcer dedup and idiomorph-safe switcher IDs were already built for this.
 - Single-tenant preset: invitation-driven signups now adopt the invitation's role instead of being stuck at the `onboard_workspace` callback's placeholder Member. Solo-default (`:personal`) semantics are unchanged.
+- Unauthenticated invitees can accept invitations under invite-only signup — the accept page stashes the pending invitation token so the signup gate opens (#345).
+- Development mailer URLs now follow the running `PORT`, so letter_opener links work on non-default ports (#346).
 
 ### Changed
 
+- Sidebar skips the personal-only `memberships` eager-load unless onboarding is `:personal` — dead weight under `:none`; `docs/deprecations.md` documents the `personal?` branching as a presentation leak (#344).
 - Workspaces index (`/workspaces`) rewritten from a phonebook into a workbench per Jason Fried's "weak index" critique. Pinned-current row (by most-recently-accessed) with CURRENT badge; "Other workspaces" section sorted by `memberships.last_accessed_at DESC NULLS LAST, name ASC`. Each row carries plan badge, role badge, member count (from preloaded relation, no counter cache), last-accessed timestamp, Switch + Leave inline verbs (Leave gated by `MembershipPolicy#destroy?` which now permits self-leave under personal-workspace + last-owner safety guards). Adds `memberships.last_accessed_at` column + composite index, plus a `WorkspaceScoped` before_action that touches the timestamp on every workspace-scoped request (single UPDATE per request, silently rescued). Single-membership users see only the pinned section without an "Other workspaces" heading.
 - Mobile shell: header now expands accordion-style on mobile to surface the active sidebar contents inline. Replaces the off-canvas drawer pattern shipped earlier this cycle (#148) — one navigation paradigm across breakpoints, no overlay/focus-trap/dialog ARIA, same axe AAA coverage. Workspace-scoped pages and settings pages both use the unified pattern.
 - Header workspace switcher hides personal workspaces — solo users feel single-tenant in the header; the personal workspace remains accessible through the Settings hub sidebar switcher, which is the explicit IA surface for workspace-context switching (closes #145).
