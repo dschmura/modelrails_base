@@ -11,7 +11,7 @@ audience: [guide, technical]
 
 **What it is.** Signup creates **no** workspace. A new user's identity lives at the User level; `Current.workspace` is legitimately `nil` until they explicitly create or join one. The workspace switcher, workspace-scoped nav, and workspace-scoped surfaces simply don't render for workspace-less users — the app is nil-safe throughout.
 
-**Who it's for.** Auth-first / user-first products where workspaces are optional or emerge later: an event platform where users register and then join specific events, a community where members exist independently of any group, a personal dashboard that optionally connects to shared spaces. [Hallway Track](https://github.com/dschmura/hallway_track) is the reference downstream app using this posture.
+**Who it's for.** Auth-first / user-first products where workspaces are optional or emerge later: an event platform where users register and then join specific events, a community where members exist independently of any group, a personal dashboard that optionally connects to shared spaces. [Hallway Track](https://github.com/dschmura/hallwaytrack) is the reference downstream app using this posture.
 
 ## How users relate
 
