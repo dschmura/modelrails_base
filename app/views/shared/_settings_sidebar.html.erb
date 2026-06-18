@@ -1,20 +1,16 @@
-<%# locals: (workspaces:, current_workspace:) -%>
+<%# locals: (current_workspace:) -%>
 <%# Desktop settings-sidebar wrapper — provides the <aside> landmark
     and the boxed sidebar visual chrome (fixed 256px width, surface
-    background, right border). For the actual contents (switcher +
-    nav items + Pundit gating), see _settings_sidebar_items.html.erb,
-    which is also rendered directly into the mobile-accordion
-    content_for slot WITHOUT this chrome — that's how mobile sees the
-    sidebar contents flow inline instead of as a nested sidebar.
+    background, right border). For the actual contents (nav items +
+    Pundit gating), see _settings_sidebar_items.html.erb, which is also
+    rendered directly into the mobile-accordion content_for slot WITHOUT
+    this chrome — that's how mobile sees the sidebar contents flow inline
+    instead of as a nested sidebar.
 
-    Workspace switcher: a trigger+dropdown row at the top of the sidebar
-    contents (shared/_settings_sidebar_switcher.html.erb) shows the
-    current workspace and reveals the full workspace list on click —
-    Path Y Phase A, restoring switching to the sidebar in a compact form
-    after the always-open inline list (Phase 2) was retired by panel review. -%>
+    Workspace switching is handled by the header switcher (#workspace-switcher-button)
+    added in Phase 2b — the former in-sidebar switcher has been removed. -%>
 <aside aria-label="<%= t("settings.sidebar.aria_label") %>"
        class="w-64 shrink-0 px-4 py-6 border-r border-border bg-surface">
   <%= render "shared/settings_sidebar_items",
-        workspaces: workspaces,
         current_workspace: current_workspace %>
 </aside>

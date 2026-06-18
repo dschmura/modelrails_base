@@ -31,17 +31,14 @@
         sidebar renders inline to the left of <main> with the <aside>
         chrome (_settings_sidebar wrapper); below md, the *chrome-free*
         contents partial (_settings_sidebar_items) is surfaced via
-        content_for(:mobile_menu_sidebar) so the switcher + nav items
-        flow inline inside the header accordion instead of appearing as
-        a nested sidebar-within-a-menu. One eager-loaded workspaces
-        relation feeds both renders to avoid an N+1 on the doubly-rendered
-        contents. content_for MUST be declared before render
+        content_for(:mobile_menu_sidebar) so the nav items flow inline
+        inside the header accordion instead of appearing as a nested
+        sidebar-within-a-menu. content_for MUST be declared before render
         "shared/header" so the slot is populated when the header reads it.
-        Eager-load composition is posture-aware — see ApplicationHelper#sidebar_workspaces_scope. %>
-    <% workspaces_scope = sidebar_workspaces_scope %>
+        Workspace switching is handled by the header switcher — the former
+        in-sidebar switcher has been removed (Phase 2c-1 Task 2). %>
     <% content_for :mobile_menu_sidebar do %>
       <%= render "shared/settings_sidebar_items",
-            workspaces: workspaces_scope,
             current_workspace: Current.workspace,
             id_suffix: "-mobile" %>
     <% end %>
@@ -56,7 +53,6 @@
           surfaces the same _settings_sidebar partial. %>
       <div class="hidden md:flex shrink-0">
         <%= render "shared/settings_sidebar",
-              workspaces: workspaces_scope,
               current_workspace: Current.workspace %>
       </div>
 
