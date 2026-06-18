@@ -9,6 +9,8 @@ audience: [guide, technical]
 
 This page names the three-tier identity and account model **that already exists** in this template. Its correctness was built in; this document makes it visible to forks.
 
+> **Model vs. surfaces.** The *model* below — `User`, `Workspace`, `Membership` — is built and verified. Two *surfaces* named here are the **target shape**, being adopted incrementally: the `/me` + `/settings` split (the template reaches identity settings under `/account/*` today) and the context switcher. The vocabulary is canonical now; those routes land in a later phase.
+
 ## The three tiers
 
 The model separates identity (who you are) from tenancy (where your data lives). There are three legible tiers:
