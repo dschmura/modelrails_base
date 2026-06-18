@@ -178,7 +178,7 @@ RSpec.describe "Workspaces", type: :request do
       it "renders the workspace Profile destination" do
         get edit_workspace_path(workspace)
         expect(response).to have_http_status(:ok)
-        expect(response.body).to include(workspace.name)
+        expect(response.body).to include(CGI.escapeHTML(workspace.name))
       end
     end
 
