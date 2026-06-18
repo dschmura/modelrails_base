@@ -1,7 +1,7 @@
 ---
 title: App Presets
-description: How modelrails_base supports multiple product shapes (Solo-default, Single-tenant, Open SaaS) through configuration, and how to pick one
-keywords: presets configuration tenancy multi-tenant single-tenant SaaS signup onboarding workspace setup posture
+description: How modelrails_base supports multiple product shapes (Solo-default, Single-tenant, Open SaaS, Workspace-optional) through configuration, and how to pick one
+keywords: presets configuration tenancy multi-tenant single-tenant SaaS signup onboarding workspace setup posture none workspace-optional
 audience: [guide, technical]
 ---
 
@@ -9,13 +9,14 @@ audience: [guide, technical]
 
 modelrails_base is **always multi-tenant at the data layer** — every row is workspace-scoped through `Current.workspace` and the `Tenanted` concern. What varies across products is the *presentation* of that tenancy: whether users see one workspace or many, whether signup is open or invite-only, and how membership is acquired.
 
-A **preset** is a named combination of four configuration knobs that collapses the multi-tenant architecture into a specific product shape. Three are recognized:
+A **preset** is a named combination of four configuration knobs that collapses the multi-tenant architecture into a specific product shape. Four are recognized:
 
 | Preset | Use this for… | Signup | A new user lands in… | More workspaces? |
 |---|---|---|---|---|
 | **[Solo-default](/docs/presets-solo)** *(ships today)* | Prosumer / multi-workspace tools (Notion-style); private betas | Open or invite-only | A personal workspace (auto-created) | Yes |
 | **[Single-tenant](/docs/presets-single-tenant)** *(Reshape 1 — see [#181](https://github.com/dschmura/modelrails_base/issues/181))* | Internal company tools; one-org deployments | Invite-only or SSO | The one shared workspace | No |
 | **[Open SaaS](/docs/presets-open-saas)** *(Reshape 2+ — see [#181](https://github.com/dschmura/modelrails_base/issues/181))* | B2B SaaS with per-customer orgs; community products | Open *or* link-gated | An org they create or join | Yes |
+| **[Workspace-optional](/docs/presets-none)** *(#343)* | Event / community / personal-dashboard products; user-first auth | Open or invite-only | A workspace-agnostic home (no workspace) | Created/joined explicitly |
 
 The four configuration knobs and the full design rationale are documented in [#181](https://github.com/dschmura/modelrails_base/issues/181); each preset below pins specific values for them.
 
@@ -26,14 +27,17 @@ If you're building…
 - **a tool one user mostly uses solo, occasionally with a small team** → **[Solo-default](/docs/presets-solo)**. You already have it.
 - **an internal tool for one company / school / team where everyone shares one workspace** → **[Single-tenant](/docs/presets-single-tenant)**.
 - **a SaaS where each customer is their own org and signup is public** → **[Open SaaS](/docs/presets-open-saas)**.
+- **an event platform, community, or personal dashboard where workspaces are optional or created explicitly** → **[Workspace-optional](/docs/presets-none)**.
 
-When in doubt, start with **Solo-default** — switching to either of the others is mostly *removing* surface (hiding the switcher, locking signup) rather than adding it.
+When in doubt, start with **Solo-default** — switching to any of the others is mostly *removing* surface (hiding the switcher, locking signup) rather than adding it.
 
 ---
 
 ## Switching presets later
 
 **Switching presets on a live app is a migration, not a config edit.** Flipping `TENANCY_ONBOARDING` later doesn't migrate existing data — for example, `:personal`→`:shared` leaves every user's personal workspace intact and adds them to the shared one. Pick a preset at setup time; mid-life changes require a deliberate migration plan. (Open SaaS has its own mid-life nuance — tightening the join-strategy allowlist — documented on its page.)
+
+Switching **to `:none`** is a special case: it's effectively a from-scratch product shape. Existing users keep their workspaces; the knob change only affects new signups. Landing new users on a workspace-agnostic home requires overriding `authenticated_home_path` (see [Workspace-optional](/docs/presets-none) and [Forking](/docs/forking)) and building a home view that works with no workspace in context. Plan this at setup time.
 
 ## Next steps
 
@@ -42,5 +46,6 @@ Pick the shape you're building and follow its page end-to-end:
 - **[Solo-default →](/docs/presets-solo)** — prosumer / multi-workspace tools; the shipped default.
 - **[Single-tenant →](/docs/presets-single-tenant)** — one shared workspace for an internal tool or one-org deployment.
 - **[Open SaaS →](/docs/presets-open-saas)** — per-customer org workspaces with shareable join links.
+- **[Workspace-optional →](/docs/presets-none)** — user-first auth where workspaces are created or joined explicitly.
 
 Then **[Extending ModelRails →](/docs/extending)** to build your own features on top.
