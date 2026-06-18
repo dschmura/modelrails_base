@@ -161,6 +161,27 @@ on every sync.
 | `app/assets/tailwind/tokens/_brand.css` | Brand-color overrides — swap the primary palette family ([Theming](theming)) |
 | `README.md` | Your product's README |
 
+### Fork seams — method overrides
+
+Beyond file-level seams, a handful of private methods are designed to be overridden in `ApplicationController` (or a concern it includes). These are stable hooks upstream won't break.
+
+#### `authenticated_home_path`
+
+Every post-auth landing routes through this single private method: `SessionsController`, magic-link verification, OAuth callback, registrations, and `redirect_if_authenticated`. The default is `root_path`.
+
+Override it to send signed-in users somewhere other than root:
+
+```ruby
+# app/controllers/application_controller.rb
+private
+
+def authenticated_home_path
+  dashboard_path   # or me_path, events_path, etc.
+end
+```
+
+This is the primary seam for [Workspace-optional (`:none`)](/docs/presets-none) apps, where post-sign-in landing should be a workspace-agnostic home (a user profile, an event listing, a personal dashboard) rather than a workspace context. But it's useful for any preset — even Solo-default forks often want to land users on `/dashboard` instead of `/`.
+
 ### How the merge driver actually behaves
 
 The `merge=ours` driver is a conflict *resolver*, not a wall. During a sync:
