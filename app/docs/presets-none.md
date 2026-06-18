@@ -68,7 +68,7 @@ Users exist at the platform level. A fresh signup has no workspace at all. Works
 | Knob | Value | Mechanism |
 |---|---|---|
 | `signup.mode` | `:open` or `:invite_only` — your call | `config/initializers/signup.rb` (`SIGNUP_MODE`) |
-| `tenancy.onboarding` | `:none` — no workspace created at all | `TENANCY_ONBOARDING=none`; the `User#onboard_workspace` callback is a no-op |
+| `tenancy.onboarding` | `:none` — no workspace created at all | `WORKSPACE_ON_SIGNUP=none`; the `User#onboard_workspace` callback is a no-op |
 | `tenancy.workspace_creation` | `:enabled` — users can create workspaces when your product flow calls for it | `WorkspacesController#new` |
 | `permitted_join_strategies` | `[:invite]` default; add `open_link` for link-join | `SIGNUP_PERMITTED_JOIN_STRATEGIES` |
 
@@ -77,7 +77,7 @@ Users exist at the platform level. A fresh signup has no workspace at all. Works
 **1. Set the onboarding knob.**
 
 ```
-TENANCY_ONBOARDING=none
+WORKSPACE_ON_SIGNUP=none
 ```
 
 That's the only required change. No seed vars are needed (unlike `:shared`).
@@ -143,7 +143,7 @@ Browser verification (requires `SIGNUP_MODE=open` or a valid invitation) — sig
 - *"Everyone lands in one shared workspace."* → **[Single-tenant](/docs/presets-single-tenant)** (Reshape 1).
 - *"Users get a personal workspace and can also join or create org workspaces."* → **[Open SaaS](/docs/presets-open-saas)** (Reshape 2+).
 
-> **Switching TO `:none` on a live app** is effectively a from-scratch product shape, not a config flip. Existing users who already have workspaces keep them; the `TENANCY_ONBOARDING=none` change only affects new signups. A live migration would require a separate cleanup pass and a redesigned home experience — plan this at setup time.
+> **Switching TO `:none` on a live app** is effectively a from-scratch product shape, not a config flip. Existing users who already have workspaces keep them; the `WORKSPACE_ON_SIGNUP=none` change only affects new signups. A live migration would require a separate cleanup pass and a redesigned home experience — plan this at setup time.
 
 ## Next steps
 

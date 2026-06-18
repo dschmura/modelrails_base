@@ -142,7 +142,7 @@ Your fork **may** commit its own `.yml.enc` blobs — normal for a private app; 
 `config/credentials/production.key` at deploy time.
 
 For production you'll also set `RAILS_HOST`, pick a tenancy preset
-(`TENANCY_ONBOARDING`), and choose a signup mode — see `.env.example`,
+(`WORKSPACE_ON_SIGNUP`), and choose a signup mode — see `.env.example`,
 [Presets](presets), and [Deployment](deployment).
 
 ## Fork-owned files

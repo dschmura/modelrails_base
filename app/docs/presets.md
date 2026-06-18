@@ -35,7 +35,7 @@ When in doubt, start with **Solo-default** — switching to any of the others is
 
 ## Switching presets later
 
-**Switching presets on a live app is a migration, not a config edit.** Flipping `TENANCY_ONBOARDING` later doesn't migrate existing data — for example, `:personal`→`:shared` leaves every user's personal workspace intact and adds them to the shared one. Pick a preset at setup time; mid-life changes require a deliberate migration plan. (Open SaaS has its own mid-life nuance — tightening the join-strategy allowlist — documented on its page.)
+**Switching presets on a live app is a migration, not a config edit.** Flipping `WORKSPACE_ON_SIGNUP` later doesn't migrate existing data — for example, `:personal`→`:shared` leaves every user's personal workspace intact and adds them to the shared one. Pick a preset at setup time; mid-life changes require a deliberate migration plan. (Open SaaS has its own mid-life nuance — tightening the join-strategy allowlist — documented on its page.)
 
 Switching **to `:none`** is a special case: it's effectively a from-scratch product shape. Existing users keep their workspaces; the knob change only affects new signups. Landing new users on a workspace-agnostic home requires overriding `authenticated_home_path` (see [Workspace-optional](/docs/presets-none) and [Forking](/docs/forking)) and building a home view that works with no workspace in context. Plan this at setup time.
 

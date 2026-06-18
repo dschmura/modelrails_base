@@ -72,7 +72,7 @@ The workspace switcher auto-hides under this preset because every user has exact
 
    | Variable | Required? | Example | Purpose |
    |---|---|---|---|
-   | `TENANCY_ONBOARDING` | yes | `shared` | Selects this preset |
+   | `WORKSPACE_ON_SIGNUP` | yes | `shared` | Selects this preset |
    | `TENANCY_WORKSPACE_CREATION` | yes | `disabled` | Turns off "New workspace" UI + route |
    | `TENANCY_SHARED_WORKSPACE_SLUG` | yes | `acme` | URL-safe slug of the shared workspace |
    | `TENANCY_SHARED_WORKSPACE_NAME` | no | `Acme Inc.` | Display name (defaults to titleized slug) |
