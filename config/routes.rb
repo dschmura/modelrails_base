@@ -18,6 +18,8 @@ Rails.application.routes.draw do
   get "/auth/:provider/callback", to: "omniauth_callbacks#create"
   get "/auth/failure", to: "omniauth_callbacks#failure"
 
+  resource :me, only: [ :show ], controller: :me
+
   namespace :account do
     resource :profile, only: [ :edit, :update ]
     resource :password, only: [ :new, :create ]
