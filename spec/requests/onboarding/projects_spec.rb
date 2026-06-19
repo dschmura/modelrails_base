@@ -33,6 +33,13 @@ RSpec.describe "Onboarding · project step", type: :request do
     expect(response).to redirect_to(new_onboarding_team_path)
   end
 
+  it "re-renders on a blank name" do
+    expect {
+      post onboarding_project_path, params: { project: { name: "" } }
+    }.not_to change(workspace.projects.kept, :count)
+    expect(response).to have_http_status(:unprocessable_entity)
+  end
+
   it "redirects back to the account step if no workspace exists yet" do
     other = create(:user, :with_zero_workspaces)
     sign_in(other)
