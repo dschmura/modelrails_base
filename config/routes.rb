@@ -89,6 +89,7 @@ Rails.application.routes.draw do
               patch :reposition
             end
           end
+          resource :tools, only: %i[edit update]
         end
       end
     end
