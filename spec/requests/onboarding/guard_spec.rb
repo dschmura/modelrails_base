@@ -33,6 +33,18 @@ RSpec.describe "Onboarding guard", type: :request do
         "guard must not redirect XHR/JSON into OnboardingsController#update"
       expect(response).not_to redirect_to(onboarding_path)
     end
+
+    it "lets a not-onboarded user sign out" do
+      user = create(:user, :with_zero_workspaces)
+      sign_in(user)
+      delete session_path
+      # sign-out must complete (303 to new_session_path), NOT redirect to /onboarding
+      expect(response).to have_http_status(:see_other)
+      expect(response).to redirect_to(new_session_path)
+      # session is terminated — a follow-up authenticated request bounces to sign-in
+      get workspaces_path
+      expect(response).to redirect_to(new_session_path)
+    end
   end
 
   it "never redirects under non-:none postures" do
