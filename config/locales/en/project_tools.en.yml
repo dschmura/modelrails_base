@@ -1,0 +1,6 @@
+en:
+  project_tools:
+    disabled: "That tool isn't enabled for this project."
+    docs:
+      name: "Docs & Files"
+      description: "Documents and files for this project."
