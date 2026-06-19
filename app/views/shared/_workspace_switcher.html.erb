@@ -1,43 +1,77 @@
 <%# Header workspace context switcher (Phase 2b Task 1).
     Additive — renders nothing when the user has only one workspace.
-    Reuses the existing `dropdown` Stimulus controller (no new JS). -%>
+    Reuses the existing `dropdown` Stimulus controller (no new JS).
+    Pass `mobile: true` to render the inline mobile list variant instead
+    of the dropdown (used inside the hamburger panel). -%>
 <% workspaces = switcher_workspaces %>
 <% if workspaces.size > 1 %>
   <% current = switcher_current_workspace %>
-  <div data-controller="dropdown" class="relative hidden md:block">
-    <button data-dropdown-target="button" data-action="click->dropdown#toggle"
-            id="workspace-switcher-button" type="button"
-            aria-haspopup="true" aria-expanded="false" aria-controls="workspace-switcher-menu"
-            class="min-h-[44px] flex items-center gap-2 px-3 rounded-lg text-text-body hover:bg-surface-sunken focus-ring">
-      <span class="shrink-0 w-8 h-8 flex items-center justify-center <%= current&.personal? ? "rounded-full" : "rounded-md overflow-hidden" %>">
-        <%= workspace_icon_for(current, size: :sm) if current %>
-      </span>
-      <span class="hidden lg:block max-w-[12ch] truncate font-medium">
-        <%= current&.name || t("workspaces.switcher.label") %>
-      </span>
-      <span aria-hidden="true">&#9662;</span>
-    </button>
-
-    <div data-dropdown-target="menu" id="workspace-switcher-menu" role="menu"
-         aria-labelledby="workspace-switcher-button"
-         class="hidden absolute right-0 mt-2 w-64 rounded-lg bg-surface-raised border border-border shadow-lg z-50 py-1">
-      <% workspaces.each do |workspace| %>
-        <% is_current = current && workspace.id == current.id %>
-        <% membership = workspace.memberships.detect { |m| m.user_id == Current.user.id } %>
-        <%= link_to main_app.workspace_path(workspace), role: "menuitem", tabindex: "-1",
-              aria: { current: ("true" if is_current) },
-              class: ["min-h-[44px] flex items-center gap-3 py-2 text-sm",
-                      (is_current ? "pl-2 pr-3 border-l-4 border-interactive bg-surface-sunken font-semibold text-text-heading"
-                                  : "px-3 text-text-body hover:bg-surface-sunken")].compact do %>
-          <span class="shrink-0 w-8 h-8 flex items-center justify-center <%= workspace.personal? ? "rounded-full" : "rounded-md overflow-hidden" %>">
-            <%= workspace_icon_for(workspace, size: :sm) %>
-          </span>
-          <span class="flex-1 min-w-0">
-            <span class="block truncate"><%= workspace.name %></span>
-            <span class="block text-xs text-text-muted"><%= membership&.role&.name %></span>
-          </span>
+  <% if local_assigns[:mobile] %>
+    <%# Mobile inline list — rendered inside the hamburger panel (md:hidden). %>
+    <div class="md:hidden px-1 pb-2 border-b border-border mb-2">
+      <p class="px-2 py-1 text-xs font-semibold text-text-muted uppercase tracking-wide"
+         aria-label="<%= t("workspaces.switcher.label") %>">
+        <%= t("workspaces.switcher.label") %>
+      </p>
+      <ul role="list" class="mt-1">
+        <% workspaces.each do |workspace| %>
+          <% is_current = current && workspace.id == current.id %>
+          <% membership = workspace.memberships.detect { |m| m.user_id == Current.user.id } %>
+          <li>
+            <%= link_to main_app.workspace_path(workspace),
+                  aria: { current: ("page" if is_current) },
+                  class: ["min-h-[44px] flex items-center gap-3 px-2 py-2 rounded-md text-sm",
+                          (is_current ? "bg-surface-sunken font-semibold text-text-heading border-l-4 border-interactive pl-1"
+                                      : "text-text-body hover:bg-surface-sunken hover:text-interactive-hover focus-ring")].join(" ") do %>
+              <span class="shrink-0 w-8 h-8 flex items-center justify-center <%= workspace.personal? ? "rounded-full" : "rounded-md overflow-hidden" %>">
+                <%= workspace_icon_for(workspace, size: :sm) %>
+              </span>
+              <span class="flex-1 min-w-0">
+                <span class="block truncate"><%= workspace.name %></span>
+                <span class="block text-xs text-text-muted"><%= membership&.role&.name %></span>
+              </span>
+            <% end %>
+          </li>
         <% end %>
-      <% end %>
+      </ul>
     </div>
-  </div>
+  <% else %>
+    <%# Desktop dropdown — hidden on mobile, visible at md+. %>
+    <div data-controller="dropdown" class="relative hidden md:block">
+      <button data-dropdown-target="button" data-action="click->dropdown#toggle"
+              id="workspace-switcher-button" type="button"
+              aria-haspopup="true" aria-expanded="false" aria-controls="workspace-switcher-menu"
+              class="min-h-[44px] flex items-center gap-2 px-3 rounded-lg text-text-body hover:bg-surface-sunken focus-ring">
+        <span class="shrink-0 w-8 h-8 flex items-center justify-center <%= current&.personal? ? "rounded-full" : "rounded-md overflow-hidden" %>">
+          <%= workspace_icon_for(current, size: :sm) if current %>
+        </span>
+        <span class="hidden lg:block max-w-[12ch] truncate font-medium">
+          <%= current&.name || t("workspaces.switcher.label") %>
+        </span>
+        <span aria-hidden="true">&#9662;</span>
+      </button>
+
+      <div data-dropdown-target="menu" id="workspace-switcher-menu" role="menu"
+           aria-labelledby="workspace-switcher-button"
+           class="hidden absolute right-0 mt-2 w-64 rounded-lg bg-surface-raised border border-border shadow-lg z-50 py-1">
+        <% workspaces.each do |workspace| %>
+          <% is_current = current && workspace.id == current.id %>
+          <% membership = workspace.memberships.detect { |m| m.user_id == Current.user.id } %>
+          <%= link_to main_app.workspace_path(workspace), role: "menuitem", tabindex: "-1",
+                aria: { current: ("true" if is_current) },
+                class: ["min-h-[44px] flex items-center gap-3 py-2 text-sm",
+                        (is_current ? "pl-2 pr-3 border-l-4 border-interactive bg-surface-sunken font-semibold text-text-heading"
+                                    : "px-3 text-text-body hover:bg-surface-sunken")].compact do %>
+            <span class="shrink-0 w-8 h-8 flex items-center justify-center <%= workspace.personal? ? "rounded-full" : "rounded-md overflow-hidden" %>">
+              <%= workspace_icon_for(workspace, size: :sm) %>
+            </span>
+            <span class="flex-1 min-w-0">
+              <span class="block truncate"><%= workspace.name %></span>
+              <span class="block text-xs text-text-muted"><%= membership&.role&.name %></span>
+            </span>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
 <% end %>

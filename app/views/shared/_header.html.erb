@@ -85,10 +85,12 @@
         </nav>
       <% end %>
 
-      <%# Mobile accordion — workspace switching is handled by the sidebar
-          slot above; this block carries account/auth items only. %>
+      <%# Mobile accordion — account/auth block. Workspace switcher renders
+          here for authenticated users (the desktop dropdown is md+ only);
+          the sidebar slot above provides the active layout's page-level nav. %>
       <div class="flex flex-col gap-2">
         <% if authenticated? %>
+          <%= render "shared/workspace_switcher", mobile: true %>
           <%= render "shared/user_menu", context: :mobile %>
         <% else %>
           <%= link_to t("navigation.sign_in"), main_app.new_session_path,
