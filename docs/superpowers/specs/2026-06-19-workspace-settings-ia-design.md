@@ -22,7 +22,7 @@ All five reviewers named the same root cause (the identity/tenant conflation) an
 - **Identity settings in the Overview** — unanimous no; mixes scopes, buries the account door inside a workspace view.
 - **Different link origin** — unanimous "band-aid"; doesn't change where it lands.
 
-They **converged**: remove the personal-workspace door into identity settings; identity = the avatar menu (one door); org unchanged. DHH added the structural fix — a shared layout serving two masters off `personal?` is the disease; split it and **delete `settings_context_kind`** ("deletion over abstraction"). Watson added an a11y fix to do regardless — the personal context-switch is silent (`current_workspace_announcement_for_aria_live` returns `nil` for personal).
+They **converged**: remove the personal-workspace door into identity settings; identity = the avatar menu (one door); org unchanged. DHH added the structural fix — a shared layout serving two masters off `personal?` is the disease; split it and **delete `settings_context_kind`** ("deletion over abstraction"). Watson flagged the personal context-switch as silent (`current_workspace_announcement_for_aria_live` returns `nil` for personal) — but on verification this did **not** hold: the announcer reads a separate **static** personal value (`app/views/layouts/settings.html.erb:26`), so personal is already announced. No a11y change is needed (see §4).
 
 ## 4. The design
 
@@ -31,7 +31,7 @@ They **converged**: remove the personal-workspace door into identity settings; i
 - **Personal-workspace sidebar → Overview · Projects** (drop the "Settings" item in `_workspace_sidebar_items.html.erb`, ~L44–48). The Settings item stays for **org** workspaces.
 - **Personal workspace name/logo → a "Customize" affordance on the Overview** (workspace context — rename + logo; color stays desaturated per the 2c-2 ramp). *(maintainer decision)*
 - **Identity settings → avatar-menu name row → `/settings`, unchanged.** No new avatar-menu item. *(maintainer decision)*
-- **a11y:** fix `SettingsNavigationHelper#current_workspace_announcement_for_aria_live` (`app/helpers/settings_navigation_helper.rb`, ~L39–50) — it returns `nil` for personal workspaces, so the identity-settings context-switch is announced to no one. Announce the personal context too (the static `settings.sidebar.aria_live_template.personal` string).
+- **a11y (investigated → no change needed):** the announcer already wires a static `data-settings-announcer-personal-value` (`app/views/layouts/settings.html.erb:26`) that `settings_announcer_controller.js` reads for `kind="personal"`, so the personal context-switch is announced. `current_workspace_announcement_for_aria_live`'s `nil` feeds the *org* value only and is correct. Watson's proposed fix is dropped (see §3).
 
 ### Phase 2 — split the shared settings layout
 
