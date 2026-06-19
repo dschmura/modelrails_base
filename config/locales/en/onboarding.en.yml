@@ -21,6 +21,18 @@ en:
         submit: "Continue"
       create:
         success: "Project created."
+    teams:
+      new:
+        title: "Invite your team"
+        subtitle: "Add teammates by email — or skip and invite them later."
+        emails_label: "Email addresses"
+        emails_placeholder: "sam@example.com, lee@example.com"
+        role_label: "Role"
+        submit: "Send invites"
+        skip: "Skip for now"
+      create:
+        sent: "Invitations sent."
+        no_emails: "Enter at least one email address, or skip for now."
   onboardings:
     update:
       complete: "You're all set."
