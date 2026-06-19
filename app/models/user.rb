@@ -73,6 +73,10 @@ class User < ApplicationRecord
     auth.present? && !auth.verified?
   end
 
+  def onboarded?
+    onboarded_at.present?
+  end
+
   def locked?
     return false if locked_at.nil?
     locked_at > LOCK_DURATION.ago

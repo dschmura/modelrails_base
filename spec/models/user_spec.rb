@@ -635,4 +635,14 @@ RSpec.describe User, type: :model do
       expect(user.email_verification_pending?).to be(false)
     end
   end
+
+  describe "#onboarded?" do
+    it "is false when onboarded_at is nil" do
+      expect(build(:user, onboarded_at: nil).onboarded?).to be(false)
+    end
+
+    it "is true when onboarded_at is set" do
+      expect(build(:user, onboarded_at: Time.current).onboarded?).to be(true)
+    end
+  end
 end
