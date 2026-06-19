@@ -22,6 +22,11 @@ module RequiresOnboarding
   def require_onboarding
     return unless TenancyConfig.none?
     return unless Current.user && !Current.user.onboarded?
+    # Only funnel page navigations. Background XHR/JSON requests (e.g. the
+    # timezone beacon PATCH fired by the layout Stimulus controller) must pass
+    # through — redirect_to preserves the HTTP method, so a PATCH redirect into
+    # OnboardingsController#update would prematurely mark the user onboarded.
+    return unless request.format.html?
 
     redirect_to onboarding_path
   end
