@@ -1,5 +1,8 @@
 en:
   email_verifications:
+    banner:
+      message: "Please confirm your email address."
+      action: "Resend link"
     new:
       title: "Confirm your email"
       description_html: "We sent a verification link to %{email}. Click it to confirm your address."
