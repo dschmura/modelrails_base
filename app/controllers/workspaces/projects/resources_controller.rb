@@ -3,6 +3,8 @@ module Workspaces
     class ResourcesController < ApplicationController
       include WorkspaceScoped
       before_action :set_project
+      include EnforcesProjectTool
+      enforces_tool :docs
       before_action :set_resource, only: [ :show, :edit, :update, :destroy, :reposition ]
 
       def index

@@ -21,6 +21,11 @@ en:
         submit: "Continue"
       create:
         success: "Project created."
+    tools:
+      new:
+        title: "Pick your tools"
+        subtitle: "Turn on the tools this project needs — you can change these later."
+        submit: "Save tools"
     teams:
       new:
         title: "Invite your team"
