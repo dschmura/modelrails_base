@@ -1,8 +1,8 @@
 module WorkspaceHelper
   # Workspaces shown in the header context switcher, preloaded for the chip
-  # (logo + role), N+1-safe.
+  # (logo + role), N+1-safe. Memoized so the banner and switcher share one load.
   def switcher_workspaces
-    Current.user.workspaces.kept.includes(:logo_attachment, memberships: :role)
+    @switcher_workspaces ||= Current.user.workspaces.kept.includes(:logo_attachment, memberships: :role)
   end
 
   # The workspace the switcher trigger reflects: the active one on a workspace

@@ -33,6 +33,7 @@
     <%= render "shared/toasts" %>
 
     <% if Current.workspace %>
+      <%= render "shared/workspace_context_banner" %>
       <div class="flex-1 flex flex-col md:flex-row min-h-[calc(100vh-4rem)]">
         <%# Desktop sidebar — hidden below md where the header accordion
             surfaces the same _workspace_sidebar partial. %>
@@ -41,15 +42,21 @@
                 current_workspace: Current.workspace %>
         </div>
 
-        <main id="main-content"
-              tabindex="-1"
-              class="flex-1 min-w-0"
-              <% ws_hue = Current.workspace.primary_color || 210 %>
-              data-workspace-branded
-              style="--ws-primary-light: oklch(0.40 0.15 <%= ws_hue %>); --ws-primary-dark: oklch(0.78 0.10 <%= ws_hue %>);">
+        <%# Personal workspaces render desaturated (data-workspace-kind); orgs
+            carry their own hue via inline OKLCH vars. Attrs are built as a hash
+            so the conditional stays out of the <main> tag (herb ERB scope rule). %>
+        <% main_context_attrs =
+             if Current.workspace.personal?
+               { data: { workspace_kind: "personal" } }
+             else
+               ws_hue = Current.workspace.primary_color || 210
+               { data: { workspace_branded: "" },
+                 style: "--ws-primary-light: oklch(0.40 0.15 #{ws_hue}); --ws-primary-dark: oklch(0.78 0.10 #{ws_hue});" }
+             end %>
+        <%= tag.main id: "main-content", tabindex: "-1", class: "flex-1 min-w-0", **main_context_attrs do %>
           <%= render "shared/workspace_back_link" %>
           <%= yield %>
-        </main>
+        <% end %>
       </div>
     <% else %>
       <main id="main-content"
