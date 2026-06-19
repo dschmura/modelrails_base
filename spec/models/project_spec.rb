@@ -107,6 +107,34 @@ RSpec.describe Project, type: :model do
     end
   end
 
+  describe "tool enablement" do
+    it "returns false and empty tools list on an unsaved project (nil enabled_tools)" do
+      project = build(:project)
+      expect(project.tool_enabled?(:docs)).to be(false)
+      expect(project.tools).to eq([])
+    end
+
+    it "defaults a new project's enabled_tools to the registry defaults" do
+      project = create(:project)
+      expect(project.enabled_tools).to eq(ProjectTools::Registry.default_keys)
+      expect(project.tool_enabled?(:docs)).to be(true)
+    end
+
+    it "does not override an explicitly-set enabled_tools" do
+      project = create(:project, enabled_tools: [])
+      expect(project.enabled_tools).to eq([])
+      expect(project.tool_enabled?(:docs)).to be(false)
+    end
+
+    it "#tools returns implemented + enabled registry tools" do
+      project = create(:project)
+      expect(project.tools.map(&:key)).to eq([ :docs ])
+
+      project.update!(enabled_tools: [])
+      expect(project.tools).to be_empty
+    end
+  end
+
   describe "factory" do
     it "does not auto-create a workspace membership for created_by" do
       workspace = create(:workspace)
