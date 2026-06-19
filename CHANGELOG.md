@@ -32,6 +32,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Added
 
+- Add per-project tools: an extensible registry, per-project toggle, project-home tabs, and a self-hiding onboarding step (ships Docs).
 - Add first-run onboarding journey (none posture): name workspace → first project → invite, with a soft email-verification gate.
 - `:none` onboarding posture (`WORKSPACE_ON_SIGNUP=none`) — signup creates no workspace; identity lives at the User level; workspaces are created or joined through explicit product flows. Pairs with an overridable `authenticated_home_path` private method that every post-auth path routes through (sessions, magic-link, OAuth, registrations, `redirect_if_authenticated`); forks override one method to land users on a workspace-agnostic home. See `app/docs/presets-none.md` (#343).
 - Fork-owned brand-color seam: `app/assets/tailwind/tokens/_brand.css` (`merge=ours`, imported after `_primitives.css`) lets a fork swap its primary palette family without editing the template-owned defaults or hitting merge conflicts — the color twin of `brand.en.yml`. Ships empty (zero compiled bytes); see `docs/theming.md` (#313).
