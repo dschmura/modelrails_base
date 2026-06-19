@@ -42,19 +42,21 @@
                 current_workspace: Current.workspace %>
         </div>
 
-        <main id="main-content"
-              tabindex="-1"
-              class="flex-1 min-w-0"
-              <% if Current.workspace.personal? %>
-                data-workspace-kind="personal">
-              <% else %>
-                <% ws_hue = Current.workspace.primary_color || 210 %>
-                data-workspace-branded
-                style="--ws-primary-light: oklch(0.40 0.15 <%= ws_hue %>); --ws-primary-dark: oklch(0.78 0.10 <%= ws_hue %>);">
-              <% end %>
+        <%# Personal workspaces render desaturated (data-workspace-kind); orgs
+            carry their own hue via inline OKLCH vars. Attrs are built as a hash
+            so the conditional stays out of the <main> tag (herb ERB scope rule). %>
+        <% main_context_attrs =
+             if Current.workspace.personal?
+               { data: { workspace_kind: "personal" } }
+             else
+               ws_hue = Current.workspace.primary_color || 210
+               { data: { workspace_branded: "" },
+                 style: "--ws-primary-light: oklch(0.40 0.15 #{ws_hue}); --ws-primary-dark: oklch(0.78 0.10 #{ws_hue});" }
+             end %>
+        <%= tag.main id: "main-content", tabindex: "-1", class: "flex-1 min-w-0", **main_context_attrs do %>
           <%= render "shared/workspace_back_link" %>
           <%= yield %>
-        </main>
+        <% end %>
       </div>
     <% else %>
       <main id="main-content"
