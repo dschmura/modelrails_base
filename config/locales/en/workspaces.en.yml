@@ -1,5 +1,7 @@
 en:
   workspaces:
+    context_banner:
+      in_workspace_html: "You're in <strong>%{name}</strong>"
     not_found: "Workspace not found."
     unauthorized: "You don't have permission to do that."
     creation_disabled: "Workspace creation is disabled on this instance."
