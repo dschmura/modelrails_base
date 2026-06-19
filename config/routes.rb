@@ -103,8 +103,9 @@ Rails.application.routes.draw do
   resource :onboarding, only: %i[show update]
   namespace :onboarding do
     resource :workspace, only: %i[new create]
-    resource :project, only: %i[new create]
-    resource :team,    only: %i[new create]
+    resource :project,   only: %i[new create]
+    resource :tools,     only: %i[new create]
+    resource :team,      only: %i[new create]
   end
 
   # Fork seam: product routes (root, marketing pages, your features) live in
