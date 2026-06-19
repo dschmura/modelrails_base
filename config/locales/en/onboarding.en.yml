@@ -1,0 +1,9 @@
+en:
+  email_verifications:
+    new:
+      title: "Confirm your email"
+      description_html: "We sent a verification link to %{email}. Click it to confirm your address."
+      expiry: "The link expires in 24 hours."
+      resend: "Resend link"
+      continue: "Continue"
+      dev_open_inbox: "Open the dev inbox"
