@@ -1,4 +1,17 @@
 en:
+  onboarding:
+    steps:
+      workspace: "Workspace"
+      project: "Project"
+      team: "Team"
+    workspaces:
+      new:
+        title: "Name your workspace"
+        subtitle: "This is the workspace your team will join."
+        name_label: "Workspace name"
+        submit: "Continue"
+      create:
+        success: "Account created."
   onboardings:
     update:
       complete: "You're all set."
