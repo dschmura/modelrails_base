@@ -36,4 +36,10 @@ RSpec.describe ProjectTools::Registry do
   it "resolves a tool's name from i18n" do
     expect(described_class.find(:docs).name).to eq("Docs & Files")
   end
+
+  it "falls back to a humanized key when no locale entry exists" do
+    described_class.register(key: :time_tracking, path_helper: :workspace_project_resources_path)
+    tool = described_class.find(:time_tracking)
+    expect(tool.name).to eq("Time tracking")
+  end
 end

@@ -29,7 +29,7 @@ class Project < ApplicationRecord
   end
 
   def tool_enabled?(key)
-    enabled_tools.include?(key.to_s)
+    (enabled_tools || []).include?(key.to_s)
   end
 
   # Registry tools that are both implemented and enabled for this project,

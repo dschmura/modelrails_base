@@ -108,6 +108,12 @@ RSpec.describe Project, type: :model do
   end
 
   describe "tool enablement" do
+    it "returns false and empty tools list on an unsaved project (nil enabled_tools)" do
+      project = build(:project)
+      expect(project.tool_enabled?(:docs)).to be(false)
+      expect(project.tools).to eq([])
+    end
+
     it "defaults a new project's enabled_tools to the registry defaults" do
       project = create(:project)
       expect(project.enabled_tools).to eq(ProjectTools::Registry.default_keys)

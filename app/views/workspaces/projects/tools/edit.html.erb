@@ -6,8 +6,7 @@
   <%= form_with url: workspace_project_tools_path(@workspace, @project), method: :patch,
         class: "mt-8 space-y-4" do |form| %>
     <% @tools.each do |tool| %>
-      <label data-slot="control"
-             class="flex items-start gap-3 rounded-md border border-border p-4">
+      <label class="flex items-start gap-3 rounded-md border border-border p-4">
         <%= check_box_tag "project[enabled_tools][]", tool.key.to_s,
               @project.tool_enabled?(tool.key),
               id: "tool_#{tool.key}", class: "mt-1" %>
