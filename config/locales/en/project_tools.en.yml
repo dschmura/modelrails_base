@@ -1,5 +1,6 @@
 en:
   project_tools:
+    tabs_label: "Project tools"
     disabled: "That tool isn't enabled for this project."
     docs:
       name: "Docs & Files"
