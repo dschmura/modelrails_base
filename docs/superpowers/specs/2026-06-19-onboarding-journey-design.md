@@ -163,4 +163,4 @@ Other postures (`personal`, `shared`) never trigger it.
 | Account (org) | Workspace |
 | Owner / Admin / Member / Client | Owner / Admin / Member / Viewer (no Client) |
 | Basecamp ID | User (one per person, reused across workspaces) |
-| "Name your account" | Onboarding::Account step (creates Workspace) |
+| "Name your account" (wireframe copy) | Onboarding workspace step → app copy "Name your workspace" (creates Workspace) |

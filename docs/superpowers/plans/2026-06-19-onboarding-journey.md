@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Give first-run users on the `none` signup posture a guided wizard — name your account → create first project → invite teammates → land in the project home — plus a soft email-verification "check your email" screen with resend.
+**Goal:** Give first-run users on the `none` signup posture a guided wizard — name your workspace → create first project → invite teammates → land in the project home — plus a soft email-verification "check your email" screen with resend.
 
 **Architecture:** A posture-gated redirect guard sends not-yet-onboarded `:none` users into a resumable wizard whose current step is derived from data (no workspace → Account; workspace, no project → Project; else → Invite). One nullable `users.onboarded_at` column is the only stored state. Wizard controllers live under an `Onboarding::` namespace and reuse the app's existing Workspace / Project / Invitation creation paths — they own only views and redirects. A separate soft-gate sends new registrations to a "check your email" screen with a non-blocking reminder banner.
 
@@ -33,12 +33,12 @@ Created:
 - `app/controllers/concerns/requires_onboarding.rb` — posture-gated redirect guard.
 - `app/controllers/onboardings_controller.rb` — dispatcher (`show`) + completion (`update`).
 - `app/controllers/onboarding/base_controller.rb` — shared wizard chrome (workspace resolution, not-onboarded guard, layout).
-- `app/controllers/onboarding/accounts_controller.rb` — step 1.
+- `app/controllers/onboarding/workspaces_controller.rb` — step 1.
 - `app/controllers/onboarding/projects_controller.rb` — step 2.
 - `app/controllers/onboarding/teams_controller.rb` — step 3 (invite).
 - `app/views/layouts/onboarding.html.erb` — focused wizard layout (no workspace sidebar).
 - `app/views/onboarding/_stepper.html.erb` — progress chrome (strict locals).
-- `app/views/onboarding/accounts/new.html.erb`, `app/views/onboarding/projects/new.html.erb`, `app/views/onboarding/teams/new.html.erb`.
+- `app/views/onboarding/workspaces/new.html.erb`, `app/views/onboarding/projects/new.html.erb`, `app/views/onboarding/teams/new.html.erb`.
 - `config/locales/en/onboarding.en.yml` — all new locale keys.
 - Specs under `spec/requests/onboarding/`, `spec/requests/email_verifications_spec.rb`, `spec/models/user_spec.rb` additions, `spec/system/onboarding_journey_spec.rb`.
 
@@ -590,7 +590,7 @@ git commit -m "feat(onboarding): add users.onboarded_at state + posture helpers"
 
 **Interfaces:**
 - Produces:
-  - Routes: `onboarding_path` (GET show, PATCH update), `new_onboarding_account_path`, `onboarding_account_path` (POST), `new_onboarding_project_path`, `onboarding_project_path` (POST), `new_onboarding_team_path`, `onboarding_team_path` (POST).
+  - Routes: `onboarding_path` (GET show, PATCH update), `new_onboarding_workspace_path`, `onboarding_workspace_path` (POST), `new_onboarding_project_path`, `onboarding_project_path` (POST), `new_onboarding_team_path`, `onboarding_team_path` (POST).
   - `RequiresOnboarding` concern with class method `skip_onboarding_requirement(**opts)` and `before_action :require_onboarding`.
   - `Onboarding::BaseController` setting `@workspace = Current.user.workspaces.kept.first` and `Current.workspace`, using `layout "onboarding"`, with a `redirect_to root_path if Current.user.onboarded?` guard.
 
@@ -619,7 +619,7 @@ RSpec.describe "Onboarding dispatcher", type: :request do
     user = create(:user, :with_zero_workspaces)
     sign_in(user)
     get onboarding_path
-    expect(response).to redirect_to(new_onboarding_account_path)
+    expect(response).to redirect_to(new_onboarding_workspace_path)
   end
 
   it "routes a user with a workspace but no project to the project step" do
@@ -707,7 +707,7 @@ In `config/routes.rb`, after the invitation accept/decline routes (after line 10
 ```ruby
   resource :onboarding, only: %i[show update]
   namespace :onboarding do
-    resource :account, only: %i[new create]
+    resource :workspace, only: %i[new create]
     resource :project, only: %i[new create]
     resource :team,    only: %i[new create]
   end
@@ -788,7 +788,7 @@ class OnboardingsController < ApplicationController
 
     workspace = Current.user.workspaces.kept.first
     if workspace.nil?
-      redirect_to new_onboarding_account_path
+      redirect_to new_onboarding_workspace_path
     elsif workspace.projects.kept.none?
       redirect_to new_onboarding_project_path
     else
@@ -894,22 +894,22 @@ git add config/routes.rb app/controllers/concerns/requires_onboarding.rb \
 git commit -m "feat(onboarding): wizard skeleton — routes, posture guard, dispatcher, layout"
 ```
 
-### Task C2: Step 1 — name your account
+### Task C2: Step 1 — name your workspace
 
 **Files:**
-- Create: `app/controllers/onboarding/accounts_controller.rb`
+- Create: `app/controllers/onboarding/workspaces_controller.rb`
 - Create: `app/views/onboarding/_stepper.html.erb`
-- Create: `app/views/onboarding/accounts/new.html.erb`
+- Create: `app/views/onboarding/workspaces/new.html.erb`
 - Modify: `config/locales/en/onboarding.en.yml`
-- Test: `spec/requests/onboarding/accounts_spec.rb`
+- Test: `spec/requests/onboarding/workspaces_spec.rb`
 
 **Interfaces:**
 - Consumes: routes from C1; `Onboarding::BaseController`.
-- Produces: `Onboarding::AccountsController#create` creating a `Workspace` + owner `Membership`, redirecting to `new_onboarding_project_path`. Stepper partial `onboarding/_stepper` with strict local `current:` (`:account|:project|:team`).
+- Produces: `Onboarding::WorkspacesController#create` creating a `Workspace` + owner `Membership`, redirecting to `new_onboarding_project_path`. Stepper partial `onboarding/_stepper` with strict local `current:` (`:workspace|:project|:team`).
 
 - [ ] **Step 1: Write the failing test**
 
-Create `spec/requests/onboarding/accounts_spec.rb`:
+Create `spec/requests/onboarding/workspaces_spec.rb`:
 
 ```ruby
 require "rails_helper"
@@ -928,13 +928,13 @@ RSpec.describe "Onboarding · account step", type: :request do
   before { sign_in(user) }
 
   it "renders the name-your-account form" do
-    get new_onboarding_account_path
+    get new_onboarding_workspace_path
     expect(response).to have_http_status(:ok)
   end
 
   it "creates the workspace + owner membership and advances to the project step" do
     expect {
-      post onboarding_account_path, params: { workspace: { name: "Acme Co" } }
+      post onboarding_workspace_path, params: { workspace: { name: "Acme Co" } }
     }.to change(Workspace.kept, :count).by(1)
 
     workspace = user.reload.workspaces.kept.first
@@ -944,7 +944,7 @@ RSpec.describe "Onboarding · account step", type: :request do
   end
 
   it "re-renders on a blank name" do
-    post onboarding_account_path, params: { workspace: { name: "" } }
+    post onboarding_workspace_path, params: { workspace: { name: "" } }
     expect(response).to have_http_status(:unprocessable_entity)
   end
 end
@@ -952,12 +952,12 @@ end
 
 - [ ] **Step 2: Run it and confirm it fails**
 
-Run: `bundle exec rspec spec/requests/onboarding/accounts_spec.rb`
-Expected: FAIL — uninitialized constant `Onboarding::AccountsController`.
+Run: `bundle exec rspec spec/requests/onboarding/workspaces_spec.rb`
+Expected: FAIL — uninitialized constant `Onboarding::WorkspacesController`.
 
 - [ ] **Step 3: Create the controller**
 
-Create `app/controllers/onboarding/accounts_controller.rb`:
+Create `app/controllers/onboarding/workspaces_controller.rb`:
 
 ```ruby
 module Onboarding
@@ -969,7 +969,7 @@ module Onboarding
 
     def create
       authorize Workspace
-      @workspace = Workspace.new(account_params)
+      @workspace = Workspace.new(workspace_params)
 
       if @workspace.save
         owner_role = Role.find_by!(slug: "owner", workspace_id: nil)
@@ -982,7 +982,7 @@ module Onboarding
 
     private
 
-    def account_params
+    def workspace_params
       params.require(:workspace).permit(:name)
     end
   end
@@ -995,7 +995,7 @@ Create `app/views/onboarding/_stepper.html.erb`:
 
 ```erb
 <%# locals: (current:) %>
-<% step_keys = %i[account project team] %>
+<% step_keys = %i[workspace project team] %>
 <% current_index = step_keys.index(current) %>
 <%= render(UI::StepperComponent.new(steps: step_keys.each_with_index.map { |key, i|
       {
@@ -1007,29 +1007,29 @@ Create `app/views/onboarding/_stepper.html.erb`:
 
 - [ ] **Step 5: Create the view**
 
-Create `app/views/onboarding/accounts/new.html.erb`:
+Create `app/views/onboarding/workspaces/new.html.erb`:
 
 ```erb
-<% content_for(:title) { t("onboarding.accounts.new.title") } %>
+<% content_for(:title) { t("onboarding.workspaces.new.title") } %>
 <div class="max-w-md mx-auto px-4 py-16">
-  <%= render "onboarding/stepper", current: :account %>
+  <%= render "onboarding/stepper", current: :workspace %>
 
   <h1 class="mt-10 text-3xl font-bold text-text-heading">
-    <%= t("onboarding.accounts.new.title") %>
+    <%= t("onboarding.workspaces.new.title") %>
   </h1>
   <p class="mt-2 text-text-body">
-    <%= t("onboarding.accounts.new.subtitle") %>
+    <%= t("onboarding.workspaces.new.subtitle") %>
   </p>
 
-  <%= form_with(model: @workspace, url: onboarding_account_path, class: "mt-8 space-y-6") do |form| %>
+  <%= form_with(model: @workspace, url: onboarding_workspace_path, class: "mt-8 space-y-6") do |form| %>
     <%= form.error_summary %>
 
     <%= form.text_field :name,
-          label: t("onboarding.accounts.new.name_label"),
+          label: t("onboarding.workspaces.new.name_label"),
           required: true,
           autofocus: true %>
 
-    <%= form.submit t("onboarding.accounts.new.submit"), class: "w-full" %>
+    <%= form.submit t("onboarding.workspaces.new.submit"), class: "w-full" %>
   <% end %>
 </div>
 ```
@@ -1041,14 +1041,14 @@ In `config/locales/en/onboarding.en.yml`, add under `en:`:
 ```yaml
   onboarding:
     steps:
-      account: "Account"
+      workspace: "Workspace"
       project: "Project"
       team: "Team"
-    accounts:
+    workspaces:
       new:
-        title: "Name your account"
+        title: "Name your workspace"
         subtitle: "This is the workspace your team will join."
-        name_label: "Account name"
+        name_label: "Workspace name"
         submit: "Continue"
       create:
         success: "Account created."
@@ -1056,18 +1056,18 @@ In `config/locales/en/onboarding.en.yml`, add under `en:`:
 
 - [ ] **Step 7: Run the test and confirm it passes**
 
-Run: `bundle exec rspec spec/requests/onboarding/accounts_spec.rb`
+Run: `bundle exec rspec spec/requests/onboarding/workspaces_spec.rb`
 Expected: PASS (3 examples).
 
 - [ ] **Step 8: Commit**
 
 ```bash
-git add app/controllers/onboarding/accounts_controller.rb \
+git add app/controllers/onboarding/workspaces_controller.rb \
         app/views/onboarding/_stepper.html.erb \
-        app/views/onboarding/accounts/new.html.erb \
+        app/views/onboarding/workspaces/new.html.erb \
         config/locales/en/onboarding.en.yml \
-        spec/requests/onboarding/accounts_spec.rb
-git commit -m "feat(onboarding): step 1 — name your account"
+        spec/requests/onboarding/workspaces_spec.rb
+git commit -m "feat(onboarding): step 1 — name your workspace"
 ```
 
 ### Task C3: Step 2 — create first project
@@ -1126,7 +1126,7 @@ RSpec.describe "Onboarding · project step", type: :request do
     other = create(:user, :with_zero_workspaces)
     sign_in(other)
     get new_onboarding_project_path
-    expect(response).to redirect_to(new_onboarding_account_path)
+    expect(response).to redirect_to(new_onboarding_workspace_path)
   end
 end
 ```
@@ -1166,7 +1166,7 @@ module Onboarding
     private
 
     def require_workspace
-      redirect_to new_onboarding_account_path if Current.workspace.nil?
+      redirect_to new_onboarding_workspace_path if Current.workspace.nil?
     end
 
     def project_params
@@ -1497,10 +1497,10 @@ RSpec.describe "Onboarding journey", type: :system do
 
   it "walks account → project → invite → project home" do
     visit root_path
-    expect(page).to have_current_path(new_onboarding_account_path)
+    expect(page).to have_current_path(new_onboarding_workspace_path)
     expect(page).to be_axe_clean
 
-    fill_in "Account name", with: "Acme Co"
+    fill_in "Workspace name", with: "Acme Co"
     click_button "Continue"
 
     expect(page).to have_current_path(new_onboarding_project_path)
@@ -1520,8 +1520,8 @@ RSpec.describe "Onboarding journey", type: :system do
   end
 
   it "supports skipping the invite step" do
-    visit new_onboarding_account_path
-    fill_in "Account name", with: "Acme Co"
+    visit new_onboarding_workspace_path
+    fill_in "Workspace name", with: "Acme Co"
     click_button "Continue"
     fill_in "Project name", with: "Acme Website"
     click_button "Continue"
