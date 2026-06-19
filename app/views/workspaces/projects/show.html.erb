@@ -17,7 +17,7 @@
     </div>
   </div>
 
-  <%= render "workspaces/projects/tool_tabs", project: @project %>
+  <%= render "workspaces/projects/tool_tabs", project: @project, workspace: @workspace %>
 
   <nav class="mt-8 flex gap-4" aria-label="Project navigation">
     <%= link_to t("workspaces.projects.show.members"), workspace_project_memberships_path(@workspace, @project),
