@@ -99,6 +99,13 @@ Rails.application.routes.draw do
   get "invitations/:token/decline", to: "invitation_declines#show", as: :decline_invitation
   post "invitations/:token/decline", to: "invitation_declines#create"
 
+  resource :onboarding, only: %i[show update]
+  namespace :onboarding do
+    resource :workspace, only: %i[new create]
+    resource :project, only: %i[new create]
+    resource :team,    only: %i[new create]
+  end
+
   # Fork seam: product routes (root, marketing pages, your features) live in
   # the fork-owned config/routes/app.rb. See /docs/forking.
   draw(:app)

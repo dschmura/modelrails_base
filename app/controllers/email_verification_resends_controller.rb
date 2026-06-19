@@ -1,4 +1,5 @@
 class EmailVerificationResendsController < ApplicationController
+  skip_onboarding_requirement
   rate_limit to: 5, within: 3.minutes, only: :create,
     with: -> { redirect_to new_email_verification_path, alert: t("email_verification_resends.create.rate_limited") }
 

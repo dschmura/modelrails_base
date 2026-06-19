@@ -1,5 +1,6 @@
 class EmailVerificationsController < ApplicationController
   allow_unauthenticated_access only: :show
+  skip_onboarding_requirement
 
   def new
     @authentication = Current.user&.authentications&.email&.first

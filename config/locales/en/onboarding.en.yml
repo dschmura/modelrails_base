@@ -1,4 +1,7 @@
 en:
+  onboardings:
+    update:
+      complete: "You're all set."
   email_verifications:
     banner:
       message: "Please confirm your email address."
