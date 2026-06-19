@@ -1,0 +1,9 @@
+<%# Slim workspace-context strip — shown only when the user belongs to 2+
+    workspaces (the header switcher is present then too). Keep it subtle. %>
+<% if Current.workspace && switcher_workspaces.size > 1 %>
+  <div id="workspace-context-banner" role="status"
+       class="bg-surface-sunken border-b border-border px-4 py-1.5 text-xs text-text-body">
+    <%= t("workspaces.context_banner.in_workspace_html",
+          name: Current.workspace.name) %>
+  </div>
+<% end %>
