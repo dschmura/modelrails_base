@@ -23,7 +23,7 @@ RSpec.describe "Project Clientside settings", type: :request do
     expect(response).to redirect_to(edit_workspace_project_clientside_path(workspace, project))
   end
 
-  context "as a workspace member without manage_projects" do
+  context "as a project member who is not the creator" do
     let(:viewer) { create(:user) }
     let!(:viewer_role) do
       Role.find_or_create_by!(slug: "viewer", workspace_id: nil) do |r|

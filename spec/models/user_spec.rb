@@ -698,5 +698,11 @@ RSpec.describe User, type: :model do
       project = create(:project, clientside_enabled: true)
       expect(create(:user).client_of?(project)).to be(false)
     end
+
+    it "is false for a discarded client access" do
+      access = create(:client_access)
+      access.discard!
+      expect(access.user.client_of?(access.project)).to be(false)
+    end
   end
 end

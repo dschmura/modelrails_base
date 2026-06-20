@@ -84,7 +84,7 @@ workspace's project simultaneously — the two relationships are independent.
 `Workspaces::Projects::ClientsideController` (`edit`, `update`) — nested under the
 project in the `scope module: :projects` block, matching the tools-settings
 pattern. `authorize @project, :update?` (reuses `ProjectPolicy#update?` =
-manage_projects) in both actions. `update` permits only `:clientside_enabled` and
+project-creator check, same gate as the Tools settings) in both actions. `update` permits only `:clientside_enabled` and
 redirects back to `edit` with a notice. Linked from the project settings nav
 next to Tools/Edit. All copy via I18n (`clientside.*` keys).
 
@@ -119,8 +119,8 @@ the guarantee against future regressions.
   reports the same remaining capacity; a `ClientAccess` does not count as a
   membership.
 - Request spec: `Workspaces::Projects::ClientsideController` `edit` renders,
-  `update` flips `clientside_enabled` and authorizes (`manage_projects` required;
-  a non-managing member is denied).
+  `update` flips `clientside_enabled` and authorizes (project-creator required per
+  `ProjectPolicy#update?`; a non-creator project member is denied).
 - Migration specs: new projects default `clientside_enabled: false`.
 
 ## Suggested phasing (for the plan)
