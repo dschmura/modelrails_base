@@ -52,11 +52,18 @@ module Authenticatable
 
     # The post-sign-in home for an authenticated user with no saved return_to.
     # Workspace-agnostic (a user may have no workspace under :none onboarding).
-    # Forks override this ONE method to repoint the landing (e.g. me_path)
-    # without touching session / return_to logic. redirect_to accepts a path,
-    # and a saved return_to is already an absolute URL.
+    # Client-only users (client_accesses present, no memberships) land in the
+    # client area so they don't hit a blank workspace dashboard.
+    # Calls resume_session in case require_authentication was skipped (e.g.
+    # email-verification show, which allows unauthenticated access).
     def authenticated_home_path
-      root_path
+      resume_session
+      user = Current.user
+      if user && user.client_accesses.kept.exists? && user.memberships.kept.none?
+        clientside_projects_path
+      else
+        root_path
+      end
     end
 
     def start_new_session_for(user)

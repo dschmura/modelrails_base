@@ -15,7 +15,7 @@ class EmailVerificationsController < ApplicationController
       redirect_to root_path, alert: t(".invalid_or_expired")
     else
       authentication.verify!
-      redirect_to root_path, notice: t(".success")
+      redirect_to after_authentication_url, notice: t(".success")
     end
   end
 end

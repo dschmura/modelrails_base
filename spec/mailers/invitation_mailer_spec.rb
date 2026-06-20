@@ -76,4 +76,14 @@ RSpec.describe InvitationMailer, type: :mailer do
       expect(mail.body.encoded).to include("decline")
     end
   end
+
+  describe "#invite_client" do
+    it "renders to the client with the accept URL" do
+      project = create(:project, clientside_enabled: true)
+      inv = create(:invitation, :client, invitable: project, email: "dana@bigco.com")
+      mail = InvitationMailer.invite_client(inv)
+      expect(mail.to).to eq([ "dana@bigco.com" ])
+      expect(mail.body.encoded).to include(accept_invitation_url(token: inv.token))
+    end
+  end
 end

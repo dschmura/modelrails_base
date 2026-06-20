@@ -91,6 +91,7 @@ Rails.application.routes.draw do
           end
           resource :tools, only: %i[edit update]
           resource :clientside, only: %i[edit update]
+          resources :client_invitations, only: %i[new create]
         end
       end
     end

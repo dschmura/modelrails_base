@@ -5,10 +5,16 @@
   </h1>
 
   <p class="mt-4 text-text-muted">
-    <%= t("invitation_accepts.show.body",
-          inviter: @invitation.invited_by.full_name,
-          workspace: @invitation.invitable.name,
-          role: @invitation.role.name) %>
+    <% if @invitation.client_invite? %>
+      <%= t("invitation_accepts.show.client_body",
+            inviter: @invitation.invited_by.full_name,
+            project: @invitation.invitable.name) %>
+    <% else %>
+      <%= t("invitation_accepts.show.body",
+            inviter: @invitation.invited_by.full_name,
+            workspace: @invitation.invitable.name,
+            role: @invitation.role.name) %>
+    <% end %>
   </p>
 
   <% if authenticated? %>

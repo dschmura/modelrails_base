@@ -7,7 +7,7 @@ class Invitation < ApplicationRecord
   class EmailMismatch < NotAcceptable; end
 
   belongs_to :invitable, polymorphic: true
-  belongs_to :role
+  belongs_to :role, optional: true
   belongs_to :invited_by, class_name: "User"
   belongs_to :accepted_by, class_name: "User", optional: true
 
@@ -16,7 +16,8 @@ class Invitation < ApplicationRecord
 
   enum :status, { pending: "pending", accepted: "accepted", declined: "declined", revoked: "revoked" }, default: "pending"
 
-  validates :role, presence: true
+  validates :role, presence: true, unless: :client_invite?
+  validate :client_invite_targets_a_project
   validates :invited_by, presence: true
   validates :expires_at, presence: true
   validates :project_role, inclusion: { in: %w[editor viewer] }, allow_nil: true
@@ -47,6 +48,22 @@ class Invitation < ApplicationRecord
     scope = scope.joins(:role).where(roles: { slug: role }) if role.present?
     scope
   }
+
+  def client_invite?
+    company_name.present?
+  end
+
+  def self.invite_client!(project:, email:, company_name:, invited_by:)
+    invitation = create!(
+      invitable: project,
+      email: email.to_s.downcase.strip,
+      company_name: company_name,
+      invited_by: invited_by,
+      expires_at: 7.days.from_now
+    )
+    InvitationMailer.invite_client(invitation).deliver_later
+    invitation
+  end
 
   def self.bulk_invite!(workspace:, emails:, role:, invited_by:)
     sent = 0
@@ -118,7 +135,9 @@ class Invitation < ApplicationRecord
       lock!
       raise NotAcceptable, "Invitation no longer acceptable" unless pending?
       raise NotAcceptable, "Invitation no longer acceptable" if expired?
-      if invitable_type == "Project"
+      if client_invite?
+        accept_client_invitation!(user)
+      elsif invitable_type == "Project"
         accept_project_invitation!(user)
       else
         accept_workspace_invitation!(user)
@@ -186,6 +205,23 @@ class Invitation < ApplicationRecord
 
   def broadcast_target
     invitable_type == "Project" ? invitable.workspace : invitable
+  end
+
+  def accept_client_invitation!(user)
+    raise NotAcceptable, "Clientside is disabled for this project" unless invitable.clientside_enabled?
+
+    access = invitable.client_accesses.find_by(user: user)
+    if access&.discarded?
+      access.undiscard!
+    elsif access.nil?
+      invitable.client_accesses.create!(user: user, company_name: company_name)
+    end
+    user.update!(onboarded_at: Time.current) unless user.onboarded?
+  end
+
+  def client_invite_targets_a_project
+    return unless client_invite?
+    errors.add(:base, :client_requires_project) if invitable_type != "Project"
   end
 
   def accept_workspace_invitation!(user)
