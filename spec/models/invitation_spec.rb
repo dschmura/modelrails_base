@@ -694,6 +694,32 @@ RSpec.describe Invitation, type: :model do
       expect { Invitation.consume!(token: inv.token, user: other, expected_email: other.email_address) }
         .to raise_error(Invitation::EmailMismatch)
     end
+
+    it "accept! raises NotAcceptable when Clientside is disabled (undiscard bypass)" do
+      # Arrange: an existing discarded ClientAccess for the user on the project,
+      # then Clientside is toggled off. The undiscard path must not succeed.
+      inv = Invitation.invite_client!(project: project, email: "dana@bigco.com",
+                                      company_name: "BigCo", invited_by: inviter)
+      client = create(:user, :with_zero_workspaces, email_address: "dana@bigco.com")
+      project.client_accesses.create!(user: client, company_name: "BigCo").discard!
+      project.update!(clientside_enabled: false)
+
+      expect { inv.accept!(client) }.to raise_error(Invitation::NotAcceptable, /clientside is disabled/i)
+    end
+
+    it "accept! still succeeds when Clientside is enabled (happy path)" do
+      inv = Invitation.invite_client!(project: project, email: "happy@bigco.com",
+                                      company_name: "BigCo", invited_by: inviter)
+      client = create(:user, :with_zero_workspaces, email_address: "happy@bigco.com")
+      expect { inv.accept!(client) }.to change { project.client_accesses.kept.count }.by(1)
+      expect(inv.reload).to be_accepted
+    end
+
+    it "is invalid when invitable is a Workspace, not a Project" do
+      inv = build(:invitation, :client, invitable: create(:workspace))
+      expect(inv).not_to be_valid
+      expect(inv.errors[:base]).to be_present
+    end
   end
 
   # Reshape 1 reconciliation: under :shared posture, User#onboard_workspace
