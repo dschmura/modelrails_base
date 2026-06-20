@@ -22,7 +22,9 @@ class InvitationAcceptsController < ApplicationController
         # a specific email can't be claimed by a signed-in user with a different
         # one. (Emailless magic-link invitations stay bearer.)
         Invitation.consume!(token: @invitation.token, user: Current.user, expected_email: Current.user.email_address)
-        if @invitation.invitable_type == "Project"
+        if @invitation.client_invite?
+          redirect_to clientside_project_path(@invitation.invitable), notice: t(".success")
+        elsif @invitation.invitable_type == "Project"
           redirect_to workspace_project_path(@invitation.invitable.workspace, @invitation.invitable), notice: t(".success")
         else
           redirect_to workspace_path(@invitation.invitable), notice: t(".success")

@@ -21,4 +21,19 @@ class InvitationMailer < ApplicationMailer
       subject: t("invitation_mailer.invite.subject", workspace: @workspace.name)
     )
   end
+
+  def invite_client(invitation)
+    return if invitation.email.nil?
+
+    @invitation = invitation
+    @inviter = invitation.invited_by
+    @project = invitation.invitable
+    @workspace = @project.workspace
+    @accept_url = accept_invitation_url(token: invitation.token)
+
+    mail(
+      to: invitation.email,
+      subject: t("invitation_mailer.invite_client.subject", project: @project.name)
+    )
+  end
 end

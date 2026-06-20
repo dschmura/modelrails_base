@@ -21,11 +21,29 @@ en:
       save: "Save"
       saved: "Client access updated."
       link: "Client access"
+    invitations:
+      sent: "Client invitation sent."
+      invalid: "Enter a valid email and company."
+      disabled: "Turn on Clientside before inviting clients."
+      already_invited: "That email already has a pending invitation to this project."
+      new:
+        title: "Invite a client"
+        subtitle: "They'll get a separate, limited view of this project."
+        email_label: "Client email"
+        company_label: "Their company"
+        submit: "Send client invite"
+        link: "Invite a client"
   workspaces:
     projects:
       resources:
         edit:
           share_with_client: "Share with the client side"
+  invitation_mailer:
+    invite_client:
+      subject: "You've been invited to %{project}"
+      greeting: "Hello,"
+      body: "%{inviter} shared the project %{project} with you."
+      action: "View the invitation"
   activerecord:
     errors:
       models:

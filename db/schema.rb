@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_20_131740) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_20_154648) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -106,6 +106,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_20_131740) do
   create_table "invitations", force: :cascade do |t|
     t.datetime "accepted_at"
     t.integer "accepted_by_id"
+    t.string "company_name"
     t.datetime "created_at", null: false
     t.datetime "declined_at"
     t.string "email"
@@ -115,7 +116,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_20_131740) do
     t.integer "invited_by_id", null: false
     t.string "project_role"
     t.datetime "revoked_at"
-    t.integer "role_id", null: false
+    t.integer "role_id"
     t.string "status", default: "pending", null: false
     t.string "token", null: false
     t.datetime "updated_at", null: false
