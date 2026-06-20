@@ -5,6 +5,8 @@ en:
       sign_out: "Sign out"
       no_access: "You don't have client access to that project."
       unavailable: "That client area isn't available."
+      back: "← Back"
+      resource_unavailable: "That item isn't available."
     projects:
       index:
         title: "Shared with you"
