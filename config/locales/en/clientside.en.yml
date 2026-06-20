@@ -1,0 +1,8 @@
+en:
+  activerecord:
+    errors:
+      models:
+        client_access:
+          attributes:
+            base:
+              clientside_disabled: "Clientside must be enabled for this project before adding clients."

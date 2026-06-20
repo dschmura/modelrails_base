@@ -687,4 +687,16 @@ RSpec.describe User, type: :model do
       expect(user.reload.onboarding_step).to eq(:team)
     end
   end
+
+  describe "#client_of?" do
+    it "is true for a project the user has client access to" do
+      access = create(:client_access)
+      expect(access.user.client_of?(access.project)).to be(true)
+    end
+
+    it "is false otherwise" do
+      project = create(:project, clientside_enabled: true)
+      expect(create(:user).client_of?(project)).to be(false)
+    end
+  end
 end
