@@ -9,4 +9,10 @@
     <%= form.check_box :clientside_enabled, label: t("clientside.settings.toggle_label") %>
     <%= form.submit t("clientside.settings.save"), class: "w-full" %>
   <% end %>
+
+  <div class="mt-8">
+    <%= link_to t("clientside.invitations.new.link"),
+          new_workspace_project_client_invitation_path(@workspace, @project),
+          class: "text-interactive font-medium hover:underline focus-ring rounded" %>
+  </div>
 </div>
