@@ -25,6 +25,7 @@ en:
       sent: "Client invitation sent."
       invalid: "Enter a valid email and company."
       disabled: "Turn on Clientside before inviting clients."
+      already_invited: "That email already has a pending invitation to this project."
       new:
         title: "Invite a client"
         subtitle: "They'll get a separate, limited view of this project."

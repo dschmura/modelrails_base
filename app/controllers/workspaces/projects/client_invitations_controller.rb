@@ -24,6 +24,10 @@ module Workspaces
         @invitation = Invitation.new(client_invitation_params)
         flash.now[:alert] = t("clientside.invitations.invalid")
         render :new, status: :unprocessable_entity
+      rescue ActiveRecord::RecordNotUnique
+        @invitation = Invitation.new(client_invitation_params)
+        flash.now[:alert] = t("clientside.invitations.already_invited")
+        render :new, status: :unprocessable_entity
       end
 
       private
