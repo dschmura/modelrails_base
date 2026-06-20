@@ -1,4 +1,12 @@
 en:
+  clientside:
+    settings:
+      title: "Client access"
+      subtitle: "Clientside gives external clients a separate, limited view of this project."
+      toggle_label: "Turn on Clientside for this project"
+      save: "Save"
+      saved: "Client access updated."
+      link: "Client access"
   activerecord:
     errors:
       models:
