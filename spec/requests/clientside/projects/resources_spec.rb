@@ -16,9 +16,15 @@ RSpec.describe "Clientside resources", type: :request do
     expect(response.body).to include(resource.title)
   end
 
-  it "refuses a resource that is not client-visible (draft or unshared)" do
+  it "refuses a draft resource" do
     draft = create(:resource, project: project, status: "draft", shared_with_client: true)
     get clientside_project_resource_path(project, draft)
+    expect(response).to redirect_to(clientside_project_path(project))
+  end
+
+  it "refuses an unshared resource" do
+    unshared = create(:resource, project: project, status: "published", shared_with_client: false)
+    get clientside_project_resource_path(project, unshared)
     expect(response).to redirect_to(clientside_project_path(project))
   end
 
