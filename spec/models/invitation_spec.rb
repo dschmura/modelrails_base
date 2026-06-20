@@ -645,6 +645,57 @@ RSpec.describe Invitation, type: :model do
     end
   end
 
+  describe "client invitations" do
+    let!(:owner_role) do
+      Role.find_or_create_by!(slug: "owner", workspace_id: nil) do |r|
+        r.name = "Owner"; r.permissions = { manage_workspace: true }
+      end
+    end
+    let(:project) { create(:project, clientside_enabled: true) }
+    let(:inviter) { create(:user) }
+
+    it "is a client invite when company_name is present" do
+      inv = build(:invitation, :client, invitable: project)
+      expect(inv.client_invite?).to be(true)
+      expect(inv).to be_valid
+    end
+
+    it "allows a nil role only for client invites" do
+      member = build(:invitation, role: nil, company_name: nil)
+      expect(member).not_to be_valid
+      expect(member.errors[:role]).to be_present
+    end
+
+    it ".invite_client! creates the invite and enqueues the client mailer" do
+      expect {
+        Invitation.invite_client!(project: project, email: "dana@bigco.com",
+                                  company_name: "BigCo", invited_by: inviter)
+      }.to have_enqueued_mail(InvitationMailer, :invite_client)
+      inv = Invitation.last
+      expect(inv.client_invite?).to be(true)
+      expect(inv.role).to be_nil
+      expect(inv.invitable).to eq(project)
+    end
+
+    it "accept! creates a ClientAccess and stamps onboarded_at" do
+      inv = Invitation.invite_client!(project: project, email: "dana@bigco.com",
+                                      company_name: "BigCo", invited_by: inviter)
+      client = create(:user, :with_zero_workspaces, email_address: "dana@bigco.com")
+      expect { inv.accept!(client) }.to change { project.client_accesses.kept.count }.by(1)
+      expect(project.client?(client)).to be(true)
+      expect(client.reload.onboarded?).to be(true)
+      expect(inv.reload).to be_accepted
+    end
+
+    it "consume! still guards against a mismatched email (bearer protection)" do
+      inv = Invitation.invite_client!(project: project, email: "dana@bigco.com",
+                                      company_name: "BigCo", invited_by: inviter)
+      other = create(:user, :with_zero_workspaces, email_address: "evil@example.com")
+      expect { Invitation.consume!(token: inv.token, user: other, expected_email: other.email_address) }
+        .to raise_error(Invitation::EmailMismatch)
+    end
+  end
+
   # Reshape 1 reconciliation: under :shared posture, User#onboard_workspace
   # pre-creates a Member membership at signup. The invitation flow must then
   # adopt the invitation's role rather than treating the existing membership

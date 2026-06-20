@@ -26,6 +26,12 @@ en:
       resources:
         edit:
           share_with_client: "Share with the client side"
+  invitation_mailer:
+    invite_client:
+      subject: "You've been invited to %{project}"
+      greeting: "Hello,"
+      body: "%{inviter} shared the project %{project} with you."
+      action: "View the invitation"
   activerecord:
     errors:
       models:
