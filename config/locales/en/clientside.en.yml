@@ -7,6 +7,11 @@ en:
       save: "Save"
       saved: "Client access updated."
       link: "Client access"
+  workspaces:
+    projects:
+      resources:
+        edit:
+          share_with_client: "Share with the client side"
   activerecord:
     errors:
       models:
