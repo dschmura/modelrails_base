@@ -34,7 +34,7 @@ RSpec.describe "Client invite flow", type: :system do
   end
 
   # Confirms the client accept path: the accept page renders AAA-clean
-  # for a pending client invitation.
+  # and the client framing (title heading + project name in body) is present.
   it "accept page renders AAA-clean for a client invite token" do
     invitation = Invitation.invite_client!(
       project: project,
@@ -44,6 +44,10 @@ RSpec.describe "Client invite flow", type: :system do
     )
 
     visit accept_invitation_path(token: invitation.token)
+
+    # Assert client framing renders — these fail on a blank or 500 page.
+    expect(page).to have_content(I18n.t("invitation_accepts.show.title"))
+    expect(page).to have_content(project.name)
 
     expect(axe_clean_in_both_themes?(axe_options)).to be(true),
       "AAA violations on accept page: #{axe_violations_in_both_themes(axe_options).join("\n")}"
