@@ -753,4 +753,20 @@ RSpec.describe Invitation, type: :model do
       expect(shared_workspace.memberships.where(user: invitee).count).to eq(1)
     end
   end
+
+  describe "member-invite role requirement (regression for client-variant change)" do
+    it "still requires a role for a normal (non-client) workspace invite" do
+      inv = build(:invitation, company_name: nil, role: nil)
+      expect(inv).not_to be_valid
+      expect(inv.errors[:role]).to be_present
+    end
+
+    it "accepts a member invite with a role and creates a membership" do
+      workspace = create(:workspace)
+      role = Role.find_or_create_by!(slug: "member", workspace_id: nil) { |r| r.name = "Member" }
+      inv = create(:invitation, invitable: workspace, role: role, company_name: nil)
+      user = create(:user, :with_zero_workspaces)
+      expect { inv.accept!(user) }.to change { workspace.memberships.kept.count }.by(1)
+    end
+  end
 end
