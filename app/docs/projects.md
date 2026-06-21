@@ -9,6 +9,8 @@ audience: [guide, technical]
 
 Projects live inside workspaces and provide a space for team collaboration on resources (documents and other content types).
 
+> See project tools and Clientside drawn as wireframes in [Application Flows](/docs/application-flows).
+
 ## Creating a Project
 
 **Route:** `POST /workspaces/:slug/projects`
