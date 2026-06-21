@@ -22,7 +22,7 @@ Rails.application.routes.draw do
 
   namespace :settings do
     resource :profile, only: [ :edit, :update ]
-    resource :password, only: [ :new, :create ]
+    resource :password, only: [ :new, :create, :edit, :update, :destroy ]
     resource :avatar, only: [ :update, :destroy ] do
       get :hub
     end
