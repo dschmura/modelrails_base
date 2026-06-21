@@ -39,6 +39,18 @@ pre-push:
       skip:
         - merge
         - rebase
+    bundler_audit:
+      # CI's scan_ruby job runs brakeman AND bundler-audit, but Lefthook only
+      # ran brakeman — so a fresh transitive-gem CVE (no code change) turned
+      # scan_ruby red on a green-locally branch repeatedly (nokogiri + faraday,
+      # PR #371). Same bin/bundler-audit + config CI uses (vendored advisory DB,
+      # no network --update), so local and CI verdicts match.
+      tags: security
+      skip_empty: false
+      run: mise exec -- bin/bundler-audit
+      skip:
+        - merge
+        - rebase
     rubocop:
       tags: style
       skip_empty: false
