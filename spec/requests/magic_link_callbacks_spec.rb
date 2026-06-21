@@ -59,6 +59,16 @@ RSpec.describe "Magic Link Callbacks", type: :request do
       end
     end
 
+    context "valid token with set_password intent" do
+      let(:user) { create(:user) }
+      let(:token) { MagicLinkToken.create_for_email(user.email_address, intent: "set_password") }
+
+      it "signs in and lands on the change-password form" do
+        get magic_link_callback_path(token: token)
+        expect(response).to redirect_to(edit_settings_password_path)
+      end
+    end
+
     context "expired token" do
       let(:user) { create(:user) }
 

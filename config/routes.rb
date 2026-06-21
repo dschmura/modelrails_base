@@ -11,6 +11,7 @@ Rails.application.routes.draw do
   resource :email_verification_resend, only: [ :create ]
 
   resource :magic_link, only: [ :create ]
+  resource :password_reset, only: [ :create ]
   get "magic_link_callback/:token", to: "magic_link_callbacks#show", as: :magic_link_callback
   post "magic_link_callback/:token", to: "magic_link_callbacks#create"
   post "session/lookup", to: "sessions#lookup", as: :session_lookup
