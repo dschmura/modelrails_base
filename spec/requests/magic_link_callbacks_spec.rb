@@ -236,5 +236,60 @@ RSpec.describe "Magic Link Callbacks", type: :request do
         expect(invitation.reload).to be_pending
       end
     end
+
+    context "registration via magic link with a pending open-link join token" do
+      let(:join_workspace) { create(:workspace, join_policy: :open_link) }
+      let(:join_link) { create(:workspace_join_link, workspace: join_workspace) }
+
+      before do
+        # Permit :open_link at both the instance level (SignupPolicy) and the
+        # workspace level (validates join_policy_must_be_permitted_by_instance).
+        allow(Rails.configuration.x.signup).to receive(:permitted_join_strategies)
+          .and_return([ :invite, :open_link ])
+        # Open-mode signup so the magic-link callback doesn't gate on invite_only.
+        allow(Rails.configuration.x.signup).to receive(:mode).and_return(:open)
+        # default_self_join_role calls Role.find_by!(slug: "member") — ensure it exists.
+        Role.find_or_create_by!(slug: "member", workspace_id: nil) { |r| r.name = "Member" }
+        # POST to the join route — sets session[:pending_join_token].
+        post workspace_join_path(workspace_slug: join_workspace.slug, token: join_link.token)
+      end
+
+      it "admits the brand-new magic-link user as a member" do
+        token = MagicLinkToken.create_for_email("joiner@example.com")
+
+        expect {
+          post magic_link_callback_path(token: token), params: {
+            user: { first_name: "Jo", last_name: "Iner" }
+          }
+        }.to change(User, :count).by(1)
+
+        user = User.find_by(email_address: "joiner@example.com")
+        expect(user.memberships.kept.where(workspace: join_workspace)).to exist
+      end
+    end
+
+    context "registration via magic link with a pending invitation" do
+      let(:inv_workspace) { create(:workspace) }
+      let(:invitation) { create(:invitation, invitable: inv_workspace, email: "invitee@example.com") }
+
+      before do
+        allow(Rails.configuration.x.signup).to receive(:mode).and_return(:invite_only)
+        # POST to the invitation acceptance route — sets session[:pending_invitation_token]
+        post accept_invitation_path(token: invitation.token)
+      end
+
+      it "accepts the invitation and creates the membership" do
+        token = MagicLinkToken.create_for_email("invitee@example.com")
+
+        expect {
+          post magic_link_callback_path(token: token), params: {
+            user: { first_name: "In", last_name: "Vitee" }
+          }
+        }.to change(User, :count).by(1)
+
+        user = User.find_by(email_address: "invitee@example.com")
+        expect(user.memberships.kept).to exist
+      end
+    end
   end
 end
