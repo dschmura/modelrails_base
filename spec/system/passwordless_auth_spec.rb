@@ -13,10 +13,11 @@ RSpec.describe "Passwordless-first auth", type: :system do
   # passwordless_join_link_spec.rb.
   # ---------------------------------------------------------------------------
   describe "brand-new user signs up via magic link, no password set" do
-    let(:original_mode) { Rails.configuration.x.signup.mode }
-
-    before { Rails.configuration.x.signup.mode = :open }
-    after  { Rails.configuration.x.signup.mode = original_mode }
+    before do
+      @original_signup_mode = Rails.configuration.x.signup.mode
+      Rails.configuration.x.signup.mode = :open
+    end
+    after { Rails.configuration.x.signup.mode = @original_signup_mode }
 
     it "creates the user without a password_digest" do
       email = "newbie-#{SecureRandom.hex(4)}@example.com"
