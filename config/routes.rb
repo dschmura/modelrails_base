@@ -15,6 +15,7 @@ Rails.application.routes.draw do
   get "magic_link_callback/:token", to: "magic_link_callbacks#show", as: :magic_link_callback
   post "magic_link_callback/:token", to: "magic_link_callbacks#create"
   post "session/lookup", to: "sessions#lookup", as: :session_lookup
+  get  "session/password", to: "sessions#password_form", as: :session_password_form
 
   get "/auth/:provider/callback", to: "omniauth_callbacks#create"
   get "/auth/failure", to: "omniauth_callbacks#failure"
