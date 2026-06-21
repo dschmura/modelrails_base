@@ -5,7 +5,6 @@ Rails.application.routes.draw do
   mount Biscuit::Engine, at: "/biscuit"
   resource :session
   resource :email_verification, only: [ :new, :show ]
-  resources :passwords, param: :token
 
   resource :email_verification_resend, only: [ :create ]
 

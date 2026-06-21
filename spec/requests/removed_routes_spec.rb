@@ -13,4 +13,8 @@ RSpec.describe "Removed routes guard", type: :request do
   it "no longer exposes the password registration route (create)" do
     expect { registration_path }.to raise_error(NameError)
   end
+
+  it "no longer exposes the public password-reset routes" do
+    expect { new_password_path }.to raise_error(NameError)
+  end
 end
