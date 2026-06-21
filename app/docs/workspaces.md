@@ -9,6 +9,8 @@ audience: [guide, technical]
 
 A workspace is the top-level organizational boundary — users, projects, invitations, and roles are all scoped to one. How workspaces *present* to users (one workspace or many, whether a switcher appears) depends on your [app preset](/docs/presets). For the underlying data model and how scoping is enforced at request time (`Current.workspace`, the `Tenanted` concern), see [Architecture](/docs/architecture).
 
+> See the invite-teammates flow drawn as a wireframe in [Application Flows](/docs/application-flows).
+
 ## Creating a Workspace
 
 Any authenticated user can create a workspace. A URL-safe slug is generated automatically from the name. The creator is assigned the **Owner** role.
