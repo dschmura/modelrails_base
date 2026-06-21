@@ -20,7 +20,7 @@ Markdowndocs.configure do |config|
     # The presets hub + its four per-preset spokes form their own cluster,
     # placed second so it reads as the next step after "getting started".
     "Presets" => %w[presets presets-solo presets-single-tenant presets-open-saas presets-none],
-    "Architecture" => %w[architecture],
+    "Architecture" => %w[architecture application-flows],
     # `notifications` (audience: guide) and `notifications-technical`
     # (audience: technical) are paired companion docs — the mode switcher
     # shows whichever matches the viewer's mode, with no cross-category
