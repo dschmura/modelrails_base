@@ -179,12 +179,12 @@ RSpec.describe "Magic Link Callbacks", type: :request do
     context "in invite_only mode without an invitation token in session" do
       before { allow(Rails.configuration.x.signup).to receive(:mode).and_return(:invite_only) }
 
-      it "redirects to new_registration_path with 303 and creates no User" do
+      it "redirects to new_session_path with 303 and creates no User" do
         expect {
           post magic_link_callback_path(token: token_record.token), params: params
         }.not_to change(User, :count)
 
-        expect(response).to redirect_to(new_registration_path)
+        expect(response).to redirect_to(new_session_path)
         expect(response).to have_http_status(:see_other)
         expect(flash[:alert]).to include(I18n.t("registrations.closed.oauth_blocked"))
       end

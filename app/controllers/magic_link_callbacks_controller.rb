@@ -36,7 +36,7 @@ class MagicLinkCallbacksController < ApplicationController
     end
 
     unless signups_open?
-      redirect_to new_registration_path,
+      redirect_to new_session_path,
                   alert: t("registrations.closed.oauth_blocked"),
                   status: :see_other
       return

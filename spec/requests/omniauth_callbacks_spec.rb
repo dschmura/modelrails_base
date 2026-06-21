@@ -841,7 +841,7 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
         }.not_to change(User, :count)
 
         expect(Authentication.find_by(uid: "gate-test-uid")).to be_nil
-        expect(response).to redirect_to(new_registration_path)
+        expect(response).to redirect_to(new_session_path)
         expect(response).to have_http_status(:see_other)
         expect(flash[:alert]).to include(I18n.t("registrations.closed.oauth_blocked"))
       end
