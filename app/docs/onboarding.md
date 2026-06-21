@@ -9,6 +9,8 @@ audience: [guide, technical]
 
 The onboarding wizard is active only when `WORKSPACE_ON_SIGNUP=none`. In every other posture (`personal`, `shared`) the wizard is inert — all guard logic returns early before any redirect fires. See [/docs/presets-none](/docs/presets-none) for the broader none-posture setup.
 
+> See this journey drawn as a wireframe in [Application Flows](/docs/application-flows).
+
 ## When it triggers
 
 `RequiresOnboarding` (`app/controllers/concerns/requires_onboarding.rb`) installs a `before_action` in `ApplicationController`. The guard redirects to `onboarding_path` only when **all three** conditions hold:
