@@ -243,3 +243,177 @@ Each project enables a set of tools, shown as tabs; the team toggles them in pro
   <text x="380" y="198" text-anchor="middle" font-size="11" fill="currentColor" stroke="none">Settings · Tools</text>
   <text x="644" y="198" text-anchor="middle" font-size="11" fill="currentColor" stroke="none">Home reflects the toggle</text>
 </svg>
+
+## 4 · Invite teammates
+
+A manager invites people into the workspace with a role; the invitee accepts by email — one-click if they already have an account, or by setting up a login. See: [Workspaces](/docs/workspaces).
+
+<svg viewBox="0 0 760 480" width="100%" role="img" aria-label="Inviting teammates, five screens over two rows. Admin row: screen one, the People list with members and their roles and an Add people button. Screen two, Add people, an emails field with a Member role select and Send invites. Screen three, the People list now showing a pending invite. A dashed arrow labelled invite email sent drops to the invitee row. Screen four, the invitation email, Alex invited you to Acme, with an Accept invitation button. Screen five, accept: an existing user joins in one click, a new user sets up a login; then they are in the workspace." fill="none" stroke="currentColor" font-family="ui-sans-serif, system-ui, sans-serif">
+  <defs><marker id="flowarrow-4" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="currentColor" stroke="none"/></marker></defs>
+
+  <text x="16" y="33" font-size="10" font-weight="600" fill="currentColor" stroke="none" opacity="0.55">Admin</text>
+  <text x="16" y="253" font-size="10" font-weight="600" fill="currentColor" stroke="none" opacity="0.55">Invitee</text>
+
+  <!-- S1: People (col0, row0) -->
+  <rect x="16" y="40" width="200" height="140" rx="12" stroke-width="1.5"/>
+  <line x1="16" y1="64" x2="216" y2="64" stroke-width="1"/>
+  <circle cx="30" cy="52" r="3" stroke-width="1"/><circle cx="42" cy="52" r="3" stroke-width="1"/><circle cx="54" cy="52" r="3" stroke-width="1"/>
+  <rect x="70" y="46" width="132" height="12" rx="6" stroke-width="1" opacity="0.5"/>
+  <rect x="36" y="80" width="70" height="8" rx="4" fill="currentColor" stroke="none" opacity="0.4"/>
+  <rect x="36" y="100" width="86" height="6" rx="3" fill="currentColor" stroke="none" opacity="0.16"/>
+  <rect x="138" y="97" width="46" height="14" rx="7" stroke-width="1" opacity="0.7"/>
+  <text x="161" y="107" text-anchor="middle" font-size="8.5" fill="currentColor" stroke="none" opacity="0.8">Owner</text>
+  <rect x="36" y="120" width="78" height="6" rx="3" fill="currentColor" stroke="none" opacity="0.16"/>
+  <rect x="138" y="117" width="52" height="14" rx="7" stroke-width="1" opacity="0.7"/>
+  <text x="164" y="127" text-anchor="middle" font-size="8.5" fill="currentColor" stroke="none" opacity="0.8">Member</text>
+  <rect class="text-accent" x="36" y="146" width="100" height="18" rx="5" stroke-width="2.25"/>
+  <text class="text-accent" x="86" y="158.5" text-anchor="middle" font-size="9" font-weight="700" fill="currentColor" stroke="none">Add people</text>
+
+  <!-- S2: Add people (col1, row0) -->
+  <rect x="280" y="40" width="200" height="140" rx="12" stroke-width="1.5"/>
+  <line x1="280" y1="64" x2="480" y2="64" stroke-width="1"/>
+  <circle cx="294" cy="52" r="3" stroke-width="1"/><circle cx="306" cy="52" r="3" stroke-width="1"/><circle cx="318" cy="52" r="3" stroke-width="1"/>
+  <rect x="334" y="46" width="132" height="12" rx="6" stroke-width="1" opacity="0.5"/>
+  <rect x="300" y="80" width="90" height="8" rx="4" fill="currentColor" stroke="none" opacity="0.4"/>
+  <rect x="300" y="96" width="160" height="14" rx="4" stroke-width="1"/><rect x="306" y="101" width="90" height="4" rx="2" fill="currentColor" stroke="none" opacity="0.3"/>
+  <rect x="300" y="118" width="64" height="14" rx="7" stroke-width="1" opacity="0.7"/>
+  <text x="332" y="128" text-anchor="middle" font-size="8.5" fill="currentColor" stroke="none" opacity="0.8">Member ▾</text>
+  <rect class="text-accent" x="300" y="146" width="100" height="18" rx="5" stroke-width="2.25"/>
+  <text class="text-accent" x="350" y="158.5" text-anchor="middle" font-size="9" font-weight="700" fill="currentColor" stroke="none">Send invites</text>
+
+  <!-- S3: Pending (col2, row0) -->
+  <rect x="544" y="40" width="200" height="140" rx="12" stroke-width="1.5"/>
+  <line x1="544" y1="64" x2="744" y2="64" stroke-width="1"/>
+  <circle cx="558" cy="52" r="3" stroke-width="1"/><circle cx="570" cy="52" r="3" stroke-width="1"/><circle cx="582" cy="52" r="3" stroke-width="1"/>
+  <rect x="598" y="46" width="132" height="12" rx="6" stroke-width="1" opacity="0.5"/>
+  <rect x="564" y="80" width="70" height="8" rx="4" fill="currentColor" stroke="none" opacity="0.4"/>
+  <rect x="564" y="102" width="90" height="6" rx="3" fill="currentColor" stroke="none" opacity="0.16"/>
+  <rect x="668" y="98" width="56" height="14" rx="7" stroke-width="1" stroke-dasharray="4 3" opacity="0.6"/>
+  <text x="696" y="108" text-anchor="middle" font-size="8" fill="currentColor" stroke="none" opacity="0.6">pending</text>
+
+  <!-- S4: Invite email (col0, row1) -->
+  <rect x="16" y="260" width="200" height="140" rx="12" stroke-width="1.5"/>
+  <line x1="16" y1="284" x2="216" y2="284" stroke-width="1"/>
+  <circle cx="30" cy="272" r="3" stroke-width="1"/><circle cx="42" cy="272" r="3" stroke-width="1"/><circle cx="54" cy="272" r="3" stroke-width="1"/>
+  <rect x="70" y="266" width="132" height="12" rx="6" stroke-width="1" opacity="0.5"/>
+  <rect x="36" y="300" width="150" height="8" rx="4" fill="currentColor" stroke="none" opacity="0.4"/>
+  <rect x="36" y="320" width="150" height="6" rx="3" fill="currentColor" stroke="none" opacity="0.16"/>
+  <rect x="36" y="332" width="120" height="6" rx="3" fill="currentColor" stroke="none" opacity="0.16"/>
+  <rect class="text-accent" x="36" y="360" width="130" height="18" rx="5" stroke-width="2.25"/>
+  <text class="text-accent" x="101" y="372.5" text-anchor="middle" font-size="9" font-weight="700" fill="currentColor" stroke="none">Accept invitation</text>
+
+  <!-- S5: Accept (col1, row1) -->
+  <rect x="280" y="260" width="200" height="140" rx="12" stroke-width="1.5"/>
+  <line x1="280" y1="284" x2="480" y2="284" stroke-width="1"/>
+  <circle cx="294" cy="272" r="3" stroke-width="1"/><circle cx="306" cy="272" r="3" stroke-width="1"/><circle cx="318" cy="272" r="3" stroke-width="1"/>
+  <rect x="334" y="266" width="132" height="12" rx="6" stroke-width="1" opacity="0.5"/>
+  <rect x="300" y="300" width="110" height="8" rx="4" fill="currentColor" stroke="none" opacity="0.4"/>
+  <rect x="300" y="318" width="160" height="14" rx="4" stroke-width="1"/><rect x="306" y="323" width="100" height="4" rx="2" fill="currentColor" stroke="none" opacity="0.3"/>
+  <rect class="text-accent" x="300" y="360" width="130" height="18" rx="5" stroke-width="2.25"/>
+  <text class="text-accent" x="365" y="372.5" text-anchor="middle" font-size="9" font-weight="700" fill="currentColor" stroke="none">Create account</text>
+
+  <!-- Connectors -->
+  <path d="M216 110 H278" stroke-width="1.5" marker-end="url(#flowarrow-4)"/>
+  <text x="247" y="104" text-anchor="middle" font-size="9.5" fill="currentColor" stroke="none" opacity="0.6">Add people</text>
+  <path d="M480 110 H542" stroke-width="1.5" marker-end="url(#flowarrow-4)"/>
+  <text x="511" y="104" text-anchor="middle" font-size="9.5" fill="currentColor" stroke="none" opacity="0.6">Send</text>
+  <path d="M644 180 V222 H116 V258" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.6" marker-end="url(#flowarrow-4)"/>
+  <text x="380" y="216" text-anchor="middle" font-size="9.5" fill="currentColor" stroke="none" opacity="0.6">invite email sent</text>
+  <path d="M216 330 H278" stroke-width="1.5" marker-end="url(#flowarrow-4)"/>
+  <text x="247" y="324" text-anchor="middle" font-size="9.5" fill="currentColor" stroke="none" opacity="0.6">Accept</text>
+
+  <!-- Captions -->
+  <text x="116" y="198" text-anchor="middle" font-size="11" fill="currentColor" stroke="none">People &amp; roles</text>
+  <text x="380" y="198" text-anchor="middle" font-size="11" fill="currentColor" stroke="none">Add people</text>
+  <text x="644" y="198" text-anchor="middle" font-size="11" fill="currentColor" stroke="none">Pending invite</text>
+  <text x="116" y="418" text-anchor="middle" font-size="11" fill="currentColor" stroke="none">Invitation email</text>
+  <text x="380" y="418" text-anchor="middle" font-size="11" fill="currentColor" stroke="none">Accept → in the workspace</text>
+  <text x="380" y="431" text-anchor="middle" font-size="9.5" fill="currentColor" stroke="none" opacity="0.55">existing: one-click · new: set up a login</text>
+</svg>
+
+## 5 · Clientside
+
+A project can open a separate, read-only area for an external client. The team enables it, shares specific items, and invites the client by email; the client never becomes a member. See: [Clientside](/docs/clientside).
+
+<svg viewBox="0 0 760 480" width="100%" role="img" aria-label="Clientside, five screens over two rows. Team row: screen one, the project setting to enable client access, a toggle switched on and Save. Screen two, sharing a resource, a Share with the client side checkbox checked; it appears only when Clientside is on and shares only when published. Screen three, invite a client, with Email and Company fields and Send invite. A dashed arrow labelled invite email sent drops to the client row. Screen four, the client email, Acme shared a project with you, and Accept. Screen five, the read-only client area, accent-highlighted, listing only shared items; the client is a ClientAccess, not a member, and consumes no seat." fill="none" stroke="currentColor" font-family="ui-sans-serif, system-ui, sans-serif">
+  <defs><marker id="flowarrow-5" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="currentColor" stroke="none"/></marker></defs>
+
+  <text x="16" y="33" font-size="10" font-weight="600" fill="currentColor" stroke="none" opacity="0.55">Team</text>
+  <text x="16" y="253" font-size="10" font-weight="600" fill="currentColor" stroke="none" opacity="0.55">Client</text>
+
+  <!-- S1: Enable Clientside (col0, row0) -->
+  <rect x="16" y="40" width="200" height="140" rx="12" stroke-width="1.5"/>
+  <line x1="16" y1="64" x2="216" y2="64" stroke-width="1"/>
+  <circle cx="30" cy="52" r="3" stroke-width="1"/><circle cx="42" cy="52" r="3" stroke-width="1"/><circle cx="54" cy="52" r="3" stroke-width="1"/>
+  <rect x="70" y="46" width="132" height="12" rx="6" stroke-width="1" opacity="0.5"/>
+  <rect x="36" y="80" width="80" height="8" rx="4" fill="currentColor" stroke="none" opacity="0.4"/>
+  <rect class="text-accent" x="36" y="98" width="28" height="14" rx="7" stroke-width="1.25"/>
+  <circle class="text-accent" cx="57" cy="105" r="4.5" fill="currentColor" stroke="none"/>
+  <rect x="72" y="102" width="110" height="6" rx="3" fill="currentColor" stroke="none" opacity="0.16"/>
+  <rect class="text-accent" x="36" y="146" width="70" height="18" rx="5" stroke-width="2.25"/>
+  <text class="text-accent" x="71" y="158.5" text-anchor="middle" font-size="9" font-weight="700" fill="currentColor" stroke="none">Save</text>
+
+  <!-- S2: Share a resource (col1, row0) -->
+  <rect x="280" y="40" width="200" height="140" rx="12" stroke-width="1.5"/>
+  <line x1="280" y1="64" x2="480" y2="64" stroke-width="1"/>
+  <circle cx="294" cy="52" r="3" stroke-width="1"/><circle cx="306" cy="52" r="3" stroke-width="1"/><circle cx="318" cy="52" r="3" stroke-width="1"/>
+  <rect x="334" y="46" width="132" height="12" rx="6" stroke-width="1" opacity="0.5"/>
+  <rect x="300" y="80" width="90" height="8" rx="4" fill="currentColor" stroke="none" opacity="0.4"/>
+  <rect class="text-accent" x="300" y="100" width="11" height="11" rx="3" stroke-width="1.25"/>
+  <path class="text-accent" d="M302.5,105.5 L304.5,108 L308.5,103" stroke-width="1.5"/>
+  <rect x="317" y="103" width="140" height="5" rx="2.5" fill="currentColor" stroke="none" opacity="0.3"/>
+  <rect x="300" y="124" width="120" height="6" rx="3" fill="currentColor" stroke="none" opacity="0.16"/>
+  <rect class="text-accent" x="300" y="146" width="70" height="18" rx="5" stroke-width="2.25"/>
+  <text class="text-accent" x="335" y="158.5" text-anchor="middle" font-size="9" font-weight="700" fill="currentColor" stroke="none">Save</text>
+
+  <!-- S3: Invite a client (col2, row0) -->
+  <rect x="544" y="40" width="200" height="140" rx="12" stroke-width="1.5"/>
+  <line x1="544" y1="64" x2="744" y2="64" stroke-width="1"/>
+  <circle cx="558" cy="52" r="3" stroke-width="1"/><circle cx="570" cy="52" r="3" stroke-width="1"/><circle cx="582" cy="52" r="3" stroke-width="1"/>
+  <rect x="598" y="46" width="132" height="12" rx="6" stroke-width="1" opacity="0.5"/>
+  <rect x="564" y="80" width="100" height="8" rx="4" fill="currentColor" stroke="none" opacity="0.4"/>
+  <rect x="564" y="96" width="160" height="14" rx="4" stroke-width="1"/><rect x="570" y="101" width="50" height="4" rx="2" fill="currentColor" stroke="none" opacity="0.3"/>
+  <rect x="564" y="116" width="160" height="14" rx="4" stroke-width="1"/><rect x="570" y="121" width="64" height="4" rx="2" fill="currentColor" stroke="none" opacity="0.3"/>
+  <rect class="text-accent" x="564" y="146" width="100" height="18" rx="5" stroke-width="2.25"/>
+  <text class="text-accent" x="614" y="158.5" text-anchor="middle" font-size="9" font-weight="700" fill="currentColor" stroke="none">Send invite</text>
+
+  <!-- S4: Client email (col0, row1) -->
+  <rect x="16" y="260" width="200" height="140" rx="12" stroke-width="1.5"/>
+  <line x1="16" y1="284" x2="216" y2="284" stroke-width="1"/>
+  <circle cx="30" cy="272" r="3" stroke-width="1"/><circle cx="42" cy="272" r="3" stroke-width="1"/><circle cx="54" cy="272" r="3" stroke-width="1"/>
+  <rect x="70" y="266" width="132" height="12" rx="6" stroke-width="1" opacity="0.5"/>
+  <rect x="36" y="300" width="160" height="8" rx="4" fill="currentColor" stroke="none" opacity="0.4"/>
+  <rect x="36" y="320" width="150" height="6" rx="3" fill="currentColor" stroke="none" opacity="0.16"/>
+  <rect x="36" y="332" width="120" height="6" rx="3" fill="currentColor" stroke="none" opacity="0.16"/>
+  <rect class="text-accent" x="36" y="360" width="90" height="18" rx="5" stroke-width="2.25"/>
+  <text class="text-accent" x="81" y="372.5" text-anchor="middle" font-size="9" font-weight="700" fill="currentColor" stroke="none">Accept</text>
+
+  <!-- S5: Client area (col1, row1) — accent frame, read-only -->
+  <rect class="text-accent" x="280" y="260" width="200" height="140" rx="12" stroke-width="2"/>
+  <line x1="280" y1="284" x2="480" y2="284" stroke-width="1"/>
+  <circle cx="294" cy="272" r="3" stroke-width="1"/><circle cx="306" cy="272" r="3" stroke-width="1"/><circle cx="318" cy="272" r="3" stroke-width="1"/>
+  <rect x="334" y="266" width="132" height="12" rx="6" stroke-width="1" opacity="0.5"/>
+  <rect x="300" y="300" width="120" height="8" rx="4" fill="currentColor" stroke="none" opacity="0.4"/>
+  <rect x="300" y="320" width="150" height="6" rx="3" fill="currentColor" stroke="none" opacity="0.16"/>
+  <rect x="300" y="334" width="140" height="6" rx="3" fill="currentColor" stroke="none" opacity="0.16"/>
+  <rect x="300" y="348" width="150" height="6" rx="3" fill="currentColor" stroke="none" opacity="0.16"/>
+
+  <!-- Connectors -->
+  <path d="M216 110 H278" stroke-width="1.5" marker-end="url(#flowarrow-5)"/>
+  <text x="247" y="104" text-anchor="middle" font-size="9.5" fill="currentColor" stroke="none" opacity="0.6">share</text>
+  <path d="M480 110 H542" stroke-width="1.5" marker-end="url(#flowarrow-5)"/>
+  <text x="511" y="104" text-anchor="middle" font-size="9.5" fill="currentColor" stroke="none" opacity="0.6">invite</text>
+  <path d="M644 180 V222 H116 V258" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.6" marker-end="url(#flowarrow-5)"/>
+  <text x="380" y="216" text-anchor="middle" font-size="9.5" fill="currentColor" stroke="none" opacity="0.6">invite email sent</text>
+  <path d="M216 330 H278" stroke-width="1.5" marker-end="url(#flowarrow-5)"/>
+  <text x="247" y="324" text-anchor="middle" font-size="9.5" fill="currentColor" stroke="none" opacity="0.6">Accept</text>
+
+  <!-- Captions -->
+  <text x="116" y="198" text-anchor="middle" font-size="11" fill="currentColor" stroke="none">Enable Clientside</text>
+  <text x="380" y="198" text-anchor="middle" font-size="11" fill="currentColor" stroke="none">Share a resource</text>
+  <text x="380" y="211" text-anchor="middle" font-size="9.5" fill="currentColor" stroke="none" opacity="0.55">only when on · shares when published</text>
+  <text x="644" y="198" text-anchor="middle" font-size="11" fill="currentColor" stroke="none">Invite a client</text>
+  <text x="116" y="418" text-anchor="middle" font-size="11" fill="currentColor" stroke="none">Client email</text>
+  <text x="380" y="418" text-anchor="middle" font-size="11" fill="currentColor" stroke="none">Client area (read-only)</text>
+  <text x="380" y="431" text-anchor="middle" font-size="9.5" fill="currentColor" stroke="none" opacity="0.55">a ClientAccess, not a member — no seat</text>
+</svg>
