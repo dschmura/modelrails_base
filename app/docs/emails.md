@@ -54,7 +54,7 @@ Tokens are single-use: accepting an invitation, verifying an email, or resetting
 ### New User Registration (magic-link / passwordless-first)
 
 1. User enters their email on the sign-in/sign-up page (`sessions#new`) and submits.
-2. `SessionsController#lookup` issues a `MagicLinkToken` and sends `AuthenticationMailer.magic_link_email`.
+2. `SessionsController#lookup` issues a `MagicLinkToken` and sends `MagicLinkMailer.registration_link` (new email) or `MagicLinkMailer.sign_in_link` (existing account).
 3. User clicks the link → `MagicLinkCallbacksController#show` checks for an existing account.
    - Existing user: signs them in immediately.
    - New user: renders `magic_link_callbacks/new_registration` (name fields) for first-time signup.
