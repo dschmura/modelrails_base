@@ -29,7 +29,15 @@ Folded in from the panel (DHH · Aaron Patterson · Dave Thomas · Joël Quennev
 
 ## Library
 
-`gem "webauthn", "~> 3.0"` (cedarcode/webauthn-ruby) — the standard Ruby WebAuthn implementation; handles CBOR/COSE/signature verification/attestation. No DIY crypto. Ruby 4.0.4 is compatible.
+`gem "webauthn", "~> 3.0"` (cedarcode/webauthn-ruby) — the standard Ruby WebAuthn implementation; handles CBOR/COSE/signature verification/attestation. No DIY crypto. Currently **v3.4.3** (actively maintained, Oct 2025); Ruby 4.0.4 compatible.
+
+**Alternatives evaluated (user-requested):**
+
+- **`webauthn-rails` (cedarcode generator)** — scaffolds passkeys **+ 2FA** onto the *vanilla* Rails 8 `rails generate authentication` conventions (modifies its own `SessionsController`, scaffolds model/migrations/Stimulus/views). Rejected as a *base*: it assumes vanilla auth, but our passwordless-first custom flow (email-first lookup, magic-link primary, custom `Session`) would clash, and it bundles 2FA we don't want — retrofitting it is more work than building on the core gem. **Kept as a reference implementation** (its generated controllers/Stimulus + the cedarcode Rails demo) — and it validates this spec (same `WebauthnCredential` model, `WebAuthn.configure allowed_origins` = our RP-ID/origin seam, discoverable credentials, Stimulus controller).
+- **`devise-passkeys` / `warden-webauthn` (ruby-passkeys)** — Devise/Warden extensions over the core gem. N/A: this app uses custom Rails 8 auth, no Devise/Warden.
+- **Hosted (Hanko/Corbado/Passage/Clerk/Auth0)** — rejected: external vendor + data leaving the box contradicts this self-hostable, no-external-deps template.
+
+Decision: build on the **core `webauthn` gem** for full control over the panel-hardened design; lean single dependency.
 
 ## Data model
 
