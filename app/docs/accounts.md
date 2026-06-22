@@ -42,7 +42,7 @@ If you signed up via Google or GitHub and have no password yet, visit `/settings
 
 ### Password Reset
 
-Request a reset from the sign-in page. A **single-use magic-link** is sent with a **15-minute expiry**. No current password is needed — the link proves email ownership and redirects to the password-change form on redemption.
+Request a reset from the sign-in page ("Forgot password?"). If the account has a password set, a **single-use magic-link** (**15-minute expiry**) is sent; clicking it proves email ownership and lands on the password-change form — no current password needed. Passwordless accounts have nothing to reset and simply sign in with a magic link instead.
 
 ## Avatar / Profile Photo
 

@@ -15,8 +15,7 @@ Auth endpoints are rate-limited via Rails 8 `rate_limit` DSL:
 
 | Endpoint | Limit | Window |
 |----------|-------|--------|
-| POST /session (login) | 10 requests | 3 minutes |
-| POST /registration (sign-up) | 10 requests | 3 minutes |
+| POST /session (sign in / email-first lookup) | 10 requests | 3 minutes |
 | POST /passwords (reset) | 10 requests | 3 minutes |
 | POST /magic_links (magic link) | 5 requests | 3 minutes |
 
