@@ -7,6 +7,9 @@ RSpec.describe "Passkey enrollment prompt", type: :request do
   before { sign_in(user) }
 
   it "shows the interstitial on first authenticated page load, then never again" do
+    # The factory default sets passkey_prompt_seen_at to suppress the
+    # interstitial. Reset to nil to make this user interstitial-eligible.
+    user.update!(passkey_prompt_seen_at: nil)
     get root_path
     expect(response.body).to include(I18n.t("passkeys.interstitial.title"))
     patch passkey_prompt_path # dismiss / add
