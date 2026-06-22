@@ -15,7 +15,7 @@ module Passkeys
         credential_params: params.to_unsafe_h,
         nickname: params[:nickname]
       )
-      head :created
+      render json: { redirect_to: settings_passkeys_path }, status: :created
     rescue Passkeys::Error => e
       render json: { error: passkey_error_message(e) }, status: :unprocessable_content
     rescue ArgumentError
