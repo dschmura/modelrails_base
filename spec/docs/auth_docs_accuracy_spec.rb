@@ -10,4 +10,10 @@ RSpec.describe "Auth docs accuracy", type: :model do
     end
     expect(offenders).to be_empty, "stale password-reset refs in: #{offenders.map { |f| File.basename(f) }.join(', ')}"
   end
+
+  # The flows page must not depict a password field at signup/invite (passwordless-first).
+  it "the flows page does not show a Create/Set password field" do
+    flows = File.read(DOCS.join("application-flows.md"))
+    expect(flows).not_to match(/Create password|Set a password|>Password<|Password<\/text>/)
+  end
 end
