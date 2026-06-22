@@ -2,7 +2,6 @@
 title: Passkeys
 description: Configure WebAuthn passkeys, set up local HTTPS testing, manage credentials in Settings, and troubleshoot common issues
 keywords: passkeys webauthn fido2 authentication biometric rp-id origin secure context https local testing settings credentials
-audience: [guide, technical]
 ---
 
 # Passkeys

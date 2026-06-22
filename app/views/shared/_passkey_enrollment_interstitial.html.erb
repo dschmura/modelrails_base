@@ -39,10 +39,10 @@
       <%= button_to t("passkeys.interstitial.skip_button"),
             passkey_prompt_path,
             method: :patch,
-            class: "btn-secondary",
+            class: "btn-text btn-text-interactive",
             data: { turbo_frame: "_top" } %>
       <button type="button"
-              class="btn-primary"
+              class="btn-secondary"
               data-action="webauthn#register"
               data-webauthn-target="button">
         <%= t("passkeys.interstitial.add_button") %>
