@@ -228,6 +228,12 @@ class User < ApplicationRecord
     client_accesses.kept.exists?(project: project)
   end
 
+  # True iff the one-time passkey enrollment interstitial should appear.
+  # Clears once the user dismisses the prompt OR registers a passkey.
+  def passkey_prompt_eligible?
+    passkey_prompt_seen_at.nil? && webauthn_credentials.kept.none?
+  end
+
   # Opaque, stable WebAuthn user handle — never the integer PK (FIDO guidance).
   # Lazily generated on first enrollment; race-safe via the unique index + retry.
   def webauthn_handle!
