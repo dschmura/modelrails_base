@@ -14,6 +14,7 @@ class User < ApplicationRecord
   has_many :project_memberships, dependent: :destroy
   has_many :projects, through: :project_memberships
   has_many :client_accesses, dependent: :destroy
+  has_many :webauthn_credentials, dependent: :destroy
 
   after_create :onboard_workspace
   after_create :check_gravatar_later
@@ -225,6 +226,22 @@ class User < ApplicationRecord
 
   def client_of?(project)
     client_accesses.kept.exists?(project: project)
+  end
+
+  # True iff the one-time passkey enrollment interstitial should appear.
+  # Clears once the user dismisses the prompt OR registers a passkey.
+  def passkey_prompt_eligible?
+    passkey_prompt_seen_at.nil? && webauthn_credentials.kept.none?
+  end
+
+  # Opaque, stable WebAuthn user handle — never the integer PK (FIDO guidance).
+  # Lazily generated on first enrollment; race-safe via the unique index + retry.
+  def webauthn_handle!
+    return webauthn_handle if webauthn_handle.present?
+    update!(webauthn_handle: SecureRandom.urlsafe_base64(32))
+    webauthn_handle
+  rescue ActiveRecord::RecordNotUnique
+    reload.webauthn_handle
   end
 
   private

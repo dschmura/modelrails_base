@@ -50,4 +50,17 @@ class ApplicationController < ActionController::Base
       format.any { head :not_found }
     end
   end
+
+  # Maps a Passkeys::Error subclass to its localized message for JSON error responses.
+  def passkey_error_message(error)
+    key = case error
+    when Passkeys::ChallengeExpired           then "challenge_expired"
+    when Passkeys::CredentialNotFound         then "credential_not_found"
+    when Passkeys::CredentialAlreadyRegistered then "credential_already_registered"
+    when Passkeys::ClonedAuthenticator        then "cloned_authenticator"
+    when Passkeys::VerificationFailed         then "verification_failed"
+    else                                           "unknown"
+    end
+    t("passkeys.errors.#{key}")
+  end
 end

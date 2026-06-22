@@ -705,4 +705,13 @@ RSpec.describe User, type: :model do
       expect(access.user.client_of?(access.project)).to be(false)
     end
   end
+
+  describe "#webauthn_handle!" do
+    it "lazily generates a stable opaque handle" do
+      user = create(:user)
+      handle = user.webauthn_handle!
+      expect(handle).to be_present
+      expect(user.webauthn_handle!).to eq(handle) # stable on second call
+    end
+  end
 end

@@ -4,6 +4,14 @@ FactoryBot.define do
     password { "SecureP@ssw0rd123!" }
     first_name { Faker::Name.first_name }
     last_name { Faker::Name.last_name }
+    # Default: already-onboarded user — passkey interstitial will not appear.
+    # This prevents the open <dialog> from blocking pointer events in the 99%
+    # of system specs that don't test the interstitial itself.
+    passkey_prompt_seen_at { Time.current }
+
+    trait :passkey_prompt_pending do
+      passkey_prompt_seen_at { nil }
+    end
 
     trait :with_email_auth do
       after(:create) do |user|

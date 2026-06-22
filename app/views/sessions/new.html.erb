@@ -6,13 +6,39 @@
 
   <%= render "shared/oauth_buttons" %>
 
+  <%# Passkey sign-in card — Stimulus controller drives credential.get() %>
+  <div data-controller="webauthn"
+       data-webauthn-auth-options-url-value="<%= passkeys_authentication_options_path %>"
+       data-webauthn-auth-verify-url-value="<%= passkeys_authentication_verify_path %>"
+       data-webauthn-reg-options-url-value="<%= passkeys_registration_options_path %>"
+       data-webauthn-reg-verify-url-value="<%= passkeys_registration_verify_path %>"
+       data-webauthn-messages-value="<%= {
+         cancelled:   t('passkeys.client_errors.cancelled'),
+         unsupported: t('passkeys.client_errors.unsupported'),
+         failed:      t('passkeys.client_errors.failed')
+       }.to_json %>">
+
+    <button type="button"
+            class="mt-6 w-full btn-secondary min-h-[44px] focus-ring"
+            data-action="webauthn#authenticate"
+            data-webauthn-target="button">
+      <%= t("sessions.new.passkey_button") %>
+    </button>
+
+    <p role="status"
+       aria-live="polite"
+       aria-atomic="true"
+       data-webauthn-target="status"
+       class="mt-2 text-sm text-text-body"></p>
+  </div>
+
   <%= turbo_frame_tag "sign_in_form" do %>
     <%= form_with url: main_app.session_lookup_path, class: "mt-8 space-y-6" do |form| %>
       <%= form.email_field :email_address,
             label: t("sessions.new.email_label"),
             required: true,
             autofocus: true,
-            autocomplete: "email" %>
+            autocomplete: "username webauthn" %>
 
       <%= form.submit t("sessions.new.continue"), class: "w-full" %>
     <% end %>

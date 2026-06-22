@@ -78,6 +78,22 @@ en:
       update:
         success: "Theme updated."
         invalid_theme: "Invalid theme."
+    passkeys:
+      index:
+        title: "Passkeys"
+        description: "Passkeys let you sign in with your device — fingerprint, face, or PIN — with no password needed."
+        nickname_label: "Nickname"
+        nickname_placeholder: "e.g. My MacBook, iPhone"
+        add_button: "Add a passkey"
+        last_used: "Last used %{time} ago"
+        never_used: "Never used"
+        remove_button: "Remove"
+        remove_aria_label: "Remove passkey: %{nickname}"
+        remove_title: "Remove passkey: %{nickname}?"
+        remove_message: "This passkey will be removed. You can still sign in with magic link or other sign-in methods."
+        empty_state: "You haven't added any passkeys yet. Add one above to sign in with your device."
+      destroy:
+        success: "Passkey removed."
     connected_accounts:
       index:
         cancel_action: "Cancel link"

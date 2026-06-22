@@ -25,6 +25,7 @@ gem "tailwindcss-rails"
 gem "bcrypt", "~> 3.1.7"
 
 # Auth: OAuth providers and password breach checking
+gem "webauthn", "~> 3.0"
 gem "omniauth"
 gem "omniauth-google-oauth2"
 gem "omniauth-github"

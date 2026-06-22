@@ -1,0 +1,75 @@
+<% content_for(:title) { t("settings.passkeys.index.title") } %>
+<div class="page-container py-16">
+  <%= render "shared/settings_page_header",
+        title: t("settings.passkeys.index.title"),
+        description: t("settings.passkeys.index.description") %>
+
+  <%# Add a passkey — registration ceremony wired to the webauthn Stimulus controller %>
+  <div class="mt-8"
+       data-controller="webauthn"
+       data-webauthn-reg-options-url-value="<%= passkeys_registration_options_path %>"
+       data-webauthn-reg-verify-url-value="<%= passkeys_registration_verify_path %>">
+    <div class="flex items-end gap-3">
+      <div class="flex-1 max-w-xs">
+        <label for="passkey_nickname" class="block text-sm font-medium text-text-body mb-1">
+          <%= t("settings.passkeys.index.nickname_label") %>
+        </label>
+        <%= ui :input,
+               id: "passkey_nickname",
+               name: "passkey[nickname]",
+               placeholder: t("settings.passkeys.index.nickname_placeholder"),
+               autocomplete: "off",
+               data: { webauthn_target: "nickname" } %>
+      </div>
+      <button type="button"
+              class="btn-secondary btn-touch-target"
+              data-action="webauthn#register"
+              data-webauthn-target="button">
+        <%= t("settings.passkeys.index.add_button") %>
+      </button>
+    </div>
+    <p class="mt-2 text-sm text-text-muted" data-webauthn-target="status" role="status" aria-live="polite" aria-atomic="true"></p>
+  </div>
+
+  <%# Passkey list %>
+  <% if @passkeys.any? %>
+    <ul role="list" class="mt-8 space-y-4">
+      <% @passkeys.each do |passkey| %>
+        <li class="flex items-center justify-between p-4 border border-border rounded-lg">
+          <div>
+            <p class="font-medium text-text-heading"><%= passkey.nickname %></p>
+            <% if passkey.last_used_at.present? %>
+              <p class="text-sm text-text-muted">
+                <%= t("settings.passkeys.index.last_used", time: time_ago_in_words(passkey.last_used_at)) %>
+              </p>
+            <% else %>
+              <p class="text-sm text-text-muted"><%= t("settings.passkeys.index.never_used") %></p>
+            <% end %>
+          </div>
+
+          <div class="action-group">
+            <button type="button"
+                    class="btn-touch-target btn-text btn-text-danger text-sm focus-ring"
+                    aria-label="<%= t("settings.passkeys.index.remove_aria_label", nickname: passkey.nickname) %>"
+                    data-action="click->modal#open"
+                    data-modal-id-param="remove-passkey-<%= passkey.id %>">
+              <%= t("settings.passkeys.index.remove_button") %>
+            </button>
+            <%= render "shared/confirm_dialog",
+                      id: "remove-passkey-#{passkey.id}",
+                      title: t("settings.passkeys.index.remove_title", nickname: passkey.nickname),
+                      message: t("settings.passkeys.index.remove_message"),
+                      confirm_text: t("settings.passkeys.index.remove_button"),
+                      confirm_url: settings_passkey_path(passkey),
+                      confirm_method: :delete,
+                      variant: :danger %>
+          </div>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <div class="mt-8 rounded-lg border border-border bg-surface p-6 text-center">
+      <p class="text-sm text-text-muted"><%= t("settings.passkeys.index.empty_state") %></p>
+    </div>
+  <% end %>
+</div>
