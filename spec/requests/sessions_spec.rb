@@ -30,6 +30,19 @@ RSpec.describe "Sessions", type: :request do
       expect(status).to be_present
     end
 
+    it "leads with the email field; the passkey is a secondary fallback below it" do
+      get new_session_path
+      doc = Nokogiri::HTML(response.body)
+
+      # Both selectors resolve in DOCUMENT order, so the first node is whichever
+      # the visitor meets first. Email-first posture: the email input precedes
+      # the explicit passkey control (which is now a secondary link, not a
+      # prominent button competing with the field).
+      ordered = doc.css("input[autocomplete~='webauthn'], [data-action='webauthn#authenticate']")
+      expect(ordered.size).to eq(2)
+      expect(ordered.first.name).to eq("input")
+    end
+
     context "when the visitor is already signed in" do
       it "redirects to root with an already-signed-in notice" do
         sign_in(user)
