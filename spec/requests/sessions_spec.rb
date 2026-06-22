@@ -9,6 +9,27 @@ RSpec.describe "Sessions", type: :request do
       expect(response).to have_http_status(:ok)
     end
 
+    it "renders the passkey sign-in elements" do
+      get new_session_path
+      doc = Nokogiri::HTML(response.body)
+
+      # Stimulus controller wrapper
+      expect(doc.at_css("[data-controller~='webauthn']")).to be_present
+
+      # Passkey button with localized label
+      button = doc.at_css("[data-action='webauthn#authenticate']")
+      expect(button).to be_present
+      expect(button.text.strip).to include(I18n.t("sessions.new.passkey_button"))
+
+      # Email field autocomplete for conditional UI
+      email = doc.at_css("input[autocomplete~='webauthn']")
+      expect(email).to be_present
+
+      # ARIA live region for status announcements
+      status = doc.at_css("[role='status'][aria-live='polite']")
+      expect(status).to be_present
+    end
+
     context "when the visitor is already signed in" do
       it "redirects to root with an already-signed-in notice" do
         sign_in(user)

@@ -7,3 +7,7 @@ en:
       cloned_authenticator: "Passkey verification failed: possible cloned authenticator detected."
       verification_failed: "Passkey verification failed. Please try again."
       unknown: "An unexpected passkey error occurred. Please try again."
+    client_errors:
+      cancelled: "Sign in was cancelled. Try again when you're ready."
+      unsupported: "Passkeys are not supported on this browser or device."
+      failed: "Something went wrong. Please try again."
