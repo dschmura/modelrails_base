@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_21_173742) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_22_125101) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -281,6 +281,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_21_173742) do
     t.string "last_name"
     t.datetime "locked_at"
     t.datetime "onboarded_at"
+    t.datetime "passkey_prompt_seen_at"
     t.string "password_digest"
     t.string "pending_email"
     t.datetime "pending_email_sent_at"
@@ -288,10 +289,39 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_21_173742) do
     t.integer "personal_workspace_id"
     t.integer "primary_color", default: 210
     t.datetime "updated_at", null: false
+    t.string "webauthn_handle"
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
     t.index ["pending_email_token"], name: "index_users_on_pending_email_token", unique: true
     t.index ["personal_workspace_id"], name: "index_users_on_personal_workspace_id"
     t.index ["personal_workspace_id"], name: "index_users_on_personal_workspace_id_unique", unique: true, where: "personal_workspace_id IS NOT NULL"
+    t.index ["webauthn_handle"], name: "index_users_on_webauthn_handle", unique: true
+  end
+
+  create_table "webauthn_challenges", force: :cascade do |t|
+    t.string "challenge", null: false
+    t.datetime "consumed_at"
+    t.datetime "created_at", null: false
+    t.datetime "expires_at", null: false
+    t.string "purpose", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id"
+    t.index ["challenge"], name: "index_webauthn_challenges_on_challenge", unique: true
+    t.index ["user_id"], name: "index_webauthn_challenges_on_user_id"
+  end
+
+  create_table "webauthn_credentials", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "discarded_at"
+    t.string "external_id", null: false
+    t.datetime "last_used_at"
+    t.string "nickname"
+    t.string "public_key", null: false
+    t.integer "sign_count", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.datetime "verified_at"
+    t.index ["external_id"], name: "index_webauthn_credentials_on_external_id", unique: true
+    t.index ["user_id"], name: "index_webauthn_credentials_on_user_id"
   end
 
   create_table "workspace_join_links", force: :cascade do |t|
@@ -350,6 +380,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_21_173742) do
   add_foreign_key "sessions", "users"
   add_foreign_key "user_preferences", "users"
   add_foreign_key "users", "workspaces", column: "personal_workspace_id", on_delete: :nullify
+  add_foreign_key "webauthn_challenges", "users"
+  add_foreign_key "webauthn_credentials", "users"
   add_foreign_key "workspace_join_links", "users", column: "created_by_id"
   add_foreign_key "workspace_join_links", "workspaces"
 end

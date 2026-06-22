@@ -6,6 +6,13 @@ Rails.application.routes.draw do
   resource :session
   resource :email_verification, only: [ :new, :show ]
 
+  namespace :passkeys do
+    post "registration/options",   to: "registrations#options",   as: :registration_options
+    post "registration/verify",    to: "registrations#verify",    as: :registration_verify
+    post "authentication/options", to: "authentications#options", as: :authentication_options
+    post "authentication/verify",  to: "authentications#verify",  as: :authentication_verify
+  end
+
   resource :email_verification_resend, only: [ :create ]
 
   resource :magic_link, only: [ :create ]
@@ -19,6 +26,7 @@ Rails.application.routes.draw do
   get "/auth/failure", to: "omniauth_callbacks#failure"
 
   resource :me, only: [ :show ], controller: :me
+  resource :passkey_prompt, only: [ :update ]
 
   namespace :settings do
     resource :profile, only: [ :edit, :update ]
@@ -33,6 +41,7 @@ Rails.application.routes.draw do
     namespace :preferences do
       resource :timezone, only: [ :update ]
     end
+    resources :passkeys, only: [ :index, :destroy ]
     resources :connected_accounts, only: [ :index, :destroy ] do
       member do
         post :resend_verification

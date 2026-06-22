@@ -1,0 +1,20 @@
+en:
+  passkeys:
+    interstitial:
+      title: "Sign in faster with a passkey"
+      description: "Passkeys use your device — fingerprint, face, or PIN — so you never need a password or magic link."
+      nickname_label: "Nickname (optional)"
+      nickname_placeholder: "e.g. My MacBook"
+      add_button: "Add a passkey"
+      skip_button: "Not now"
+    errors:
+      challenge_expired: "The passkey challenge has expired or was already used. Please try again."
+      credential_not_found: "No passkey found for this device. Please register a passkey first."
+      credential_already_registered: "This passkey is already registered to your account."
+      cloned_authenticator: "Passkey verification failed: possible cloned authenticator detected."
+      verification_failed: "Passkey verification failed. Please try again."
+      unknown: "An unexpected passkey error occurred. Please try again."
+    client_errors:
+      cancelled: "Sign in was cancelled. Try again when you're ready."
+      unsupported: "Passkeys are not supported on this browser or device."
+      failed: "Something went wrong. Please try again."

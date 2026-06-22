@@ -11,6 +11,7 @@ en:
       forgot_password: "Forgot your password?"
       no_account: "Don't have an account?"
       sign_up: "Sign up"
+      passkey_button: "Sign in with a passkey"
     create:
       success: "Signed in successfully."
       failure: "Invalid email or password."
