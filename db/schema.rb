@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_21_173742) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_22_115239) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -294,6 +294,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_21_173742) do
     t.index ["personal_workspace_id"], name: "index_users_on_personal_workspace_id_unique", unique: true, where: "personal_workspace_id IS NOT NULL"
   end
 
+  create_table "webauthn_challenges", force: :cascade do |t|
+    t.string "challenge", null: false
+    t.datetime "consumed_at"
+    t.datetime "created_at", null: false
+    t.datetime "expires_at", null: false
+    t.string "purpose", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id"
+    t.index ["challenge"], name: "index_webauthn_challenges_on_challenge", unique: true
+    t.index ["user_id"], name: "index_webauthn_challenges_on_user_id"
+  end
+
   create_table "workspace_join_links", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "created_by_id", null: false
@@ -350,6 +362,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_21_173742) do
   add_foreign_key "sessions", "users"
   add_foreign_key "user_preferences", "users"
   add_foreign_key "users", "workspaces", column: "personal_workspace_id", on_delete: :nullify
+  add_foreign_key "webauthn_challenges", "users"
   add_foreign_key "workspace_join_links", "users", column: "created_by_id"
   add_foreign_key "workspace_join_links", "workspaces"
 end
