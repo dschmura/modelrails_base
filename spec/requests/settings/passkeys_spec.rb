@@ -30,6 +30,15 @@ RSpec.describe "Settings::Passkeys", type: :request do
     expect(doc.at_css('[aria-label="Remove passkey: Touch ID"]')).to be_present
   end
 
+  it "is reachable from the settings sidebar (not an orphaned page)" do
+    # Regression: the passkeys page existed but no nav linked to it, so once the
+    # one-time enrollment interstitial was dismissed there was no way to add a
+    # passkey. Assert the identity settings sidebar links to it from another page.
+    get edit_settings_profile_path
+    doc = Nokogiri::HTML(response.body)
+    expect(doc.at_css("a[href='#{settings_passkeys_path}']")).to be_present
+  end
+
   it "rejects cross-user passkey deletion and leaves the credential intact (IDOR)" do
     # The controller scopes destroy via Current.user.webauthn_credentials so
     # a foreign credential ID raises RecordNotFound. The HTML handler for
