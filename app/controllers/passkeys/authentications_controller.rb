@@ -13,14 +13,16 @@ module Passkeys
     end
 
     def verify
-      user = AuthenticateCeremony.verify(credential_params: params.to_unsafe_h)
+      user = begin
+        AuthenticateCeremony.verify(credential_params: params.to_unsafe_h)
+      rescue ArgumentError
+        # WebAuthn gem raises ArgumentError for malformed base64 in credential JSON
+        raise Passkeys::VerificationFailed
+      end
       start_new_session_for(user)
       render json: { redirect_to: after_authentication_url }
     rescue Passkeys::Error => e
       render json: { error: passkey_error_message(e) }, status: :unprocessable_content
-    rescue ArgumentError
-      # WebAuthn gem raises ArgumentError for malformed base64 in credential JSON
-      render json: { error: t("passkeys.errors.verification_failed") }, status: :unprocessable_content
     end
   end
 end

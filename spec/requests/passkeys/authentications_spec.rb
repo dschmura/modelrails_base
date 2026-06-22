@@ -100,5 +100,26 @@ RSpec.describe "Passkeys::Authentications", type: :request do
 
       expect(response).to have_http_status(:unprocessable_content)
     end
+
+    it "returns 429 after exceeding the rate limit (11th request)" do
+      # ActionController rate limiting uses Rails.cache.increment to count hits.
+      # Stub it to return a count above the 10-request threshold so the limiter
+      # fires without needing a real persistent cache in the test environment.
+      call_count = 0
+      allow(Rails.cache).to receive(:increment) do
+        call_count += 1
+        call_count
+      end
+
+      bad_payload = { id: "x", rawId: "x", type: "public-key",
+                      response: { clientDataJSON: "x", authenticatorData: "x", signature: "x" } }.to_json
+      headers = { "CONTENT_TYPE" => "application/json" }
+
+      10.times { post passkeys_authentication_verify_path, params: bad_payload, headers: headers }
+
+      post passkeys_authentication_verify_path, params: bad_payload, headers: headers
+      expect(response).to have_http_status(:too_many_requests)
+      expect(response.parsed_body["error"]).to be_present
+    end
   end
 end

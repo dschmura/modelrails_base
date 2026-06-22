@@ -29,4 +29,18 @@ RSpec.describe "Settings::Passkeys", type: :request do
     doc = Nokogiri::HTML(response.body)
     expect(doc.at_css('[aria-label="Remove passkey: Touch ID"]')).to be_present
   end
+
+  it "rejects cross-user passkey deletion and leaves the credential intact (IDOR)" do
+    # The controller scopes destroy via Current.user.webauthn_credentials so
+    # a foreign credential ID raises RecordNotFound. The HTML handler for
+    # RecordNotFound redirects (not 404) to preserve UX consistency — assert
+    # the redirect AND that the credential was not discarded.
+    other_user = create(:user)
+    other_cred = create(:webauthn_credential, user: other_user)
+
+    delete settings_passkey_path(other_cred)
+
+    expect(response).to be_redirect
+    expect(other_cred.reload.discarded_at).to be_nil
+  end
 end

@@ -18,8 +18,10 @@ export default class extends Controller {
       if (this.hasButtonTarget) this.buttonTarget.hidden = true
       return
     }
-    // Kick off conditional-UI (autofill) — silently no-ops if unavailable
-    this.#conditionalAuthenticate()
+    // Kick off conditional-UI (autofill) only on pages that supply auth URLs.
+    // Register-only pages (settings, enrollment interstitial) omit authOptionsUrlValue
+    // so they never create a spurious WebauthnChallenge row on page load.
+    if (this.hasAuthOptionsUrlValue) this.#conditionalAuthenticate()
   }
 
   async authenticate() {
@@ -177,12 +179,18 @@ export default class extends Controller {
     else if (error?.name === "NotSupportedError") key = "unsupported"
     else if (!error?.body?.error)             key = "failed"
     // server error string is passed through directly; client keys are announced
-    this.#announce(error?.body?.error || this.#message(key))
+    const isError = (key !== "cancelled")
+    this.#announce(error?.body?.error || this.#message(key), isError)
     if (this.hasButtonTarget) this.buttonTarget.focus()
   }
 
-  #announce(msg) {
-    if (this.hasStatusTarget) this.statusTarget.textContent = msg
+  // Announce a message into the status region. Pass isError=true to apply
+  // text-danger styling for actual failures; neutral outcomes stay text-text-body.
+  #announce(msg, isError = false) {
+    if (!this.hasStatusTarget) return
+    this.statusTarget.textContent = msg
+    this.statusTarget.classList.toggle("text-danger", isError)
+    this.statusTarget.classList.toggle("text-text-body", !isError)
   }
 
   // Read localised error string from a data-webauthn-messages-value JSON blob

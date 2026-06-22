@@ -6,6 +6,6 @@
 class PasskeyPromptsController < ApplicationController
   def update
     Current.user.update!(passkey_prompt_seen_at: Time.current)
-    redirect_to request.referer || root_path
+    redirect_back(fallback_location: root_path)
   end
 end

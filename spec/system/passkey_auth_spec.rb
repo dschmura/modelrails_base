@@ -11,16 +11,15 @@ require "rails_helper"
 # WebAuthn environment around the block.
 #
 # Structural note on conditional-UI:
-#   The webauthn Stimulus controller's `connect()` always starts a
-#   conditional-UI (mediation: "conditional") authentication. With
-#   `automaticPresenceSimulation: true`, the virtual authenticator
-#   immediately satisfies this on any page that has the controller wired.
-#   This means after registration (which redirects to settings/passkeys),
-#   conditional-UI re-authenticates and navigates to root.
+#   The webauthn Stimulus controller's `connect()` starts a
+#   conditional-UI (mediation: "conditional") authentication ONLY when
+#   authOptionsUrlValue is present. The sign-in page wires both auth + reg
+#   URLs; settings/passkeys and the enrollment interstitial wire reg URLs only.
+#   This prevents spurious WebauthnChallenge rows on register-only pages.
 #
 #   Consequence for specs:
-#   - The registration spec confirms the DB credential and the final root
-#     redirect (the whole round trip including conditional-UI sign-in).
+#   - The registration spec confirms the DB credential and the final
+#     settings/passkeys redirect (conditional-UI does NOT fire on settings).
 #   - The explicit sign-in spec uses a DB-seeded credential to avoid the
 #     registration flow, then clicks the explicit passkey button.
 #   - The AAA audit uses a DB-seeded credential with NO virtual authenticator
@@ -34,8 +33,9 @@ RSpec.describe "Passkeys", type: :system do
 
   # ---------------------------------------------------------------------------
   # Happy path 1: register a passkey in settings.
-  # After registration, conditional-UI auto-authenticates on the redirect page
-  # and brings us to root. The credential count confirms the full ceremony.
+  # After registration, the page redirects back to settings/passkeys.
+  # Conditional-UI does NOT fire here (no auth URLs on this page) so we
+  # stay on settings. The credential count confirms the full ceremony.
   # ---------------------------------------------------------------------------
   it "registers a passkey in settings (ceremony proven end-to-end)" do
     with_virtual_authenticator do
@@ -48,10 +48,11 @@ RSpec.describe "Passkeys", type: :system do
       fill_in I18n.t("settings.passkeys.index.nickname_label"), with: "Test passkey"
       click_button I18n.t("settings.passkeys.index.add_button")
 
-      # After 201 → window.location → settings/passkeys, the conditional-UI
-      # fires immediately (virtual authenticator auto-satisfies) and navigates
-      # to root. Wait for that final navigation.
-      expect(page).to have_current_path(root_path, wait: 15)
+      # After 201 → window.location → settings/passkeys. Conditional-UI does
+      # not fire on this page (auth URLs omitted), so we stay on settings.
+      # Wait for the registered passkey to appear in the credential list —
+      # this is the success indicator now that conditional-UI no longer navigates away.
+      expect(page).to have_text("Test passkey", wait: 15)
       expect(user.webauthn_credentials.reload.kept.count).to eq(1)
     end
   end

@@ -7,8 +7,6 @@
 <div data-controller="webauthn"
      data-webauthn-reg-options-url-value="<%= passkeys_registration_options_path %>"
      data-webauthn-reg-verify-url-value="<%= passkeys_registration_verify_path %>"
-     data-webauthn-auth-options-url-value="<%= passkeys_authentication_options_path %>"
-     data-webauthn-auth-verify-url-value="<%= passkeys_authentication_verify_path %>"
      class="[&.passkeys-unsupported]:hidden">
   <%= render UI::DialogComponent.new(
         title: t("passkeys.interstitial.title"),
@@ -27,13 +25,12 @@
         <label for="passkey_interstitial_nickname" class="block text-sm font-medium text-text-body mb-1">
           <%= t("passkeys.interstitial.nickname_label") %>
         </label>
-        <input id="passkey_interstitial_nickname"
-               type="text"
-               name="passkey[nickname]"
-               placeholder="<%= t("passkeys.interstitial.nickname_placeholder") %>"
-               autocomplete="off"
-               class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-body focus-ring"
-               data-webauthn-target="nickname" />
+        <%= ui :input,
+               id: "passkey_interstitial_nickname",
+               name: "passkey[nickname]",
+               placeholder: t("passkeys.interstitial.nickname_placeholder"),
+               autocomplete: "off",
+               data: { webauthn_target: "nickname" } %>
       </div>
       <p aria-live="polite" class="text-sm text-text-muted" data-webauthn-target="status"></p>
     </div>
