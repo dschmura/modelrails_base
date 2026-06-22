@@ -12,6 +12,7 @@
     </div>
   <% end %>
 
+  <% verified_count = @authentications.count(&:verified?) %>
   <ul role="list" class="mt-8 space-y-4">
     <% @authentications.each do |authentication| %>
       <li class="flex items-center justify-between p-4 border rounded-lg <%= authentication.pending? ? "bg-info-surface border-info-border" : "border-border" %>">
@@ -31,7 +32,11 @@
             </p>
           <% else %>
             <p class="text-sm text-text-muted">
-              <%= authentication.email? ? t("settings.connected_accounts.index.email_provider") : (authentication.email.presence || authentication.uid) %>
+              <% if authentication.email? %>
+                <%= Current.user.has_password? ? t("settings.connected_accounts.index.email_provider") : t("settings.connected_accounts.index.email_provider_passwordless") %>
+              <% else %>
+                <%= authentication.email.presence || authentication.uid %>
+              <% end %>
             </p>
             <% if authentication.verified? %>
               <span class="inline-flex items-center px-2.5 py-1 rounded bg-success-surface text-xs font-medium text-success">
@@ -55,6 +60,8 @@
                   aria: { label: t("settings.connected_accounts.index.cancel_action_aria_label", provider: authentication.display_provider) },
                   class: "btn-touch-target btn-text btn-text-danger text-sm",
                   form: { class: "inline" } %>
+          <% elsif verified_count <= 1 %>
+            <p class="text-sm text-text-muted"><%= t("settings.connected_accounts.index.only_method_note") %></p>
           <% else %>
             <div data-controller="modal" class="inline">
               <button type="button"
