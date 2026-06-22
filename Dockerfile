@@ -47,8 +47,10 @@ ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 
 # Install packages needed to build gems
+# libssl-dev: the webauthn gem pulls in the openssl gem (native extension) which
+# needs the OpenSSL headers to compile; the slim runtime base ships only libssl3.
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential git libyaml-dev pkg-config && \
+    apt-get install --no-install-recommends -y build-essential git libyaml-dev pkg-config libssl-dev && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Install application gems FIRST so the bundle install layer survives changes
