@@ -1,0 +1,9 @@
+en:
+  passkeys:
+    errors:
+      challenge_expired: "The passkey challenge has expired or was already used. Please try again."
+      credential_not_found: "No passkey found for this device. Please register a passkey first."
+      credential_already_registered: "This passkey is already registered to your account."
+      cloned_authenticator: "Passkey verification failed: possible cloned authenticator detected."
+      verification_failed: "Passkey verification failed. Please try again."
+      unknown: "An unexpected passkey error occurred. Please try again."

@@ -6,6 +6,13 @@ Rails.application.routes.draw do
   resource :session
   resource :email_verification, only: [ :new, :show ]
 
+  namespace :passkeys do
+    post "registration/options",   to: "registrations#options",   as: :registration_options
+    post "registration/verify",    to: "registrations#verify",    as: :registration_verify
+    post "authentication/options", to: "authentications#options", as: :authentication_options
+    post "authentication/verify",  to: "authentications#verify",  as: :authentication_verify
+  end
+
   resource :email_verification_resend, only: [ :create ]
 
   resource :magic_link, only: [ :create ]
