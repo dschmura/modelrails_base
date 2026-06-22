@@ -1,6 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Drives passkey sign-in: explicit button + conditional-UI autofill.
+// Drives passkey sign-in (authenticate) and registration (register).
 // CSP-safe: no inline handlers. Endpoints are injected via Stimulus values.
 // Full ceremony proven end-to-end in Task 11 (virtual authenticator).
 export default class extends Controller {
@@ -10,7 +10,7 @@ export default class extends Controller {
     regOptionsUrl:  String,
     regVerifyUrl:   String
   }
-  static targets = ["status", "button"]
+  static targets = ["status", "button", "nickname"]
 
   connect() {
     if (!this.#supported) {
@@ -31,6 +31,25 @@ export default class extends Controller {
         publicKey: this.#decodeGetOptions(options)
       })
       const result = await this.#post(this.authVerifyUrlValue, this.#encodeAssertion(assertion))
+      window.location = result.redirect_to
+    } catch (e) {
+      this.#handle(e)
+    }
+  }
+
+  async register() {
+    if (!this.#supported) return
+    this.#announce("")
+    const nickname = this.hasNicknameTarget ? this.nicknameTarget.value.trim() : ""
+    try {
+      const options     = await this.#post(this.regOptionsUrlValue)
+      const credential  = await navigator.credentials.create({
+        publicKey: this.#decodeCreateOptions(options)
+      })
+      const result = await this.#post(this.regVerifyUrlValue, {
+        ...this.#encodeAttestation(credential),
+        nickname
+      })
       window.location = result.redirect_to
     } catch (e) {
       this.#handle(e)
@@ -104,6 +123,33 @@ export default class extends Controller {
         userHandle:        assertion.response.userHandle
           ? this.#bufferToB64(assertion.response.userHandle)
           : null
+      }
+    }
+  }
+
+  // Decode server-supplied creation options: base64url strings → ArrayBuffers
+  #decodeCreateOptions(opts) {
+    const decoded = { ...opts }
+    decoded.challenge = this.#b64ToBuffer(opts.challenge)
+    decoded.user      = { ...opts.user, id: this.#b64ToBuffer(opts.user.id) }
+    if (opts.excludeCredentials) {
+      decoded.excludeCredentials = opts.excludeCredentials.map(c => ({
+        ...c,
+        id: this.#b64ToBuffer(c.id)
+      }))
+    }
+    return decoded
+  }
+
+  // Encode attestation: ArrayBuffers → base64url strings for JSON transport
+  #encodeAttestation(credential) {
+    return {
+      id:    credential.id,
+      rawId: this.#bufferToB64(credential.rawId),
+      type:  credential.type,
+      response: {
+        attestationObject: this.#bufferToB64(credential.response.attestationObject),
+        clientDataJSON:    this.#bufferToB64(credential.response.clientDataJSON)
       }
     }
   }

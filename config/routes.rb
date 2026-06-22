@@ -40,6 +40,7 @@ Rails.application.routes.draw do
     namespace :preferences do
       resource :timezone, only: [ :update ]
     end
+    resources :passkeys, only: [ :index, :destroy ]
     resources :connected_accounts, only: [ :index, :destroy ] do
       member do
         post :resend_verification
