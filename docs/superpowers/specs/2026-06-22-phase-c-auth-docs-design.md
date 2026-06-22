@@ -11,7 +11,7 @@ The docs still describe the pre-Phase-A password model (Email+Password signup, p
 ## Decisions (locked in brainstorming)
 
 - **Flows page depth:** depict the **full passwordless + passkey story** (email-first → magic-link → signed in; returning passkey button + magic-link fallback; one-time enrollment interstitial; fixed invite "set up your login").
-- **Passkey contributor-testing doc:** **extend `passkeys.md`** with a Testing section (manual caveat + a marked contributor subsection) — not a new `technical/` subdir (keeps within Targeted; no new docs-structure).
+- **Passkey testing docs — split by audience** (refined during review): the **manual secure-context/HTTPS caveat** (forker/operator-facing) stays in `passkeys.md`; the **contributor harness how-to** (virtual-authenticator + `FakeClient`) goes in the existing **`qa-flows.md`** (the testing-doc home, already in the sweep). NOT a new `technical/` subdir (that's the deferred path-routing migration).
 - **Click-to-expand:** apply `<details>` on the **flows page** (each flow's "why"), not elsewhere.
 - **Gem:** user releases markdowndocs **0.9.0**; app re-pins `~> 0.9` — gates the `<details>` rendering.
 
@@ -41,15 +41,17 @@ Replace the **auth flow** SVG + prose. New depiction (inline SVG, matching the p
 
 Remove the "Password Reset" section (lines ~69–73) and the password-reset table row / `AuthenticationMailer` "password reset" mention. Replace with the magic-link recovery story: "Forgot password?" issues a `set_password`-intent magic-link (no separate reset-token system). Keep verification, invitation, email-change, and notification mailers. Update the `keywords` front-matter (drop "password reset").
 
-### 3. `passkeys.md` — add a "Testing" section + drop deprecated `audience:`
+### 3. `passkeys.md` — add the manual testing caveat + drop deprecated `audience:`
 
 - **Manual testing caveat (forker-facing):** WebAuthn needs a secure context — local HTTPS (`bin/rails s --ssl` or a tunnel) + `WEBAUTHN_ORIGIN`; over plain http the button feature-detects off and the flow falls back to magic-link.
-- **Contributor subsection (marked clearly):** how to write passkey tests — the Playwright CDP **virtual-authenticator** harness (`spec/support/webauthn_virtual_authenticator.rb`: `page.context.new_cdp_session` + `WebAuthn.enable`/`addVirtualAuthenticator`; `Capybara.app_host` aligned to the RP origin) and request-level **`WebAuthn::FakeClient`** (real crypto). Point to the existing specs as examples.
 - Remove the `audience:` front-matter key (deprecated in 0.9.0; root docs are multi-audience by default).
+- (The contributor harness how-to lives in `qa-flows.md`, §4 — not here; passkeys.md stays forker/operator-facing.)
 
-### 4. Surgical sweep (verify-then-fix, not rewrites)
+### 4. Surgical sweep (verify-then-fix, not rewrites) — code-accurate at completion
 
-Grep `accounts.md`, `accounts-and-identity.md`, `getting-started.md`, `onboarding.md`, `security.md`, `qa-flows.md` for password/signup/registration/reset claims. For each, read in context and fix only what is now FALSE (e.g. "set a password to complete signup" → "you're signed in; a passkey/password is optional in settings"; "forgot-password reset flow" → magic-link recovery; references to the removed `RegistrationsController`/public `PasswordsController`). Leave accurate incidental mentions (e.g. "password" in a settings-opt-in context) alone.
+Grep `accounts.md`, `accounts-and-identity.md`, `getting-started.md`, `onboarding.md`, `security.md`, `qa-flows.md` for password/signup/registration/reset claims. For each, **read it in context AND verify against the current shipped code** before changing — fix only what is now FALSE (e.g. "set a password to complete signup" → "you're signed in; a passkey/password is optional in settings"; "forgot-password reset flow" → magic-link recovery; references to the removed `RegistrationsController`/public `PasswordsController`). Leave accurate incidental mentions (e.g. "password" in a settings-opt-in context) alone. This is a first-class task, not a footnote: when Phase C closes, these docs must correctly reflect the codebase (no half-stale claims left for "later").
+
+**Plus — `qa-flows.md` also gains the passkey contributor-testing how-to** (from §3): how to write/run passkey tests — the Playwright CDP **virtual-authenticator** harness (`spec/support/webauthn_virtual_authenticator.rb`: `page.context.new_cdp_session` + `WebAuthn.enable`/`addVirtualAuthenticator`; `Capybara.app_host` aligned to the RP origin) and request-level **`WebAuthn::FakeClient`** (real crypto). Point to the existing passkey specs as examples. `qa-flows.md` is the testing-doc home, so this is its natural place (vs. the forker-facing `passkeys.md`).
 
 ### 5. Gem re-pin
 
