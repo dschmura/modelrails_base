@@ -76,6 +76,8 @@ Users manage their passkeys at **Settings → Passkeys** (`/settings/passkeys`).
 
 After a user's first successful magic-link sign-in, a one-time interstitial prompts them to add a passkey. Choosing "Not now" or "Add a passkey" both dismiss the prompt permanently — it never reappears.
 
+**Writing passkey tests?** See the contributor harness notes in [QA flows](/docs/qa-flows).
+
 ## Browser support
 
 Passkeys (WebAuthn with discoverable credentials) are supported in:
