@@ -44,7 +44,7 @@ Configured in `config/initializers/security_headers.rb`:
 
 - 12-character minimum
 - Pwned password check (Have I Been Pwned API)
-- Password reset tokens are stateless (Rails 8.1 signed tokens, auto-expire)
+- Account recovery issues a single-use `MagicLinkToken` (`set_password` intent, 15-minute expiry), not a stateless reset token
 
 ### OAuth Security
 

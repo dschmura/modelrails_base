@@ -3,7 +3,11 @@ require "rails_helper"
 RSpec.describe "Auth docs accuracy", type: :model do
   DOCS = Rails.root.join("app/docs")
 
-  # References to code DELETED in Phase A — must not appear in any doc.
+  # Guards the specific code IDENTIFIERS deleted in Phase A (password_reset_email,
+  # password_reset_token, AuthenticationMailer password-reset variant) — not every
+  # prose occurrence of "password reset". Do NOT loosen this to /password.reset/i:
+  # that would false-positive on the still-accurate "POST /passwords (reset)" rate-limit
+  # row in security.md and the Password Reset section in accounts.md.
   it "has no references to the removed password-reset mailer/token" do
     offenders = Dir[DOCS.join("*.md")].select do |f|
       File.read(f).match?(/password_reset_email|password_reset_token|AuthenticationMailer[^\n]*password reset/i)
