@@ -54,11 +54,13 @@ Five concepts the flows plug into — knowing these is usually enough to avoid f
   <path d="M445 170 V215 H155 V238" stroke-width="1.5" opacity="0.6" marker-end="url(#flowarrow-g1)"/><text x="300" y="210" text-anchor="middle" font-size="10" fill="currentColor" stroke="none" opacity="0.6">after the link signs you in</text>
 </svg>
 
-**Why it's shaped this way**
+<details>
+<summary>Why it's shaped this way</summary>
 
 - **Sign in or sign up** — One email-first door (`sessions#new` → `lookup`) for both. A new email gets a magic-link registration; an existing one gets a magic-link sign-in. There is **no password at signup** — password is a settings-only opt-in. A returning user with a passkey can tap **Sign in with a passkey** (usernameless/discoverable); any failure falls back to the magic link, so no one is stranded.
 - **Check your email** — The magic link proves email ownership: clicking it verifies the address **and** signs the user in in one step. "Forgot password?" reuses this same link (a `set_password`-intent magic link) — there is no separate reset flow.
 - **Set up a passkey?** — A one-time, dismissible prompt after the first sign-in (only when the user has no passkey yet and the browser supports WebAuthn). Adding one makes the next sign-in a single tap; magic link remains the universal fallback. Manage passkeys anytime in Settings.
+</details>
 
 ## 2 · First-run onboarding
 
@@ -105,12 +107,14 @@ Five concepts the flows plug into — knowing these is usually enough to avoid f
   <path d="M290 285 H308" stroke-width="1.5" marker-end="url(#flowarrow-g2)"/><text x="299" y="278" text-anchor="middle" font-size="10" fill="currentColor" stroke="none" opacity="0.6">next</text>
 </svg>
 
-**Why it's shaped this way**
+<details>
+<summary>Why it's shaped this way</summary>
 
 - **Name your workspace** — Onboarding only runs under `WORKSPACE_ON_SIGNUP=none`; the `RequiresOnboarding` guard is posture-gated and html-only, returning early in every other posture.
 - **Create your first project** — Derive-from-data: `onboarded_at` is the only marker, and the current step is computed from what already exists — so the wizard is resumable with no per-step flags to keep in sync.
 - **Pick your tools** — Self-hides unless more than one tool is registered (never a one-option screen). It's a forward-only interstitial, not a resume step. Register tools in `config/initializers/project_tools.rb`.
 - **Invite your team** — Optional: skipping still lands a fully working project; finishing stamps `onboarded_at`. The project home's tabs follow the project's `enabled_tools`.
+</details>
 
 ## 3 · Project home & tools
 
@@ -140,10 +144,12 @@ Five concepts the flows plug into — knowing these is usually enough to avoid f
   <path d="M290 100 H308" stroke-width="1.5" marker-end="url(#flowarrow-g3)"/>
 </svg>
 
-**Why it's shaped this way**
+<details>
+<summary>Why it's shaped this way</summary>
 
 - **Project home** — The tab bar is driven by the project's `enabled_tools` (JSON), not a hardcoded list — so a fork can add a tool without touching this view.
 - **Project tools (settings)** — Toggling writes `enabled_tools`. Register tools in `config/initializers/project_tools.rb`; gate a tool's controller with the `EnforcesProjectTool` concern. The base template ships only **Docs & Files**.
+</details>
 
 ## 4 · Invite teammates
 
@@ -181,11 +187,13 @@ Five concepts the flows plug into — knowing these is usually enough to avoid f
   <path d="M510 95 H538" stroke-width="1.5" marker-end="url(#flowarrow-g4)"/>
 </svg>
 
-**Why it's shaped this way**
+<details>
+<summary>Why it's shaped this way</summary>
 
 - **Invite members** — Role is set at invite time and is per-workspace (JSON permissions); only `manage_members` users can invite (Pundit). A shareable magic link is the alternative for open joining.
 - **Invitation email** — The invite carries the recipient's email, so the bearer link isn't a free-for-all.
 - **Accept / set up login** — Consume-before-verify with an `EmailMismatch` guard: a leaked link can't be claimed by a different address. Existing users join in one click; a new email finishes a **passwordless** signup (name only — magic link already proved the email). One `User`, reused everywhere after.
+</details>
 
 ## 5 · Clientside
 
@@ -236,12 +244,14 @@ Five concepts the flows plug into — knowing these is usually enough to avoid f
   <path d="M290 285 H308" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.6" marker-end="url(#flowarrow-g5)"/>
 </svg>
 
-**Why it's shaped this way**
+<details>
+<summary>Why it's shaped this way</summary>
 
 - **Client access** — Per-project opt-in (`clientside_enabled`), off by default. Nothing is exposed until a team explicitly turns it on.
 - **Share a resource** — `client_visible?` = `shared_with_client` **and** `published`. Publishing is the readiness gate, so a shared *draft* never leaks.
 - **Invite a client** — Reuses the hardened invitation path (`accept!` / `consume!` with the `EmailMismatch` guard) but creates a `ClientAccess`, not a `Membership`.
 - **Client area** — `ClientAccess` is a separate axis: clients consume no seat, never enter Pundit workspace policies, and the area never sets `Current.workspace`. They see only shared-and-published items.
+</details>
 
 ## Extending these flows
 
