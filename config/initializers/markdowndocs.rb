@@ -17,10 +17,8 @@ Markdowndocs.configure do |config|
   # spec/docs/index_coverage_spec.rb fails CI if a doc is left orphaned.
   template_categories = {
     "Getting Started"            => %w[getting-started],
-    # NOTE: user/authentication + user/invitations are ADDED in Task 4 (with their
-    # files), so the "no stale slugs" check stays green here. Do NOT list them yet.
-    "Accounts & Authentication"  => %w[user/accounts],
-    "Workspaces & Collaboration" => %w[user/workspaces user/projects user/onboarding user/clientside],
+    "Accounts & Authentication"  => %w[user/authentication user/accounts],
+    "Workspaces & Collaboration" => %w[user/workspaces user/projects user/invitations user/onboarding user/clientside],
     "Features"                   => %w[user/notifications user/emails user/project-tools user/application-flows],
     "Presets (Tenancy)"          => %w[developer/presets developer/presets-solo developer/presets-single-tenant developer/presets-open-saas developer/presets-none],
     "Architecture & Data Model"  => %w[developer/architecture developer/accounts-and-identity developer/identity-system],
