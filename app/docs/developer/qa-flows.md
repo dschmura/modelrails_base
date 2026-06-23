@@ -393,7 +393,7 @@ real ceremony locally, run with TLS and set the origin:
    signed in.
 4. Remove the passkey in Settings → confirm sign-in still works via magic link.
 
-See [Passkeys](/docs/passkeys) for RP-ID/origin configuration and troubleshooting.
+See [Passkeys](/docs/developer/passkeys) for RP-ID/origin configuration and troubleshooting.
 
 ### Writing passkey tests (contributors)
 

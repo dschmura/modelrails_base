@@ -60,7 +60,7 @@ Native development (no devcontainer) continues to work the same way as before �
 
 ## Choose your app preset
 
-modelrails_base supports several distinct product shapes — solo prosumer, internal single-tenant, multi-tenant SaaS — all built on the same multi-tenant data layer underneath. Before you start customizing, read [App Presets](/docs/presets) to identify which shape matches what you're building. The defaults you just installed are the **Solo-default** preset; additional presets ship as they're built.
+modelrails_base supports several distinct product shapes — solo prosumer, internal single-tenant, multi-tenant SaaS — all built on the same multi-tenant data layer underneath. Before you start customizing, read [App Presets](/docs/developer/presets) to identify which shape matches what you're building. The defaults you just installed are the **Solo-default** preset; additional presets ship as they're built.
 
 ## Running Tests
 
@@ -147,7 +147,7 @@ Runs the same checks plus additional linting:
 | `lint` | RuboCop with GitHub annotations |
 | `lint_docs` | markdownlint + herb ERB linter |
 | `test` | Full RSpec with Playwright, axe accessibility, screenshot artifacts on failure |
-| `docker_build` | Verifies the production `Dockerfile` builds successfully on every PR (catches build-time regressions that structural specs cannot). Uses GHA layer caching — cold builds ~3-5 min, warm builds ~30-60s. See [Deployment](/docs/deployment). |
+| `docker_build` | Verifies the production `Dockerfile` builds successfully on every PR (catches build-time regressions that structural specs cannot). Uses GHA layer caching — cold builds ~3-5 min, warm builds ~30-60s. See [Deployment](/docs/developer/deployment). |
 
 ### Development Workflow
 
@@ -203,5 +203,5 @@ github:
 
 ## Next steps
 
-1. **[Choose your app shape →](/docs/presets)** — Solo, Single-tenant, or Open SaaS. This is the most important decision; it sets signup, onboarding, and workspace behavior.
-2. **[Extend the framework →](/docs/extending)** — add your own workspace-scoped models, authorization, and features.
+1. **[Choose your app shape →](/docs/developer/presets)** — Solo, Single-tenant, or Open SaaS. This is the most important decision; it sets signup, onboarding, and workspace behavior.
+2. **[Extend the framework →](/docs/developer/extending)** — add your own workspace-scoped models, authorization, and features.

@@ -74,4 +74,4 @@ flows (a filter box outside a form, a non-user avatar, etc.).
 
 `view_component` is a runtime dependency (the vendored components are ViewComponents loaded in
 production). `modelrails_ui` lives in the `:development` group and only *generates* — it is never
-loaded in production. See [Extending the template](/docs/extending) for the broader philosophy.
+loaded in production. See [Extending the template](/docs/developer/extending) for the broader philosophy.

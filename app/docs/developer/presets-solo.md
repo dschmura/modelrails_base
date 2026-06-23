@@ -4,7 +4,7 @@ description: Stand up and verify the Solo-default preset — every user gets a p
 keywords: solo-default preset personal workspace prosumer multi-workspace signup onboarding switcher
 ---
 
-[App Presets](/docs/presets) › Solo-default
+[App Presets](/docs/developer/presets) › Solo-default
 
 # Solo-default
 
@@ -93,10 +93,10 @@ Browser verification (optional, requires `SIGNUP_MODE=open` or a valid invitatio
 
 **When to switch presets.**
 
-- *"Every user should land in one shared workspace — there should* be *no personal workspaces, and the switcher should be gone entirely."* → **[Single-tenant](/docs/presets-single-tenant)** (Reshape 1).
-- *"I need self-serve join via shareable links (`open_link`), email-domain auto-join (`domain`), or a request-and-approve flow."* → **[Open SaaS](/docs/presets-open-saas)** (Reshape 2+).
+- *"Every user should land in one shared workspace — there should* be *no personal workspaces, and the switcher should be gone entirely."* → **[Single-tenant](/docs/developer/presets-single-tenant)** (Reshape 1).
+- *"I need self-serve join via shareable links (`open_link`), email-domain auto-join (`domain`), or a request-and-approve flow."* → **[Open SaaS](/docs/developer/presets-open-saas)** (Reshape 2+).
 
 ## Next steps
 
-- **[← Compare all presets](/docs/presets)** — the decision matrix and the other two shapes.
-- **[Extending ModelRails →](/docs/extending)** — add your own workspace-scoped features on top of this preset.
+- **[← Compare all presets](/docs/developer/presets)** — the decision matrix and the other two shapes.
+- **[Extending ModelRails →](/docs/developer/extending)** — add your own workspace-scoped features on top of this preset.

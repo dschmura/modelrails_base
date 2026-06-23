@@ -44,7 +44,7 @@ Pundit policies check permissions at two levels:
 - **Workspace level**: `ApplicationPolicy#can?("permission_name")` reads from `role.permissions` JSON
 - **Project level**: `ProjectPolicy` and `ResourcePolicy` check `project_membership.creator?` / `.editor?` / `.viewer?`
 
-The `Clientside::` controller namespace is a distinct, authenticated access axis that never sets `Current.workspace` and is never covered by workspace Pundit policies. Project resolution in that namespace is gated on a kept `ClientAccess` record — slug knowledge alone grants nothing. See the [Security](/docs/security) page for the full threat model.
+The `Clientside::` controller namespace is a distinct, authenticated access axis that never sets `Current.workspace` and is never covered by workspace Pundit policies. Project resolution in that namespace is gated on a kept `ClientAccess` record — slug knowledge alone grants nothing. See the [Security](/docs/developer/security) page for the full threat model.
 
 ## Activity Tracking
 

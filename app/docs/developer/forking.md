@@ -158,10 +158,10 @@ on every sync.
 | `config/routes/app.rb` | Your product's routes (loaded by `draw(:app)`) |
 | `config/markdowndocs_categories.local.yml` | Registers your own docs pages on this `/docs` index |
 | `app/assets/tailwind/tokens/_brand.css` | Brand-color overrides — swap the primary palette family ([Theming](theming)) |
-| `config/initializers/project_tools.rb` | Register your own project tools (`ProjectTools::Registry.register`) — see [Extending: Project Tools](/docs/extending#project-tools-registry) |
+| `config/initializers/project_tools.rb` | Register your own project tools (`ProjectTools::Registry.register`) — see [Extending: Project Tools](/docs/developer/extending#project-tools-registry) |
 | `README.md` | Your product's README |
 
-**Clientside (external client area).** Clientside is available in every preset and is enabled per-project, not per-deployment — a fork enables it on a project-by-project basis via the project's Clientside settings toggle. No fork-owned file change is required to activate it; the toggle is in the project settings UI. See [Clientside](/docs/clientside) for details.
+**Clientside (external client area).** Clientside is available in every preset and is enabled per-project, not per-deployment — a fork enables it on a project-by-project basis via the project's Clientside settings toggle. No fork-owned file change is required to activate it; the toggle is in the project settings UI. See [Clientside](/docs/user/clientside) for details.
 
 ### Fork seams — method overrides
 
@@ -182,7 +182,7 @@ def authenticated_home_path
 end
 ```
 
-This is the primary seam for [Workspace-optional (`:none`)](/docs/presets-none) apps, where post-sign-in landing should be a workspace-agnostic home (a user profile, an event listing, a personal dashboard) rather than a workspace context. But it's useful for any preset — even Solo-default forks often want to land users on `/dashboard` instead of `/`.
+This is the primary seam for [Workspace-optional (`:none`)](/docs/developer/presets-none) apps, where post-sign-in landing should be a workspace-agnostic home (a user profile, an event listing, a personal dashboard) rather than a workspace context. But it's useful for any preset — even Solo-default forks often want to land users on `/dashboard` instead of `/`.
 
 ### How the merge driver actually behaves
 

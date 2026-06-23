@@ -121,7 +121,7 @@ When `kamal deploy` rolls a new container:
 
 1. Solid Queue's `puma-plugin-solid_queue` receives the shutdown signal alongside Puma
 2. Its `on_worker_shutdown` hook begins draining in-flight jobs
-3. Kamal waits `stop_wait_time` seconds (45 by default — see [Deployment](/docs/deployment#stop_wait_time-45-at-top-level))
+3. Kamal waits `stop_wait_time` seconds (45 by default — see [Deployment](/docs/developer/deployment#stop_wait_time-45-at-top-level))
 4. Any job that hasn't completed by then gets SIGKILLed and re-runs on the next container (via Solid Queue's at-least-once delivery semantics)
 
 **Jobs you write should be idempotent.** Solid Queue gives you at-least-once delivery; deploys can SIGKILL mid-execution if `stop_wait_time` is too tight. Use database constraints, idempotency keys, or `find_or_create_by!` patterns instead of assuming "this job runs exactly once."
@@ -134,7 +134,7 @@ When you outgrow the in-Puma supervisor — typically because:
 - You've added a second `web` host (which can't all run separate Solid Queue supervisors against the same SQLite file anyway)
 - Recurring jobs are noticeably affecting HTTP p99 latency
 
-…follow the four-step graduation checklist on [Deployment](/docs/deployment#graduation-checklist). The summary:
+…follow the four-step graduation checklist on [Deployment](/docs/developer/deployment#graduation-checklist). The summary:
 
 1. Add a database accessory (Postgres or MySQL)
 2. Set `DB_HOST` in `env.clear`
@@ -157,9 +157,9 @@ Useful when you're iterating on a job and don't need web requests in the mix.
 
 ## See also
 
-- [Deployment](/docs/deployment) — Kamal topology + the graduation path
-- [Notifications](/docs/notifications) — User-facing side of recurring `digest_mailer` and friends
-- [Notifications (technical)](/docs/notifications-technical) — `Noticed` integration with Solid Queue
+- [Deployment](/docs/developer/deployment) — Kamal topology + the graduation path
+- [Notifications](/docs/user/notifications) — User-facing side of recurring `digest_mailer` and friends
+- [Notifications (technical)](/docs/developer/notifications) — `Noticed` integration with Solid Queue
 - `config/queue.yml` — Worker configuration with inline comments
 - `config/recurring.yml` — Schedule declarations
 - [Solid Queue GitHub](https://github.com/rails/solid_queue) — Upstream docs and schedule syntax reference

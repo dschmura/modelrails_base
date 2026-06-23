@@ -4,7 +4,7 @@ description: Stand up and verify the workspace-optional preset — signup create
 keywords: none preset workspace-optional user-first auth-first community event platform landing seam authenticated_home_path
 ---
 
-[App Presets](/docs/presets) › Workspace-optional
+[App Presets](/docs/developer/presets) › Workspace-optional
 
 # Workspace-optional (`:none`)
 
@@ -102,9 +102,9 @@ Controllers that must be reachable mid-wizard (the wizard steps themselves, sign
 
 **Completing.** `TeamsController#create` sets `onboarded_at: Time.current` and redirects to the project home. Once `onboarded?` is true the guard never fires again.
 
-See [Onboarding](/docs/onboarding) for a full walkthrough, screenshots, and i18n keys.
+See [Onboarding](/docs/user/onboarding) for a full walkthrough, screenshots, and i18n keys.
 
-> **External Clientside clients** (users with client accesses and no workspace memberships) skip onboarding entirely — they are routed to `clientside_projects_path` via `authenticated_home_path`. See [Clientside](/docs/clientside).
+> **External Clientside clients** (users with client accesses and no workspace memberships) skip onboarding entirely — they are routed to `clientside_projects_path` via `authenticated_home_path`. See [Clientside](/docs/user/clientside).
 
 ## Setup
 
@@ -176,14 +176,14 @@ Browser verification (requires `SIGNUP_MODE=open` or a valid invitation) — sig
 
 **When to switch presets.**
 
-- *"Every user should get their own private workspace automatically."* → **[Solo-default](/docs/presets-solo)** — the shipped default.
-- *"Everyone lands in one shared workspace."* → **[Single-tenant](/docs/presets-single-tenant)** (Reshape 1).
-- *"Users get a personal workspace and can also join or create org workspaces."* → **[Open SaaS](/docs/presets-open-saas)** (Reshape 2+).
+- *"Every user should get their own private workspace automatically."* → **[Solo-default](/docs/developer/presets-solo)** — the shipped default.
+- *"Everyone lands in one shared workspace."* → **[Single-tenant](/docs/developer/presets-single-tenant)** (Reshape 1).
+- *"Users get a personal workspace and can also join or create org workspaces."* → **[Open SaaS](/docs/developer/presets-open-saas)** (Reshape 2+).
 
 > **Switching TO `:none` on a live app** is effectively a from-scratch product shape, not a config flip. Existing users who already have workspaces keep them; the `WORKSPACE_ON_SIGNUP=none` change only affects new signups. A live migration would require a separate cleanup pass and a redesigned home experience — plan this at setup time.
 
 ## Next steps
 
-- **[← Compare all presets](/docs/presets)** — the decision matrix and the other three shapes.
-- **[Forking →](/docs/forking)** — override `authenticated_home_path` and other fork seams for your product.
-- **[Extending ModelRails →](/docs/extending)** — add your own user-scoped features on top of this preset.
+- **[← Compare all presets](/docs/developer/presets)** — the decision matrix and the other three shapes.
+- **[Forking →](/docs/developer/forking)** — override `authenticated_home_path` and other fork seams for your product.
+- **[Extending ModelRails →](/docs/developer/extending)** — add your own user-scoped features on top of this preset.

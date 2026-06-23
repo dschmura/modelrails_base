@@ -6,7 +6,7 @@ keywords: wireframes flows builder guide developers designers why rationale mode
 
 # Application Flows
 
-For **developers and designers extending this template**. Each flow shows the screens as a wireframe; the **"Why"** beneath it — rendered as normal, readable prose — explains the framework decision, the seam you'd extend, or the guarantee it gives you. The end-user flows are intentionally tight, so this page is for *builders*, not users. For the full detail behind each journey, follow the per-flow links to [Email & verification](/docs/emails), [Onboarding](/docs/onboarding), [Project tools](/docs/project-tools), [Workspaces](/docs/workspaces), and [Clientside](/docs/clientside).
+For **developers and designers extending this template**. Each flow shows the screens as a wireframe; the **"Why"** beneath it — rendered as normal, readable prose — explains the framework decision, the seam you'd extend, or the guarantee it gives you. The end-user flows are intentionally tight, so this page is for *builders*, not users. For the full detail behind each journey, follow the per-flow links to [Email & verification](/docs/user/emails), [Onboarding](/docs/user/onboarding), [Project tools](/docs/user/project-tools), [Workspaces](/docs/user/workspaces), and [Clientside](/docs/user/clientside).
 
 ## The model behind every flow
 
@@ -255,4 +255,4 @@ Five concepts the flows plug into — knowing these is usually enough to avoid f
 
 ## Extending these flows
 
-Each **"Why"** points at the seam to build on. For the how-to, see [Extending the template](/docs/extending) and [Forking](/docs/forking); per-area depth lives in the feature docs linked at the top.
+Each **"Why"** points at the seam to build on. For the how-to, see [Extending the template](/docs/developer/extending) and [Forking](/docs/developer/forking); per-area depth lives in the feature docs linked at the top.

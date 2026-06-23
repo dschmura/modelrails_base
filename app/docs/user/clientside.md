@@ -8,7 +8,7 @@ keywords: clientside client access external ClientAccess project sharing resourc
 
 Clientside lets a team share selected project resources with an external client. The client is a regular `User` who sees a focused, read-only area — they never enter workspace policies and consume no member seat.
 
-> See the enable → share → invite → client-area flow drawn as a wireframe in [Application Flows](/docs/application-flows).
+> See the enable → share → invite → client-area flow drawn as a wireframe in [Application Flows](/docs/user/application-flows).
 
 ## Data model
 
@@ -109,4 +109,4 @@ end
 - **Richer client profiles** — add columns to `client_accesses` and surface them in the invite flow.
 - **Client notifications** — wire notifiers scoped to the client's `ClientAccess`.
 
-See [/docs/projects](/docs/projects) for the workspace-side project model and [/docs/security](/docs/security) for the broader authentication and authorization posture.
+See [/docs/projects](/docs/user/projects) for the workspace-side project model and [/docs/security](/docs/developer/security) for the broader authentication and authorization posture.

@@ -4,7 +4,7 @@ description: Stand up and verify the Open SaaS preset — per-customer org works
 keywords: open-saas preset multi-tenant signup posture open_link join link flow a flow b allowlist tightening
 ---
 
-[App Presets](/docs/presets) › Open SaaS
+[App Presets](/docs/developer/presets) › Open SaaS
 
 # Open SaaS
 
@@ -145,9 +145,9 @@ Their already-issued join links stay in the table but are inert (`open_join?` is
 **When to switch presets.**
 
 - *"I want to lock signup entirely; users should only join via admin invitation."* → keep `SIGNUP_PERMITTED_JOIN_STRATEGIES=invite` and the per-workspace radio defaults to invite — this *is* Solo-default with no further changes.
-- *"Everyone should be in one shared workspace with no join UI at all."* → **[Single-tenant](/docs/presets-single-tenant)** preset (Reshape 1).
+- *"Everyone should be in one shared workspace with no join UI at all."* → **[Single-tenant](/docs/developer/presets-single-tenant)** preset (Reshape 1).
 
 ## Next steps
 
-- **[← Compare all presets](/docs/presets)** — the decision matrix and the other two shapes.
-- **[Extending ModelRails →](/docs/extending)** — add your own workspace-scoped features on top of this preset.
+- **[← Compare all presets](/docs/developer/presets)** — the decision matrix and the other two shapes.
+- **[Extending ModelRails →](/docs/developer/extending)** — add your own workspace-scoped features on top of this preset.

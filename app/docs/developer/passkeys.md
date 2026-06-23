@@ -76,7 +76,7 @@ Users manage their passkeys at **Settings → Passkeys** (`/settings/passkeys`).
 
 After a user's first successful magic-link sign-in (while they have no passkey yet), a one-time, non-blocking banner suggests adding one. It links to **Settings → Passkeys**; dismissing it (×) — or registering a passkey — stamps `passkey_prompt_seen_at` so it never reappears. The banner hides on browsers without WebAuthn support.
 
-**Writing passkey tests?** See the contributor harness notes in [QA flows](/docs/qa-flows).
+**Writing passkey tests?** See the contributor harness notes in [QA flows](/docs/developer/qa-flows).
 
 ## Browser support
 

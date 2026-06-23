@@ -52,7 +52,7 @@ These are the correct terms. Use them in UI copy, docs, and code comments. "Acco
 
 ## For forks
 
-See [Forking this template](/docs/forking) for the full forking guide and the four signup presets.
+See [Forking this template](/docs/developer/forking) for the full forking guide and the four signup presets.
 
 `WORKSPACE_ON_SIGNUP` controls which workspace, if any, a new user lands in at registration:
 

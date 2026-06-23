@@ -341,5 +341,5 @@ The `category` + `severity` macros and the `with` parameter are enough to route 
 ## Related
 
 - **End-user instructions** for the same feature — switch to **User Guide** in the sidebar to view the user-facing companion to this doc
-- **Architecture overview** — [Architecture](/docs/architecture)
-- **Email flows** — [Email Flows](/docs/emails)
+- **Architecture overview** — [Architecture](/docs/developer/architecture)
+- **Email flows** — [Email Flows](/docs/user/emails)

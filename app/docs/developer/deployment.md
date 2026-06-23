@@ -280,7 +280,7 @@ that constraint belongs to the app, not to the deploy tool.
 ## See also
 
 - [Getting Started](/docs/getting-started) — Dev environment + CI pipeline overview
-- [Background Jobs](/docs/background-jobs) — Solid Queue topology, named queues, recurring jobs
-- [Security](/docs/security) — Auth, headers, rate limiting
-- [Forking](/docs/forking) — Identity rename, fork-owned files, pulling upstream updates
+- [Background Jobs](/docs/developer/background-jobs) — Solid Queue topology, named queues, recurring jobs
+- [Security](/docs/developer/security) — Auth, headers, rate limiting
+- [Forking](/docs/developer/forking) — Identity rename, fork-owned files, pulling upstream updates
 - `config/deploy.yml` — Inline comments document every option (Donal McBreen's "deploy.yml IS the documentation" principle)

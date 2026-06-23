@@ -4,7 +4,7 @@ description: Stand up and verify the Single-tenant preset — one shared workspa
 keywords: single-tenant preset shared workspace internal tool owner bootstrap seed owner_setup_link invite-only
 ---
 
-[App Presets](/docs/presets) › Single-tenant
+[App Presets](/docs/developer/presets) › Single-tenant
 
 # Single-tenant
 
@@ -122,10 +122,10 @@ In the browser, after the Owner has set their password and signed in:
 
 **When to switch presets.**
 
-- *"Users should each get their own personal workspace; this is too restrictive."* → **[Solo-default](/docs/presets-solo)**.
-- *"Each customer should have their own workspace, and signup should be public."* → **[Open SaaS](/docs/presets-open-saas)** (Reshape 2+).
+- *"Users should each get their own personal workspace; this is too restrictive."* → **[Solo-default](/docs/developer/presets-solo)**.
+- *"Each customer should have their own workspace, and signup should be public."* → **[Open SaaS](/docs/developer/presets-open-saas)** (Reshape 2+).
 
 ## Next steps
 
-- **[← Compare all presets](/docs/presets)** — the decision matrix and the other two shapes.
-- **[Extending ModelRails →](/docs/extending)** — add your own workspace-scoped features on top of this preset.
+- **[← Compare all presets](/docs/developer/presets)** — the decision matrix and the other two shapes.
+- **[Extending ModelRails →](/docs/developer/extending)** — add your own workspace-scoped features on top of this preset.

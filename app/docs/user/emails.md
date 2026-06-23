@@ -34,7 +34,7 @@ ModelRails sends transactional emails for authentication, invitations, and accou
 | Project invitation | Project member invites a collaborator | `InvitationMailer.invite` | Invitee's email | 7 days |
 | Client invitation | Project member invites an external client | `InvitationMailer.invite_client` | Client's email | 7 days |
 
-`InvitationMailer.invite_client` is a client-flavoured variant: the subject references the project name (not the workspace), and the email omits the decline link. See [Clientside](/docs/clientside) for the client area this invitation leads to.
+`InvitationMailer.invite_client` is a client-flavoured variant: the subject references the project name (not the workspace), and the email omits the decline link. See [Clientside](/docs/user/clientside) for the client area this invitation leads to.
 
 ### Magic Link Emails
 
@@ -77,8 +77,8 @@ Verification can be resent from the "check your email" screen or via the banner 
 There is no password-reset email. "Forgot password?" issues a **magic link** (a
 `MagicLinkToken` carrying a `set_password` intent); clicking it signs the user in
 and lands them on the change-password form. Magic link is the single
-email-recovery primitive — see [Passkeys](/docs/passkeys) for the passwordless
-sign-in options and [Application Flows](/docs/application-flows) for the journey.
+email-recovery primitive — see [Passkeys](/docs/developer/passkeys) for the passwordless
+sign-in options and [Application Flows](/docs/user/application-flows) for the journey.
 
 ### Email Change
 

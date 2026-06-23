@@ -8,7 +8,7 @@ keywords: project members collaboration resources documents invitations roles cr
 
 Projects live inside workspaces and provide a space for team collaboration on resources (documents and other content types).
 
-> See project tools and Clientside drawn as wireframes in [Application Flows](/docs/application-flows).
+> See project tools and Clientside drawn as wireframes in [Application Flows](/docs/user/application-flows).
 
 ## Creating a Project
 
@@ -99,7 +99,7 @@ The `positioned` scope orders by position ascending.
 
 ### Adding New Resource Types
 
-See the [Extending](/docs/extending) guide for how to add new resource types via the polymorphic pattern.
+See the [Extending](/docs/developer/extending) guide for how to add new resource types via the polymorphic pattern.
 
 ## Project Tools
 
@@ -117,7 +117,7 @@ Per-project state is stored as a JSON array of key strings in `projects.enabled_
 
 New projects receive the registry's default enabled set (`Registry.default_keys`). The only built-in tool currently shipped is `:docs`.
 
-See [Project Tools](/docs/project-tools) for the full reference.
+See [Project Tools](/docs/user/project-tools) for the full reference.
 
 ## Clientside (External Client Access)
 
@@ -146,7 +146,7 @@ Each accepted invitation creates a `ClientAccess` record linking the external `U
 
 Clients access the project through the separate `Clientside::` controller namespace. They can only see resources where `Resource#client_visible?` returns true — i.e. the resource is both `published` and `shared_with_client` (`resources.shared_with_client` column). The project's `client_visible_resources` helper returns this filtered, positioned set.
 
-See [Clientside](/docs/clientside) for the full reference.
+See [Clientside](/docs/user/clientside) for the full reference.
 
 ## Soft Delete
 

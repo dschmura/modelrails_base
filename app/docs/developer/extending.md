@@ -87,7 +87,7 @@ class MilestonePolicy < ApplicationPolicy
 end
 ```
 
-The permission keys (`manage_projects`, `manage_members`, `manage_workspace`, …) live on each role; see [Workspace Administration](/docs/workspaces) for the full list.
+The permission keys (`manage_projects`, `manage_members`, `manage_workspace`, …) live on each role; see [Workspace Administration](/docs/user/workspaces) for the full list.
 
 ### 5. Opt into shared behavior (optional)
 
@@ -211,7 +211,7 @@ The invitation system supports two modes:
 - **Email invitations** — enter email addresses, system sends invitation emails with 7-day expiry tokens
 - **Magic link invitations** — generate a shareable URL (no email needed), useful for posting in Slack or team docs
 
-Both types create the same `Invitation` record. The difference is whether `email` is present. See [Workspace Administration](/docs/workspaces) for full details.
+Both types create the same `Invitation` record. The difference is whether `email` is present. See [Workspace Administration](/docs/user/workspaces) for full details.
 
 ## Adding Custom Workspace Roles
 
@@ -290,7 +290,7 @@ class Workspaces::Projects::MessagesController < ApplicationController
 end
 ```
 
-The `EnforcesProjectTool` concern reads `@project.tool_enabled?(key)`, so `set_project` must populate `@project` before the guard fires. See [Project Tools](/docs/project-tools) for the full how-to.
+The `EnforcesProjectTool` concern reads `@project.tool_enabled?(key)`, so `set_project` must populate `@project` before the guard fires. See [Project Tools](/docs/user/project-tools) for the full how-to.
 
 ## Clientside (external-client area)
 
@@ -304,10 +304,10 @@ Key extension points:
 - **Client area controllers.** `Clientside::BaseController` (namespace `clientside`) resolves projects only through `Current.user.client_accesses.kept` — clients cannot reach workspace-scoped resources. `Clientside::ProjectsController` lists accessible projects; `Clientside::Projects::ResourcesController` shows individual resources that are `client_visible?`. The layout is `clientside`, isolated from the workspace shell.
 - **`skip_onboarding_requirement`.** `Clientside::BaseController` calls `skip_onboarding_requirement` so that client users (who have no workspace and therefore no `onboarded_at`) land in the client area rather than being funnelled into the onboarding wizard.
 
-See [Clientside](/docs/clientside) for the full configuration and usage guide.
+See [Clientside](/docs/user/clientside) for the full configuration and usage guide.
 
 ## Next steps
 
-- **[Architecture](/docs/architecture)** — the request flow, tenancy model, and key directories your new code plugs into.
-- **[Deployment](/docs/deployment)** — ship it with Kamal once your feature is built.
+- **[Architecture](/docs/developer/architecture)** — the request flow, tenancy model, and key directories your new code plugs into.
+- **[Deployment](/docs/developer/deployment)** — ship it with Kamal once your feature is built.
 - Browse the full **[docs index](/docs)** for feature-specific references (workspaces, notifications, identity, background jobs).

@@ -6,9 +6,9 @@ keywords: onboarding first-run wizard workspace project team invite none posture
 
 # Onboarding Journey
 
-The onboarding wizard is active only when `WORKSPACE_ON_SIGNUP=none`. In every other posture (`personal`, `shared`) the wizard is inert — all guard logic returns early before any redirect fires. See [/docs/presets-none](/docs/presets-none) for the broader none-posture setup.
+The onboarding wizard is active only when `WORKSPACE_ON_SIGNUP=none`. In every other posture (`personal`, `shared`) the wizard is inert — all guard logic returns early before any redirect fires. See [/docs/presets-none](/docs/developer/presets-none) for the broader none-posture setup.
 
-> See this journey drawn as a wireframe in [Application Flows](/docs/application-flows).
+> See this journey drawn as a wireframe in [Application Flows](/docs/user/application-flows).
 
 ## When it triggers
 
@@ -97,6 +97,6 @@ To customize onboarding in a fork:
 - **Different steps** — add step controllers inheriting from `Onboarding::BaseController`; add routes under `namespace :onboarding`.
 - **Different state** — override `User#onboarding_step` to return your custom symbols; add a corresponding `when` branch in `OnboardingsController#show`.
 - **Skip onboarding entirely** — override `User#onboarded?` to always return `true`, or remove the `RequiresOnboarding` include from `ApplicationController`.
-- **Different landing** — override `authenticated_home_path` in `Authenticatable` (see [/docs/presets-none](/docs/presets-none)).
+- **Different landing** — override `authenticated_home_path` in `Authenticatable` (see [/docs/presets-none](/docs/developer/presets-none)).
 
-See [/docs/project-tools](/docs/project-tools) for how the tools interstitial fits into the step flow.
+See [/docs/project-tools](/docs/user/project-tools) for how the tools interstitial fits into the step flow.
