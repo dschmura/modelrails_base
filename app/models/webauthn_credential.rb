@@ -9,13 +9,17 @@ class WebauthnCredential < ApplicationRecord
   validates :public_key, :sign_count, presence: true
 
   # Atomic advance with clone detection: a single UPDATE guarded by the current
-  # count, so concurrent assertions can't both "advance" past the same value. A
-  # non-advance means the authenticator's counter regressed (possible clone) —
-  # reject; do not auto-delete.
+  # count, so concurrent assertions can't both "advance" past the same value.
+  # Per WebAuthn §7.2 the signature counter is only meaningful when nonzero —
+  # platform passkeys (Apple/Google) always report 0, which means "no counter
+  # support", not a clone. So accept when new_count is 0 OR strictly greater than
+  # the stored count; flag a clone only on a nonzero, non-advancing count. MAX()
+  # keeps the stored value monotonic so a stray 0 never lowers a real counter.
   def advance_sign_count!(new_count)
-    rows = self.class.where(id: id).where("sign_count < ?", new_count)
-             .update_all(sign_count: new_count, last_used_at: Time.current)
-    raise Passkeys::ClonedAuthenticator, "sign_count did not advance (#{new_count} <= #{sign_count})" if rows.zero?
+    rows = self.class.where(id: id)
+             .where("? = 0 OR sign_count < ?", new_count, new_count)
+             .update_all([ "sign_count = MAX(sign_count, ?), last_used_at = ?", new_count, Time.current ])
+    raise Passkeys::ClonedAuthenticator, "sign_count regressed (#{new_count} <= #{sign_count})" if rows.zero?
     reload
   end
 end
