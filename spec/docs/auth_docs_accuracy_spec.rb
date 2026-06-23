@@ -17,7 +17,7 @@ RSpec.describe "Auth docs accuracy", type: :model do
 
   # The flows page must not depict a password field at signup/invite (passwordless-first).
   it "the flows page does not show a Create/Set password field" do
-    flows = File.read(DOCS.join("application-flows.md"))
+    flows = File.read(DOCS.join("user/application-flows.md"))
     expect(flows).not_to match(/Create password|Set a password|>Password<|Password<\/text>/)
   end
 end
