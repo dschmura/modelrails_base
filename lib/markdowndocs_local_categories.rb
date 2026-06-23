@@ -7,7 +7,7 @@ require "yaml"
 # template's /docs category map, so a downstream fork registers its own docs
 # pages without editing template-owned files. Same-named categories append.
 # Required explicitly by config/initializers/markdowndocs.rb (initializers
-# cannot reference autoloaded constants under Zeitwerk). See /docs/forking.
+# cannot reference autoloaded constants under Zeitwerk). See /docs/developer/forking.
 module MarkdowndocsLocalCategories
   def self.merge(template_categories, local_path)
     return template_categories unless File.exist?(local_path)

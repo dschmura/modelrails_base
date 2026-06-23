@@ -126,7 +126,7 @@ Rails.application.routes.draw do
   end
 
   # Fork seam: product routes (root, marketing pages, your features) live in
-  # the fork-owned config/routes/app.rb. See /docs/forking.
+  # the fork-owned config/routes/app.rb. See /docs/developer/forking.
   draw(:app)
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

@@ -4,7 +4,7 @@
 # the app host (the same value mailers use) — including the port, since the
 # browser origin carries it (e.g. http://localhost:3000) — overridable per
 # environment via WEBAUTHN_ORIGIN, the classic forker footgun, so it's a single
-# explicit seam. See app/docs/passkeys.md.
+# explicit seam. See app/docs/developer/passkeys.md.
 module Passkeys
   def self.origin
     ENV.fetch("WEBAUTHN_ORIGIN") do

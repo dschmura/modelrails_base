@@ -5,10 +5,10 @@ require "nokogiri"
 # for assistive tech, and free of anything the markdowndocs sanitizer would
 # strip. Visual correctness is checked in the browser; this guards the contract.
 #
-# Covers every app/docs/application-flows*.md page (the low-fi map and the
+# Covers every app/docs/user/application-flows*.md page (the low-fi map and the
 # high-fidelity alternate) so both are held to the same bar.
 RSpec.describe "Application Flows wireframe pages" do
-  pages = Dir[Rails.root.join("app/docs/application-flows*.md")].sort
+  pages = Dir[Rails.root.join("app/docs/**/application-flows*.md")].sort
 
   it "finds the wireframe pages" do
     expect(pages).not_to be_empty

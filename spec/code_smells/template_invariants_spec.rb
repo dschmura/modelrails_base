@@ -568,13 +568,13 @@ RSpec.describe "Template invariants" do
     # find this in app/docs/ (rendered at /docs via markdowndocs), not buried
     # in deploy.yml comments or a design spec. These assertions catch the
     # case where we change config but forget to update the doc surface.
-    let(:deployment_doc_path) { root.join("app/docs/deployment.md") }
-    let(:background_jobs_doc_path) { root.join("app/docs/background-jobs.md") }
-    let(:getting_started_doc_path) { root.join("app/docs/getting-started.md") }
+    let(:deployment_doc_path) { root.join("app/docs/developer/deployment.md") }
+    let(:background_jobs_doc_path) { root.join("app/docs/developer/background-jobs.md") }
+    let(:getting_started_doc_path) { root.join("app/docs/developer/getting-started.md") }
 
-    it "app/docs/deployment.md exists and explains the Kamal+SQLite topology" do
+    it "app/docs/developer/deployment.md exists and explains the Kamal+SQLite topology" do
       expect(File.exist?(deployment_doc_path)).to be(true),
-        "expected app/docs/deployment.md so forkers find deployment guidance via /docs " \
+        "expected app/docs/developer/deployment.md so forkers find deployment guidance via /docs/developer/deployment " \
         "(not just deploy.yml comments they only read mid-deploy)"
 
       content = File.read(deployment_doc_path)
@@ -588,10 +588,10 @@ RSpec.describe "Template invariants" do
         "expected deployment.md to explain stop_wait_time tuning for Solid Queue drain"
     end
 
-    it "app/docs/background-jobs.md exists and documents Solid Queue topology" do
+    it "app/docs/developer/background-jobs.md exists and documents Solid Queue topology" do
       expect(File.exist?(background_jobs_doc_path)).to be(true),
-        "expected app/docs/background-jobs.md so forkers find queue topology + recurring " \
-        "job guidance via /docs (not just queue.yml comments)"
+        "expected app/docs/developer/background-jobs.md so forkers find queue topology + recurring " \
+        "job guidance via /docs/developer/background-jobs (not just queue.yml comments)"
 
       content = File.read(background_jobs_doc_path)
       expect(content).to match(/[Ss]olid [Qq]ueue/),
@@ -602,7 +602,7 @@ RSpec.describe "Template invariants" do
         "expected background-jobs.md to document the `default` queue convention"
     end
 
-    it "app/docs/getting-started.md mentions the docker_build CI job" do
+    it "app/docs/developer/getting-started.md mentions the docker_build CI job" do
       content = File.read(getting_started_doc_path)
       expect(content).to match(/docker_build/),
         "expected getting-started.md Gate 2 CI table to include the `docker_build` job " \
@@ -636,53 +636,53 @@ RSpec.describe "Template invariants" do
     end
   end
 
-  describe "Fork seams (downstream disentanglement — see /docs/forking)" do
+  describe "Fork seams (downstream disentanglement — see /docs/developer/forking)" do
     it "keeps brand identity strings in the fork-owned brand locale file" do
       brand_path = Rails.root.join("config/locales/en/brand.en.yml")
       expect(File.exist?(brand_path)).to be(true),
-        "expected config/locales/en/brand.en.yml — the fork-owned home of brand strings (see /docs/forking)"
+        "expected config/locales/en/brand.en.yml — the fork-owned home of brand strings (see /docs/developer/forking)"
       brand = YAML.load_file(brand_path)
       expect(brand.dig("en", "application", "name")).to be_present,
-        "expected en.application.name in config/locales/en/brand.en.yml — brand identity strings live in the fork-owned file (see /docs/forking)"
+        "expected en.application.name in config/locales/en/brand.en.yml — brand identity strings live in the fork-owned file (see /docs/developer/forking)"
       expect(brand.dig("en", "application", "description")).to be_present,
-        "expected en.application.description in config/locales/en/brand.en.yml — brand identity strings live in the fork-owned file (see /docs/forking)"
+        "expected en.application.description in config/locales/en/brand.en.yml — brand identity strings live in the fork-owned file (see /docs/developer/forking)"
       expect(brand.dig("en", "footer", "copyright")).to be_present,
-        "expected en.footer.copyright in config/locales/en/brand.en.yml — brand identity strings live in the fork-owned file (see /docs/forking)"
+        "expected en.footer.copyright in config/locales/en/brand.en.yml — brand identity strings live in the fork-owned file (see /docs/developer/forking)"
     end
 
     it "defines no brand strings in template-owned locale files (forks edit brand.en.yml only)" do
       app_locale = YAML.load_file(Rails.root.join("config/locales/en/application.en.yml"))
       expect(app_locale.dig("en", "application", "name")).to be_nil,
         "expected en.application.name to be absent from config/locales/en/application.en.yml — " \
-        "brand strings must live in brand.en.yml so forks edit one file without touching template-owned locales (see /docs/forking)"
+        "brand strings must live in brand.en.yml so forks edit one file without touching template-owned locales (see /docs/developer/forking)"
       expect(app_locale.dig("en", "application", "description")).to be_nil,
         "expected en.application.description to be absent from config/locales/en/application.en.yml — " \
-        "brand strings must live in brand.en.yml so forks edit one file without touching template-owned locales (see /docs/forking)"
+        "brand strings must live in brand.en.yml so forks edit one file without touching template-owned locales (see /docs/developer/forking)"
       expect(app_locale.dig("en", "footer", "copyright")).to be_nil,
         "expected en.footer.copyright to be absent from config/locales/en/application.en.yml — " \
-        "brand strings must live in brand.en.yml so forks edit one file without touching template-owned locales (see /docs/forking)"
+        "brand strings must live in brand.en.yml so forks edit one file without touching template-owned locales (see /docs/developer/forking)"
     end
 
     it "still resolves the brand translations after the move (the views did not change)" do
       expect(I18n.exists?("application.name")).to be(true),
         "expected I18n key application.name to resolve — brand.en.yml must define en.application.name " \
-        "so views using t('application.name') keep working after the brand-seam split (see /docs/forking)"
+        "so views using t('application.name') keep working after the brand-seam split (see /docs/developer/forking)"
       expect(I18n.exists?("application.description")).to be(true),
         "expected I18n key application.description to resolve — brand.en.yml must define en.application.description " \
-        "so views using t('application.description') keep working after the brand-seam split (see /docs/forking)"
+        "so views using t('application.description') keep working after the brand-seam split (see /docs/developer/forking)"
       expect(I18n.exists?("footer.copyright")).to be(true),
         "expected I18n key footer.copyright to resolve — brand.en.yml must define en.footer.copyright " \
-        "so views using t('footer.copyright') keep working after the brand-seam split (see /docs/forking)"
+        "so views using t('footer.copyright') keep working after the brand-seam split (see /docs/developer/forking)"
     end
 
     it "draws product routes from the fork-owned config/routes/app.rb" do
       expect(File.read(Rails.root.join("config/routes.rb"))).to include("draw(:app)"),
-        "expected config/routes.rb to call draw(:app) — product routes live in the fork-owned config/routes/app.rb (see /docs/forking)"
+        "expected config/routes.rb to call draw(:app) — product routes live in the fork-owned config/routes/app.rb (see /docs/developer/forking)"
       app_routes_path = Rails.root.join("config/routes/app.rb")
       expect(File.exist?(app_routes_path)).to be(true),
-        "expected config/routes/app.rb — the fork-owned home of product routes (see /docs/forking)"
+        "expected config/routes/app.rb — the fork-owned home of product routes (see /docs/developer/forking)"
       expect(File.read(app_routes_path)).to include('root "pages#home"'),
-        "expected the root route in config/routes/app.rb — it moved there from config/routes.rb (see /docs/forking)"
+        "expected the root route in config/routes/app.rb — it moved there from config/routes.rb (see /docs/developer/forking)"
     end
 
     it "marks fork-owned paths merge=ours so upstream syncs keep the fork's version" do
@@ -714,15 +714,15 @@ RSpec.describe "Template invariants" do
     it "marks the fork extension point in db/seeds.rb" do
       expect(File.read(Rails.root.join("db/seeds.rb")))
         .to include("Fork seam: add your app's domain seeds BELOW this line"),
-        "db/seeds.rb needs the end-of-template marker so forks add seeds below it (see /docs/forking)"
+        "db/seeds.rb needs the end-of-template marker so forks add seeds below it (see /docs/developer/forking)"
     end
 
     it "documents every merge=ours path in the forking guide (no silent contract drift)" do
       gitattributes = File.read(Rails.root.join(".gitattributes"))
-      guide = File.read(Rails.root.join("app/docs/forking.md"))
+      guide = File.read(Rails.root.join("app/docs/developer/forking.md"))
       gitattributes.scan(/^(\S+) merge=ours$/).flatten.each do |path|
         expect(guide).to include(path),
-          "#{path} is marked merge=ours in .gitattributes but not mentioned in app/docs/forking.md"
+          "#{path} is marked merge=ours in .gitattributes but not mentioned in app/docs/developer/forking.md"
       end
     end
 
@@ -734,14 +734,14 @@ RSpec.describe "Template invariants" do
       Dir[Rails.root.join("config/locales/**/*.yml")].sort.reject { |file| fork_owned.include?(file) }.each do |file|
         expect(File.read(file)).not_to include(brand_name),
           "#{file.delete_prefix("#{Rails.root}/")} hardcodes the brand name #{brand_name.inspect} — " \
-          "brand strings live only in fork-owned brand.en.yml (see /docs/forking)"
+          "brand strings live only in fork-owned brand.en.yml (see /docs/developer/forking)"
       end
     end
 
     it "lets forks override brand colors in a fork-owned file imported after the template defaults" do
       brand_css = Rails.root.join("app/assets/tailwind/tokens/_brand.css")
       expect(File.exist?(brand_css)).to be(true),
-        "expected app/assets/tailwind/tokens/_brand.css — the fork-owned brand-color override file (see /docs/forking)"
+        "expected app/assets/tailwind/tokens/_brand.css — the fork-owned brand-color override file (see /docs/developer/forking)"
 
       app_css = File.read(Rails.root.join("app/assets/tailwind/application.css"))
       primitives_at = app_css.index("./tokens/_primitives.css")

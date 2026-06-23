@@ -1,6 +1,6 @@
 # Posture-aware reader for the tenancy preset configuration. Centralizes
 # the few call sites that need to ask "which preset are we?" so the rest
-# of the app stays posture-agnostic. See app/docs/presets.md.
+# of the app stays posture-agnostic. See app/docs/developer/presets.md.
 module TenancyConfig
   module_function
 

@@ -3,6 +3,11 @@ en:
     skip_to_content: "Skip to main content"
   markdowndocs:
     default_title: "Documentation"
+    modes:
+      user: "User Guide"
+      user_description: "User-friendly explanations and step-by-step instructions"
+      developer: "Developer Guide"
+      developer_description: "Code examples, architecture, and implementation details"
   errors:
     not_authorized: "You don't have permission to do that."
     not_found: "The requested record could not be found."

@@ -16,7 +16,7 @@
 - [ ] All user-facing text uses I18n locale keys (no hardcoded strings)
 - [ ] Controllers enforce Pundit authorization where the action is policy-scoped
 - [ ] RESTful routes only (no custom aliases, no single-action sub-resource controllers)
-- [ ] **Docs:** if you changed behavior, the relevant `app/docs/*` page is updated — and if you touched **auth, onboarding, invitations, or clientside** flows, re-check the Application Flows guide (`app/docs/application-flows.md`)
+- [ ] **Docs:** if you changed behavior, the relevant `app/docs/*` page is updated — and if you touched **auth, onboarding, invitations, or clientside** flows, re-check the Application Flows guide (`app/docs/user/application-flows.md`)
 
 ## UI changes only
 

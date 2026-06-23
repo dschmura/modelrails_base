@@ -67,3 +67,6 @@
 
 # context-mode hook config (per-user tooling)
 /.github/hooks/
+
+# Scratch / reference working files (untracked — e.g. docs-reorg reference copy)
+/working_files/

@@ -16,7 +16,7 @@ end
 #
 # When TENANCY_ONBOARDING=shared, seed the shared workspace + the initial
 # Owner so the deployment is usable on first boot. Idempotent — safe to re-run.
-# See app/docs/presets.md for the contract.
+# See app/docs/developer/presets.md for the contract.
 if TenancyConfig.shared?
   slug = ENV.fetch("TENANCY_SHARED_WORKSPACE_SLUG") {
     raise "TENANCY_SHARED_WORKSPACE_SLUG is required when TENANCY_ONBOARDING=shared"
@@ -74,4 +74,4 @@ end
 # === Template seeds end here =================================================
 # Fork seam: add your app's domain seeds BELOW this line. Upstream owns
 # everything above it; keeping your additions below the marker keeps
-# `git merge upstream/main` conflicts away. See /docs/forking.
+# `git merge upstream/main` conflicts away. See /docs/developer/forking.

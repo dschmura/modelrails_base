@@ -10,7 +10,7 @@
 #     default_enabled: true
 #   )
 #
-# See app/docs/project-tools.md. The base template ships only :docs.
+# See app/docs/user/project-tools.md. The base template ships only :docs.
 Rails.application.config.to_prepare do
   ProjectTools::Registry.reset!
 

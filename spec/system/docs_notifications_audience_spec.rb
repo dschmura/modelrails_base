@@ -1,12 +1,18 @@
 require "rails_helper"
 
-# End-to-end coverage of the audience-filtered notification docs:
-#   - notifications.md           (audience: guide)
-#   - notifications-technical.md (audience: technical)
+# End-to-end coverage of the audience-scoped notification docs:
+#   - app/docs/user/notifications.md      → /docs/user/notifications
+#   - app/docs/developer/notifications.md → /docs/developer/notifications
 #
-# Both live in the "Features" category. The mode switcher (driven by
-# user_preferences.docs_mode, see PR #103) controls which one appears
-# on /docs and which one resolves at /docs/:slug.
+# Under path-based audience routing (markdowndocs ~> 0.9), each doc lives in
+# its mode subdirectory and is served at a stable /docs/:mode/:slug URL. The
+# mode switcher controls which variant appears on the /docs index, but both
+# URLs are always directly accessible.
+#
+# These specs verify:
+#   1. Each doc renders correctly at its scoped URL.
+#   2. The /docs index respects mode isolation — only the active mode's
+#      notifications doc appears; the other mode's doc is hidden.
 RSpec.describe "Docs notifications audience filter", type: :system do
   let(:password) { "SecureP@ssw0rd123!" }
   let(:user) { create(:user, password: password) }
@@ -26,34 +32,45 @@ RSpec.describe "Docs notifications audience filter", type: :system do
     sign_in_via_form(user)
   end
 
-  describe "guide mode" do
-    before { user.preferences.update!(docs_mode: "guide") }
+  describe "user mode" do
+    before { user.preferences.update!(docs_mode: "user") }
 
-    it "renders notifications.md and the show page resolves" do
-      visit "/docs/notifications"
+    it "renders user/notifications.md at its scoped URL" do
+      visit "/docs/user/notifications"
       expect(page).to have_css("article", text: /Notifications/i)
+      # Confirms the user-facing doc (not the technical reference) is shown
+      expect(page).to have_no_css("article", text: /Notifications — Technical Reference/i)
     end
 
-    it "404s notifications-technical.md (wrong audience)" do
-      visit "/docs/notifications-technical"
-      expect(page).to have_no_css("article", text: /Notifications — Technical Reference/i)
+    it "lists the user notifications doc on the index and hides the developer one" do
+      visit "/docs"
+      # The card link text is the doc's H1 title — stable across prose edits
+      expect(page).to have_link("Notifications", exact: true)
+      expect(page).to have_no_link("Notifications — Technical Reference")
     end
   end
 
-  describe "technical mode" do
-    before { user.preferences.update!(docs_mode: "technical") }
+  describe "developer mode" do
+    before { user.preferences.update!(docs_mode: "developer") }
 
-    it "renders notifications-technical.md and the show page resolves" do
-      visit "/docs/notifications-technical"
+    it "renders developer/notifications.md at its scoped URL" do
+      visit "/docs/developer/notifications"
       expect(page).to have_css("article", text: /Notifications — Technical Reference/i)
     end
 
-    it "404s notifications.md (wrong audience)" do
-      visit "/docs/notifications"
-      # The page title is "Notifications" for the guide doc; in technical
-      # mode the slug should not resolve, so the article shouldn't render
-      # with the guide doc's content.
-      expect(page).to have_no_css("article > p", text: /You'll find the bell icon/i)
+    it "does not show the user-facing copy at the developer URL" do
+      visit "/docs/developer/notifications"
+      # Anchored on the user doc's H1 title — stable across prose edits.
+      # Regex anchors ensure "Notifications — Technical Reference" does not
+      # trigger a false positive against the bare "Notifications" pattern.
+      expect(page).to have_no_css("article h1", text: /\ANotifications\z/)
+    end
+
+    it "lists the developer notifications doc on the index and hides the user one" do
+      visit "/docs"
+      # The card link text is the doc's H1 title — stable across prose edits
+      expect(page).to have_link("Notifications — Technical Reference")
+      expect(page).to have_no_link("Notifications", exact: true)
     end
   end
 end

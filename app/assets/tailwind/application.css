@@ -5,7 +5,7 @@
 
 /* Design token layers */
 @import "./tokens/_primitives.css";
-/* Fork-owned brand-color overrides — imported after _primitives so they win the cascade. See /docs/forking. */
+/* Fork-owned brand-color overrides — imported after _primitives so they win the cascade. See /docs/developer/forking. */
 @import "./tokens/_brand.css";
 @import "./tokens/_semantic.css";
 @import "./tokens/_signals.css";

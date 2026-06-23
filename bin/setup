@@ -21,7 +21,7 @@ FileUtils.chdir APP_ROOT do
   # versions CI does — no manual `npm install -g`, no drift.
   system! "npm ci"
 
-  # Fork seam: downstream forks have an `upstream` remote (see /docs/forking).
+  # Fork seam: downstream forks have an `upstream` remote (see /docs/developer/forking).
   # Activate the merge=ours driver for fork-owned paths there. Deliberately
   # NOT set in the template repo itself — it would silently mis-resolve the
   # template's own PR merges that touch fork-owned paths.
@@ -44,7 +44,7 @@ FileUtils.chdir APP_ROOT do
 
   # If a previous `assets:precompile` run left artifacts in public/assets/,
   # Propshaft prefers the static manifest over dynamic resolution and silently
-  # drops any JS file added afterward — see app/docs/troubleshooting.md.
+  # drops any JS file added afterward — see app/docs/developer/troubleshooting.md.
   # Clobber here so a fresh `bin/setup` always heals that state.
   puts "\n== Clearing precompiled assets =="
   system! "bin/rails assets:clobber"
