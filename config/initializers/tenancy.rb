@@ -1,5 +1,5 @@
 # Validates tenancy preset configuration at boot so mistyped ENV values
-# fail fast instead of surprising at request time. See app/docs/presets.md
+# fail fast instead of surprising at request time. See app/docs/developer/presets.md
 # for the preset configuration contract.
 
 valid_onboarding = [ :personal, :shared, :none ]

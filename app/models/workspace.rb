@@ -15,7 +15,7 @@ class Workspace < ApplicationRecord
   enum :plan, { free: "free", pro: "pro", enterprise: "enterprise" }
 
   # Per-workspace join policy. Composes with the instance-level
-  # SignupPolicy.permits_strategy? allowlist. See app/docs/presets.md
+  # SignupPolicy.permits_strategy? allowlist. See app/docs/developer/presets.md
   # and docs/reshape-2-per-workspace-join-policy-spec.md.
   enum :join_policy, { invite: "invite", open_link: "open_link" }, default: "invite"
 

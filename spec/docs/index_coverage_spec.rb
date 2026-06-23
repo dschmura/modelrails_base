@@ -8,7 +8,8 @@ require "rails_helper"
 # the moment a new doc is added without a home.
 RSpec.describe "Documentation index coverage" do
   let(:doc_slugs) do
-    Dir[Rails.root.join("app/docs/*.md")].map { |f| File.basename(f, ".md") }
+    base = Rails.root.join("app/docs")
+    Dir[base.join("**/*.md")].map { |f| Pathname(f).relative_path_from(base).to_s.delete_suffix(".md") }
   end
   let(:categorized) { Markdowndocs.configuration.categories.values.flatten }
 

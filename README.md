@@ -97,7 +97,7 @@ git config merge.ours.driver true                    # activates the fork-owned 
 
 The complete guide — identity-rename checklist, secrets bootstrap, the fork-owned
 file contract, and the upstream-update workflow — lives in
-[app/docs/forking.md](app/docs/forking.md), rendered at `/docs/forking` in the
+[app/docs/developer/forking.md](app/docs/developer/forking.md), rendered at `/docs/developer/forking` in the
 running app. Your fork inherits it.
 
 ## What's included (Phase 1)

@@ -8,9 +8,9 @@ require "rails_helper"
 RSpec.describe "Docs (markdowndocs gem)", type: :system do
   let(:axe_options) { { runOnly: { type: "tag", values: [ "wcag2aaa" ] } } }
 
-  describe "/docs/getting-started" do
+  describe "/docs/developer/getting-started" do
     it "renders the document" do
-      visit "/docs/getting-started"
+      visit "/docs/developer/getting-started"
       expect(page).to have_css("article", text: /Getting Started/i)
     end
 
@@ -25,14 +25,14 @@ RSpec.describe "Docs (markdowndocs gem)", type: :system do
     # a narrowed `exclude:` that only filters out the biscuit GDPR banner —
     # itself separately deferred. They lock in the AAA token contract.
     it "passes axe-core at WCAG 2.2 AAA in light mode (Rouge syntax tokens)" do
-      visit "/docs/getting-started"
+      visit "/docs/developer/getting-started"
       ensure_light_mode
       expect(axe_clean?(axe_options, exclude: [ ".biscuit-banner" ])).to be(true),
         "Light-mode AAA violations:\n#{axe_violations(axe_options, exclude: [ ".biscuit-banner" ]).join("\n")}"
     end
 
     it "passes axe-core at WCAG 2.2 AAA in dark mode (Rouge syntax tokens)" do
-      visit "/docs/getting-started"
+      visit "/docs/developer/getting-started"
       ensure_dark_mode
       expect(axe_clean?(axe_options, exclude: [ ".biscuit-banner" ])).to be(true),
         "Dark-mode AAA violations:\n#{axe_violations(axe_options, exclude: [ ".biscuit-banner" ]).join("\n")}"
@@ -45,7 +45,7 @@ RSpec.describe "Docs (markdowndocs gem)", type: :system do
     # Region is `lg:hidden` so the elements are display:none at desktop test
     # viewport — assert against the DOM regardless of visibility.
     it "wires the mobile sidebar via Stimulus (CSP-safe toggle)" do
-      visit "/docs/getting-started"
+      visit "/docs/developer/getting-started"
       expect(page).to have_css('[data-controller="docs-sidebar"]', visible: :all)
       expect(page).to have_css('button[data-action="docs-sidebar#toggle"]', visible: :all)
       expect(page).to have_css('[data-docs-sidebar-target="sidebar"]', visible: :all)

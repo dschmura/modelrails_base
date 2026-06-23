@@ -16,33 +16,32 @@ Markdowndocs.configure do |config|
   # it renders only by direct URL and is invisible on the /docs index.
   # spec/docs/index_coverage_spec.rb fails CI if a doc is left orphaned.
   template_categories = {
-    "Getting Started" => %w[getting-started],
-    # The presets hub + its four per-preset spokes form their own cluster,
-    # placed second so it reads as the next step after "getting started".
-    "Presets" => %w[presets presets-solo presets-single-tenant presets-open-saas presets-none],
-    "Architecture" => %w[architecture application-flows],
-    # `notifications` (audience: guide) and `notifications-technical`
-    # (audience: technical) are paired companion docs — the mode switcher
-    # shows whichever matches the viewer's mode, with no cross-category
-    # split. Listing both here keeps the topic discoverable from the
-    # canonical "Features" category in either mode.
-    "Features" => %w[accounts accounts-and-identity workspaces projects identity-system emails notifications notifications-technical],
-    "Guides" => %w[extending security passkeys ui-patterns components accessibility deployment background-jobs troubleshooting forking qa-flows project-tools onboarding clientside]
+    "Getting Started"            => %w[user/welcome developer/getting-started],
+    "Accounts & Authentication"  => %w[user/authentication user/accounts],
+    "Workspaces & Collaboration" => %w[user/workspaces user/projects user/invitations user/onboarding user/clientside],
+    "Features"                   => %w[user/notifications user/emails user/project-tools],
+    "Presets (Tenancy)"          => %w[developer/presets developer/presets-solo developer/presets-single-tenant developer/presets-open-saas developer/presets-none],
+    "Architecture & Data Model"  => %w[developer/architecture developer/application-flows developer/accounts-and-identity developer/identity-system],
+    "Building & Extending"       => %w[developer/extending developer/forking developer/components developer/ui-patterns],
+    "Operations"                 => %w[developer/deployment developer/background-jobs developer/security],
+    "Quality & Testing"          => %w[developer/accessibility developer/qa-flows],
+    "Auth & Notifications (internals)" => %w[developer/passkeys developer/notifications],
+    "Troubleshooting"            => %w[developer/troubleshooting]
   }
 
   # Fork seam: a downstream fork registers its own docs pages in
   # config/markdowndocs_categories.local.yml (absent upstream) instead of
-  # editing this initializer. Same-named categories append. See /docs/forking.
+  # editing this initializer. Same-named categories append. See /docs/developer/forking.
   config.categories = MarkdowndocsLocalCategories.merge(
     template_categories,
     Rails.root.join("config/markdowndocs_categories.local.yml")
   )
 
-  # Available documentation modes (default: %w[guide technical])
-  # config.modes = %w[guide technical]
+  # Available documentation modes
+  config.modes = %w[user developer]
 
-  # Default mode (default: "guide")
-  # config.default_mode = "guide"
+  # Default mode
+  config.default_mode = "user"
 
   # Rouge syntax highlighting theme (default: "github")
   # config.rouge_theme = "github"
