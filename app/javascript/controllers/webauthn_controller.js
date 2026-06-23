@@ -19,7 +19,7 @@ export default class extends Controller {
       return
     }
     // Kick off conditional-UI (autofill) only on pages that supply auth URLs.
-    // Register-only pages (settings, enrollment interstitial) omit authOptionsUrlValue
+    // Register-only pages (settings, enrollment banner) omit authOptionsUrlValue
     // so they never create a spurious WebauthnChallenge row on page load.
     if (this.hasAuthOptionsUrlValue) this.#conditionalAuthenticate()
   }

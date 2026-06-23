@@ -44,7 +44,7 @@ RSpec.describe "Settings::Passkeys", type: :request do
 
   it "is reachable from the settings sidebar (not an orphaned page)" do
     # Regression: the passkeys page existed but no nav linked to it, so once the
-    # one-time enrollment interstitial was dismissed there was no way to add a
+    # one-time enrollment nudge was dismissed there was no way to add a
     # passkey. Assert the identity settings sidebar links to it from another page.
     get edit_settings_profile_path
     doc = Nokogiri::HTML(response.body)

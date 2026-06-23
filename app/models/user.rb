@@ -228,8 +228,8 @@ class User < ApplicationRecord
     client_accesses.kept.exists?(project: project)
   end
 
-  # True iff the one-time passkey enrollment interstitial should appear.
-  # Clears once the user dismisses the prompt OR registers a passkey.
+  # True iff the one-time passkey enrollment banner should appear.
+  # Clears once the user dismisses the banner OR registers a passkey.
   def passkey_prompt_eligible?
     passkey_prompt_seen_at.nil? && webauthn_credentials.kept.none?
   end

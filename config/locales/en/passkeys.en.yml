@@ -1,12 +1,10 @@
 en:
   passkeys:
-    interstitial:
-      title: "Sign in faster with a passkey"
-      description: "Passkeys use your device — fingerprint, face, or PIN — so you never need a password or magic link."
-      nickname_label: "Nickname (optional)"
-      nickname_placeholder: "e.g. My MacBook"
-      add_button: "Add a passkey"
-      skip_button: "Not now"
+    banner:
+      heading: "Sign in faster with a passkey"
+      message: "Add a passkey to sign in with your fingerprint, face, or PIN — a magic link always still works."
+      add: "Add a passkey"
+      dismiss: "Dismiss passkey suggestion"
     errors:
       challenge_expired: "The passkey challenge has expired or was already used. Please try again."
       credential_not_found: "No passkey found for this device. Please register a passkey first."
