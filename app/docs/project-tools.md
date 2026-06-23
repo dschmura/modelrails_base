@@ -2,7 +2,6 @@
 title: Project Tools
 description: Registering and toggling per-project tools via the extensible ProjectTools::Registry.
 keywords: project tools registry toggle enabled_tools onboarding tabs EnforcesProjectTool
-audience: [guide, technical]
 ---
 
 # Project tools

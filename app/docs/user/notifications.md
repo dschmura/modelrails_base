@@ -2,7 +2,6 @@
 title: Notifications
 description: How to read, manage, and configure your in-app notifications
 keywords: notifications bell dropdown unread quiet hours email digest categories retention preferences mark read mark unread
-audience: guide
 ---
 
 # Notifications

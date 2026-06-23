@@ -9,7 +9,7 @@ RSpec.describe "Auth docs accuracy", type: :model do
   # that would false-positive on the still-accurate "POST /passwords (reset)" rate-limit
   # row in security.md and the Password Reset section in accounts.md.
   it "has no references to the removed password-reset mailer/token" do
-    offenders = Dir[DOCS.join("*.md")].select do |f|
+    offenders = Dir[DOCS.join("**/*.md")].select do |f|
       File.read(f).match?(/password_reset_email|password_reset_token|AuthenticationMailer[^\n]*password reset/i)
     end
     expect(offenders).to be_empty, "stale password-reset refs in: #{offenders.map { |f| File.basename(f) }.join(', ')}"

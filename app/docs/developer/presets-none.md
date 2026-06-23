@@ -2,7 +2,6 @@
 title: Workspace-optional (none)
 description: Stand up and verify the workspace-optional preset — signup creates no workspace; identity is at the User level; workspaces are created or joined explicitly
 keywords: none preset workspace-optional user-first auth-first community event platform landing seam authenticated_home_path
-audience: [guide, technical]
 ---
 
 [App Presets](/docs/presets) › Workspace-optional

@@ -2,7 +2,6 @@
 title: Architecture
 description: Data model, authorization, and real-time patterns in ModelRails
 keywords: models workspace project resource membership pundit authorization turbo streams multi-tenancy client clientside project-tools
-audience: [guide, technical]
 ---
 
 # Architecture

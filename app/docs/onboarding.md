@@ -2,7 +2,6 @@
 title: Onboarding Journey
 description: How first-run onboarding works under the none posture — step flow, state model, email-verification gate, and fork seams.
 keywords: onboarding first-run wizard workspace project team invite none posture WORKSPACE_ON_SIGNUP onboarded_at email verification
-audience: [guide, technical]
 ---
 
 # Onboarding Journey

@@ -2,7 +2,6 @@
 title: Clientside
 description: External client access to a project — the ClientAccess model, per-project Clientside toggle, resource sharing, client invite flow, and the read-only client area.
 keywords: clientside client access external ClientAccess project sharing resource invite company company_name client area read-only
-audience: [guide, technical]
 ---
 
 # Clientside

@@ -2,7 +2,6 @@
 title: Forking
 description: Start a downstream app from this template and keep merging upstream improvements
 keywords: fork template upstream downstream merge sync rename clone brand seams update jumpstart
-audience: [guide, technical]
 ---
 
 # Forking this template

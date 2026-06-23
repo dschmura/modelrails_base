@@ -2,7 +2,6 @@
 title: Background Jobs
 description: Solid Queue topology, named queues, recurring jobs, and the graduation path from in-Puma supervisor to dedicated bin/jobs host.
 keywords: solid queue jobs mailers default low recurring digest cron observability mission control queue routing
-audience: [guide, technical]
 ---
 
 # Background Jobs

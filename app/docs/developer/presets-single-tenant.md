@@ -2,7 +2,6 @@
 title: Single-tenant
 description: Stand up and verify the Single-tenant preset — one shared workspace, no personal workspaces, tenancy UI suppressed
 keywords: single-tenant preset shared workspace internal tool owner bootstrap seed owner_setup_link invite-only
-audience: [guide, technical]
 ---
 
 [App Presets](/docs/presets) › Single-tenant

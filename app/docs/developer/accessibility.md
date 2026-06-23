@@ -2,7 +2,6 @@
 title: Accessibility
 description: How this template enforces WCAG 2.2 Level AAA — the axe-core gate, the helpers, and the tracked exclusions
 keywords: accessibility wcag aaa axe-core contrast focus target size playwright system specs dark mode
-audience: [guide, technical]
 ---
 
 # Accessibility

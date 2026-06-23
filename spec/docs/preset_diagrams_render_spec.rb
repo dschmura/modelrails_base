@@ -7,9 +7,9 @@ require "rails_helper"
 # the <svg> and these fail loudly instead of the diagrams silently vanishing.
 RSpec.describe "Preset relationship diagrams", type: :request do
   {
-    "presets-open-saas" => "arrow-open-saas",
-    "presets-single-tenant" => "arrow-single-tenant",
-    "presets-solo" => "arrow-solo"
+    "developer/presets-open-saas" => "arrow-open-saas",
+    "developer/presets-single-tenant" => "arrow-single-tenant",
+    "developer/presets-solo" => "arrow-solo"
   }.each do |slug, marker_id|
     it "renders the inline SVG diagram on /docs/#{slug}" do
       get "/docs/#{slug}"

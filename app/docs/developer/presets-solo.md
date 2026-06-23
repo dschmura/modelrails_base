@@ -2,7 +2,6 @@
 title: Solo-default
 description: Stand up and verify the Solo-default preset — every user gets a personal workspace; signup open or invite-only
 keywords: solo-default preset personal workspace prosumer multi-workspace signup onboarding switcher
-audience: [guide, technical]
 ---
 
 [App Presets](/docs/presets) › Solo-default

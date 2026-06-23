@@ -2,7 +2,6 @@
 title: Accounts and Identity
 description: The three-tier identity and tenancy model — User, your workspace, and organization workspace — and the canonical vocabulary every fork inherits
 keywords: identity user workspace tenant membership role current-workspace personal organization account tiers switcher WORKSPACE_ON_SIGNUP
-audience: [guide, technical]
 ---
 
 # Accounts and Identity

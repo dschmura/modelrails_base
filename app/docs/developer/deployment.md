@@ -2,7 +2,6 @@
 title: Deployment
 description: Deploy ModelRails to production with Kamal — SQLite topology, Solid Queue graduation path, SSL configuration, and the runtime invariants that keep deploys safe.
 keywords: kamal deploy production sqlite solid queue max-replicas stop_wait_time graduation rolling deploy ssl https proxy registry github container
-audience: [guide, technical]
 ---
 
 # Deployment

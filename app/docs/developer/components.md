@@ -2,7 +2,6 @@
 title: UI Components
 description: Using and adding the vendored UI::* ViewComponents — the ui() helper, prescribed paths, the Lookbook catalog, and how to add a new component
 keywords: components ui helper viewcomponent lookbook modelrails_ui button input dialog avatar accessibility tokens
-audience: [guide, technical]
 ---
 
 # UI Components

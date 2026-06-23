@@ -2,7 +2,6 @@
 title: Project Collaboration
 description: Creating projects, managing members, inviting collaborators, working with resources, and enabling project tools and clientside access
 keywords: project members collaboration resources documents invitations roles creator editor viewer pin reposition tools clientside client
-audience: [guide, technical]
 ---
 
 # Project Collaboration

@@ -2,7 +2,6 @@
 title: Open SaaS
 description: Stand up and verify the Open SaaS preset — per-customer org workspaces, shareable join links, two signup postures
 keywords: open-saas preset multi-tenant signup posture open_link join link flow a flow b allowlist tightening
-audience: [guide, technical]
 ---
 
 [App Presets](/docs/presets) › Open SaaS

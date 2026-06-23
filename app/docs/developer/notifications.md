@@ -2,7 +2,6 @@
 title: Notifications — Technical Reference
 description: Architecture, broadcast pipeline, persistence schema, and operational concerns for the notifications system
 keywords: notifications architecture noticed gem turbo streams broadcasts idempotency value object pundit cleanup digest mailer schema bullet
-audience: technical
 ---
 
 # Notifications — Technical Reference
