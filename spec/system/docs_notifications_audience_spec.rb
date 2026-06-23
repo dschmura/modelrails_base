@@ -7,8 +7,12 @@ require "rails_helper"
 # Under path-based audience routing (markdowndocs ~> 0.9), each doc lives in
 # its mode subdirectory and is served at a stable /docs/:mode/:slug URL. The
 # mode switcher controls which variant appears on the /docs index, but both
-# URLs are always directly accessible. These specs verify the docs render
-# correctly at their scoped URLs.
+# URLs are always directly accessible.
+#
+# These specs verify:
+#   1. Each doc renders correctly at its scoped URL.
+#   2. The /docs index respects mode isolation — only the active mode's
+#      notifications doc appears; the other mode's doc is hidden.
 RSpec.describe "Docs notifications audience filter", type: :system do
   let(:password) { "SecureP@ssw0rd123!" }
   let(:user) { create(:user, password: password) }
@@ -37,6 +41,13 @@ RSpec.describe "Docs notifications audience filter", type: :system do
       # Confirms the user-facing doc (not the technical reference) is shown
       expect(page).to have_no_css("article", text: /Notifications — Technical Reference/i)
     end
+
+    it "lists the user notifications doc on the index and hides the developer one" do
+      visit "/docs"
+      # The card link text is the doc's H1 title — stable across prose edits
+      expect(page).to have_link("Notifications", exact: true)
+      expect(page).to have_no_link("Notifications — Technical Reference")
+    end
   end
 
   describe "developer mode" do
@@ -49,8 +60,17 @@ RSpec.describe "Docs notifications audience filter", type: :system do
 
     it "does not show the user-facing copy at the developer URL" do
       visit "/docs/developer/notifications"
-      # The user doc intro uses "bell icon" phrasing; confirm it is absent
-      expect(page).to have_no_css("article > p", text: /You'll find the bell icon/i)
+      # Anchored on the user doc's H1 title — stable across prose edits.
+      # Regex anchors ensure "Notifications — Technical Reference" does not
+      # trigger a false positive against the bare "Notifications" pattern.
+      expect(page).to have_no_css("article h1", text: /\ANotifications\z/)
+    end
+
+    it "lists the developer notifications doc on the index and hides the user one" do
+      visit "/docs"
+      # The card link text is the doc's H1 title — stable across prose edits
+      expect(page).to have_link("Notifications — Technical Reference")
+      expect(page).to have_no_link("Notifications", exact: true)
     end
   end
 end
