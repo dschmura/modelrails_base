@@ -30,6 +30,18 @@ RSpec.describe "Settings::Passkeys", type: :request do
     expect(doc.at_css('[aria-label="Remove passkey: Touch ID"]')).to be_present
   end
 
+  it "wires the remove control to a modal controller so the confirm dialog opens" do
+    # Regression: the remove trigger fired modal#open but had no
+    # data-controller="modal" ancestor, so the click was a no-op and the passkey
+    # could never be removed. The trigger AND the confirm <dialog> must share a
+    # modal controller scope (the controller opens its own dialogTarget).
+    create(:webauthn_credential, user: user, nickname: "Touch ID")
+    get settings_passkeys_path
+    doc = Nokogiri::HTML(response.body)
+    expect(doc.at_css('[data-controller~="modal"] [data-action~="click->modal#open"]')).to be_present
+    expect(doc.at_css('[data-controller~="modal"] dialog')).to be_present
+  end
+
   it "is reachable from the settings sidebar (not an orphaned page)" do
     # Regression: the passkeys page existed but no nav linked to it, so once the
     # one-time enrollment interstitial was dismissed there was no way to add a
