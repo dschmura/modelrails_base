@@ -32,7 +32,7 @@ RSpec.describe "Header rendering inside engines (avatar URL resolution)", type: 
       # Using Nokogiri to assert on the img element rather than a regex on the
       # raw response body — keeps source-code scanners (accesslint et al.) from
       # mis-reading a regex pattern as a real img tag without an alt attribute.
-      get "/docs/getting-started"
+      get "/docs/developer/getting-started"
 
       expect(response).to have_http_status(:ok)
       doc = Nokogiri::HTML(response.body)
@@ -61,7 +61,7 @@ RSpec.describe "Header rendering inside engines (avatar URL resolution)", type: 
       # The workspace switcher / sidebar renders workspace_icon_for, which
       # uses image_tag variant in render_workspace_logo. Same engine-URL
       # bug as avatar_helper; same fix (main_app.url_for).
-      get "/docs/getting-started"
+      get "/docs/developer/getting-started"
       expect(response).to have_http_status(:ok)
     end
   end

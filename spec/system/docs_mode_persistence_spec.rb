@@ -35,7 +35,7 @@ RSpec.describe "Docs mode persistence (markdowndocs gem)", type: :system do
   # + desktop sidebar) so the switcher appears in the DOM twice; we use
   # `match: :first` since both instances are functionally equivalent.
   it "persists the chosen mode to user_preferences.docs_mode" do
-    visit "/docs/getting-started"
+    visit "/docs/developer/getting-started"
     expect(user.preferences.reload.docs_mode).to be_nil
 
     within first("[data-controller='docs-mode']") do
@@ -55,7 +55,7 @@ RSpec.describe "Docs mode persistence (markdowndocs gem)", type: :system do
     page.driver.with_playwright_page { |pw| pw.context.clear_cookies }
     # Re-establish the session via sign-in.
     sign_in_via_form(user)
-    visit "/docs/getting-started"
+    visit "/docs/developer/getting-started"
 
     # The switcher reflects the DB-stored mode, not the gem default.
     within first("[data-controller='docs-mode']") do

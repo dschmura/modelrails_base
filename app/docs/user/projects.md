@@ -8,7 +8,7 @@ keywords: project members collaboration resources documents invitations roles cr
 
 Projects live inside workspaces and provide a space for team collaboration on resources (documents and other content types).
 
-> See project tools and Clientside drawn as wireframes in [Application Flows](/docs/user/application-flows).
+> See project tools and Clientside drawn as wireframes in [Application Flows](/docs/developer/application-flows).
 
 ## Creating a Project
 

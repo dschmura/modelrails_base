@@ -570,7 +570,7 @@ RSpec.describe "Template invariants" do
     # case where we change config but forget to update the doc surface.
     let(:deployment_doc_path) { root.join("app/docs/developer/deployment.md") }
     let(:background_jobs_doc_path) { root.join("app/docs/developer/background-jobs.md") }
-    let(:getting_started_doc_path) { root.join("app/docs/getting-started.md") }
+    let(:getting_started_doc_path) { root.join("app/docs/developer/getting-started.md") }
 
     it "app/docs/developer/deployment.md exists and explains the Kamal+SQLite topology" do
       expect(File.exist?(deployment_doc_path)).to be(true),
@@ -602,7 +602,7 @@ RSpec.describe "Template invariants" do
         "expected background-jobs.md to document the `default` queue convention"
     end
 
-    it "app/docs/getting-started.md mentions the docker_build CI job" do
+    it "app/docs/developer/getting-started.md mentions the docker_build CI job" do
       content = File.read(getting_started_doc_path)
       expect(content).to match(/docker_build/),
         "expected getting-started.md Gate 2 CI table to include the `docker_build` job " \

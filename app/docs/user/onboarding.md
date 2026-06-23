@@ -8,7 +8,7 @@ keywords: onboarding first-run wizard workspace project team invite none posture
 
 The onboarding wizard is active only when `WORKSPACE_ON_SIGNUP=none`. In every other posture (`personal`, `shared`) the wizard is inert — all guard logic returns early before any redirect fires. See [/docs/presets-none](/docs/developer/presets-none) for the broader none-posture setup.
 
-> See this journey drawn as a wireframe in [Application Flows](/docs/user/application-flows).
+> See this journey drawn as a wireframe in [Application Flows](/docs/developer/application-flows).
 
 ## When it triggers
 

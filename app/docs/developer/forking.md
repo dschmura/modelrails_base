@@ -135,7 +135,7 @@ bin/rails credentials:edit --environment development
 bin/rails credentials:edit --environment production
 ```
 
-Add OAuth keys and `mailer.from` (structure in [Getting Started](getting-started)).
+Add OAuth keys and `mailer.from` (structure in [Getting Started](/docs/developer/getting-started)).
 Your fork **may** commit its own `.yml.enc` blobs — normal for a private app; the
 `.key` files stay gitignored. `.kamal/secrets` reads
 `config/credentials/production.key` at deploy time.

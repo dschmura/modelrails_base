@@ -61,7 +61,7 @@ bin/kamal setup     # First-time only — installs Docker on the host
 bin/kamal deploy    # Subsequent deploys
 ```
 
-The `docker_build` CI job (see [Getting Started](/docs/getting-started)) verifies your production image builds successfully on every PR, so the first time you run `kamal deploy` you're not also debugging Dockerfile issues.
+The `docker_build` CI job (see [Getting Started](/docs/developer/getting-started)) verifies your production image builds successfully on every PR, so the first time you run `kamal deploy` you're not also debugging Dockerfile issues.
 
 ## Production-safety invariants
 
@@ -279,7 +279,7 @@ that constraint belongs to the app, not to the deploy tool.
 
 ## See also
 
-- [Getting Started](/docs/getting-started) — Dev environment + CI pipeline overview
+- [Getting Started](/docs/developer/getting-started) — Dev environment + CI pipeline overview
 - [Background Jobs](/docs/developer/background-jobs) — Solid Queue topology, named queues, recurring jobs
 - [Security](/docs/developer/security) — Auth, headers, rate limiting
 - [Forking](/docs/developer/forking) — Identity rename, fork-owned files, pulling upstream updates

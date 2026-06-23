@@ -78,7 +78,7 @@ There is no password-reset email. "Forgot password?" issues a **magic link** (a
 `MagicLinkToken` carrying a `set_password` intent); clicking it signs the user in
 and lands them on the change-password form. Magic link is the single
 email-recovery primitive — see [Passkeys](/docs/developer/passkeys) for the passwordless
-sign-in options and [Application Flows](/docs/user/application-flows) for the journey.
+sign-in options and [Application Flows](/docs/developer/application-flows) for the journey.
 
 ### Email Change
 

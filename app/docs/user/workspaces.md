@@ -8,7 +8,7 @@ keywords: workspace members invitations roles branding ownership transfer settin
 
 A workspace is the top-level organizational boundary — users, projects, invitations, and roles are all scoped to one. How workspaces *present* to users (one workspace or many, whether a switcher appears) depends on your [app preset](/docs/developer/presets). For the underlying data model and how scoping is enforced at request time (`Current.workspace`, the `Tenanted` concern), see [Architecture](/docs/developer/architecture).
 
-> See the invite-teammates flow drawn as a wireframe in [Application Flows](/docs/user/application-flows).
+> See the invite-teammates flow drawn as a wireframe in [Application Flows](/docs/developer/application-flows).
 
 ## Creating a Workspace
 
