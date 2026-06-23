@@ -20,5 +20,5 @@
    AAA CAVEAT: changing a family shifts the contrast ratios the semantic layer
    (tokens/_semantic.css) was tuned against. The CI axe job re-proves AAA at
    7:1; a local run only checks AA. Push and read CI before shipping a rebrand.
-   See /docs/forking.
+   See /docs/developer/forking.
    ========================================================================== */

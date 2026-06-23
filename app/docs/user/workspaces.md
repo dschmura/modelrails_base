@@ -100,7 +100,7 @@ Creates a shareable URL (no email required). Share the link directly — anyone 
 
 ## Join Policies
 
-A workspace's `join_policy` controls how new members can join, layered on the instance-level signup gate. Two values are supported (see `app/docs/presets.md` for the full preset matrix):
+A workspace's `join_policy` controls how new members can join, layered on the instance-level signup gate. Two values are supported (see `app/docs/developer/presets.md` for the full preset matrix):
 
 - **`invite`** *(default)* — members can only join through an admin-issued email invitation. This is the safe default for every workspace; matches Slack/Linear/GitHub conventions.
 - **`open_link`** — workspace admins can mint a single shareable join link. Anyone with an account on this instance can click it and join as a Member. The link is **revocable** and **atomically rotatable** (rotate = revoke-old + create-new in one click).

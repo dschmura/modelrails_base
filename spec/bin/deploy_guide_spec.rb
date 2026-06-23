@@ -24,7 +24,7 @@ RSpec.describe "bin/deploy-guide" do
       stdout, _stderr, status = run_guide("kamal")
 
       expect(status).to be_success
-      expect(stdout).to include("/docs/deployment")
+      expect(stdout).to include("/docs/developer/deployment")
       expect(stdout).to include("config/deploy.yml")
     end
   end
@@ -34,7 +34,7 @@ RSpec.describe "bin/deploy-guide" do
       stdout, _stderr, status = run_guide("self-host")
 
       expect(status).to be_success
-      expect(stdout).to include("/docs/deployment")
+      expect(stdout).to include("/docs/developer/deployment")
       expect(stdout).to include("Docker")
       expect(stdout).to include("80")
       expect(stdout).to include("443")
@@ -75,7 +75,7 @@ RSpec.describe "bin/deploy-guide" do
 
   describe "doc references" do
     it "only points at doc sections that exist" do
-      deployment_doc = File.read(File.join(app_root, "app", "docs", "deployment.md"))
+      deployment_doc = File.read(File.join(app_root, "app", "docs", "developer", "deployment.md"))
 
       expect(deployment_doc).to include("## Deploying without Kamal")
     end

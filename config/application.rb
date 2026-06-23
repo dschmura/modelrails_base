@@ -46,11 +46,11 @@ module ModelrailsBase
     # Instance ceiling on per-workspace Workspace#join_policy. Defaults to
     # [:invite] (preserves Solo-default). Operators opt in to :open_link by
     # setting SIGNUP_PERMITTED_JOIN_STRATEGIES=invite,open_link.
-    # See app/docs/presets.md and docs/reshape-2-per-workspace-join-policy-spec.md.
+    # See app/docs/developer/presets.md and docs/reshape-2-per-workspace-join-policy-spec.md.
     config.x.signup.permitted_join_strategies =
       ENV.fetch("SIGNUP_PERMITTED_JOIN_STRATEGIES", "invite").split(",").map { |s| s.strip.to_sym }
 
-    # Tenancy preset configuration. See app/docs/presets.md.
+    # Tenancy preset configuration. See app/docs/developer/presets.md.
     config.x.tenancy.onboarding          = ENV.fetch("WORKSPACE_ON_SIGNUP", "personal").to_sym
     config.x.tenancy.workspace_creation  = ENV.fetch("TENANCY_WORKSPACE_CREATION", "enabled").to_sym
     config.x.tenancy.shared_workspace_slug = ENV["TENANCY_SHARED_WORKSPACE_SLUG"]

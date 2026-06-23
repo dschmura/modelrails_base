@@ -31,7 +31,7 @@ Markdowndocs.configure do |config|
 
   # Fork seam: a downstream fork registers its own docs pages in
   # config/markdowndocs_categories.local.yml (absent upstream) instead of
-  # editing this initializer. Same-named categories append. See /docs/forking.
+  # editing this initializer. Same-named categories append. See /docs/developer/forking.
   config.categories = MarkdowndocsLocalCategories.merge(
     template_categories,
     Rails.root.join("config/markdowndocs_categories.local.yml")

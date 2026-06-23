@@ -13,7 +13,7 @@ config/credentials.yml.enc diff=rails_credentials
 # `git config merge.ours.driver true` when an upstream remote exists),
 # a sync where BOTH sides changed one of these files resolves to the
 # fork's version. Files the fork never touched still take upstream's
-# changes — the driver only runs on two-sided changes. See /docs/forking.
+# changes — the driver only runs on two-sided changes. See /docs/developer/forking.
 # Inert in this repo (driver deliberately unset upstream).
 app/views/pages/** merge=ours
 app/controllers/pages_controller.rb merge=ours
