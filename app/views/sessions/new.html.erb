@@ -39,9 +39,10 @@
 
     <div class="mt-4 text-center">
       <button type="button"
-              class="btn-touch-target btn-text text-text-body text-sm focus-ring"
+              class="btn-touch-target btn-text text-text-body text-sm focus-ring inline-flex items-center gap-1.5"
               data-action="webauthn#authenticate"
               data-webauthn-target="button">
+        <%= icon(:finger_print, class: "w-4 h-4") %>
         <%= t("sessions.new.passkey_button") %>
       </button>
     </div>

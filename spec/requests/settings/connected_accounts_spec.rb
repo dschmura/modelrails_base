@@ -67,6 +67,16 @@ RSpec.describe "Account Connected Accounts", type: :request do
         page = Capybara::Node::Simple.new(response.body)
         expect(page).to have_button(I18n.t("settings.connected_accounts.index.disconnect"))
       end
+
+      it "associates the only-method note with its heading for screen readers" do
+        create(:authentication, :verified, user: user, provider: "email", uid: user.email_address)
+
+        get settings_connected_accounts_path
+        doc = Nokogiri::HTML(response.body)
+        note = doc.at_css("p[id$='-sole']")
+        expect(note).to be_present
+        expect(doc.at_css("p[aria-describedby='#{note['id']}']")).to be_present
+      end
     end
 
     describe "DELETE /account/connected_accounts/:id" do
