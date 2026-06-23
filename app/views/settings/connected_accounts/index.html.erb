@@ -12,16 +12,21 @@
     </div>
   <% end %>
 
+  <% verified_count = @authentications.count(&:verified?) %>
   <ul role="list" class="mt-8 space-y-4">
     <% @authentications.each do |authentication| %>
       <li class="flex items-center justify-between p-4 border rounded-lg <%= authentication.pending? ? "bg-info-surface border-info-border" : "border-border" %>">
         <div>
-          <p class="font-medium text-text-heading">
+          <%# When this is the sole verified method, associate the heading with
+              the "only sign-in method" note so a screen reader reads the reason
+              the row has no Unlink action. %>
+          <%= tag.p class: "font-medium text-text-heading",
+                    aria: { describedby: (("auth-#{authentication.id}-sole") unless authentication.pending? || verified_count > 1) } do %>
             <%= authentication.display_provider %>
             <span class="sr-only">
               <%= authentication.pending? ? t("settings.connected_accounts.index.pending_state_sr") : t("settings.connected_accounts.index.verified_state_sr") %>
             </span>
-          </p>
+          <% end %>
           <% if authentication.pending? %>
             <p class="text-xs text-info">
               <%= t("settings.connected_accounts.index.pending_label", email: authentication.email) %>
@@ -31,7 +36,11 @@
             </p>
           <% else %>
             <p class="text-sm text-text-muted">
-              <%= authentication.email? ? t("settings.connected_accounts.index.email_provider") : (authentication.email.presence || authentication.uid) %>
+              <% if authentication.email? %>
+                <%= Current.user.has_password? ? t("settings.connected_accounts.index.email_provider") : t("settings.connected_accounts.index.email_provider_passwordless") %>
+              <% else %>
+                <%= authentication.email.presence || authentication.uid %>
+              <% end %>
             </p>
             <% if authentication.verified? %>
               <span class="inline-flex items-center px-2.5 py-1 rounded bg-success-surface text-xs font-medium text-success">
@@ -55,6 +64,8 @@
                   aria: { label: t("settings.connected_accounts.index.cancel_action_aria_label", provider: authentication.display_provider) },
                   class: "btn-touch-target btn-text btn-text-danger text-sm",
                   form: { class: "inline" } %>
+          <% elsif verified_count <= 1 %>
+            <p id="auth-<%= authentication.id %>-sole" class="text-sm text-text-muted"><%= t("settings.connected_accounts.index.only_method_note") %></p>
           <% else %>
             <div data-controller="modal" class="inline">
               <button type="button"

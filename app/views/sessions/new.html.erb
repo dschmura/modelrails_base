@@ -6,8 +6,15 @@
 
   <%= render "shared/oauth_buttons" %>
 
-  <%# Passkey sign-in card — Stimulus controller drives credential.get() %>
-  <div data-controller="webauthn"
+  <%# Email-first entry for both sign in and sign up. The webauthn controller
+      wires conditional-UI autofill — the email field's
+      autocomplete="username webauthn" surfaces a saved passkey inline — and the
+      secondary link below is the explicit fallback for when autofill doesn't
+      appear. The passkey is intentionally NOT a prominent button competing with
+      the field; the field is the one primary action (magic link, password if set,
+      or passkey via autofill). %>
+  <div class="mt-8"
+       data-controller="webauthn"
        data-webauthn-auth-options-url-value="<%= passkeys_authentication_options_path %>"
        data-webauthn-auth-verify-url-value="<%= passkeys_authentication_verify_path %>"
        data-webauthn-reg-options-url-value="<%= passkeys_registration_options_path %>"
@@ -18,30 +25,32 @@
          failed:      t('passkeys.client_errors.failed')
        }.to_json %>">
 
-    <button type="button"
-            class="mt-6 w-full btn-secondary min-h-[44px] focus-ring"
-            data-action="webauthn#authenticate"
-            data-webauthn-target="button">
-      <%= t("sessions.new.passkey_button") %>
-    </button>
+    <%= turbo_frame_tag "sign_in_form" do %>
+      <%= form_with url: main_app.session_lookup_path, class: "space-y-6" do |form| %>
+        <%= form.email_field :email_address,
+              label: t("sessions.new.email_label"),
+              required: true,
+              autofocus: true,
+              autocomplete: "username webauthn" %>
+
+        <%= form.submit t("sessions.new.continue"), class: "w-full" %>
+      <% end %>
+    <% end %>
+
+    <div class="mt-4 text-center">
+      <button type="button"
+              class="btn-touch-target btn-text text-text-body text-sm focus-ring inline-flex items-center gap-1.5"
+              data-action="webauthn#authenticate"
+              data-webauthn-target="button">
+        <%= icon(:finger_print, class: "w-4 h-4") %>
+        <%= t("sessions.new.passkey_button") %>
+      </button>
+    </div>
 
     <p role="status"
        aria-live="polite"
        aria-atomic="true"
        data-webauthn-target="status"
-       class="mt-2 text-sm text-text-body"></p>
+       class="mt-3 text-sm text-text-body text-center"></p>
   </div>
-
-  <%= turbo_frame_tag "sign_in_form" do %>
-    <%= form_with url: main_app.session_lookup_path, class: "mt-8 space-y-6" do |form| %>
-      <%= form.email_field :email_address,
-            label: t("sessions.new.email_label"),
-            required: true,
-            autofocus: true,
-            autocomplete: "username webauthn" %>
-
-      <%= form.submit t("sessions.new.continue"), class: "w-full" %>
-    <% end %>
-  <% end %>
-
 </div>

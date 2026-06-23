@@ -102,6 +102,8 @@ en:
         disconnect_title: "Unlink %{provider}?"
         disconnect_message: "You'll need to re-add %{provider} (%{email}) if you want to sign in with it again. This won't affect your account."
         email_provider: "Email and password"
+        email_provider_passwordless: "Magic link (no password)"
+        only_method_note: "Your only sign-in method"
         pending_help: "Check your email for a confirmation link."
         pending_label: "Confirming %{email}"
         resend_action: "Resend confirmation"

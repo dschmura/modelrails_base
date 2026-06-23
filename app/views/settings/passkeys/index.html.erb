@@ -48,21 +48,21 @@
           </div>
 
           <div class="action-group">
-            <button type="button"
-                    class="btn-touch-target btn-text btn-text-danger text-sm focus-ring"
-                    aria-label="<%= t("settings.passkeys.index.remove_aria_label", nickname: passkey.nickname) %>"
-                    data-action="click->modal#open"
-                    data-modal-id-param="remove-passkey-<%= passkey.id %>">
-              <%= t("settings.passkeys.index.remove_button") %>
-            </button>
-            <%= render "shared/confirm_dialog",
-                      id: "remove-passkey-#{passkey.id}",
-                      title: t("settings.passkeys.index.remove_title", nickname: passkey.nickname),
-                      message: t("settings.passkeys.index.remove_message"),
-                      confirm_text: t("settings.passkeys.index.remove_button"),
-                      confirm_url: settings_passkey_path(passkey),
-                      confirm_method: :delete,
-                      variant: :danger %>
+            <div data-controller="modal" class="inline">
+              <button type="button"
+                      class="btn-touch-target btn-text btn-text-danger text-sm focus-ring"
+                      aria-label="<%= t("settings.passkeys.index.remove_aria_label", nickname: passkey.nickname) %>"
+                      data-action="click->modal#open">
+                <%= t("settings.passkeys.index.remove_button") %>
+              </button>
+              <%= render "shared/confirm_dialog",
+                        title: t("settings.passkeys.index.remove_title", nickname: passkey.nickname),
+                        message: t("settings.passkeys.index.remove_message"),
+                        confirm_text: t("settings.passkeys.index.remove_button"),
+                        confirm_url: settings_passkey_path(passkey),
+                        confirm_method: :delete,
+                        variant: :danger %>
+            </div>
           </div>
         </li>
       <% end %>

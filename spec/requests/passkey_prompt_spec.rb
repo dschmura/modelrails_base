@@ -6,20 +6,21 @@ RSpec.describe "Passkey enrollment prompt", type: :request do
   let(:user) { create(:user) }
   before { sign_in(user) }
 
-  it "shows the interstitial on first authenticated page load, then never again" do
-    # The factory default sets passkey_prompt_seen_at to suppress the
-    # interstitial. Reset to nil to make this user interstitial-eligible.
+  it "shows the enrollment banner on an authenticated page, then never again once dismissed" do
+    # The factory default stamps passkey_prompt_seen_at to suppress the banner;
+    # reset to nil to make this user eligible.
     user.update!(passkey_prompt_seen_at: nil)
     get root_path
-    expect(response.body).to include(I18n.t("passkeys.interstitial.title"))
-    patch passkey_prompt_path # dismiss / add
+    expect(response.body).to include('id="passkey-banner"')
+    patch passkey_prompt_path # dismiss (×) — stamps passkey_prompt_seen_at
     get root_path
-    expect(response.body).not_to include(I18n.t("passkeys.interstitial.title"))
+    expect(response.body).not_to include('id="passkey-banner"')
   end
 
-  it "does not show it once the user has a passkey" do
+  it "does not show once the user already has a passkey (independent of seen_at)" do
+    user.update!(passkey_prompt_seen_at: nil)
     create(:webauthn_credential, user: user)
     get root_path
-    expect(response.body).not_to include(I18n.t("passkeys.interstitial.title"))
+    expect(response.body).not_to include('id="passkey-banner"')
   end
 end

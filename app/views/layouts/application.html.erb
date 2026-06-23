@@ -31,8 +31,8 @@
 
     <%= render "shared/header" %>
     <%= render "shared/email_verification_banner" %>
+    <%= render "shared/passkey_enrollment_banner" %>
     <%= render "shared/toasts" %>
-    <%= render "shared/passkey_enrollment_interstitial" if authenticated? && Current.user.passkey_prompt_eligible? %>
 
     <% if Current.workspace %>
       <%= render "shared/workspace_context_banner" %>

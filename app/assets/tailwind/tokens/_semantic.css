@@ -63,7 +63,10 @@
   --color-text-on-toast: oklch(100% 0 0);                     /* white */
 
   /* --- Toast positioning --- */
-  --toast-pill-top: 5rem;
+  /* 7rem clears the ~4rem header AND a one-line top banner (email-verification
+     / passkey enrollment), which sit just below the header; at 5rem the pill
+     overlapped the banner. */
+  --toast-pill-top: 7rem;
   --toast-card-bottom: 1rem;
   --toast-z: 100;
 
