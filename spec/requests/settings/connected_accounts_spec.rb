@@ -28,6 +28,57 @@ RSpec.describe "Account Connected Accounts", type: :request do
       end
     end
 
+    describe "GET /account/connected_accounts (email label reflects password)" do
+      it "labels the email method 'Email and password' when the user has a password" do
+        with_pw = create(:user) # factory sets a password
+        sign_in(with_pw)
+        create(:authentication, :verified, user: with_pw, provider: "email", uid: with_pw.email_address)
+
+        get settings_connected_accounts_path
+        expect(response.body).to include(I18n.t("settings.connected_accounts.index.email_provider"))
+      end
+
+      it "does not claim 'and password' for a passwordless account" do
+        passwordless = create(:user, password: nil)
+        sign_in(passwordless)
+        create(:authentication, :verified, user: passwordless, provider: "email", uid: passwordless.email_address)
+
+        get settings_connected_accounts_path
+        expect(response.body).not_to include(I18n.t("settings.connected_accounts.index.email_provider"))
+        expect(response.body).to include(I18n.t("settings.connected_accounts.index.email_provider_passwordless"))
+      end
+    end
+
+    describe "GET /account/connected_accounts (unlink offered only when removable)" do
+      it "omits the Unlink control when it is the only verified method" do
+        create(:authentication, :verified, user: user, provider: "email", uid: user.email_address)
+
+        get settings_connected_accounts_path
+        page = Capybara::Node::Simple.new(response.body)
+        expect(page).to have_no_button(I18n.t("settings.connected_accounts.index.disconnect"))
+        expect(response.body).to include(I18n.t("settings.connected_accounts.index.only_method_note"))
+      end
+
+      it "offers the Unlink control when more than one verified method remains" do
+        create(:authentication, :verified, user: user, provider: "email", uid: user.email_address)
+        create(:authentication, :google, :verified, user: user)
+
+        get settings_connected_accounts_path
+        page = Capybara::Node::Simple.new(response.body)
+        expect(page).to have_button(I18n.t("settings.connected_accounts.index.disconnect"))
+      end
+
+      it "associates the only-method note with its heading for screen readers" do
+        create(:authentication, :verified, user: user, provider: "email", uid: user.email_address)
+
+        get settings_connected_accounts_path
+        doc = Nokogiri::HTML(response.body)
+        note = doc.at_css("p[id$='-sole']")
+        expect(note).to be_present
+        expect(doc.at_css("p[aria-describedby='#{note['id']}']")).to be_present
+      end
+    end
+
     describe "DELETE /account/connected_accounts/:id" do
       context "with multiple verified auth methods" do
         let!(:email_auth) { create(:authentication, :verified, user: user, provider: "email") }

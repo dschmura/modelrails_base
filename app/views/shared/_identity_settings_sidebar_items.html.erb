@@ -39,6 +39,12 @@
         active: current_page?(settings_connected_accounts_path) %>
 
   <%= render "shared/settings_sidebar_item",
+        label: t("settings.sidebar.items.passkeys"),
+        href: settings_passkeys_path,
+        icon: :finger_print,
+        active: current_page?(settings_passkeys_path) %>
+
+  <%= render "shared/settings_sidebar_item",
         label: t("settings.sidebar.items.appearance"),
         href: edit_settings_theme_preference_path,
         icon: :color_swatch,
