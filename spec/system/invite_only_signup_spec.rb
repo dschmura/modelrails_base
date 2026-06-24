@@ -79,6 +79,21 @@ RSpec.describe "Invite-only signup flow", type: :system do
     expect(page).not_to have_text(I18n.t("registrations.closed.title"))
   end
 
+  scenario "submitting an unknown email shows the closed message inline, not 'Content missing'" do
+    # The closed view (sessions/closed) swaps into the email form's
+    # <turbo-frame id="sign_in_form">. turbo-rails' frame layout does NOT
+    # auto-wrap, so that template must carry the matching frame itself — or
+    # Turbo discards the body and renders its built-in "Content missing". A
+    # request spec greps the body and can't see this; only a real Turbo render
+    # in the browser exposes it. (Regression guard for the sign-in bug.)
+    visit new_session_path
+    fill_in I18n.t("sessions.new.email_label"), with: "uninvited@example.com"
+    click_button I18n.t("sessions.new.continue")
+
+    expect(page).to have_text(I18n.t("registrations.closed.title"))
+    expect(page).not_to have_text("Content missing")
+  end
+
   scenario "invited user signs up via OAuth (mocked Google)" do
     invitation = create(:invitation,
                         email: "oauthinvitee@example.com")
