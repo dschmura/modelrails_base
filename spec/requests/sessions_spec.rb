@@ -201,6 +201,19 @@ RSpec.describe "Sessions", type: :request do
         expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to include(I18n.t("registrations.closed.title"))
       end
+
+      it "wraps the closed view in the sign_in_form turbo-frame (not 'Content missing')" do
+        # The lookup form lives in <turbo-frame id="sign_in_form">, and
+        # turbo-rails' frame layout does NOT auto-wrap the response. So the
+        # closed view must carry a matching frame itself, or Turbo discards the
+        # body and renders its built-in "Content missing" in the browser — a
+        # gap the body-text assertion above cannot see (the text IS present,
+        # just not inside a matching frame).
+        allow_any_instance_of(SessionsController).to receive(:signups_open?).and_return(false)
+        post session_lookup_path, params: { email_address: "ghost@example.com" }
+        frame = Capybara.string(response.body).find("turbo-frame#sign_in_form", visible: :all)
+        expect(frame).to have_text(I18n.t("registrations.closed.title"))
+      end
     end
 
     context "invalid email format" do
