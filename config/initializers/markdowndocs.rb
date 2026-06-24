@@ -16,7 +16,7 @@ Markdowndocs.configure do |config|
   # it renders only by direct URL and is invisible on the /docs index.
   # spec/docs/index_coverage_spec.rb fails CI if a doc is left orphaned.
   template_categories = {
-    "Getting Started"            => %w[user/welcome developer/getting-started],
+    "Getting Started"            => %w[user/welcome developer/getting-started developer/codespaces],
     "Accounts & Authentication"  => %w[user/authentication user/accounts],
     "Workspaces & Collaboration" => %w[user/workspaces user/projects user/invitations user/onboarding user/clientside],
     "Features"                   => %w[user/notifications user/emails user/project-tools],

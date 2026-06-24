@@ -7,8 +7,7 @@
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
   },
   "mounts": [
-    "source=modelrails-bundle-cache,target=/usr/local/bundle,type=volume",
-    "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,readonly"
+    "source=modelrails-bundle-cache,target=/usr/local/bundle,type=volume"
   ],
   "remoteEnv": {
     "BINDING": "0.0.0.0"
