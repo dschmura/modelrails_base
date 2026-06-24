@@ -4,7 +4,10 @@
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {},
     "ghcr.io/devcontainers/features/git:1": {},
-    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+    // moby:false installs Docker CE (Docker's apt repo) instead of Moby, which
+    // ships no packages for the base image's Debian 13 "trixie" — with the
+    // default (moby:true) the feature fails to install and the build dies.
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": { "moby": false }
   },
   "mounts": [
     "source=modelrails-bundle-cache,target=/usr/local/bundle,type=volume"
