@@ -26,6 +26,16 @@ else
   echo "(Playwright already installed — skipping)"
 fi
 
+echo "=== Bootstrapping .env ==="
+# Convenience only: every var in .env.example has a working default and dotenv
+# loads .env only when present, so this just gives the dev a ready file to edit.
+if [ ! -f .env ]; then
+  cp .env.example .env
+  echo "(copied .env.example -> .env)"
+else
+  echo "(.env already exists — leaving it)"
+fi
+
 echo "=== Running bin/setup ==="
 # bin/setup is the canonical Rails entry point. It handles bundle install,
 # db:prepare and asset clobber idempotently. --skip-server prevents it from
@@ -33,12 +43,27 @@ echo "=== Running bin/setup ==="
 # cleanly; the dev runs the server when ready).
 bin/setup --skip-server
 
-cat <<'NEXT_STEPS'
+if [ "${CODESPACES:-}" = "true" ]; then
+  cat <<'NEXT_STEPS'
+
+=== Dev environment ready (GitHub Codespaces) ===
+
+Next steps:
+  1. Run: bin/dev
+  2. Open the app: click the port 3000 entry in the PORTS panel (or the
+     auto-forward notification) — not http://localhost:3000.
+  3. Sign in (passwordless): request a magic link, then open it from
+     Letter Opener Web on the forwarded port 1080 URL (also in the PORTS panel).
+
+.env was created from .env.example; edit it if you need to change any defaults.
+NEXT_STEPS
+else
+  cat <<'NEXT_STEPS'
 
 === Dev environment ready ===
 
 Next steps:
-  1. Copy .env.example to .env and fill in any secrets you need
+  1. Edit .env (copied from .env.example) if you need to change any defaults
   2. Run: bin/dev
   3. Visit: http://localhost:3000
 
@@ -47,3 +72,4 @@ For deployment with Kamal:
   2. Set KAMAL_REGISTRY_PASSWORD in .kamal/secrets
   3. Run: bin/kamal setup
 NEXT_STEPS
+fi
