@@ -1,5 +1,9 @@
 require "active_support/core_ext/integer/time"
 
+# Required explicitly (not autoloaded): environment config runs before Zeitwerk
+# autoloading is active — same pattern as config/initializers/markdowndocs.rb.
+require_relative "../../lib/codespaces"
+
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
@@ -45,6 +49,19 @@ Rails.application.configure do
   # (e.g. PORT=3001 bin/dev → links use 3001). bin/dev exports PORT before foreman starts;
   # puma.rb reads the same env var, so both are always in sync.
   config.action_mailer.default_url_options = { host: "localhost", port: ENV.fetch("PORT", 3000).to_i }
+
+  # GitHub Codespaces: the browser reaches the app through a forwarded HTTPS
+  # proxy at <codespace>-<port>.app.github.dev, not localhost. Allow that host
+  # past DNS-rebinding protection and point mailer links (magic-link sign-in) at
+  # the forwarded URL so they resolve in the browser. No-op outside Codespaces.
+  if Codespaces.active?
+    config.hosts << ".#{Codespaces.forwarding_domain}"
+
+    config.action_mailer.default_url_options = {
+      host: Codespaces.forwarded_host(port: ENV.fetch("PORT", 3000)),
+      protocol: "https"
+    }
+  end
 
   # Print deprecation notices to the Rails logger.
   config.active_support.deprecation = :log
