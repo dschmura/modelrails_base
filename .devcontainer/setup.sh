@@ -22,15 +22,6 @@ sudo apt-get install --no-install-recommends -y \
   sqlite3
 sudo rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
-echo "=== Installing Playwright browsers ==="
-# Idempotent: skip the ~300MB download if Playwright is already in place
-# from a previous postCreate run on the cached bundle volume.
-if ! npx --no-install playwright --version > /dev/null 2>&1; then
-  npx playwright install --with-deps chromium
-else
-  echo "(Playwright already installed — skipping)"
-fi
-
 echo "=== Bootstrapping .env ==="
 # Convenience only: every var in .env.example has a working default and dotenv
 # loads .env only when present, so this just gives the dev a ready file to edit.
@@ -47,6 +38,15 @@ echo "=== Running bin/setup ==="
 # exec'ing bin/dev inside postCreate (we want the container to come up
 # cleanly; the dev runs the server when ready).
 bin/setup --skip-server
+
+echo "=== Installing Playwright browser (chromium) ==="
+# Runs AFTER bin/setup's `npm ci`, so the pinned @playwright/test (and its
+# `playwright` CLI) is already in node_modules. --no-install forces npx to use
+# that local binary: it never fetches a package, so it can't hang on an
+# interactive "Ok to proceed?" prompt in a non-interactive postCreate, and it
+# installs the browser revision matching the pinned Playwright. `playwright
+# install` is itself idempotent (skips already-downloaded browsers).
+npx --no-install playwright install --with-deps chromium
 
 if [ "${CODESPACES:-}" = "true" ]; then
   cat <<'NEXT_STEPS'
