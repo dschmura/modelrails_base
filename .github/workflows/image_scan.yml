@@ -42,17 +42,22 @@ jobs:
       # load: true exports the image into the local Docker daemon — without
       # it the image exists only in the build cache and Trivy has nothing
       # to scan.
-      # no-cache on scheduled runs: a cached apt layer answers "what did we
-      # build last time", not "what would we ship if we rebuilt today" — the
-      # first scan flagged OpenSSL/poppler packages Debian had already fixed,
-      # hidden behind a stale cached layer.
+      # no-cache on scheduled + manual (workflow_dispatch) runs: a cached apt
+      # layer answers "what did we build last time", not "what would we ship if
+      # we rebuilt today" — the first scan flagged OpenSSL/poppler packages
+      # Debian had already fixed, hidden behind a stale cached layer. The manual
+      # trigger refreshes the shared GHA cache on demand: when a cached PR scan
+      # flags an OS CVE Debian has since patched (apt-get upgrade -y in the
+      # Dockerfile), dispatching this workflow rebuilds the apt layer fresh and
+      # writes it back (cache-to mode=max), so later cached PR scans replay the
+      # patched layer instead of the stale one.
       - name: Build production image
         uses: docker/build-push-action@v7
         with:
           context: .
           push: false
           load: true
-          no-cache: ${{ github.event_name == 'schedule' }}
+          no-cache: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
           platforms: linux/amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max
