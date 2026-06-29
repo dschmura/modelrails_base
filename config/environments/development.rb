@@ -61,6 +61,15 @@ Rails.application.configure do
       host: Codespaces.forwarded_host(port: ENV.fetch("PORT", 3000)),
       protocol: "https"
     }
+
+    # The forwarded proxy (and VS Code's localhost port-forward tunnel) present a
+    # Host that differs from the browser's Origin — e.g. Origin http://localhost:3000
+    # vs base_url https://<codespace>-3000.app.github.dev — so Rails' CSRF Origin
+    # check (request.origin == request.base_url) rejects EVERY non-GET form
+    # (magic-link sign-in, the docs audience switcher, cookie consent) with a
+    # 422 InvalidAuthenticityToken. Disable just the Origin check here; the
+    # per-session authenticity token still protects against CSRF.
+    config.action_controller.forgery_protection_origin_check = false
   end
 
   # Print deprecation notices to the Rails logger.
