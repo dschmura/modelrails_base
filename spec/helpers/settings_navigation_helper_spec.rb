@@ -91,11 +91,10 @@ RSpec.describe SettingsNavigationHelper, type: :helper do
       expect(result).to include("Owner")
       expect(result).to include("Profile")
       expect(result).to include("Members")
-      expect(result).to include("Invitations")
       expect(result).to include("Limits & Plan")
     end
 
-    it "includes Profile (manage_settings-gated) for an Admin alongside Members, Invitations, and Limits & Plan" do
+    it "includes Profile (manage_settings-gated) for an Admin alongside Members and Limits & Plan" do
       # Post route-consolidation, Profile is gated by Workspaces::ProfilePolicy
       # which checks manage_settings (held by Admin). Admins formerly edited
       # workspace identity via the branding route; ProfilePolicy preserves that
@@ -109,7 +108,6 @@ RSpec.describe SettingsNavigationHelper, type: :helper do
       expect(result).to include("Admin")
       expect(result).to include("Profile")
       expect(result).to include("Members")
-      expect(result).to include("Invitations")
       expect(result).to include("Limits & Plan")
     end
 

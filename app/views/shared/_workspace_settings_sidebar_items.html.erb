@@ -1,6 +1,6 @@
 <%# locals: (current_workspace:, id_suffix: "") -%>
 <%# Workspace-settings sidebar items — workspace-level settings (Profile, Members,
-    Invitations, Limits & Plan). Rendered unconditionally for the workspace context;
+    Limits & Plan). Rendered unconditionally for the workspace context;
     the controller declares settings_context :workspace to select this partial.
     Pundit gates via render_nav_item_if_permitted keep sidebar visibility in lockstep
     with destination controller authorization.
@@ -46,16 +46,6 @@
                         workspace_name: current_workspace.name),
           icon: :user_group,
           active: current_page?(workspace_members_path(current_workspace)) %>
-  <% end %>
-
-  <%= render_nav_item_if_permitted(Invitation.new(invitable: current_workspace), action: :index?) do %>
-    <%= render "shared/settings_sidebar_item",
-          label: t("settings.sidebar.items.invitations"),
-          href: workspace_invitations_path(current_workspace),
-          aria_label: t("settings.sidebar.aria_labels.invitations",
-                        workspace_name: current_workspace.name),
-          icon: :envelope,
-          active: current_page?(workspace_invitations_path(current_workspace)) %>
   <% end %>
 
   <%# Limits & Plan routes to workspaces/settings#edit which authorizes via
