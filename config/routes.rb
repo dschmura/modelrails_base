@@ -73,7 +73,7 @@ Rails.application.routes.draw do
           patch :transfer_ownership
         end
       end
-      resources :invitations, only: [ :index, :new, :create, :destroy ] do
+      resources :invitations, only: [ :new, :create, :destroy ] do
         member do
           post :resend
         end
