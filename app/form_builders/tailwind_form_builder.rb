@@ -187,7 +187,11 @@ class TailwindFormBuilder < ActionView::Helpers::FormBuilder
 
   def select_html_options(method, wrapper_opts)
     {
-      class: "form-field",
+      # `ui-select` is the hook for the customizable-select picker styling
+      # (application.css `@supports (appearance: base-select)`). App dropdowns are
+      # native form-builder selects, so the hook rides here, not just on UI::Select;
+      # `form-field` keeps the field chrome. No-op in browsers without base-select.
+      class: "form-field ui-select",
       id: field_id(method)
     }.merge(aria_attributes(method, wrapper_opts))
   end

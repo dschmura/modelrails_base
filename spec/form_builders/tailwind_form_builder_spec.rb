@@ -123,6 +123,15 @@ RSpec.describe TailwindFormBuilder do
       expect(result).to have_css("option", text: "Admin")
       expect(result).to have_css("label", text: "Role")
     end
+
+    # The customizable-select picker styling keys off `.ui-select` (see application.css
+    # `@supports (appearance: base-select)`). The app's dropdowns are native form-builder
+    # selects, so the hook must ride on `f.select`, not just UI::Select — otherwise the
+    # enhancement is dormant in the real UI. `form-field` stays for the field chrome.
+    it "carries the `ui-select` hook alongside form-field" do
+      result = parse(builder.select(:first_name, [ [ "Admin", "admin" ] ], label: "Role"))
+      expect(result).to have_css("select.form-field.ui-select")
+    end
   end
 
   describe "#check_box" do
