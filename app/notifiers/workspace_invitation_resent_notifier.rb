@@ -26,7 +26,7 @@ class WorkspaceInvitationResentNotifier < ApplicationNotifier
     end
 
     def url
-      Rails.application.routes.url_helpers.workspace_invitations_path(
+      Rails.application.routes.url_helpers.workspace_members_path(
         event.record.resolved_workspace
       )
     end

@@ -7,14 +7,7 @@ module Workspaces
 
     rate_limit to: 10, within: 3.minutes, only: :resend,
       by: -> { Current.user&.id || request.remote_ip },
-      with: -> { redirect_to workspace_invitations_path(@workspace), alert: t("workspaces.invitations.resend.rate_limited") }
-
-    def index
-      authorize Invitation
-      # Invitations have been merged into the unified members surface
-      # — one page shows active members + pending invitations together.
-      redirect_to workspace_members_path(@workspace)
-    end
+      with: -> { redirect_to workspace_members_path(@workspace), alert: t("workspaces.invitations.resend.rate_limited") }
 
     def new
       authorize Invitation
@@ -36,7 +29,7 @@ module Workspaces
       invitation = @workspace.invitations.find(params[:id])
       authorize invitation
       invitation.revoke!
-      redirect_to workspace_invitations_path(@workspace), notice: t(".revoked")
+      redirect_to workspace_members_path(@workspace), notice: t(".revoked")
     end
 
     def resend
@@ -44,7 +37,7 @@ module Workspaces
       authorize invitation
       invitation.resend!
       if invitation.magic_link?
-        redirect_to workspace_invitations_path(@workspace),
+        redirect_to workspace_members_path(@workspace),
           notice: t(".magic_link_refreshed"),
           flash: { magic_link_url: accept_invitation_url(token: invitation.token) }
       else
@@ -63,7 +56,7 @@ module Workspaces
           .deliver(invitation.invited_by)
 
         notice_key = (result == :deduplicated) ? ".recently_sent" : ".resent"
-        redirect_to workspace_invitations_path(@workspace), notice: t(notice_key)
+        redirect_to workspace_members_path(@workspace), notice: t(notice_key)
       end
     end
 
@@ -80,7 +73,7 @@ module Workspaces
         invited_by: Current.user
       )
 
-      redirect_to workspace_invitations_path(@workspace),
+      redirect_to workspace_members_path(@workspace),
         notice: t(".sent", sent: result[:sent], skipped: result[:skipped])
     end
 
@@ -92,7 +85,7 @@ module Workspaces
         expires_at: 7.days.from_now
       )
 
-      redirect_to workspace_invitations_path(@workspace),
+      redirect_to workspace_members_path(@workspace),
         notice: t(".magic_link_created"),
         flash: { magic_link_url: accept_invitation_url(token: invitation.token) }
     end
