@@ -57,6 +57,10 @@ RSpec.describe "Notification preferences", type: :system do
         'select[name="notification_preferences[delivery_methods][email][frequency]"]',
         visible: :all
       )
+      # This is a raw <select> (not the form builder), so it carries the `ui-select`
+      # hook directly — proving the customizable-select picker styling reaches the
+      # real page, not just builder selects / UI::Select.
+      expect(page).to have_css("select#email-frequency.ui-select", visible: :all)
       %w[instant daily weekly].each do |freq|
         expect(page).to have_css(
           %Q(select[name="notification_preferences[delivery_methods][email][frequency]"] option[value="#{freq}"]),
