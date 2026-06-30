@@ -1,13 +1,6 @@
 require "rails_helper"
 
 RSpec.describe "Workspace Invitations", type: :request do
-  describe "unauthenticated access" do
-    it "redirects GET /workspaces/:slug/invitations to sign in" do
-      get workspace_invitations_path(workspace_slug: "any-slug")
-      expect(response).to redirect_to(new_session_path)
-    end
-  end
-
   context "authenticated" do
     let(:workspace) { create(:workspace) }
     let(:user) { create(:user) }
@@ -16,14 +9,6 @@ RSpec.describe "Workspace Invitations", type: :request do
     before do
       Current.workspace = workspace
       sign_in(user)
-    end
-
-    describe "GET /workspaces/:workspace_slug/invitations" do
-      it "redirects to the unified members page (invitations merged into members)" do
-        create(:invitation, invitable: workspace, invited_by: user)
-        get workspace_invitations_path(workspace)
-        expect(response).to redirect_to(workspace_members_path(workspace))
-      end
     end
 
     describe "GET /workspaces/:workspace_slug/invitations/new" do

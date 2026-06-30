@@ -22,7 +22,6 @@ RSpec.describe "Settings hub — workspace context", type: :system do
       within(sidebar_selector) do
         expect(page).to have_link(I18n.t("settings.sidebar.items.profile"))
         expect(page).to have_link(I18n.t("settings.sidebar.items.members"))
-        expect(page).to have_link(I18n.t("settings.sidebar.items.invitations"))
         expect(page).to have_link(I18n.t("settings.sidebar.items.limits_and_plan"))
 
         expect(page).not_to have_link(I18n.t("settings.sidebar.items.notifications"))

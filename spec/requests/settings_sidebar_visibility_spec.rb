@@ -32,10 +32,9 @@ RSpec.describe "Settings sidebar visibility (workspace context)", type: :request
   context "as an Owner" do
     before { sign_in_and_load(:owner) }
 
-    it "shows all four org items" do
+    it "shows all three org items" do
       expect(org_sidebar).to have_link(item("profile"))
       expect(org_sidebar).to have_link(item("members"))
-      expect(org_sidebar).to have_link(item("invitations"))
       expect(org_sidebar).to have_link(item("limits_and_plan"))
     end
   end
@@ -46,10 +45,9 @@ RSpec.describe "Settings sidebar visibility (workspace context)", type: :request
   context "as an Admin (manage_settings without manage_workspace)" do
     before { sign_in_and_load(:admin) }
 
-    it "shows all four org items" do
+    it "shows all three org items" do
       expect(org_sidebar).to have_link(item("profile"))
       expect(org_sidebar).to have_link(item("members"))
-      expect(org_sidebar).to have_link(item("invitations"))
       expect(org_sidebar).to have_link(item("limits_and_plan"))
     end
   end
@@ -59,7 +57,6 @@ RSpec.describe "Settings sidebar visibility (workspace context)", type: :request
 
     it "shows the items gated only on membership" do
       expect(org_sidebar).to have_link(item("members"))
-      expect(org_sidebar).to have_link(item("invitations"))
     end
 
     it "hides the manage_settings-gated items" do

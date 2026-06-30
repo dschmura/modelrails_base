@@ -74,11 +74,11 @@ RSpec.describe WorkspaceInvitationResentNotifier, type: :notifier do
   end
 
   describe "#url" do
-    it "links back to the workspace invitations index for the invitation's workspace" do
+    it "links back to the workspace members page for the invitation's workspace" do
       described_class.with(record: invitation).deliver(inviter)
       notification = inviter.notifications.last
       expect(notification.url).to eq(
-        Rails.application.routes.url_helpers.workspace_invitations_path(workspace)
+        Rails.application.routes.url_helpers.workspace_members_path(workspace)
       )
     end
   end

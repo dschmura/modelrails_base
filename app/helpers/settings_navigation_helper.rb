@@ -52,9 +52,6 @@ module SettingsNavigationHelper
     if Pundit.policy(Current.user, Membership.new(workspace: workspace)).index?
       items << I18n.t("settings.sidebar.items.members")
     end
-    if Pundit.policy(Current.user, Invitation.new(invitable: workspace)).index?
-      items << I18n.t("settings.sidebar.items.invitations")
-    end
     if Workspaces::SettingsPolicy.new(Current.user, workspace).update?
       items << I18n.t("settings.sidebar.items.limits_and_plan")
     end
