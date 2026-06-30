@@ -19,6 +19,16 @@ RSpec.describe UI::SelectComponent, type: :component do
     expect(page).to have_css("select.focus-ring")
   end
 
+  # Stable hook for the customizable-select enhancement: the
+  # `@supports (appearance: base-select)` CSS targets `.ui-select::picker(select)`
+  # (and ::picker-icon / option::checkmark), so the picker styling can't ride on
+  # the utility soup — it needs a durable class. Native fallback is unaffected.
+  it "exposes a `ui-select` hook for the customizable-select picker styling" do
+    render_inline(described_class.new(options: %w[A B]))
+
+    expect(page).to have_css("select.ui-select")
+  end
+
   # WCAG 2.5.5 target size: the control sits at the 44px floor (--form-input-height).
   it "meets the 44px target floor" do
     render_inline(described_class.new(options: %w[A B]))
