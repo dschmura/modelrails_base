@@ -23,6 +23,13 @@ module UI
   #   labeled by a separate form label). On error, pass `invalid: true` and point
   #   `describedby:` at the error element's id.
   #
+  # ## Customizable Select (progressive enhancement)
+  # In browsers that support `appearance: base-select` (Chromium, Safari 26+) the
+  # `.ui-select` hook restyles the OPEN picker to match the design system — the same
+  # overlay/border/shadow as the combobox, a tinted checkmark on the selected row,
+  # and a flipping picker-icon. Everywhere else it falls back to the untouched native
+  # control. Pure CSS + one class; no JS, no markup change. See `application.css`.
+  #
   # No fail-loud guard — there's no enum axis to validate.
   class SelectComponent < ApplicationComponent
     BASE = "flex min-h-[var(--form-input-height)] w-full rounded-md border border-border-strong bg-transparent px-3 py-1 text-sm shadow-sm " \
@@ -56,7 +63,10 @@ module UI
     private
 
     def select_attrs
-      attrs = @html_attrs.merge(id: @id, class: cn(BASE, @extra_class))
+      # `ui-select` is the stable hook the customizable-select CSS targets
+      # (`@supports (appearance: base-select)` → `.ui-select::picker(select)` etc.);
+      # it carries no utilities of its own, so the native fallback is untouched.
+      attrs = @html_attrs.merge(id: @id, class: cn("ui-select", BASE, @extra_class))
       attrs["aria-invalid"] = "true" if @invalid
       attrs["aria-describedby"] = @describedby if @describedby.present?
       attrs
