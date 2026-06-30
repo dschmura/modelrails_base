@@ -228,6 +228,64 @@
   }
 }
 
+/* Customizable Select (progressive enhancement). Opt UI::Select (`.ui-select`)
+   into a fully styleable native picker where supported (Chromium, Safari 26+);
+   browsers without `appearance: base-select` ignore this whole block and fall back
+   to the untouched native control. The picker renders in the top layer (escapes
+   overflow/stacking, like our menus). Every color is a semantic token, so light/dark
+   and AAA come for free — proven by the 0b axe system spec, not asserted locally.
+   String options + picker chrome only; rich `<selectedcontent>` options are a
+   later enhancement. See the WWDC26 "Customizable Select" session. */
+@supports (appearance: base-select) {
+  .ui-select,
+  .ui-select::picker(select) {
+    appearance: base-select;
+  }
+
+  /* Dropdown arrow: body-text tint, flips when the picker is open. */
+  .ui-select::picker-icon {
+    color: var(--color-text-body);
+    transition: rotate 0.2s ease;
+  }
+  .ui-select:open::picker-icon {
+    rotate: 180deg;
+  }
+
+  /* The popup — same overlay/border/shadow language as the combobox panel. */
+  .ui-select::picker(select) {
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    background: var(--color-surface-overlay);
+    box-shadow: 0 10px 24px oklch(0% 0 0 / 0.14);
+    padding: 0.25rem;
+    margin-top: 0.25rem;
+  }
+
+  /* Options: roomy rows; hover/active uses the sunken surface (AAA both themes).
+     `display: flex` aligns the leading checkmark gutter with the option text. */
+  .ui-select option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.625rem;
+    border-radius: 0.3125rem;
+    color: var(--color-text-body);
+  }
+  .ui-select option:hover,
+  .ui-select option:focus {
+    background: var(--color-surface-sunken);
+    color: var(--color-text-heading);
+  }
+  .ui-select option:checked {
+    font-weight: 600;
+  }
+  /* Selected-row check sits in the leading gutter (base-select renders it first);
+     interactive (brand) tint. No auto-margin — that would shove the row right. */
+  .ui-select option::checkmark {
+    color: var(--color-interactive);
+  }
+}
+
 /* bg-hue-initials: per-workspace dynamic color via style="--hue: N" (avoids inline
    background-color → CSP-safer). L=0.35 C=0.20 = AAA with white text. */
 
