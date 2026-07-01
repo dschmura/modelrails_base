@@ -136,7 +136,7 @@ running app. Your fork inherits it.
 - 44px minimum touch targets on interactive elements
 - Dark mode support throughout
 - Accessible forms with labels, ARIA attributes, and focus rings
-- Design system primitives — see [docs/design-system.md](docs/design-system.md) for spacing tokens, component utilities, and naming conventions.
+- Design system primitives — see [design-system.md](https://github.com/dschmura/modelrails_base_docs/blob/main/design-system.md) for spacing tokens, component utilities, and naming conventions.
 
 ### Static pages
 - Home, About, Privacy, Contact
