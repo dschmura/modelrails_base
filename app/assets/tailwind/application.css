@@ -398,7 +398,10 @@ dialog[open]::backdrop {
 
 body.a11y-sim-blur         { filter: blur(2.5px); }
 body.a11y-sim-grayscale    { filter: grayscale(1); }
-body.a11y-sim-deuteranopia { filter: url(#a11y-sim-deuteranopia); }
+body.a11y-sim-deuteranopia  { filter: url(#a11y-sim-deuteranopia); }
+body.a11y-sim-protanopia    { filter: url(#a11y-sim-protanopia); }
+body.a11y-sim-tritanopia    { filter: url(#a11y-sim-tritanopia); }
+body.a11y-sim-achromatopsia { filter: url(#a11y-sim-achromatopsia); }
 body.a11y-sim-low_contrast { filter: contrast(0.5); }
 body.a11y-sim-cataract     { filter: blur(1.5px) contrast(0.8) brightness(1.1); }
 
