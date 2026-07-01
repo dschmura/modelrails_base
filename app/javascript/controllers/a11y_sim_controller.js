@@ -1,11 +1,13 @@
 import { Controller } from "@hotwired/stimulus"
 
-const MODES = ["normal", "blur", "grayscale", "deuteranopia", "low_contrast", "cataract"]
+// Keep in sync with the `modes` array in shared/_a11y_sim.html.erb. `blur` stays
+// index 1 and `cataract` last — the keyboard-nav specs pin those positions.
+const MODES = ["normal", "blur", "grayscale", "deuteranopia", "protanopia", "tritanopia", "achromatopsia", "low_contrast", "cataract"]
 const STORAGE_KEY = "a11y_sim_mode"
 const BODY_CLASS_PREFIX = "a11y-sim-"
 
 export default class extends Controller {
-  static targets = ["menu", "trigger", "triggerIcon", "triggerLabel", "item", "announcer"]
+  static targets = ["menu", "trigger", "triggerIcon", "triggerLabel", "item", "announcer", "tooltip"]
   static values = { announcementTemplate: { type: String, default: "Filter: %{mode}" } }
 
   connect() {
@@ -35,6 +37,35 @@ export default class extends Controller {
     this.closeMenu()
   }
 
+  // Description tooltip: shown on item hover/focus, positioned fixed to the LEFT of
+  // the menu (so it escapes the menu's overflow) and top-aligned with the item.
+  // Wired to the hovered/focused item via aria-describedby for screen readers.
+  showTip(event) {
+    if (!this.hasTooltipTarget) return
+    const item = event.currentTarget
+    const description = item.dataset.a11ySimDescription
+    if (!description) return
+    this.tooltipTarget.textContent = description
+    this.tooltipTarget.classList.remove("hidden")
+    this.positionTooltip(item)
+    item.setAttribute("aria-describedby", this.tooltipTarget.id)
+  }
+
+  hideTip(event) {
+    if (this.hasTooltipTarget) this.tooltipTarget.classList.add("hidden")
+    event.currentTarget.removeAttribute("aria-describedby")
+  }
+
+  positionTooltip(item) {
+    const tip = this.tooltipTarget
+    const menu = this.menuTarget.getBoundingClientRect()
+    const rect = item.getBoundingClientRect()
+    tip.style.top = `${Math.max(8, rect.top)}px`
+    tip.style.right = `${window.innerWidth - menu.left + 8}px`
+    tip.style.left = "auto"
+    tip.style.bottom = "auto"
+  }
+
   openMenu() {
     this.menuTarget.classList.remove("hidden")
     this.triggerTarget.setAttribute("aria-expanded", "true")
@@ -45,6 +76,7 @@ export default class extends Controller {
 
   closeMenu() {
     this.menuTarget.classList.add("hidden")
+    if (this.hasTooltipTarget) this.tooltipTarget.classList.add("hidden")
     this.triggerTarget.setAttribute("aria-expanded", "false")
     document.removeEventListener("click", this.handleOutsideClick, true)
     this.triggerTarget.focus()
@@ -161,7 +193,7 @@ export default class extends Controller {
         return
     }
 
-    if (event.key >= "0" && event.key <= "5") {
+    if (event.key >= "0" && event.key <= "8") {
       const index = parseInt(event.key, 10)
       const mode = MODES[index]
       if (mode) {

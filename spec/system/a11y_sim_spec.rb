@@ -58,6 +58,29 @@ RSpec.describe "Accessibility simulation drop-up", type: :system do
       expect(page).not_to have_css("body.a11y-sim-deuteranopia")
     end
 
+    # Color-vision-deficiency variants: each needs its SVG color-matrix <filter> in
+    # the DOM (so the CSS `filter: url(#...)` resolves) AND applies its body class.
+    %i[protanopia tritanopia achromatopsia].each do |cvd|
+      it "provides the #{cvd} color-vision filter (SVG matrix def + body class)" do
+        visit root_path
+        dismiss_cookie_banner
+        expect(page).to have_css("filter#a11y-sim-#{cvd}", visible: :all)
+        trigger_button.click
+        mode_item(cvd).click
+        expect(page).to have_css("body.a11y-sim-#{cvd}")
+      end
+    end
+
+    it "reveals a description tooltip on hover, wired via aria-describedby" do
+      visit root_path
+      dismiss_cookie_banner
+      trigger_button.click
+      item = mode_item(:protanopia)
+      item.hover
+      expect(page).to have_css("[role='tooltip']", text: I18n.t("a11y_sim.descriptions.protanopia"), visible: true)
+      expect(item["aria-describedby"]).to be_present
+    end
+
     it "closes the menu and clears the body class when returning to Normal" do
       visit root_path
       dismiss_cookie_banner
