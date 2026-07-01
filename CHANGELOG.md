@@ -6,6 +6,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Breaking
 
+- Git history rewritten to purge the internal root `docs/` directory (now the separate [modelrails_base_docs](https://github.com/dschmura/modelrails_base_docs) repo) — every commit SHA changed; existing clones and forks must re-sync (`git fetch && git reset --hard origin/main`).
 - `config/deploy.yml` `servers.web` moved from a flat host list to a `hosts:` + `options:` structure for `max-replicas: 1`; forks that customized it must migrate — see `app/docs/deployment.md` (#135).
 - Email verification switched to signed, stateless tokens; dropped the `verification_token`/`verification_sent_at` columns — links issued before upgrade stop working (#178).
 
@@ -130,7 +131,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 - Design system primitives v2: semantic spacing tokens (`--space-section-gap`, `--space-row-padding`, `--space-action-group-gap`, `--form-input-height`) defined in `app/assets/tailwind/tokens/_spacing.css`. Tokens are CSS-var-only — never registered in `@theme` so they don't leak as Tailwind utility classes. Consumed inside `@layer components` rules and `TailwindFormBuilder` constants.
 - Component utilities under a new `@layer components` block in `app/assets/tailwind/application.css`: `.btn-touch-target` (44×44 minimum, reads `--form-input-height`), `.btn-text` (font-weight/underline/focus-visible base), `.btn-text-danger` and `.btn-text-interactive` (color variants), `.action-group` (inline-flex with `--space-action-group-gap`).
 - Layout utility `.page-container` (`max-w-2xl mx-auto px-4`) for narrow page wrappers — settings, account, and form-centric flows.
-- `docs/design-system.md` — single-source reference for the spacing convention, semantic tokens, component utilities, class ordering convention, and migration recipe. Linked from README.md.
+- `design-system.md` (now in [modelrails_base_docs](https://github.com/dschmura/modelrails_base_docs)) — single-source reference for the spacing convention, semantic tokens, component utilities, class ordering convention, and migration recipe. Linked from README.md.
 
 ### Changed
 
@@ -190,7 +191,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 - New model methods: `Authentication#display_provider`, `Authentication.display_name_for`, `Authentication#assign_verification_token` (non-persisting helper used by both the controller's atomic-create path and the model's `generate_verification_token!`), `Authentication#pending?`, `Authentication#token_expired?`, scope `Authentication.pending`. The legacy `Authentication#verification_token_expired?` now delegates to `token_expired?` so `TOKEN_LIFETIME` is the single source of truth for the 24h window
 - New controller actions: `Account::ConnectedAccountsController#verify`, `#resend_verification`. `#destroy` rewritten to count only verified auths, with transactional row-lock semantics. `OmniauthCallbacksController#create` decomposed into `handle_existing_auth` / `handle_signed_in_link` / `handle_new_user_oauth` private branches with a `PROVIDER_MAP` normalization helper
 - New locale files / blocks: `config/locales/en/oauth.en.yml` (new file with `omniauth_callbacks.create.*` keys), expanded `account.en.yml` blocks for `connected_accounts.index/destroy/verify/resend_verification`, `authentication_mailer.link_verification_email.*` keys
-- Design doc and implementation plan preserved at `docs/superpowers/specs/2026-04-25-verified-oauth-account-linking-design.md` and `docs/superpowers/plans/2026-04-25-verified-oauth-account-linking.md`
+- Design doc and implementation plan preserved in [modelrails_base_docs](https://github.com/dschmura/modelrails_base_docs) at `superpowers/specs/2026-04-25-verified-oauth-account-linking-design.md` and `superpowers/plans/2026-04-25-verified-oauth-account-linking.md`
 
 ### Acknowledged limitations (deferred)
 
@@ -225,7 +226,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 - 1025 examples, 0 failures; coverage 94.46% line / 82.05% branch
 - New view spec (`spec/views/shared/footer_spec.rb`) and system spec (`spec/system/footer_cookies_spec.rb`) covering footer structure, link clusters, and Cookie settings reopen flow
-- Design doc and implementation plan preserved at `docs/superpowers/specs/2026-04-22-footer-cohesion-design.md` and `docs/superpowers/plans/2026-04-22-footer-cohesion.md`
+- Design doc and implementation plan preserved in [modelrails_base_docs](https://github.com/dschmura/modelrails_base_docs) at `superpowers/specs/2026-04-22-footer-cohesion-design.md` and `superpowers/plans/2026-04-22-footer-cohesion.md`
 
 ---
 
