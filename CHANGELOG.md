@@ -11,10 +11,12 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Security
 
+- Dependency CVE bumps: nokogiri + faraday (#371), and css_parser 3.0.0 + msgpack 1.8.3 (#400); unfixable thruster 0.1.21 Go CVEs ignored in the image scan with a documented revisit marker (#380, #395).
 - Invitation acceptance is now bound to the invited email across every path — new-user signup, OAuth, magic-link, and signed-in accept — and deferred until that email is verified. A leaked invite link can no longer be redeemed by someone else, even from a different verified or signed-in account (#175, #176). Magic-link invitations remain intentionally bearer.
 
 ### Changed
 
+- Email-first sign-in — one email field routes to password, magic link, or passkey; the connected-accounts page reflects real linked state (#377).
 - Retired the deferred "personal workspace"/"personal profile" settings copy → "your workspace" (the tenant) / "your profile" (identity); the personal settings section label "Account" → "You" (honest-naming, identity/tenant split).
 - Removed the half-wired dynamic-PWA scaffold (#306): the unused `app/views/pwa/manifest.json.erb` + `service-worker.js` and their commented-out routes are gone. The working static `public/manifest.webmanifest` stays (its name already matches `brand.en.yml`), so the fork-rename checklist now points at one manifest instead of two.
 - Fork-readiness code-quality cleanup (#305): policies resolve the project via `respond_to?(:project)` instead of class checks; new-device detection rescues only `ActiveRecord::ActiveRecordError` so genuine bugs surface instead of being swallowed; activity-tracking failure logs now name the record (`Class#id`).
@@ -32,6 +34,11 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Added
 
+- Passwordless-first sign-in — magic link is the default; a password is now an opt-in set from Security settings (#374).
+- Passkeys / WebAuthn — register platform authenticators and sign in with a discoverable credential (#375, #376).
+- Browser-hosted GitHub Codespace — one-click cloud dev environment on the production base image; boots, signs in, and runs the suite in-container (#385).
+- Customizable Select picker — `UI::Select` and every form-builder `<select>` opt into `appearance: base-select` for a design-system-styled dropdown where supported, with an untouched native fallback elsewhere (#399, #402).
+- `/docs` split into user and developer audience modes with an always-visible audience switcher (#381, #382).
 - Add per-project tools: an extensible registry, per-project toggle, project-home tabs, and a self-hiding onboarding step (ships Docs) (#364).
 - Add first-run onboarding journey (none posture): name workspace → first project → invite, with a soft email-verification gate (#362, #363).
 - Add `ClientAccess` model — scopes an external client `User` to a single project without a workspace `Membership`, consuming no member seat (#365).
@@ -63,6 +70,8 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Bug fixes
 
+- Signups-closed sign-in view renders inside the turbo-frame instead of vanishing (#384).
+- Codespaces boot: dev container builds on the Debian trixie base (`moby:false`), `bin/setup` completes (libssl-dev + Node), Playwright installs non-interactively, Solid Queue self-heals on container Rebuild, and forms work behind the forwarded proxy (CSRF Origin check disabled for the Codespaces host) (#386, #387, #388, #396, #397).
 - Settings-hub Turbo morph is now actually active (#327). `turbo_refreshes_with method: :morph` buffers its meta tags into `:head` via `provide`, but neither layout had a `yield :head` to render them, so the morph meta never emitted and the hub silently fell back to `replace`. The shared `_layout_head` now yields `:head` and the settings layout provides the morph meta before it renders — the announcer dedup and idiomorph-safe switcher IDs were already built for this.
 - Single-tenant preset: invitation-driven signups now adopt the invitation's role instead of being stuck at the `onboard_workspace` callback's placeholder Member. Solo-default (`:personal`) semantics are unchanged.
 - Unauthenticated invitees can accept invitations under invite-only signup — the accept page stashes the pending invitation token so the signup gate opens (#345).
@@ -85,6 +94,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Removed
 
+- Deprecated `invitations#index` redirect route and the redundant "Invitations" settings-sidebar item — invitations live on the unified members surface (#398).
 - `settings-drawer` Stimulus controller, `settings.mobile_drawer.*` and `workspaces.mobile_drawer.*` locale namespaces, and the off-canvas drawer markup from `settings.html.erb` and `application.html.erb` — superseded by the header accordion (see Changed).
 - `Workspaces::BrandingsController` and its routes (`/workspaces/:slug/branding/*`). Identity picker hub moved to `WorkspacesController#identity_picker_hub` (`/workspaces/:slug/identity_picker_hub`).
 - `Workspaces::BrandingPolicy` (replaced by `Workspaces::ProfilePolicy` on workspaces#edit/update).
@@ -98,6 +108,9 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Maintenance
 
+- `bundler-audit` runs in Lefthook pre-push, mirroring CI `scan_ruby` so a fresh gem CVE can't red-flag a green branch (#372).
+- Bullet safelists consolidated into one shared source (`lib/bullet_safelists.rb`) so development and test can't drift (#403).
+- `modelrails_ui` bumped to v0.4.0 (customizable-select picker) (#401); component previews de-flaked by dropping external CDN assets (#373).
 - Ruby bumped to 4.0.4 and enforced by Bundler across dev, CI, and production (#129).
 - Production image is smaller — no longer ships test gems (#129).
 - Production deploys constrained to one web container at a time, with longer job-drain window (#135, closes #130).
