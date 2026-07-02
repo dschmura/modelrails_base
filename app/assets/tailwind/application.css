@@ -88,14 +88,6 @@
   --modal-animation-duration: var(--modal-animation-duration);
 }
 
-/* Need a wider page? add a named variant (e.g. .page-container-wide) — don't override max-width inline. */
-
-@layer utilities {
-  .page-container {
-    @apply max-w-2xl mx-auto px-4;
-  }
-}
-
 /* AAA focus indicator (converged-conventions B5): an OFFSET OUTLINE, not a ring.
    outline is OS-drawn → survives overflow:hidden clipping AND forced-colors/High-Contrast
    (box-shadow rings vanish in both → WCAG 2.4.7 fail). Uniform --color-interactive-focus
@@ -137,6 +129,21 @@
   .action-group {
     @apply inline-flex items-center;
     gap: var(--space-action-group-gap);
+  }
+
+  /* Outer wrapper for settings/account/form-centric pages; --space-section-gap
+     keeps header-to-content rhythm consistent so vertical padding lives in
+     exactly one place instead of being hand-typed (and silently duplicated)
+     per page. Need a wider page? use .page-container-wide below — don't
+     override max-width inline. */
+  .page-container {
+    @apply max-w-2xl mx-auto px-4;
+    padding-block: var(--space-section-gap);
+  }
+
+  .page-container-wide {
+    @apply max-w-4xl mx-auto px-4;
+    padding-block: var(--space-section-gap);
   }
 
   /* Filled button family (primary/secondary/danger) — canonical button styling.
