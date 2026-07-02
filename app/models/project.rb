@@ -1,5 +1,6 @@
 class Project < ApplicationRecord
   include Discardable
+  include Archivable
   include Tenanted
   include Trackable
   include Broadcastable

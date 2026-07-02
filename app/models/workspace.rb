@@ -1,5 +1,6 @@
 class Workspace < ApplicationRecord
   include Discardable
+  include Archivable
   include Trackable
   include Broadcastable
   include Sluggable

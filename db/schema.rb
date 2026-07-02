@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_22_125101) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_02_215909) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -199,6 +199,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_22_125101) do
   end
 
   create_table "projects", force: :cascade do |t|
+    t.datetime "archived_at"
     t.boolean "clientside_enabled", default: false, null: false
     t.datetime "created_at", null: false
     t.integer "created_by_id", null: false
@@ -209,6 +210,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_22_125101) do
     t.string "slug", null: false
     t.datetime "updated_at", null: false
     t.integer "workspace_id", null: false
+    t.index ["archived_at"], name: "index_projects_on_archived_at"
     t.index ["created_by_id"], name: "index_projects_on_created_by_id"
     t.index ["discarded_at"], name: "index_projects_on_discarded_at"
     t.index ["workspace_id", "slug"], name: "index_projects_on_workspace_id_and_slug", unique: true
@@ -339,6 +341,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_22_125101) do
   end
 
   create_table "workspaces", force: :cascade do |t|
+    t.datetime "archived_at"
     t.datetime "created_at", null: false
     t.datetime "discarded_at"
     t.string "join_policy", default: "invite", null: false
@@ -350,10 +353,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_22_125101) do
     t.string "plan", default: "free", null: false
     t.integer "primary_color", default: 210
     t.string "slug", null: false
+    t.datetime "suspended_at"
     t.datetime "updated_at", null: false
+    t.index ["archived_at"], name: "index_workspaces_on_archived_at"
     t.index ["discarded_at"], name: "index_workspaces_on_discarded_at"
     t.index ["join_policy"], name: "index_workspaces_on_join_policy"
     t.index ["slug"], name: "index_workspaces_on_slug", unique: true
+    t.index ["suspended_at"], name: "index_workspaces_on_suspended_at"
   end
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
