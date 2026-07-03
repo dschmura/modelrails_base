@@ -292,26 +292,34 @@ RSpec.describe "Magic Link Callbacks", type: :request do
         end
       end
 
-      # Unlike the suspended case above, accept_pending_join_link!'s pre-check
-      # only tests open_join?/suspended? — it doesn't test archived?, so an
-      # archived workspace falls through to Workspace#admit, which now raises
-      # NotAdmittableError. Proves Signupable#commit_signup_atomically rescues
-      # it (mapped to the same "return false" outcome as RecordInvalid) rather
-      # than letting it escape and roll back the whole registration silently
-      # succeeding with a membership on a dead workspace (the pre-fix bug).
-      context "when the workspace was archived between parking and signup" do
-        before { join_workspace.archive! }
+      # Defense-in-depth backstop for the TOCTOU window: accept_pending_join_link!
+      # pre-checks the workspace, but it can go non-admittable (archived/suspended/
+      # deleted) between that check and admit's own locked re-check. When that race
+      # fires, Workspace#admit raises NotAdmittableError inside the signup
+      # transaction, and commit_signup_atomically must rescue it (same "return
+      # false" outcome as RecordInvalid) so the whole registration rolls back
+      # cleanly with no orphaned User row — never a half-committed user carrying a
+      # membership on a dead workspace. Stubbed because once Task 5 widens the
+      # pre-check to drop every non-admittable workspace, this race is the only
+      # path that still reaches the rescue; the normal stale-workspace case is the
+      # suspended example above (silent no-op, signup still succeeds).
+      context "when the workspace goes non-admittable under admit's lock (race)" do
+        before do
+          allow_any_instance_of(Workspace)
+            .to receive(:admit).and_raise(Workspace::NotAdmittableError)
+        end
 
-        it "rolls back the whole signup and shows the generic invalid-link copy" do
-          token = MagicLinkToken.create_for_email("archived-joiner@example.com")
+        it "rolls back the whole signup with no orphaned user and generic copy" do
+          token = MagicLinkToken.create_for_email("raced-joiner@example.com")
 
           expect {
             post magic_link_callback_path(token: token), params: {
-              user: { first_name: "Ar", last_name: "Chived" }
+              user: { first_name: "Ra", last_name: "Ced" }
             }
           }.not_to change(User, :count)
 
           expect(flash[:alert]).to eq(I18n.t("magic_link_callbacks.create.invalid"))
+          expect(flash[:alert]).not_to match(/archived|deleted|locked|suspended/i)
         end
       end
     end

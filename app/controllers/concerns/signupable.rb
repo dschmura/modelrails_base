@@ -8,11 +8,14 @@ module Signupable
   # ActiveRecord::RecordInvalid, and Workspace::NotAdmittableError will
   # propagate beyond this method.
   #
-  # Returns true on commit, false on validation failure, invitation race, or
-  # a parked open-link join whose workspace went archived/suspended/deleted
-  # mid-transaction (Workspace#admit raises NotAdmittableError — rescued here
-  # the same as RecordInvalid so the whole signup rolls back cleanly instead
-  # of letting the error escape and abort registration with a raw exception).
+  # Returns true on commit, false on validation failure, invitation race, or a
+  # parked open-link join whose workspace goes non-admittable under admit's lock
+  # — the TOCTOU backstop for a workspace archived/suspended/deleted between
+  # accept_pending_join_link!'s pre-check and admit's locked re-check
+  # (Workspace#admit raises NotAdmittableError). Rescued the same as RecordInvalid
+  # so the whole signup rolls back cleanly with no orphaned user, instead of the
+  # error escaping and aborting registration with a raw exception. Normal
+  # stale-workspace parked joins never reach here — the pre-check drops them.
   # Sets flash.now[:alert] only on Invitation::NotAcceptable (so the caller
   # can rely on @user.errors for model-validation failures).
   def commit_signup_atomically(user, &block)

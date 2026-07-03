@@ -1,10 +1,11 @@
 require "rails_helper"
 
 # Exercises ApplicationController's app-wide Workspace::NotAdmittableError
-# rescue (not_admittable). The widened site-guards added in Task 5 reject
-# before Workspace#admit is ever reached, so without this spec the rescue
-# itself would be untested. Stubs #admit to force the error past a guard
-# that otherwise passes, on an active/open-join workspace.
+# rescue (not_admittable). #admit is stubbed to raise so the error fires past
+# a site-guard that otherwise passes on an active/open-join workspace — the
+# TOCTOU race where a workspace goes non-admittable under admit's lock. Once
+# Task 5's widened guards drop the normal stale cases earlier, this race is
+# the only path that reaches the rescue, so it must be proven with a stub.
 RSpec.describe "Workspace admission (not_admittable rescue)", type: :request do
   let(:workspace) { create(:workspace, personal: false, join_policy: "open_link") }
   let(:owner) { create(:user) }
