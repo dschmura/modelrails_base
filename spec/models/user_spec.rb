@@ -518,7 +518,11 @@ RSpec.describe User, type: :model do
     end
 
     it "returns nil if the personal workspace has been soft-deleted" do
-      user.personal_workspace.discard!
+      # discard! now raises HomeWorkspaceError for a personal workspace, so set
+      # the tombstone directly — this exercises the defensive nil-return for a
+      # legacy/console-discarded personal workspace row, which is the case this
+      # guard is here to survive.
+      user.personal_workspace.update_column(:discarded_at, Time.current)
       expect(user.personal_workspace).to be_nil
     end
 

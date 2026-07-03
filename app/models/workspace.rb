@@ -6,6 +6,11 @@ class Workspace < ApplicationRecord
   include Broadcastable
   include Sluggable
 
+  # Raised when an owner tries to archive/delete a home workspace (personal or
+  # the :shared instance workspace). Defense in depth behind WorkspacePolicy —
+  # covers console/direct-call paths the policy never sees.
+  HomeWorkspaceError = Class.new(StandardError)
+
   has_one_attached :logo
   has_one_attached :logo_original
   has_many :memberships, dependent: :destroy
@@ -84,6 +89,7 @@ class Workspace < ApplicationRecord
     transaction do
       lock!
       next if archived?
+      raise HomeWorkspaceError if home?
       raise Suspendable::SuspendedError if suspended?
       super
     end
@@ -102,6 +108,7 @@ class Workspace < ApplicationRecord
     transaction do
       lock!
       next if discarded?
+      raise HomeWorkspaceError if home?
       raise Suspendable::SuspendedError if suspended?
       projects.kept.find_each(&:discard!)
       super

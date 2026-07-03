@@ -117,6 +117,20 @@ RSpec.describe Workspace, type: :model do
     end
   end
 
+  describe "home-workspace mutator guards" do
+    let(:home) { create(:workspace, personal: true) }
+
+    it "raises HomeWorkspaceError on archive!" do
+      expect { home.archive! }.to raise_error(Workspace::HomeWorkspaceError)
+      expect(home.reload.archived_at).to be_nil
+    end
+
+    it "raises HomeWorkspaceError on discard!" do
+      expect { home.discard! }.to raise_error(Workspace::HomeWorkspaceError)
+      expect(home.reload).not_to be_discarded
+    end
+  end
+
   describe "#admittable?" do
     let(:workspace) { create(:workspace) }
 
