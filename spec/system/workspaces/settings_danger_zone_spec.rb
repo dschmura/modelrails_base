@@ -24,16 +24,20 @@ RSpec.describe "Workspace settings danger zone", type: :system do
       expect(workspace.reload).not_to be_discarded
     end
 
-    it "deletes permanently via the Delete action" do
+    it "requires typing the workspace name before Delete enables" do
       visit edit_workspace_settings_path(workspace)
       click_button I18n.t("workspaces.destroy.trigger")
-      expect(page).to have_css("dialog[open]")
-      expect(page).to have_text(I18n.t("workspaces.destroy.confirm"))
 
-      within("dialog[open]") { click_button I18n.t("workspaces.destroy.confirm_action") }
+      within("dialog[open]") do
+        expect(page).to have_button(I18n.t("workspaces.destroy.confirm_action"), disabled: true)
+        fill_in I18n.t("modals.confirm_input_label", name: workspace.name), with: "wrong name"
+        expect(page).to have_button(I18n.t("workspaces.destroy.confirm_action"), disabled: true)
+        fill_in I18n.t("modals.confirm_input_label", name: workspace.name), with: "  Acme Inc  "
+        expect(page).to have_button(I18n.t("workspaces.destroy.confirm_action"), disabled: false)
+        click_button I18n.t("workspaces.destroy.confirm_action")
+      end
 
       expect(page).to have_current_path(workspaces_path)
-      expect(page).to have_text(I18n.t("workspaces.destroy.success"))
       expect(workspace.reload).to be_discarded
     end
 

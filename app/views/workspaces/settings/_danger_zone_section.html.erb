@@ -34,7 +34,8 @@
               confirm_text: t("workspaces.destroy.confirm_action"),
               confirm_url: workspace_path(workspace),
               confirm_method: :delete,
-              variant: :danger %>
+              variant: :danger,
+              confirm_input: workspace.name %>
       </div>
     </div>
   </div>

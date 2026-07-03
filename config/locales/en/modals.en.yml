@@ -5,3 +5,5 @@ en:
     confirm: "Confirm"
     save: "Save"
     delete: "Delete"
+    confirm_input_label: "Type “%{name}” to confirm"
+    confirm_input_matched: "Name matches — %{action} enabled"

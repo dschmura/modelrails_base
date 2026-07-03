@@ -1,23 +1,55 @@
-<%# locals: (title:, message:, confirm_text:, confirm_url:, confirm_method: :delete, variant: :danger, cancel_text: nil, id: nil) -%>
+<%# locals: (title:, message:, confirm_text:, confirm_url:, confirm_method: :delete, variant: :danger, cancel_text: nil, id: nil, confirm_input: nil) -%>
 <%
   cancel_label = cancel_text || t("modals.cancel")
 
   confirm_icon = variant == :danger ? :exclamation_triangle : :information_circle
   icon_color = variant == :danger ? "text-danger-icon dark:text-danger-strong" : "text-info-icon"
   confirm_class = variant == :danger ? "btn-danger" : "btn-primary"
+
+  # Type-the-name friction (confirm_input:): the confirm button_to renders
+  # its OWN <form>, so the input CANNOT live inside it — input and button
+  # are siblings under this wrapper, wired via the confirm-input controller.
+  wrapper_data = if confirm_input
+    { controller: "confirm-input",
+      confirm_input_expected_value: confirm_input,
+      confirm_input_matched_message_value: t("modals.confirm_input_matched", action: confirm_text) }
+  else
+    {}
+  end
+  input_field_id = "confirm-input-#{id || confirm_input.hash.abs}" if confirm_input
 %>
 <%= render "shared/modal", title: title, id: id, size: :sm do %>
-  <div class="flex gap-4">
-    <div class="shrink-0 mt-0.5 <%= icon_color %>">
-      <%= icon(confirm_icon, size: :lg) %>
+  <%= tag.div data: wrapper_data do %>
+    <div class="flex gap-4">
+      <div class="shrink-0 mt-0.5 <%= icon_color %>">
+        <%= icon(confirm_icon, size: :lg) %>
+      </div>
+      <p class="text-sm text-text-body leading-relaxed"><%= message %></p>
     </div>
-    <p class="text-sm text-text-body leading-relaxed"><%= message %></p>
-  </div>
 
-  <div class="flex gap-3 justify-end mt-6 pt-4 border-t border-border">
-    <button data-action="click->modal#close" class="btn-secondary">
-      <%= cancel_label %>
-    </button>
-    <%= button_to confirm_text, confirm_url, method: confirm_method, class: confirm_class %>
-  </div>
+    <% if confirm_input %>
+      <div class="mt-4 space-y-2">
+        <label for="<%= input_field_id %>" class="block text-sm font-medium text-text-body">
+          <%= t("modals.confirm_input_label", name: confirm_input) %>
+        </label>
+        <input id="<%= input_field_id %>" type="text" autocomplete="off"
+               data-confirm-input-target="input"
+               data-action="input->confirm-input#check"
+               class="form-input w-full">
+        <p class="sr-only" aria-live="polite" data-confirm-input-target="status"></p>
+      </div>
+    <% end %>
+
+    <div class="flex gap-3 justify-end mt-6 pt-4 border-t border-border">
+      <button data-action="click->modal#close" class="btn-secondary">
+        <%= cancel_label %>
+      </button>
+      <%# turbo_submits_with disables the button during submission (double-submit
+          belt; the model-level idempotency guard is the suspender). Text stays
+          the same — the disable is the point. %>
+      <%= button_to confirm_text, confirm_url, method: confirm_method, class: confirm_class,
+            disabled: confirm_input.present?,
+            data: { turbo_submits_with: confirm_text }.merge(confirm_input ? { confirm_input_target: "button" } : {}) %>
+    </div>
+  <% end %>
 <% end %>
