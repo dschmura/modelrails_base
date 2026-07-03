@@ -5,7 +5,8 @@ module Workspaces
 
     def index
       authorize Project
-      @projects = @workspace.projects.kept
+      @projects = @workspace.projects.kept.active
+      @archived_projects = @workspace.projects.kept.archived.order(:name)
     end
 
     def new

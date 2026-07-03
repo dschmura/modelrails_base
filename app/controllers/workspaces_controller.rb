@@ -16,12 +16,19 @@ class WorkspacesController < ApplicationController
     # *other* members' user records.
     scope = Current.user.memberships.kept
               .joins(:workspace)
-              .merge(Workspace.kept)
+              .merge(Workspace.kept.active)
               .includes(
                 :role,
                 workspace: [ :logo_attachment, memberships: [ :role, :user ] ]
               )
               .order(Arel.sql("memberships.last_accessed_at DESC NULLS LAST, workspaces.name ASC"))
+
+    @archived_memberships = Current.user.memberships.kept
+              .joins(:workspace)
+              .merge(Workspace.kept.archived)
+              .includes(workspace: :logo_attachment)
+              .order("workspaces.name ASC")
+              .to_a
 
     @memberships = scope.to_a
     @current_membership = @memberships.first
