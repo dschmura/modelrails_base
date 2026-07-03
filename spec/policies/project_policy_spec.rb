@@ -28,6 +28,11 @@ RSpec.describe ProjectPolicy do
     it "allows destroy" do
       expect(described_class.new(creator_user, project).destroy?).to be true
     end
+
+    it "allows archive and unarchive" do
+      expect(described_class.new(creator_user, project).archive?).to be true
+      expect(described_class.new(creator_user, project).unarchive?).to be true
+    end
   end
 
   describe "for project editor" do
@@ -41,6 +46,11 @@ RSpec.describe ProjectPolicy do
 
     it "denies destroy" do
       expect(described_class.new(editor_user, project).destroy?).to be false
+    end
+
+    it "denies archive and unarchive" do
+      expect(described_class.new(editor_user, project).archive?).to be false
+      expect(described_class.new(editor_user, project).unarchive?).to be false
     end
   end
 

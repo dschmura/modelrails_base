@@ -1,0 +1,8 @@
+en:
+  lifecycle_status:
+    active: "Active"
+    archived: "Archived"
+    suspended: "Locked"
+    discarded: "Deleted"
+  lifecycle:
+    restore: "Restore"

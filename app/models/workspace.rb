@@ -1,5 +1,7 @@
 class Workspace < ApplicationRecord
   include Discardable
+  include Archivable
+  include Suspendable
   include Trackable
   include Broadcastable
   include Sluggable
@@ -40,10 +42,51 @@ class Workspace < ApplicationRecord
     [ :update ]
   end
 
+  # Lifecycle status with explicit precedence — the single authoritative
+  # answer to "what state is this record in". Display goes through
+  # LifecycleHelper#lifecycle_status_label, never status.to_s.
+  # NB: Time === ActiveSupport::TimeWithZone is true (ActiveSupport
+  # special-cases case-equality) — don't "fix" the Time patterns.
+  def status
+    case [ discarded_at, suspended_at, archived_at ]
+    in [ Time, * ]     then :discarded
+    in [ _, Time, * ]  then :suspended
+    in [ _, _, Time ]  then :archived
+    else                    :active
+    end
+  end
+
+  # Guarded lifecycle mutators. Plain `transaction do` opens BEGIN IMMEDIATE
+  # on Rails 8.1's SQLite adapter (write lock taken before the first read),
+  # so lock!-then-guard is atomic check-then-act. lock! raises on records
+  # with unsaved changes — these mutators require clean records.
+  # `next` (not `return`) exits early: it commits the empty transaction;
+  # `return` would roll back.
+  def archive!
+    transaction do
+      lock!
+      next if archived?
+      raise Suspendable::SuspendedError if suspended?
+      super
+    end
+  end
+
+  def unarchive!
+    transaction do
+      lock!
+      next unless archived?
+      raise Suspendable::SuspendedError if suspended?
+      super
+    end
+  end
+
   def discard!
     transaction do
-      super
+      lock!
+      next if discarded?
+      raise Suspendable::SuspendedError if suspended?
       projects.kept.find_each(&:discard!)
+      super
     end
   end
 

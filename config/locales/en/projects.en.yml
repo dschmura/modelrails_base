@@ -25,11 +25,19 @@ en:
       update:
         success: "Project updated."
       destroy:
-        success: "Project archived."
+        success: "Project deleted."
+        trigger: "Delete permanently"
+        title: "Delete this project for good?"
+        confirm: "This can't be undone. The project and everything in it will be gone."
+        confirm_action: "Delete forever"
+      archive:
+        success: "Project archived. You can restore it anytime from the Archived section."
         trigger: "Archive project"
-        title: "Archive project?"
-        confirm: "Are you sure? This project will be archived. It can be restored by an administrator."
+        title: "Archive this project?"
+        confirm: "It'll move out of your active list. You can bring it back anytime from the Archived section."
         confirm_action: "Archive"
+      unarchive:
+        success: "Project restored."
       invitations:
         new:
           title: "Invite to project"

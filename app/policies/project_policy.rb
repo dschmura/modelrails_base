@@ -15,11 +15,23 @@ class ProjectPolicy < ApplicationPolicy
     project_membership&.creator?
   end
 
+  def archive?
+    lifecycle_manageable?
+  end
+
+  def unarchive?
+    lifecycle_manageable?
+  end
+
   def destroy?
-    project_membership&.creator? || can?("manage_workspace")
+    lifecycle_manageable?
   end
 
   private
+
+  def lifecycle_manageable?
+    project_membership&.creator? || can?("manage_workspace")
+  end
 
   def project_membership
     @project_membership ||= record.project_memberships.find_by(user: user)

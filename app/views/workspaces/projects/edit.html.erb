@@ -19,23 +19,37 @@
   <% end %>
 
   <% if policy(@project).destroy? %>
-    <div class="mt-8 p-4 border border-danger-border rounded-lg flex items-center justify-between gap-4">
-      <p class="text-sm text-text-body"><%= t("workspaces.projects.destroy.confirm") %></p>
+    <div class="mt-8 p-4 border border-danger-border rounded-lg space-y-4">
+      <div class="action-group">
+        <div data-controller="modal" class="inline">
+          <button type="button"
+                  data-action="click->modal#open"
+                  class="btn-touch-target btn-text btn-text-interactive text-sm">
+            <%= t("workspaces.projects.archive.trigger") %>
+          </button>
+          <%= render "shared/confirm_dialog",
+                title: t("workspaces.projects.archive.title"),
+                message: t("workspaces.projects.archive.confirm"),
+                confirm_text: t("workspaces.projects.archive.confirm_action"),
+                confirm_url: archive_workspace_project_path(@workspace, @project),
+                confirm_method: :patch,
+                variant: :default %>
+        </div>
 
-      <div data-controller="modal" class="shrink-0">
-        <button type="button"
-                data-action="click->modal#open"
-                class="btn-touch-target btn-text btn-text-danger text-sm">
-          <%= t("workspaces.projects.destroy.trigger") %>
-        </button>
-
-        <%= render "shared/confirm_dialog",
-              title: t("workspaces.projects.destroy.title"),
-              message: t("workspaces.projects.destroy.confirm"),
-              confirm_text: t("workspaces.projects.destroy.confirm_action"),
-              confirm_url: workspace_project_path(@workspace, @project),
-              confirm_method: :delete,
-              variant: :danger %>
+        <div data-controller="modal" class="inline">
+          <button type="button"
+                  data-action="click->modal#open"
+                  class="btn-touch-target btn-text btn-text-danger text-sm">
+            <%= t("workspaces.projects.destroy.trigger") %>
+          </button>
+          <%= render "shared/confirm_dialog",
+                title: t("workspaces.projects.destroy.title"),
+                message: t("workspaces.projects.destroy.confirm"),
+                confirm_text: t("workspaces.projects.destroy.confirm_action"),
+                confirm_url: workspace_project_path(@workspace, @project),
+                confirm_method: :delete,
+                variant: :danger %>
+        </div>
       </div>
     </div>
   <% end %>

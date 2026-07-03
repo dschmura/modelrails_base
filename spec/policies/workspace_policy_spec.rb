@@ -20,6 +20,11 @@ RSpec.describe WorkspacePolicy do
     it "allows destroy" do
       expect(described_class.new(user, workspace).destroy?).to be true
     end
+
+    it "allows archive and unarchive" do
+      expect(described_class.new(user, workspace).archive?).to be true
+      expect(described_class.new(user, workspace).unarchive?).to be true
+    end
   end
 
   describe "for member" do
@@ -36,6 +41,11 @@ RSpec.describe WorkspacePolicy do
 
     it "denies destroy" do
       expect(described_class.new(user, workspace).destroy?).to be false
+    end
+
+    it "denies archive and unarchive" do
+      expect(described_class.new(user, workspace).archive?).to be false
+      expect(described_class.new(user, workspace).unarchive?).to be false
     end
   end
 

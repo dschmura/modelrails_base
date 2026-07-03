@@ -172,6 +172,18 @@ class WorkspacesController < ApplicationController
     redirect_to workspaces_path, notice: t(".success")
   end
 
+  def archive
+    authorize @workspace
+    @workspace.archive!
+    redirect_to workspaces_path, notice: t(".success")
+  end
+
+  def unarchive
+    authorize @workspace
+    @workspace.unarchive!
+    redirect_to workspace_path(@workspace), notice: t(".success")
+  end
+
   private
 
   # Posture gate: under TENANCY_WORKSPACE_CREATION=disabled (typically the

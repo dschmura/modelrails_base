@@ -1,5 +1,6 @@
 class Project < ApplicationRecord
   include Discardable
+  include Archivable
   include Tenanted
   include Trackable
   include Broadcastable
@@ -27,6 +28,46 @@ class Project < ApplicationRecord
 
   def initials
     name.split.map(&:first).take(2).join.upcase
+  end
+
+  # See Workspace#status — Project has no suspended branch (Suspendable is
+  # workspace-only; a locked workspace gates everything inside it).
+  def status
+    case [ discarded_at, archived_at ]
+    in [ Time, * ]  then :discarded
+    in [ _, Time ]  then :archived
+    else                 :active
+    end
+  end
+
+  # Guarded like Workspace's mutators (see comments there). The suspended
+  # guard reads through the association — lock! clears the association
+  # cache, so workspace.suspended? re-reads committed state under the lock.
+  def archive!
+    transaction do
+      lock!
+      next if archived?
+      raise Suspendable::SuspendedError if workspace.suspended?
+      super
+    end
+  end
+
+  def unarchive!
+    transaction do
+      lock!
+      next unless archived?
+      raise Suspendable::SuspendedError if workspace.suspended?
+      super
+    end
+  end
+
+  def discard!
+    transaction do
+      lock!
+      next if discarded?
+      raise Suspendable::SuspendedError if workspace.suspended?
+      super
+    end
   end
 
   def tool_enabled?(key)

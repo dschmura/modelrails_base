@@ -1,0 +1,85 @@
+require "rails_helper"
+
+RSpec.describe Workspace, type: :model do
+  let(:workspace) { create(:workspace) }
+
+  describe "#status" do
+    it "is :active with no lifecycle timestamps" do
+      expect(workspace.status).to eq(:active)
+    end
+
+    it "is :archived when archived" do
+      workspace.archive!
+      expect(workspace.status).to eq(:archived)
+    end
+
+    it "is :suspended when suspended, taking precedence over archived" do
+      workspace.archive!
+      workspace.suspend!
+      expect(workspace.status).to eq(:suspended)
+    end
+
+    it "is :discarded with highest precedence" do
+      workspace.archive!
+      workspace.discard!
+      workspace.suspend!
+      expect(workspace.status).to eq(:discarded)
+    end
+  end
+
+  describe "guarded mutators" do
+    it "blocks archive! while suspended" do
+      workspace.suspend!
+      expect { workspace.archive! }.to raise_error(Suspendable::SuspendedError)
+      expect(workspace.reload.archived_at).to be_nil
+    end
+
+    it "blocks unarchive! while suspended (real transition attempt)" do
+      workspace.archive!
+      workspace.suspend!
+      expect { workspace.unarchive! }.to raise_error(Suspendable::SuspendedError)
+      expect(workspace.reload).to be_archived
+    end
+
+    it "blocks discard! while suspended" do
+      workspace.suspend!
+      expect { workspace.discard! }.to raise_error(Suspendable::SuspendedError)
+      expect(workspace.reload).not_to be_discarded
+    end
+
+    it "does not raise on an idempotent archive! of an already-archived locked workspace" do
+      workspace.archive!
+      workspace.suspend!
+      expect { workspace.archive! }.not_to raise_error
+    end
+  end
+
+  describe "idempotency" do
+    it "archives once: second call keeps the original timestamp and fires no callbacks" do
+      workspace.archive!
+      original = workspace.reload.archived_at
+      expect { travel_to(1.hour.from_now) { workspace.archive! } }
+        .not_to change { ActivityLog.count }
+      expect(workspace.reload.archived_at).to eq(original)
+    end
+
+    it "discards once: second call fires no callbacks" do
+      workspace.discard!
+      expect { workspace.discard! }.not_to change { ActivityLog.count }
+    end
+  end
+
+  describe "cascades" do
+    let!(:project) { create(:project, workspace: workspace) }
+
+    it "archive! does NOT touch project rows (no archive cascade)" do
+      workspace.archive!
+      expect(project.reload.archived_at).to be_nil
+    end
+
+    it "discard! still cascades to kept projects (unchanged)" do
+      workspace.discard!
+      expect(project.reload).to be_discarded
+    end
+  end
+end
