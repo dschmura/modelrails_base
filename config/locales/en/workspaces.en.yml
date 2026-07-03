@@ -86,6 +86,10 @@ en:
       title: "Archive workspace?"
       confirm: "Are you sure? This workspace and all of its projects will be archived. This can be undone by an administrator."
       confirm_action: "Archive"
+    archive:
+      success: "Workspace archived. You can restore it anytime from the Archived section."
+    unarchive:
+      success: "Workspace restored."
     members:
       index:
         title: "Members"

@@ -1,7 +1,7 @@
 module Workspaces
   class ProjectsController < ApplicationController
     include WorkspaceScoped
-    before_action :set_project, only: [ :show, :edit, :update, :destroy ]
+    before_action :set_project, only: [ :show, :edit, :update, :destroy, :archive, :unarchive ]
 
     def index
       authorize Project
@@ -47,6 +47,18 @@ module Workspaces
       authorize @project
       @project.discard!
       redirect_to workspace_projects_path(@workspace), notice: t(".success")
+    end
+
+    def archive
+      authorize @project
+      @project.archive!
+      redirect_to workspace_projects_path(@workspace), notice: t(".success")
+    end
+
+    def unarchive
+      authorize @project
+      @project.unarchive!
+      redirect_to workspace_project_path(@workspace, @project), notice: t(".success")
     end
 
     private

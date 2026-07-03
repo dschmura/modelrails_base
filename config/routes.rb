@@ -65,6 +65,8 @@ Rails.application.routes.draw do
   resources :workspaces, param: :slug do
     member do
       get :identity_picker_hub
+      patch :archive
+      patch :unarchive
     end
     scope module: :workspaces do
       resources :members, only: [ :index, :edit, :update, :destroy ] do
@@ -86,6 +88,10 @@ Rails.application.routes.draw do
       post "joins/:token", to: "joins#create"
       resource :settings, only: [ :edit, :update ]
       resources :projects, param: :slug do
+        member do
+          patch :archive
+          patch :unarchive
+        end
         scope module: :projects do
           resources :memberships, only: [ :index, :new, :create, :update, :destroy ] do
             member do

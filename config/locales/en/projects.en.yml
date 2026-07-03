@@ -30,6 +30,10 @@ en:
         title: "Archive project?"
         confirm: "Are you sure? This project will be archived. It can be restored by an administrator."
         confirm_action: "Archive"
+      archive:
+        success: "Project archived. You can restore it anytime from the Archived section."
+      unarchive:
+        success: "Project restored."
       invitations:
         new:
           title: "Invite to project"
