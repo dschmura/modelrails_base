@@ -5,6 +5,7 @@ en:
     not_found: "Workspace not found."
     unauthorized: "You don't have permission to do that."
     creation_disabled: "Workspace creation is disabled on this instance."
+    archived_banner: "This workspace is archived."
     join_links:
       create:
         rotated: "Shareable join link rotated. Previous link no longer works."
@@ -39,6 +40,7 @@ en:
       empty: "You don't have any workspaces yet."
       current_badge: "Current"
       other_workspaces_heading: "Other workspaces"
+      archived_heading: "Archived"
       create_workspace_cta: "Create workspace"
       row:
         switch: "Switch"
