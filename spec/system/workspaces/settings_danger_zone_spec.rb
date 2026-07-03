@@ -10,21 +10,26 @@ RSpec.describe "Workspace settings danger zone", type: :system do
   context "as an owner" do
     before { sign_in_via_form(owner) }
 
-    it "shows an Archive workspace trigger on the Settings page" do
+    it "archives (not deletes) via the Archive action" do
       visit edit_workspace_settings_path(workspace)
-      expect(page).to have_button(I18n.t("workspaces.destroy.trigger"))
+      click_button I18n.t("workspaces.archive.trigger")
+      expect(page).to have_css("dialog[open]")
+      expect(page).to have_text(I18n.t("workspaces.archive.confirm"))
+
+      within("dialog[open]") { click_button I18n.t("workspaces.archive.confirm_action") }
+
+      expect(page).to have_current_path(workspaces_path)
+      expect(page).to have_text(I18n.t("workspaces.archive.success"))
+      expect(workspace.reload).to be_archived
+      expect(workspace.reload).not_to be_discarded
     end
 
-    it "opens a confirmation dialog explaining the action before archiving" do
+    it "deletes permanently via the Delete action" do
       visit edit_workspace_settings_path(workspace)
       click_button I18n.t("workspaces.destroy.trigger")
       expect(page).to have_css("dialog[open]")
       expect(page).to have_text(I18n.t("workspaces.destroy.confirm"))
-    end
 
-    it "archives the workspace and redirects to the workspaces index on confirm" do
-      visit edit_workspace_settings_path(workspace)
-      click_button I18n.t("workspaces.destroy.trigger")
       within("dialog[open]") { click_button I18n.t("workspaces.destroy.confirm_action") }
 
       expect(page).to have_current_path(workspaces_path)
@@ -32,7 +37,15 @@ RSpec.describe "Workspace settings danger zone", type: :system do
       expect(workspace.reload).to be_discarded
     end
 
-    it "passes axe-core at WCAG 2.2 AAA with the dialog open, in light and dark modes" do
+    it "passes axe AAA with the archive dialog open, both themes" do
+      visit edit_workspace_settings_path(workspace)
+      click_button I18n.t("workspaces.archive.trigger")
+      expect(page).to have_css("dialog[open]")
+      expect(axe_clean_in_both_themes?(axe_options)).to be(true),
+        "Accessibility violations:\n#{axe_violations_in_both_themes(axe_options).join("\n")}"
+    end
+
+    it "passes axe AAA with the delete dialog open, both themes" do
       visit edit_workspace_settings_path(workspace)
       click_button I18n.t("workspaces.destroy.trigger")
       expect(page).to have_css("dialog[open]")
@@ -49,7 +62,7 @@ RSpec.describe "Workspace settings danger zone", type: :system do
       sign_in_via_form(member)
     end
 
-    it "cannot reach the Settings page at all (edit? requires manage_settings)" do
+    it "cannot reach the Settings page at all" do
       visit edit_workspace_settings_path(workspace)
       expect(page).to have_current_path(workspace_path(workspace))
       expect(page).to have_text(I18n.t("errors.not_authorized"))
