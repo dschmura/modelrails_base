@@ -56,6 +56,24 @@ class Workspace < ApplicationRecord
     end
   end
 
+  # A "home" workspace is the user's personal workspace or, under the :shared
+  # posture, the instance's single shared workspace. Home workspaces are
+  # exempt from owner archive/delete (there's nowhere for the user to land).
+  # Compared by slug — never a query or AR identity — so it stays correct
+  # regardless of the workspace's own lifecycle state (see design finding #5).
+  def home?
+    personal? || (TenancyConfig.shared? && slug == TenancyConfig.shared_workspace_slug)
+  end
+
+  # A workspace accepts NEW members (via join link, invitation, or signup
+  # claim) only while active. Existing-member management is separate — see
+  # Membership#reactivate!. Derived from `status` (not a hand-rolled
+  # conjunction) so a future lifecycle state fails CLOSED here automatically
+  # instead of silently admitting — the exact bug class this guard exists for.
+  def admittable?
+    status == :active
+  end
+
   # Guarded lifecycle mutators. Plain `transaction do` opens BEGIN IMMEDIATE
   # on Rails 8.1's SQLite adapter (write lock taken before the first read),
   # so lock!-then-guard is atomic check-then-act. lock! raises on records

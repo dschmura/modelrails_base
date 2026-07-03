@@ -94,4 +94,49 @@ RSpec.describe Workspace, type: :model do
       expect(project.reload).to be_discarded
     end
   end
+
+  describe "#home?" do
+    it "is true for a personal workspace" do
+      expect(create(:workspace, personal: true).home?).to be(true)
+    end
+
+    it "is false for an ordinary workspace under the default posture" do
+      expect(create(:workspace, personal: false).home?).to be(false)
+    end
+
+    it "is true for the configured shared workspace under the :shared posture" do
+      allow(TenancyConfig).to receive(:shared?).and_return(true)
+      allow(TenancyConfig).to receive(:shared_workspace_slug).and_return("hq")
+      expect(create(:workspace, slug: "hq", personal: false).home?).to be(true)
+    end
+
+    it "is false for a non-shared workspace even under the :shared posture" do
+      allow(TenancyConfig).to receive(:shared?).and_return(true)
+      allow(TenancyConfig).to receive(:shared_workspace_slug).and_return("hq")
+      expect(create(:workspace, slug: "not-hq", personal: false).home?).to be(false)
+    end
+  end
+
+  describe "#admittable?" do
+    let(:workspace) { create(:workspace) }
+
+    it "is true only when active (kept, not archived, not suspended)" do
+      expect(workspace.admittable?).to be(true)
+    end
+
+    it "is false when archived" do
+      workspace.archive!
+      expect(workspace.admittable?).to be(false)
+    end
+
+    it "is false when suspended" do
+      workspace.suspend!
+      expect(workspace.admittable?).to be(false)
+    end
+
+    it "is false when discarded" do
+      workspace.discard!
+      expect(workspace.admittable?).to be(false)
+    end
+  end
 end
