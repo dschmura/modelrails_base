@@ -11,6 +11,12 @@ class Workspace < ApplicationRecord
   # covers console/direct-call paths the policy never sees.
   HomeWorkspaceError = Class.new(StandardError)
 
+  # Raised by #admit when a workspace won't accept new members (archived,
+  # suspended, or deleted). Distinct from Suspendable::SuspendedError so its
+  # rescue can map to GENERIC, non-disclosing copy — an outsider following a
+  # join link/invitation must not learn which lifecycle state blocked them.
+  NotAdmittableError = Class.new(StandardError)
+
   has_one_attached :logo
   has_one_attached :logo_original
   has_many :memberships, dependent: :destroy
@@ -186,7 +192,7 @@ class Workspace < ApplicationRecord
   def admit(user, role:)
     transaction do
       lock!
-      raise Suspendable::SuspendedError if suspended?
+      raise NotAdmittableError unless admittable?
       existing = memberships.find_by(user: user)
       if existing&.discarded?
         existing.undiscard!

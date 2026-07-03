@@ -4,10 +4,15 @@ module Signupable
   # Runs user creation, invitation acceptance, and open-link join in a single
   # transaction. The block receives the saved user and should perform any
   # in-transaction work (creating authentications, generating verification
-  # tokens, etc.). Exceptions other than Invitation::NotAcceptable and
-  # ActiveRecord::RecordInvalid will propagate beyond this method.
+  # tokens, etc.). Exceptions other than Invitation::NotAcceptable,
+  # ActiveRecord::RecordInvalid, and Workspace::NotAdmittableError will
+  # propagate beyond this method.
   #
-  # Returns true on commit, false on validation failure or invitation race.
+  # Returns true on commit, false on validation failure, invitation race, or
+  # a parked open-link join whose workspace went archived/suspended/deleted
+  # mid-transaction (Workspace#admit raises NotAdmittableError — rescued here
+  # the same as RecordInvalid so the whole signup rolls back cleanly instead
+  # of letting the error escape and abort registration with a raw exception).
   # Sets flash.now[:alert] only on Invitation::NotAcceptable (so the caller
   # can rely on @user.errors for model-validation failures).
   def commit_signup_atomically(user, &block)
@@ -21,7 +26,7 @@ module Signupable
   rescue Invitation::NotAcceptable
     flash.now[:alert] = I18n.t("registrations.create.invitation_consumed")
     false
-  rescue ActiveRecord::RecordInvalid
+  rescue ActiveRecord::RecordInvalid, Workspace::NotAdmittableError
     false
   end
 

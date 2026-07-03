@@ -61,7 +61,7 @@ RSpec.describe Workspace, type: :model do
       user = create(:user)
       workspace.suspend!
 
-      expect { workspace.admit(user, role: member_role) }.to raise_error(Suspendable::SuspendedError)
+      expect { workspace.admit(user, role: member_role) }.to raise_error(Workspace::NotAdmittableError)
       expect(workspace.memberships.find_by(user: user)).to be_nil
     end
   end
@@ -151,6 +151,27 @@ RSpec.describe Workspace, type: :model do
     it "is false when discarded" do
       workspace.discard!
       expect(workspace.admittable?).to be(false)
+    end
+  end
+
+  describe "#admit admittability guard" do
+    let(:workspace) { create(:workspace) }
+    let(:role) { Role.find_or_create_by!(slug: "member", workspace_id: nil) { |r| r.name = "Member" } }
+    let(:joiner) { create(:user) }
+
+    it "raises NotAdmittableError when the workspace is archived" do
+      workspace.archive!
+      expect { workspace.admit(joiner, role: role) }.to raise_error(Workspace::NotAdmittableError)
+      expect(workspace.reload.memberships.where(user: joiner)).to be_empty
+    end
+
+    it "raises NotAdmittableError when the workspace is suspended" do
+      workspace.suspend!
+      expect { workspace.admit(joiner, role: role) }.to raise_error(Workspace::NotAdmittableError)
+    end
+
+    it "admits normally into an active workspace" do
+      expect { workspace.admit(joiner, role: role) }.to change { workspace.memberships.kept.count }.by(1)
     end
   end
 end

@@ -291,6 +291,29 @@ RSpec.describe "Magic Link Callbacks", type: :request do
           expect(flash[:alert]).not_to eq(I18n.t("workspaces.locked_notice"))
         end
       end
+
+      # Unlike the suspended case above, accept_pending_join_link!'s pre-check
+      # only tests open_join?/suspended? — it doesn't test archived?, so an
+      # archived workspace falls through to Workspace#admit, which now raises
+      # NotAdmittableError. Proves Signupable#commit_signup_atomically rescues
+      # it (mapped to the same "return false" outcome as RecordInvalid) rather
+      # than letting it escape and roll back the whole registration silently
+      # succeeding with a membership on a dead workspace (the pre-fix bug).
+      context "when the workspace was archived between parking and signup" do
+        before { join_workspace.archive! }
+
+        it "rolls back the whole signup and shows the generic invalid-link copy" do
+          token = MagicLinkToken.create_for_email("archived-joiner@example.com")
+
+          expect {
+            post magic_link_callback_path(token: token), params: {
+              user: { first_name: "Ar", last_name: "Chived" }
+            }
+          }.not_to change(User, :count)
+
+          expect(flash[:alert]).to eq(I18n.t("magic_link_callbacks.create.invalid"))
+        end
+      end
     end
 
     context "registration via magic link with a pending invitation" do
