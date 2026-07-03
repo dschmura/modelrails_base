@@ -2,10 +2,12 @@ en:
   workspaces:
     projects:
       not_found: "Project not found."
+      archived_banner: "This project is archived."
       index:
         title: "Projects"
         new_project: "New project"
         empty: "No projects yet."
+        archived_heading: "Archived"
       new:
         title: "Create a project"
         name_label: "Project name"

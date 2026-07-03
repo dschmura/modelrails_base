@@ -31,7 +31,30 @@
         <% end %>
       <% end %>
     </div>
-  <% else %>
+  <% end %>
+
+  <% if @archived_projects.any? %>
+    <section class="mt-8" data-test="archived-projects">
+      <h2 class="text-xs font-semibold uppercase tracking-wider text-text-muted mb-3">
+        <%= t("workspaces.projects.index.archived_heading") %>
+      </h2>
+      <ul class="flex flex-col gap-2">
+        <% @archived_projects.each do |project| %>
+          <li class="flex items-center justify-between gap-4 p-4 border border-border rounded-lg bg-surface">
+            <div class="min-w-0">
+              <p class="font-medium text-text-heading truncate"><%= project.name %></p>
+              <p class="text-sm text-text-muted"><%= lifecycle_status_label(project) %></p>
+            </div>
+            <%= button_to t("lifecycle.restore"), unarchive_workspace_project_path(@workspace, project),
+                  method: :patch,
+                  class: "btn-touch-target btn-text btn-text-interactive text-sm shrink-0" %>
+          </li>
+        <% end %>
+      </ul>
+    </section>
+  <% end %>
+
+  <% if @projects.empty? && @archived_projects.empty? %>
     <div class="mt-8">
       <%= render "shared/empty_state", message: t("workspaces.projects.index.empty") %>
     </div>
