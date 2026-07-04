@@ -581,6 +581,17 @@ RSpec.describe User, type: :model do
 
       expect { create(:user) }.to raise_error(/shared workspace/i)
     end
+
+    it "creates the account but joins no membership when the shared workspace is suspended" do
+      shared_workspace.suspend!
+
+      user = nil
+      expect {
+        user = create(:user)
+      }.to change(User, :count).by(1)
+
+      expect(shared_workspace.memberships.where(user: user)).to be_empty
+    end
   end
 
   describe "#onboard_workspace under :none posture" do
