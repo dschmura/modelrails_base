@@ -40,8 +40,10 @@ module Signupable
   end
 
   # Consumes the session's pending invitation token. Idempotent if no token
-  # is present. Raises Invitation::NotAcceptable if the invitation is no
-  # longer acceptable. Session token is deleted ONLY on successful acceptance.
+  # is present. Raises Invitation::NotAcceptable if the invitation is no longer
+  # acceptable — the caller's commit_signup_atomically rescue clears the token
+  # in that case (I1), so a retry can't loop. This method itself deletes the
+  # token only on successful acceptance or an EmailMismatch skip.
   def accept_pending_invitation!(user)
     consumed = Invitation.consume!(
       token: session[:pending_invitation_token],
