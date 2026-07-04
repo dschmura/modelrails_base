@@ -86,7 +86,9 @@ RSpec.describe SettingsNavigationHelper, type: :helper do
       create(:membership, user: member, workspace: workspace) # non-owner
       allow(Current).to receive(:user).and_return(member)
 
-      labels = helper.workspace_settings_nav_items.map { |i| i[:label] }
+      items = helper.workspace_settings_nav_items
+      expect(items).to all(include(:href, :icon))
+      labels = items.map { |i| i[:label] }
       expect(labels).not_to include(I18n.t("settings.sidebar.items.limits_and_plan"))
     end
   end
