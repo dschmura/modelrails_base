@@ -32,6 +32,15 @@ RSpec.describe "Settings hub — mobile accordion", type: :system, js: true do
     expect(page).to have_css("[data-mobile-menu-target='menu']:not(.hidden)")
   end
 
+  it "reveals only global chrome on tap, not the section sub-nav" do
+    visit edit_settings_profile_path
+    click_button I18n.t("navigation.mobile_menu.open")
+    within("[data-mobile-menu-target='menu']") do
+      expect(page).to have_link(I18n.t("navigation.all_workspaces"))          # global chrome
+      expect(page).to have_no_link(I18n.t("settings.sidebar.items.security")) # sub-nav lives in the in-page strip
+    end
+  end
+
   it "auto-closes the accordion when a link inside is tapped" do
     visit edit_settings_profile_path
     click_button I18n.t("navigation.mobile_menu.open")

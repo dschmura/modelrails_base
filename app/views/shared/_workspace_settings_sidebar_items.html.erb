@@ -1,8 +1,8 @@
-<%# locals: (current_workspace:, id_suffix: "") -%>
+<%# locals: (current_workspace:) -%>
 <%# Workspace-settings sidebar items. Items come from
     SettingsNavigationHelper#workspace_settings_nav_items (single source of truth,
     Pundit-gated). Adding an item: add it there + the i18n keys. -%>
-<% section_label_id = "settings-sidebar-section-label#{id_suffix}" %>
+<% section_label_id = "settings-sidebar-section-label" %>
 <div id="<%= section_label_id %>"
      class="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-text-muted">
   <%= t("settings.sidebar.section_label.workspace") %>

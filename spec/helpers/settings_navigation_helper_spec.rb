@@ -1,68 +1,6 @@
 require "rails_helper"
 
 RSpec.describe SettingsNavigationHelper, type: :helper do
-  describe "#render_nav_item_if_permitted" do
-    let(:user) { create(:user) }
-    let(:workspace) { create(:workspace) }
-
-    before do
-      allow(Current).to receive(:user).and_return(user)
-      allow(Current).to receive(:workspace).and_return(workspace)
-    end
-
-    it "yields when the policy permits the action" do
-      allow(WorkspacePolicy).to receive(:new)
-        .with(user, workspace).and_return(instance_double(WorkspacePolicy, edit?: true))
-
-      output = helper.render_nav_item_if_permitted(workspace, action: :edit?) { "RENDERED" }
-      expect(output).to eq("RENDERED")
-    end
-
-    it "returns nil when the policy denies the action" do
-      allow(WorkspacePolicy).to receive(:new)
-        .with(user, workspace).and_return(instance_double(WorkspacePolicy, edit?: false))
-
-      output = helper.render_nav_item_if_permitted(workspace, action: :edit?) { "RENDERED" }
-      expect(output).to be_nil
-    end
-
-    it "infers the policy class from the record" do
-      membership = create(:membership, user: user, workspace: workspace)
-      allow(MembershipPolicy).to receive(:new)
-        .with(user, membership).and_return(instance_double(MembershipPolicy, index?: true))
-
-      output = helper.render_nav_item_if_permitted(membership, action: :index?) { "RENDERED" }
-      expect(output).to eq("RENDERED")
-    end
-
-    context "with an explicit policy_class:" do
-      it "yields when the given policy class permits the action" do
-        allow(Workspaces::SettingsPolicy).to receive(:new)
-          .with(user, workspace).and_return(instance_double(Workspaces::SettingsPolicy, update?: true))
-
-        output = helper.render_nav_item_if_permitted(
-          workspace, action: :update?, policy_class: Workspaces::SettingsPolicy
-        ) { "RENDERED" }
-        expect(output).to eq("RENDERED")
-      end
-
-      # Discriminator: the record's inferred policy (WorkspacePolicy) would
-      # permit, but the explicitly-requested SettingsPolicy denies — so a nil
-      # result proves the helper consults the given class, not the inferred one.
-      it "consults the given policy class instead of inferring from the record" do
-        allow(WorkspacePolicy).to receive(:new)
-          .and_return(instance_double(WorkspacePolicy, update?: true))
-        allow(Workspaces::SettingsPolicy).to receive(:new)
-          .with(user, workspace).and_return(instance_double(Workspaces::SettingsPolicy, update?: false))
-
-        output = helper.render_nav_item_if_permitted(
-          workspace, action: :update?, policy_class: Workspaces::SettingsPolicy
-        ) { "RENDERED" }
-        expect(output).to be_nil
-      end
-    end
-  end
-
   describe "#current_workspace_announcement_for_aria_live" do
     let(:user) { create(:user) }
 

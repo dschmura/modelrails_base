@@ -1,22 +1,4 @@
 module SettingsNavigationHelper
-  # Renders a sidebar nav block only when the given Pundit policy permits the
-  # action. By consulting the *same* policy/action the destination controller
-  # authorizes against, we keep sidebar visibility and controller authorization
-  # in lockstep — no separate SidebarPolicy to drift from the source of truth.
-  #
-  # Pass policy_class: when the record has more than one scoped policy and the
-  # convention-inferred one isn't the gate to consult — e.g. a Workspace is
-  # authorized by Workspaces::SettingsPolicy / Workspaces::ProfilePolicy rather
-  # than the default WorkspacePolicy for those destinations.
-  def render_nav_item_if_permitted(record, action:, policy_class: nil, &block)
-    return nil unless block_given?
-
-    policy = policy_class ? policy_class.new(Current.user, record) : Pundit.policy(Current.user, record)
-    return nil unless policy.public_send(action)
-
-    capture(&block)
-  end
-
   # Returns a localized announcement string for the polite aria-live region
   # when a workspace context is active. The string interpolates the workspace
   # name, the viewer's role, and the list of sidebar items they can actually
