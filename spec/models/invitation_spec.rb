@@ -758,6 +758,16 @@ RSpec.describe Invitation, type: :model do
       expect(inv).not_to be_valid
       expect(inv.errors[:base]).to be_present
     end
+
+    it "accept! for a client invitation to a discarded project raises NotAcceptable and creates no ClientAccess" do
+      inv = Invitation.invite_client!(project: project, email: "dana@bigco.com",
+                                      company_name: "BigCo", invited_by: inviter)
+      client = create(:user, :with_zero_workspaces, email_address: "dana@bigco.com")
+      project.discard!
+
+      expect { inv.accept!(client) }.to raise_error(Invitation::NotAcceptable)
+      expect(ClientAccess.where(user: client, project: project)).to be_empty
+    end
   end
 
   # Reshape 1 reconciliation: under :shared posture, User#onboard_workspace

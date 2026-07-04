@@ -221,6 +221,7 @@ class Invitation < ApplicationRecord
   end
 
   def accept_client_invitation!(user)
+    raise NotAcceptable, "Invitation no longer acceptable" unless invitable.kept?
     raise NotAcceptable, "Clientside is disabled for this project" unless invitable.clientside_enabled?
 
     access = invitable.client_accesses.find_by(user: user)
