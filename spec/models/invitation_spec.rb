@@ -768,6 +768,21 @@ RSpec.describe Invitation, type: :model do
       expect { inv.accept!(client) }.to raise_error(Invitation::NotAcceptable)
       expect(ClientAccess.where(user: client, project: project)).to be_empty
     end
+
+    # Closes the admission matrix for the CLIENT (project-invitable) vector: the
+    # single accept! choke-point guard (unless resolved_workspace&.admittable?)
+    # resolves the workspace THROUGH the project, so a new client invitation into
+    # an archived (or deleted) workspace is blocked — new admission requires an
+    # active workspace, even though archived KEEPS existing client access.
+    it "accept! for a client invitation whose workspace is archived raises NotAcceptable and creates no ClientAccess" do
+      inv = Invitation.invite_client!(project: project, email: "arch@bigco.com",
+                                      company_name: "BigCo", invited_by: inviter)
+      client = create(:user, :with_zero_workspaces, email_address: "arch@bigco.com")
+      project.workspace.archive!
+
+      expect { inv.accept!(client) }.to raise_error(Invitation::NotAcceptable)
+      expect(ClientAccess.where(user: client, project: project)).to be_empty
+    end
   end
 
   # Reshape 1 reconciliation: under :shared posture, User#onboard_workspace

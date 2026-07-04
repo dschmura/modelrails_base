@@ -15,7 +15,7 @@ RSpec.describe "Clientside lifecycle access", type: :request do
 
     it "excludes it from the clientside index" do
       get clientside_projects_path
-      expect(response.body).not_to include(project.name)
+      expect(response.body).not_to include(clientside_project_path(project))
       expect(response.body).not_to match(/archived|deleted|locked|suspended/i)
     end
 
@@ -32,7 +32,7 @@ RSpec.describe "Clientside lifecycle access", type: :request do
 
     it "excludes it from the index and blocks show with generic no-access" do
       get clientside_projects_path
-      expect(response.body).not_to include(project.name)
+      expect(response.body).not_to include(clientside_project_path(project))
       expect(response.body).not_to match(/archived|deleted|locked|suspended/i)
 
       get clientside_project_path(project)
@@ -47,7 +47,7 @@ RSpec.describe "Clientside lifecycle access", type: :request do
 
     it "excludes it from the index and blocks show with generic no-access" do
       get clientside_projects_path
-      expect(response.body).not_to include(project.name)
+      expect(response.body).not_to include(clientside_project_path(project))
       expect(response.body).not_to match(/archived|deleted|locked|suspended/i)
 
       get clientside_project_path(project)
@@ -62,7 +62,7 @@ RSpec.describe "Clientside lifecycle access", type: :request do
 
     it "still appears in the index and show renders" do
       get clientside_projects_path
-      expect(response.body).to include(project.name)
+      expect(response.body).to include(clientside_project_path(project))
 
       get clientside_project_path(project)
       expect(response).to have_http_status(:ok)
