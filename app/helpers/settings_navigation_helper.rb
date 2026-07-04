@@ -68,4 +68,27 @@ module SettingsNavigationHelper
 
     items
   end
+
+  # The five account-level settings items (unconditional).
+  def identity_settings_nav_items
+    [
+      { label: t("settings.sidebar.items.profile"), href: edit_settings_profile_path,
+        icon: :user_circle, aria_label: t("settings.sidebar.aria_labels.profile_personal"),
+        active: current_page?(edit_settings_profile_path) },
+      { label: t("settings.sidebar.items.notifications"), href: edit_settings_notification_preferences_path,
+        icon: :bell, active: current_page?(edit_settings_notification_preferences_path) },
+      { label: t("settings.sidebar.items.security"), href: settings_connected_accounts_path,
+        icon: :shield_check, active: current_page?(settings_connected_accounts_path) },
+      { label: t("settings.sidebar.items.passkeys"), href: settings_passkeys_path,
+        icon: :finger_print, active: current_page?(settings_passkeys_path) },
+      { label: t("settings.sidebar.items.appearance"), href: edit_settings_theme_preference_path,
+        icon: :color_swatch, active: current_page?(edit_settings_theme_preference_path) }
+    ]
+  end
+
+  # Settings-hub nav items for the current context (identity vs workspace),
+  # consumed by both the mobile strip and the desktop aside.
+  def settings_nav_items
+    settings_context_value == "workspace" ? workspace_settings_nav_items : identity_settings_nav_items
+  end
 end

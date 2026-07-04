@@ -17,6 +17,24 @@ module WorkspaceHelper
     lg: { css: "w-16 h-16", px: 64, text: "text-xl" }
   }.freeze
 
+  # Workspace-shell nav items (Overview, Projects, and Settings for org
+  # workspaces). The Settings item keeps active: false — settings pages use a
+  # separate layout, so this strip never renders on one, so it's never current.
+  def workspace_shell_nav_items
+    workspace = Current.workspace
+    items = [
+      { label: t("workspaces.sidebar.overview"), href: workspace_path(workspace),
+        icon: :home, active: current_page?(workspace_path(workspace)) },
+      { label: t("workspaces.sidebar.projects"), href: workspace_projects_path(workspace),
+        icon: :folder, active: current_page?(workspace_projects_path(workspace)) }
+    ]
+    unless workspace.personal?
+      items << { label: t("workspaces.sidebar.settings"), href: edit_workspace_path(workspace),
+                 icon: :cog, active: false }
+    end
+    items
+  end
+
   def workspace_icon_for(workspace, size: :md)
     config = WORKSPACE_ICON_SIZES.fetch(size)
 

@@ -152,4 +152,19 @@ RSpec.describe SettingsNavigationHelper, type: :helper do
       expect(labels).not_to include(I18n.t("settings.sidebar.items.limits_and_plan"))
     end
   end
+
+  describe "#identity_settings_nav_items" do
+    before { allow(helper).to receive(:current_page?).and_return(false) }
+
+    it "returns the five account items in order" do
+      labels = helper.identity_settings_nav_items.map { |i| i[:label] }
+      expect(labels).to eq([
+        I18n.t("settings.sidebar.items.profile"),
+        I18n.t("settings.sidebar.items.notifications"),
+        I18n.t("settings.sidebar.items.security"),
+        I18n.t("settings.sidebar.items.passkeys"),
+        I18n.t("settings.sidebar.items.appearance")
+      ])
+    end
+  end
 end
