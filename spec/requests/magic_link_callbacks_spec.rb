@@ -292,6 +292,35 @@ RSpec.describe "Magic Link Callbacks", type: :request do
         end
       end
 
+      # Task 5 (I2): archived and deleted must behave exactly like the
+      # suspended case above — silent no-op, signup still succeeds. This is a
+      # deliberate mechanism divergence from the invitation path (I1): an
+      # invitation FAILS the whole signup with a notice (the invitee already
+      # has a specific stake in that workspace), whereas an open-link visitor
+      # was never a member, so a silent drop is the only privacy-safe outcome.
+      %i[archive discard].each do |lifecycle_action|
+        lifecycle_name = lifecycle_action == :archive ? "archived" : "deleted"
+
+        context "when the workspace is #{lifecycle_name} between parking and signup" do
+          before { join_workspace.public_send("#{lifecycle_action}!") }
+
+          it "signs up the user without granting membership or leaking the lock" do
+            token = MagicLinkToken.create_for_email("#{lifecycle_name}-joiner@example.com")
+
+            expect {
+              post magic_link_callback_path(token: token), params: {
+                user: { first_name: "Test", last_name: "Joiner" }
+              }
+            }.to change(User, :count).by(1)
+
+            user = User.find_by(email_address: "#{lifecycle_name}-joiner@example.com")
+            expect(user.memberships.kept.where(workspace: join_workspace)).not_to exist
+            expect(flash[:alert]).not_to eq(I18n.t("workspaces.locked_notice"))
+            expect(flash[:alert]).not_to match(/archived|deleted|locked|suspended/i)
+          end
+        end
+      end
+
       # Defense-in-depth backstop for the TOCTOU window: accept_pending_join_link!
       # pre-checks the workspace, but it can go non-admittable (archived/suspended/
       # deleted) between that check and admit's own locked re-check. When that race
@@ -345,6 +374,50 @@ RSpec.describe "Magic Link Callbacks", type: :request do
 
         user = User.find_by(email_address: "invitee@example.com")
         expect(user.memberships.kept).to exist
+      end
+
+      # Task 5 (I1): breaks the invitation retry-loop. Invitation#accept!'s
+      # widened guard rejects the parked invitation because its workspace is
+      # archived, and commit_signup_atomically's rescue must clear
+      # session[:pending_invitation_token] — otherwise a retry hits the
+      # identical rejection forever. The invitation itself stays pending?
+      # (accept! guards before marking it consumed), so a second attempt with
+      # the token now gone signs up cleanly, just without that membership.
+      context "when the invitation's workspace is archived after being parked" do
+        before do
+          inv_workspace.archive!
+          # Isolate the mechanism under test (the parked invitation token
+          # trapping every retry) from the parent context's invite_only gate,
+          # which would otherwise block the retry for an unrelated reason
+          # (no token left to open the signup gate at all).
+          allow(Rails.configuration.x.signup).to receive(:mode).and_return(:open)
+        end
+
+        it "fails cleanly on the first attempt, clears the token, then succeeds on retry" do
+          first_token = MagicLinkToken.create_for_email("invitee@example.com")
+
+          expect {
+            post magic_link_callback_path(token: first_token), params: {
+              user: { first_name: "In", last_name: "Vitee" }
+            }
+          }.not_to change(User, :count)
+
+          expect(session[:pending_invitation_token]).to be_nil
+          expect(flash[:alert]).not_to match(/archived|deleted|locked|suspended/i)
+          expect(invitation.reload).to be_pending
+
+          retry_token = MagicLinkToken.create_for_email("invitee@example.com")
+
+          expect {
+            post magic_link_callback_path(token: retry_token), params: {
+              user: { first_name: "In", last_name: "Vitee" }
+            }
+          }.to change(User, :count).by(1)
+
+          user = User.find_by(email_address: "invitee@example.com")
+          expect(user).to be_present
+          expect(user.memberships.kept.where(workspace: inv_workspace)).not_to exist
+        end
       end
     end
   end

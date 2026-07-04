@@ -27,6 +27,12 @@ module Signupable
     end
     true
   rescue Invitation::NotAcceptable
+    # Clear the parked token here — session writes aren't transactional, so
+    # this persists even though the DB rolls back. Without it, a retry would
+    # hit the same non-admittable workspace and reject forever. The
+    # invitation itself stays pending? (accept! guards before marking it
+    # consumed), so it's still reclaimable via the emailed link.
+    session.delete(:pending_invitation_token)
     flash.now[:alert] = I18n.t("registrations.create.invitation_consumed")
     false
   rescue ActiveRecord::RecordInvalid, Workspace::NotAdmittableError
@@ -55,16 +61,17 @@ module Signupable
 
   # Consumes the session's pending open-link join token for a freshly-signed-up,
   # email-verified user. Stale link conditions (revoked, policy reverted,
-  # workspace suspended) are silent no-ops — a visitor who was never a member
-  # must not learn the workspace is locked. Benign "already a member" is
-  # rescued; other capacity errors propagate — the outer commit_signup_atomically
-  # rescues RecordInvalid and returns false, consistent with the invitation path.
+  # workspace archived/suspended/deleted) are silent no-ops — a visitor who
+  # was never a member must not learn the workspace is locked. Benign
+  # "already a member" is rescued; other capacity errors propagate — the
+  # outer commit_signup_atomically rescues RecordInvalid and returns false,
+  # consistent with the invitation path.
   def accept_pending_join_link!(user)
     token = session[:pending_join_token]
     return if token.blank?
 
     link = WorkspaceJoinLink.active.find_by(token: token)
-    if link.nil? || !link.workspace.open_join? || link.workspace.suspended?
+    if link.nil? || !link.workspace.open_join? || !link.workspace.admittable?
       session.delete(:pending_join_token)
       return
     end
