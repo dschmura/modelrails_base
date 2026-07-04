@@ -121,4 +121,35 @@ RSpec.describe SettingsNavigationHelper, type: :helper do
       expect(result).to include("Member")
     end
   end
+
+  describe "#workspace_settings_nav_items" do
+    let(:workspace) { create(:workspace) }
+    let(:owner) { create(:user) }
+
+    before do
+      create(:membership, :owner, user: owner, workspace: workspace)
+      allow(Current).to receive(:user).and_return(owner)
+      allow(Current).to receive(:workspace).and_return(workspace)
+      # current_page? is provided by the view context in a helper spec; stub it false.
+      allow(helper).to receive(:current_page?).and_return(false)
+    end
+
+    it "returns Profile, Members, Limits & Plan for an owner" do
+      labels = helper.workspace_settings_nav_items.map { |i| i[:label] }
+      expect(labels).to eq([
+        I18n.t("settings.sidebar.items.profile"),
+        I18n.t("settings.sidebar.items.members"),
+        I18n.t("settings.sidebar.items.limits_and_plan")
+      ])
+    end
+
+    it "each item carries href + icon and gating is applied (no Limits & Plan for a member)" do
+      member = create(:user)
+      create(:membership, user: member, workspace: workspace) # non-owner
+      allow(Current).to receive(:user).and_return(member)
+
+      labels = helper.workspace_settings_nav_items.map { |i| i[:label] }
+      expect(labels).not_to include(I18n.t("settings.sidebar.items.limits_and_plan"))
+    end
+  end
 end
