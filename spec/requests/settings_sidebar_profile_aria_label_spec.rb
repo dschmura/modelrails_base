@@ -28,9 +28,9 @@ RSpec.describe "Settings sidebar account Profile aria-label", type: :request do
     I18n.t("settings.sidebar.aria_labels.profile_personal")
   end
 
-  # GET /account/profile/edit renders the settings layout with
-  # Settings::ProfilesController, which declares settings_context :identity,
-  # so the identity sidebar items render.
+  # GET /account/profile/edit renders the settings layout via
+  # Settings::ProfilesController, which always renders the identity sidebar
+  # items (the settings layout is account-only).
   describe "GET /account/profile/edit (identity context)" do
     before { get edit_settings_profile_path }
 
