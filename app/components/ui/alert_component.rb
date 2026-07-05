@@ -30,8 +30,8 @@ module UI
   # `destructive`→`danger`, the rest 1:1.)
   class AlertComponent < ApplicationComponent
     OUTER_CLASSES = "relative grid w-full grid-cols-[0_1fr] items-start gap-y-0.5 rounded-lg border " \
-                    "px-4 py-3 text-sm has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr] " \
-                    "has-[>svg]:gap-x-3 [&>svg]:size-4 [&>svg]:translate-y-0.5 [&>svg]:text-current"
+                    "px-4 py-3 text-sm has-[>svg]:grid-cols-[calc(var(--spacing)*5)_1fr] " \
+                    "has-[>svg]:gap-x-3 [&>svg]:size-5 [&>svg]:translate-y-0.5 [&>svg]:text-current"
 
     # Signal levels share the tinted-surface treatment used by the toast cards
     # (`bg-<level>-surface` + `border-<level>-border` + `text-<level>`), so an alert
@@ -45,16 +45,16 @@ module UI
       danger:  "bg-danger-surface border-danger-border text-danger [&>svg]:text-current *:data-[slot=alert-description]:text-danger"
     }.freeze
 
-    # Tone → severity glyph (Lucide-style stroke paths, identical to the toaster's
+    # Tone → severity glyph (Heroicons-style stroke paths, identical to the toaster's
     # so an alert and a toast at the same level read the same): info circle, check
-    # circle, warning triangle, danger circle-x. Distinct shapes keep severity
-    # legible without relying on color alone (WCAG 1.4.1). `neutral` has no glyph —
-    # it isn't a signal level.
+    # circle, warning triangle, danger circle-x. Distinct shapes keep severity legible
+    # without relying on color alone (WCAG 1.4.1). `neutral` has no glyph — it isn't a
+    # signal level, and reusing another tone's shape would defeat the non-color cue.
     ICONS = {
       neutral: nil,
       info:    "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z",
       success: "M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z",
-      warning: "M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z",
+      warning: "M12 9.36v3.52m0 3.52h.01M10.5 4.84L3.04 17.28a1.76 1.76 0 0 0 1.51 2.64h14.91a1.76 1.76 0 0 0 1.51-2.64L13.5 4.84a1.76 1.76 0 0 0-3.01 0z",
       danger:  "M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"
     }.freeze
 
