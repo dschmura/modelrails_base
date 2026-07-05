@@ -23,7 +23,8 @@ RSpec.describe "Workspace shell spacing hooks", type: :request do
       workspace_projects_path(workspace),
       workspace_members_path(workspace),
       edit_workspace_path(workspace),
-      edit_workspace_settings_path(workspace)
+      edit_workspace_settings_path(workspace),
+      new_workspace_invitation_path(workspace)
     ].each do |path|
       get path
       doc = Nokogiri::HTML(response.body)
