@@ -1,9 +1,8 @@
 <%# Replace the workspace name heading in the persistent identity bar when
-    renamed in-context — markup must match shared/_workspace_identity_bar. %>
+    renamed in-context — shares shared/_workspace_name_link with
+    shared/_workspace_identity_bar so the two can't drift. %>
 <%= turbo_stream.replace "workspace-name-heading" do %>
-  <span id="workspace-name-heading" class="text-lg font-bold text-text-heading truncate">
-    <%= @workspace.name %>
-  </span>
+  <%= render "shared/workspace_name_link", workspace: @workspace %>
 <% end %>
 
 <%= turbo_stream.replace "workspace_logo_branding" do %>

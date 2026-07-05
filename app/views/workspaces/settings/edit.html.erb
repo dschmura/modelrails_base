@@ -1,7 +1,7 @@
 <% content_for(:title) { t("workspaces.settings.edit.title") } %>
 <%# Workspace Limits & Plan — operational config (capacity, plan).
     Identity (name, logo, primary_color) lives on WorkspacesController#edit. %>
-<div class="max-w-2xl mx-auto px-4 pt-4 pb-16">
+<div class="max-w-2xl px-6 pt-4 pb-16">
   <% if @workspace.archived? %>
     <%= render "shared/archived_banner",
           message: t("workspaces.archived_banner"),

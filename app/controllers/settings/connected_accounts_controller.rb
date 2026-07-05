@@ -1,7 +1,6 @@
 module Settings
   class ConnectedAccountsController < ApplicationController
     layout "settings"
-    settings_context :identity
 
     allow_unauthenticated_access only: :verify
 

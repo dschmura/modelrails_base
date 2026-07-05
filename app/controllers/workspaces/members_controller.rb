@@ -2,9 +2,6 @@ module Workspaces
   class MembersController < ApplicationController
     include WorkspaceScoped
 
-    layout "settings"
-    settings_context :workspace
-
     def index
       authorize Membership
       @roles = @workspace.effective_roles

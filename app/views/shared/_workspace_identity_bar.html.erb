@@ -1,15 +1,13 @@
 <%# locals: (workspace:) -%>
 <%# Persistent workspace identity — logo + name + plan, rendered above the
     section-nav strip so identity leads navigation on every workspace page. -%>
-<div class="flex items-center gap-3 mb-4">
+<div class="flex items-center gap-3 pt-4 mb-4">
   <span id="workspace_logo_show" class="shrink-0">
     <%= workspace_icon_for(workspace, size: :md) %>
   </span>
   <div class="flex-1 min-w-0">
     <div class="flex items-center gap-2 min-w-0">
-      <span id="workspace-name-heading" class="text-lg font-bold text-text-heading truncate">
-        <%= workspace.name %>
-      </span>
+      <%= render "shared/workspace_name_link", workspace: workspace %>
       <%= ui :badge, workspace.plan.titleize, variant: :outline, tone: :neutral %>
     </div>
   </div>

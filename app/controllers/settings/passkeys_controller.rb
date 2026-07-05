@@ -1,7 +1,6 @@
 module Settings
   class PasskeysController < ApplicationController
     layout "settings"
-    settings_context :identity
 
     def index
       @passkeys = Current.user.webauthn_credentials.kept.order(:created_at)

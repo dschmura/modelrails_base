@@ -1,27 +1,8 @@
 module SettingsNavigationHelper
-  # Returns a localized announcement string for the polite aria-live region
-  # when a workspace context is active. The string interpolates the workspace
-  # name, the viewer's role, and the list of sidebar items they can actually
-  # see (so the announcement matches what's rendered). Returns nil for the
-  # identity context and unauthenticated cases — the layout uses the
-  # static identity template instead.
-  def current_workspace_announcement_for_aria_live
-    workspace = Current.workspace
-    return nil if workspace.nil? || workspace.personal?
-
-    membership = workspace.memberships.detect { |m| m.user_id == Current.user&.id }
-    role_name = membership&.role&.name || Role.find_by(slug: "member", workspace_id: nil)&.name || "Member"
-
-    I18n.t("settings.sidebar.aria_live_template.workspace",
-           name: workspace.name,
-           role: role_name,
-           items: workspace_settings_nav_items.map { |i| i[:label] }.join(", "))
-  end
-
   # Ordered workspace-settings nav items the current user is authorized to see.
-  # Single source of truth for the desktop <aside>, the mobile strip, AND the
-  # aria-live announcer — the gating lives here once (was duplicated in a
-  # hand-synced list). Each item's :active is computed against the current URL.
+  # Single source of truth for the desktop <aside> and the mobile strip — the
+  # gating lives here once (was duplicated in a hand-synced list). Each item's
+  # :active is computed against the current URL.
   def workspace_settings_nav_items
     workspace = Current.workspace
     items = []
@@ -66,11 +47,5 @@ module SettingsNavigationHelper
       { label: t("settings.sidebar.items.appearance"), href: edit_settings_theme_preference_path,
         icon: :color_swatch, active: current_page?(edit_settings_theme_preference_path) }
     ]
-  end
-
-  # Settings-hub nav items for the current context (identity vs workspace),
-  # consumed by both the mobile strip and the desktop aside.
-  def settings_nav_items
-    settings_context_value == "workspace" ? workspace_settings_nav_items : identity_settings_nav_items
   end
 end

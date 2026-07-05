@@ -30,6 +30,8 @@ en:
         could_not_join: "You couldn't be added to %{workspace} right now."
     switcher:
       label: "Workspaces"
+    identity_bar:
+      overview_link_label: "%{name} — go to overview"
     sidebar:
       aria_label: "Workspace navigation"
       section_label: "Workspace"

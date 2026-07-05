@@ -5,7 +5,7 @@
 <%# px-6 aligns the content gutter with the mobile section-nav strip above it
     (which sits at px-6); py scales up with the viewport so mobile isn't mostly
     dead space above the fold while desktop keeps its generous rhythm. -%>
-<div class="max-w-4xl mx-auto px-6 pt-4 pb-6 sm:pb-10 lg:pb-16">
+<div class="max-w-4xl px-6 pt-4 pb-6 sm:pb-10 lg:pb-16">
   <% if @workspace.archived? %>
     <%= render "shared/archived_banner",
           message: t("workspaces.archived_banner"),
@@ -13,5 +13,7 @@
   <% end %>
   <%= turbo_stream_from @workspace %>
 
-  <%= render "shared/activity_feed", activities: ActivityLog.visible.for_workspace(@workspace).recent.includes(:actor) %>
+  <%= render "shared/activity_feed",
+        activities: ActivityLog.visible.for_workspace(@workspace).recent.includes(:actor),
+        top_margin: (@workspace.archived? ? "mt-8" : "mt-0") %>
 </div>

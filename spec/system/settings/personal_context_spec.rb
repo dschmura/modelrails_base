@@ -22,11 +22,6 @@ RSpec.describe "Settings hub — identity context", type: :system do
     end
   end
 
-  it "exposes the identity context via data attribute" do
-    visit edit_settings_profile_path
-    expect(page).to have_css("[data-workspace-kind='identity']")
-  end
-
   it "marks the current page in the sidebar with aria-current" do
     visit edit_settings_profile_path
     within(sidebar_selector) do

@@ -2,6 +2,11 @@
 <html lang="<%= I18n.locale %>"
       data-controller="theme"
       data-theme-theme-value="<%= current_user_theme %>">
+<%# Morph only for same-URL refreshes on workspace pages (Profile/Limits saves
+    redirect to their own URL and must keep scroll position). Gated on
+    Current.workspace so non-workspace application pages stay plain Drive.
+    Must run before the head partial buffers provide(:head). %>
+<% turbo_refreshes_with method: :morph if Current.workspace %>
 <%= render "shared/layout_head" %>
 
   <body class="min-h-screen flex flex-col bg-surface-raised text-text-heading">
@@ -34,18 +39,36 @@
                  style: "--ws-primary-light: oklch(0.40 0.15 #{ws_hue}); --ws-primary-dark: oklch(0.78 0.10 #{ws_hue});" }
              end %>
         <%= tag.main id: "main-content", tabindex: "-1", class: "flex-1 min-w-0", **main_context_attrs do %>
-          <%# px-6 matches the strip's -mx-6 full-bleed (the workspace <main> has
-              no px of its own, unlike the settings <main>) so it reaches the
-              viewport edge without overflowing. -%>
-          <div class="px-6 md:px-0">
+          <%# The identity bar, section nav, and page content all share one
+              left-aligned max-w-4xl column (px-6) so they line up on a single
+              left edge next to the sidebar (widths vary — 4xl lists, 2xl forms —
+              but the left edge is constant). On mobile the strip's -mx-6
+              full-bleeds to the viewport edge within this px-6. -%>
+          <div class="max-w-4xl px-6">
             <%= render "shared/workspace_identity_bar", workspace: Current.workspace %>
           </div>
-          <%= render "shared/workspace_back_link" %>
-          <div class="px-6 md:px-0">
-            <%= render "shared/section_nav_strip",
-                  items: workspace_shell_nav_items,
-                  heading: t("workspaces.sidebar.strip_heading") %>
-          </div>
+          <% if current_workspace_section == :settings %>
+            <div class="max-w-4xl px-6">
+              <%# Mobile-only breadcrumb: section-trail orientation. Desktop
+                  orients via the primary sidebar (Settings current) + sub-tab row. %>
+              <div class="md:hidden mb-3">
+                <%= ui :breadcrumb, items: [
+                      { label: Current.workspace.name, href: workspace_path(Current.workspace) },
+                      { label: t("workspaces.sidebar.settings") }
+                    ] %>
+              </div>
+              <%= render "shared/workspace_settings_subnav" %>
+              <%= render "shared/section_nav_strip",
+                    items: workspace_settings_nav_items,
+                    heading: t("settings.sidebar.strip_heading.workspace") %>
+            </div>
+          <% else %>
+            <div class="max-w-4xl px-6">
+              <%= render "shared/section_nav_strip",
+                    items: workspace_shell_nav_items,
+                    heading: t("workspaces.sidebar.strip_heading") %>
+            </div>
+          <% end %>
           <%= yield %>
         <% end %>
       </div>
@@ -53,7 +76,6 @@
       <main id="main-content"
             tabindex="-1"
             class="flex-1">
-        <%= render "shared/workspace_back_link" %>
         <%= yield %>
       </main>
     <% end %>

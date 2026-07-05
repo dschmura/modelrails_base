@@ -1,0 +1,18 @@
+<%# Desktop secondary sub-tab row for the workspace Settings section.
+    Mirrors the primary sidebar at the section level: horizontal links with
+    aria-current (NOT ARIA tabs). Its mobile twin is _section_nav_strip
+    (md:hidden); this is hidden md:block. Items come from
+    SettingsNavigationHelper#workspace_settings_nav_items — Pundit-gated
+    single source of truth, also feeding the mobile strip. Renders nothing
+    when the user may see no items. -%>
+<% items = workspace_settings_nav_items %>
+<% unless items.empty? %>
+  <nav aria-label="<%= t("settings.sidebar.strip_heading.workspace") %>"
+       class="hidden md:block mb-4 border-b border-border">
+    <ul role="list" class="flex flex-row gap-2">
+      <% items.each do |item| %>
+        <%= render "shared/settings_sidebar_item", **item %>
+      <% end %>
+    </ul>
+  </nav>
+<% end %>

@@ -1,18 +1,8 @@
-<%# locals: (current_workspace:, sidebar_partial:) -%>
-<%# Desktop settings-sidebar wrapper — provides the <aside> landmark
-    and the boxed sidebar visual chrome (fixed 256px width, surface
-    background, right border). The actual contents (nav items + Pundit
-    gating) are provided by the caller via sidebar_partial:, which resolves
-    to either _identity_settings_sidebar_items or
-    _workspace_settings_sidebar_items depending on which context the
-    controller declared via settings_context :identity/:workspace.
-
-    Below md, the same items source instead renders as an in-page
-    section-nav strip (see _section_nav_strip) — not this <aside>.
-    Workspace switching is handled by the header switcher
-    (#workspace-switcher-button) added in Phase 2b. -%>
+<%# Desktop account-settings sidebar — the <aside> landmark and boxed chrome
+    (256px, surface bg, right border). Contents are the account (identity)
+    settings items; below md the same source renders as an in-page section-nav
+    strip (see _section_nav_strip) — not this <aside>. -%>
 <aside aria-label="<%= t("settings.sidebar.aria_label") %>"
        class="w-64 shrink-0 px-4 py-6 border-r border-border bg-surface">
-  <%= render sidebar_partial,
-        current_workspace: current_workspace %>
+  <%= render "shared/identity_settings_sidebar_items" %>
 </aside>

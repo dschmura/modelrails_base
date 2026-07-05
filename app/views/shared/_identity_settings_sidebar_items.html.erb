@@ -1,9 +1,9 @@
-<%# locals: (current_workspace:) -%>
+<%# locals: () -%>
 <%# Identity-settings sidebar items — account-level settings (Profile, Notifications,
-    Security, Passkeys, Appearance). Rendered unconditionally; the controller declares
-    settings_context :identity to select this partial. Items come from
-    SettingsNavigationHelper#identity_settings_nav_items — single source of truth,
-    shared with the mobile strip. Adding a new item: add it there + the i18n keys. -%>
+    Security, Passkeys, Appearance). Rendered unconditionally by the account settings
+    layout. Items come from SettingsNavigationHelper#identity_settings_nav_items —
+    single source of truth, shared with the mobile strip. Adding a new item: add it
+    there + the i18n keys. -%>
 <% section_label_id = "settings-sidebar-section-label" %>
 
 <%# Section label. Rendered as a styled <div> (not a heading) so it doesn't

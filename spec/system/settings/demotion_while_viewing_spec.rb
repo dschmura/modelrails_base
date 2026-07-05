@@ -4,7 +4,10 @@ RSpec.describe "Settings hub — demotion while viewing", type: :system do
   let(:owner) { create(:user) }
   let(:member) { create(:user) }
   let(:workspace) { create(:workspace, name: "Acme Corp") }
-  let(:sidebar_selector) { "aside[aria-label='#{I18n.t("settings.sidebar.aria_label")}']" }
+  # Members moved off the settings layout into the workspace shell (nav IA
+  # refactor Task 3); the equivalent of the old settings-hub <aside> for this
+  # page is the shell's secondary sub-nav (_workspace_settings_subnav).
+  let(:sidebar_selector) { "nav[aria-label='#{I18n.t("settings.sidebar.strip_heading.workspace")}']" }
 
   before do
     create(:membership, :owner, user: owner, workspace: workspace)
@@ -12,15 +15,15 @@ RSpec.describe "Settings hub — demotion while viewing", type: :system do
     @viewer_role = Role.find_or_create_by!(slug: "viewer", workspace_id: nil) { |r| r.name = "Viewer" }
   end
 
-  # The settings layout subscribes to the workspace stream (turbo_stream_from
-  # Current.workspace) and Membership broadcasts via Broadcastable on update.
-  # When an admin in another tab demotes this user, the broadcast fires a
-  # refresh that Turbo morphs into the open tab — re-evaluating
-  # SettingsNavigationHelper#workspace_settings_nav_items's Pundit gating
-  # against the new role. The Limits & Plan link is the cleanest assertion
-  # target: it gates on Workspaces::SettingsPolicy#update? (manage_settings),
-  # which Admin has and Viewer does not. Members link gates on
-  # membership.present?, which doesn't flip across the demotion.
+  # The workspace shell layout subscribes to the workspace stream
+  # (turbo_stream_from Current.workspace) and Membership broadcasts via
+  # Broadcastable on update. When an admin in another tab demotes this user,
+  # the broadcast fires a refresh that Turbo morphs into the open tab —
+  # re-evaluating SettingsNavigationHelper#workspace_settings_nav_items's
+  # Pundit gating against the new role. The Limits & Plan link is the cleanest
+  # assertion target: it gates on Workspaces::SettingsPolicy#update?
+  # (manage_settings), which Admin has and Viewer does not. Members link gates
+  # on membership.present?, which doesn't flip across the demotion.
   it "re-renders the sidebar via Turbo morph when the user's role is changed in another tab" do
     sign_in_via_form(member)
     visit workspace_members_path(workspace)
