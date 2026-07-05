@@ -2,14 +2,17 @@
 <%# 3-button nav (Members / Projects / Settings) was retired in Path Y
     Phase B — the sidebar replaces it. Members lives under the Settings
     hub; Projects and Settings are sidebar nav items. %>
-<div class="max-w-4xl mx-auto px-4 py-16">
+<%# px-6 aligns the content gutter with the mobile section-nav strip above it
+    (which sits at px-6); py scales up with the viewport so mobile isn't mostly
+    dead space above the fold while desktop keeps its generous rhythm. -%>
+<div class="max-w-4xl mx-auto px-6 py-6 sm:py-10 lg:py-16">
   <% if @workspace.archived? %>
     <%= render "shared/archived_banner",
           message: t("workspaces.archived_banner"),
           restore_path: unarchive_workspace_path(@workspace) %>
   <% end %>
   <%= turbo_stream_from @workspace %>
-  <div class="flex items-start gap-4">
+  <div class="flex items-center gap-4">
     <span id="workspace_logo_show">
       <%= workspace_icon_for(@workspace, size: :lg) %>
     </span>
@@ -17,7 +20,9 @@
       <h1 id="workspace-name-heading" class="text-3xl font-bold text-text-heading">
         <%= @workspace.name %>
       </h1>
-      <p class="text-sm text-text-muted"><%= @workspace.plan.titleize %></p>
+      <div class="mt-1">
+        <%= ui :badge, @workspace.plan.titleize, variant: :outline, tone: :neutral %>
+      </div>
     </div>
     <% if @workspace.personal? %>
       <%# Personal workspaces: "Customize" replaces the Settings sidebar entry.
