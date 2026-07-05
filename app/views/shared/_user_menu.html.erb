@@ -104,6 +104,9 @@
         <p class="text-xs text-text-muted truncate"><%= Current.user.email_address %></p>
       </div>
     <% end %>
+    <%# Divider — locks the identity block above as the account-group header
+        (the mobile branch drops the desktop per-row hairlines). %>
+    <div class="my-2 border-t border-border"></div>
     <%# v2 Notifications row — see desktop branch for context. Mobile version
         styles match the surrounding mobile menuitems. %>
     <%= link_to main_app.settings_notifications_path,
@@ -112,8 +115,10 @@
                   text-sm text-text-body
                   hover:bg-surface-sunken hover:text-interactive-hover rounded
                   focus-ring" do %>
-      <span class="flex items-center gap-3">
-        <%= icon(:bell, size: :sm) %>
+      <%# No icon — the app's icon registry has no home/logout icon, so the
+          account rows read as flush text on one column (the count pill on the
+          right keeps Notifications scannable). %>
+      <span class="flex items-center">
         <%= t("navigation.notifications") %>
       </span>
       <% if summary[:count]&.positive? %>
@@ -131,13 +136,9 @@
                   text-sm text-text-body
                   hover:bg-surface-sunken hover:text-interactive-hover rounded
                   focus-ring" %>
-    <%# "All workspaces" — see desktop branch above for rationale. %>
-    <%= link_to t("navigation.all_workspaces"), main_app.workspaces_path,
-          data: { turbo_prefetch: "true" },
-          class: "mt-1 w-full min-h-[var(--form-input-height)] flex items-center px-3 py-2
-                  text-sm text-text-body
-                  hover:bg-surface-sunken hover:text-interactive-hover rounded
-                  focus-ring" %>
+    <%# "All workspaces" is rendered in the mobile Workspaces group
+        (shared/_workspace_switcher, mobile) below, not here — the account
+        group holds only always-present account actions. %>
     <%= button_to t("navigation.sign_out"), main_app.session_path, method: :delete,
           class: "mt-1 w-full min-h-[var(--form-input-height)] flex items-center px-3 py-2
                   text-sm text-text-body
