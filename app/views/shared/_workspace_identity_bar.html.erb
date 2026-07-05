@@ -7,9 +7,7 @@
   </span>
   <div class="flex-1 min-w-0">
     <div class="flex items-center gap-2 min-w-0">
-      <span id="workspace-name-heading" class="text-lg font-bold text-text-heading truncate">
-        <%= workspace.name %>
-      </span>
+      <%= render "shared/workspace_name_link", workspace: workspace %>
       <%= ui :badge, workspace.plan.titleize, variant: :outline, tone: :neutral %>
     </div>
   </div>
