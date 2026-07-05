@@ -76,14 +76,16 @@
          data-action="click->mobile-menu#closeOnLinkClick"
          aria-label="<%= t("navigation.mobile_menu.aria_label") %>"
          class="hidden md:hidden pb-4 max-h-[calc(100vh-4rem)] overflow-y-auto">
-      <%# Mobile accordion — global chrome only. Workspace switcher renders
-          here for authenticated users (the desktop dropdown is md+ only);
-          each layout's page-level section sub-nav renders as an in-page
-          section-nav strip instead, not inside this panel. %>
+      <%# Mobile accordion — global chrome only. Account menu (identity +
+          always-present account actions) leads; the Workspaces group (switcher
+          list, capped, + "All workspaces") renders below it so the fixed
+          account items keep a predictable position and a growing workspace list
+          never pushes them around. Each layout's page-level section sub-nav
+          renders as an in-page section-nav strip, not inside this panel. %>
       <div class="flex flex-col gap-2">
         <% if authenticated? %>
-          <%= render "shared/workspace_switcher", mobile: true %>
           <%= render "shared/user_menu", context: :mobile %>
+          <%= render "shared/workspace_switcher", mobile: true %>
         <% else %>
           <%= link_to t("navigation.sign_in"), main_app.new_session_path,
                 class: "min-h-[var(--form-input-height)] flex items-center px-2 text-text-body
@@ -94,7 +96,11 @@
                   class: "btn-primary" %>
           <% end %>
         <% end %>
-        <%= render "shared/theme_toggle", style: :labeled %>
+        <%# Display — its own zone (border-t) so the theme toggle reads as a
+            third top-level group, not a trailing item under "All workspaces". %>
+        <div class="px-1 pt-3 mt-1 border-t border-border">
+          <%= render "shared/theme_toggle", style: :labeled %>
+        </div>
       </div>
     </div>
   </nav>

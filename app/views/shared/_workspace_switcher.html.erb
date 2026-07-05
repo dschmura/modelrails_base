@@ -1,67 +1,35 @@
 <%# Header workspace context switcher (Phase 2b Task 1).
-    Additive — renders nothing when the user has only one workspace.
     Reuses the existing `dropdown` Stimulus controller (no new JS).
-    Pass `mobile: true` to render the inline mobile list variant instead
-    of the dropdown (used inside the hamburger panel). -%>
+    Pass `mobile: true` to render the inline mobile list variant (used inside
+    the hamburger panel, below the account items) instead of the dropdown. -%>
 <% workspaces = switcher_workspaces %>
-<% if workspaces.size > 1 %>
-  <% current = switcher_current_workspace %>
-  <% if local_assigns[:mobile] %>
-    <%# Mobile inline list — rendered inside the hamburger panel (md:hidden). %>
-    <div class="md:hidden px-1 pb-2 border-b border-border mb-2">
-      <p class="px-2 py-1 text-xs font-semibold text-text-muted uppercase tracking-wide"
-         aria-label="<%= t("workspaces.switcher.label") %>">
-        <%= t("workspaces.switcher.label") %>
-      </p>
+<% current = switcher_current_workspace %>
+<% if local_assigns[:mobile] %>
+  <%# Mobile "Workspaces" group — rendered inside the hamburger panel BELOW the
+      account items so the always-present account actions keep a fixed position.
+      The current workspace is pinned first; the list is capped (~5) with
+      "All workspaces" as the overflow / index entry point, so the panel stays a
+      bounded height no matter how many workspaces a user belongs to. Always
+      renders (unlike the desktop dropdown) so "All workspaces" is reachable
+      even with a single workspace. %>
+  <div class="md:hidden px-1 pt-3 mt-1 border-t border-border">
+    <p class="px-2 py-1 text-xs font-semibold text-text-muted uppercase tracking-wide">
+      <%= t("workspaces.switcher.label") %>
+    </p>
+    <%# The switch list only renders with 2+ workspaces (nothing to switch for a
+        solo user); "All workspaces" below always renders as the index entry. %>
+    <% if workspaces.size > 1 %>
+      <% shown = ([ current ] + workspaces_by_recency(workspaces).reject { |w| w.id == current&.id }).compact.first(5) %>
       <ul role="list" class="mt-1">
-        <% workspaces.each do |workspace| %>
-          <% is_current = current && workspace.id == current.id %>
-          <% membership = workspace.memberships.detect { |m| m.user_id == Current.user.id } %>
-          <li>
-            <%= link_to main_app.workspace_path(workspace),
-                  aria: { current: ("page" if is_current) },
-                  class: ["min-h-[44px] flex items-center gap-3 px-2 py-2 rounded-md text-sm",
-                          (is_current ? "bg-surface-sunken font-semibold text-text-heading border-l-4 border-interactive pl-1"
-                                      : "text-text-body hover:bg-surface-sunken hover:text-interactive-hover focus-ring")].join(" ") do %>
-              <span class="shrink-0 w-8 h-8 flex items-center justify-center <%= workspace.personal? ? "rounded-full" : "rounded-md overflow-hidden" %>">
-                <%= workspace_icon_for(workspace, size: :sm) %>
-              </span>
-              <span class="flex-1 min-w-0">
-                <span class="block truncate"><%= workspace.name %></span>
-                <span class="block text-xs text-text-muted"><%= membership&.role&.name %></span>
-              </span>
-            <% end %>
-          </li>
-        <% end %>
-      </ul>
-    </div>
-  <% else %>
-    <%# Desktop dropdown — hidden on mobile, visible at md+. %>
-    <div data-controller="dropdown" class="relative hidden md:block">
-      <button data-dropdown-target="button" data-action="click->dropdown#toggle"
-              id="workspace-switcher-button" type="button"
-              aria-haspopup="true" aria-expanded="false" aria-controls="workspace-switcher-menu"
-              class="min-h-[44px] flex items-center gap-2 px-3 rounded-lg text-text-body hover:bg-surface-sunken focus-ring">
-        <span class="shrink-0 w-8 h-8 flex items-center justify-center <%= current&.personal? ? "rounded-full" : "rounded-md overflow-hidden" %>">
-          <%= workspace_icon_for(current, size: :sm) if current %>
-        </span>
-        <span class="hidden lg:block max-w-[12ch] truncate font-medium">
-          <%= current&.name || t("workspaces.switcher.label") %>
-        </span>
-        <span aria-hidden="true">&#9662;</span>
-      </button>
-
-      <div data-dropdown-target="menu" id="workspace-switcher-menu" role="menu"
-           aria-labelledby="workspace-switcher-button"
-           class="hidden absolute right-0 mt-2 w-64 rounded-lg bg-surface-raised border border-border shadow-lg z-50 py-1">
-        <% workspaces.each do |workspace| %>
-          <% is_current = current && workspace.id == current.id %>
-          <% membership = workspace.memberships.detect { |m| m.user_id == Current.user.id } %>
-          <%= link_to main_app.workspace_path(workspace), role: "menuitem", tabindex: "-1",
-                aria: { current: ("true" if is_current) },
-                class: ["min-h-[44px] flex items-center gap-3 py-2 text-sm",
-                        (is_current ? "pl-2 pr-3 border-l-4 border-interactive bg-surface-sunken font-semibold text-text-heading"
-                                    : "px-3 text-text-body hover:bg-surface-sunken")].compact do %>
+        <% shown.each do |workspace| %>
+        <% is_current = current && workspace.id == current.id %>
+        <% membership = workspace.memberships.detect { |m| m.user_id == Current.user.id } %>
+        <li>
+          <%= link_to main_app.workspace_path(workspace),
+                aria: { current: ("page" if is_current) },
+                class: [ "min-h-[44px] flex items-center gap-3 px-2 py-2 rounded-md text-sm",
+                        (is_current ? "bg-surface-sunken font-semibold text-text-heading border-l-4 border-interactive pl-1"
+                                    : "text-text-body hover:bg-surface-sunken hover:text-interactive-hover focus-ring") ].join(" ") do %>
             <span class="shrink-0 w-8 h-8 flex items-center justify-center <%= workspace.personal? ? "rounded-full" : "rounded-md overflow-hidden" %>">
               <%= workspace_icon_for(workspace, size: :sm) %>
             </span>
@@ -70,8 +38,57 @@
               <span class="block text-xs text-text-muted"><%= membership&.role&.name %></span>
             </span>
           <% end %>
+          </li>
         <% end %>
-      </div>
+      </ul>
+    <% end %>
+    <%# "All workspaces" — the workspace-group footer: overflow when the list is
+        capped, and the always-available path to the index. Lives WITH the
+        switcher (not in the account group) so the list and its "see all" read
+        as one thing. %>
+    <%= link_to t("navigation.all_workspaces"), main_app.workspaces_path,
+          data: { turbo_prefetch: "true" },
+          class: "mt-1 min-h-[44px] flex items-center px-2 py-2 rounded-md text-sm font-medium
+                  text-interactive hover:bg-surface-sunken hover:text-interactive-hover focus-ring" %>
+  </div>
+<% elsif workspaces.size > 1 %>
+  <%# Desktop dropdown — hidden on mobile, visible at md+. Additive: renders
+      nothing when the user has only one workspace. (Its "see all" is the avatar
+      menu's "All workspaces"; capping the desktop dropdown is a separate call.) %>
+  <div data-controller="dropdown" class="relative hidden md:block">
+    <button data-dropdown-target="button" data-action="click->dropdown#toggle"
+            id="workspace-switcher-button" type="button"
+            aria-haspopup="true" aria-expanded="false" aria-controls="workspace-switcher-menu"
+            class="min-h-[44px] flex items-center gap-2 px-3 rounded-lg text-text-body hover:bg-surface-sunken focus-ring">
+      <span class="shrink-0 w-8 h-8 flex items-center justify-center <%= current&.personal? ? "rounded-full" : "rounded-md overflow-hidden" %>">
+        <%= workspace_icon_for(current, size: :sm) if current %>
+      </span>
+      <span class="hidden lg:block max-w-[12ch] truncate font-medium">
+        <%= current&.name || t("workspaces.switcher.label") %>
+      </span>
+      <span aria-hidden="true">&#9662;</span>
+    </button>
+
+    <div data-dropdown-target="menu" id="workspace-switcher-menu" role="menu"
+         aria-labelledby="workspace-switcher-button"
+         class="hidden absolute right-0 mt-2 w-64 rounded-lg bg-surface-raised border border-border shadow-lg z-50 py-1">
+      <% workspaces.each do |workspace| %>
+        <% is_current = current && workspace.id == current.id %>
+        <% membership = workspace.memberships.detect { |m| m.user_id == Current.user.id } %>
+        <%= link_to main_app.workspace_path(workspace), role: "menuitem", tabindex: "-1",
+              aria: { current: ("true" if is_current) },
+              class: [ "min-h-[44px] flex items-center gap-3 py-2 text-sm",
+                      (is_current ? "pl-2 pr-3 border-l-4 border-interactive bg-surface-sunken font-semibold text-text-heading"
+                                  : "px-3 text-text-body hover:bg-surface-sunken") ].compact do %>
+          <span class="shrink-0 w-8 h-8 flex items-center justify-center <%= workspace.personal? ? "rounded-full" : "rounded-md overflow-hidden" %>">
+            <%= workspace_icon_for(workspace, size: :sm) %>
+          </span>
+          <span class="flex-1 min-w-0">
+            <span class="block truncate"><%= workspace.name %></span>
+            <span class="block text-xs text-text-muted"><%= membership&.role&.name %></span>
+          </span>
+        <% end %>
+      <% end %>
     </div>
-  <% end %>
+  </div>
 <% end %>
