@@ -31,9 +31,11 @@ RSpec.describe "Settings sidebar context routing", type: :request do
   describe "GET /settings/profile/edit (identity context)" do
     before { get edit_settings_profile_path }
 
-    it "renders data-workspace-kind='identity'" do
-      expect(Capybara.string(response.body)).to have_css("[data-workspace-kind='identity']")
-    end
+    # The identity/workspace `data-workspace-kind` split lived on the settings
+    # layout when it served both contexts. It's gone now that the layout is
+    # account-only (nav IA refactor Task 5) — see
+    # spec/requests/settings/account_only_layout_spec.rb, which asserts its
+    # absence.
 
     it "renders identity sidebar items (Notifications, Security, Appearance)" do
       sb = sidebar(response.body)

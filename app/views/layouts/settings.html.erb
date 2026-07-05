@@ -2,66 +2,32 @@
 <html lang="<%= I18n.locale %>"
       data-controller="theme"
       data-theme-theme-value="<%= current_user_theme %>">
-<%# Turbo morph for the settings hub (#327). Must run before the head partial
-    so its provide(:head) is buffered when _layout_head yields :head. The
-    settings-announcer controller and the switcher's idiomorph-safe IDs are
-    built for this. %>
+<%# Turbo morph for the account settings hub (#327). Must run before the head
+    partial so its provide(:head) is buffered when _layout_head yields :head. %>
 <% turbo_refreshes_with method: :morph %>
 <%= render "shared/layout_head" %>
 
   <body class="min-h-screen flex flex-col bg-surface-raised text-text-heading">
     <%= render "shared/skip_link" %>
 
-    <%# Polite aria-live region for settings context-change announcements
-        (WCAG 4.1.3). Visually hidden via sr-only — do NOT use hidden,
-        which removes the node from the accessibility tree. The Stimulus
-        controller listens for turbo:render and writes the appropriate
-        template (identity or workspace) on each settings-hub navigation. %>
-    <div id="settings-aria-live"
-         role="status"
-         aria-live="polite"
-         aria-atomic="true"
-         class="sr-only"
-         data-controller="settings-announcer"
-         data-settings-announcer-identity-value="<%= t("settings.sidebar.aria_live_template.identity") %>"
-         data-settings-announcer-workspace-value="<%= current_workspace_announcement_for_aria_live %>">
-    </div>
-
-    <%# Settings hub layout. At md+ the sidebar renders inline to the left
-        of <main> with the <aside> chrome (_settings_sidebar wrapper);
-        below md, a section_nav_strip renders as the first child of <main>
-        instead (see below) — no header-accordion hoist. The sidebar
-        partial is selected by the controller via settings_context
-        :identity/:workspace. Workspace switching is handled by the header
-        switcher — the former in-sidebar switcher has been removed
-        (Phase 2c-1 Task 2). %>
+    <%# Account-only settings hub. At md+ the identity sidebar renders inline
+        to the left of <main>; below md, a section_nav_strip renders as the
+        first child of <main> instead. No workspace context here — account
+        settings are the signed-in user's own, unrelated to any workspace. %>
     <%= render "shared/header" %>
     <%= render "shared/toasts" %>
 
-    <div class="flex-1 flex flex-col md:flex-row"
-         data-workspace-kind="<%= settings_context_value %>">
+    <div class="flex-1 flex flex-col md:flex-row">
       <%# Desktop sidebar — hidden below md where the section_nav_strip
           inside <main> surfaces the same items instead. %>
       <div class="hidden md:flex shrink-0">
-        <%= render "shared/settings_sidebar",
-              current_workspace: Current.workspace,
-              sidebar_partial: settings_sidebar_partial %>
+        <%= render "shared/settings_sidebar" %>
       </div>
 
-      <main id="main-content"
-            tabindex="-1"
-            class="flex-1 min-w-0 px-6"
-            <% if Current.workspace %>
-              <% ws_hue = Current.workspace.primary_color || 210 %>
-              data-workspace-branded
-              style="--ws-primary-light: oklch(0.40 0.15 <%= ws_hue %>); --ws-primary-dark: oklch(0.78 0.10 <%= ws_hue %>);"
-            <% end %>>
-        <% if settings_context_value == "workspace" && Current.workspace %>
-          <%= render "shared/workspace_identity_bar", workspace: Current.workspace %>
-        <% end %>
+      <main id="main-content" tabindex="-1" class="flex-1 min-w-0 px-6">
         <%= render "shared/section_nav_strip",
-              items: settings_nav_items,
-              heading: t("settings.sidebar.strip_heading.#{settings_context_value}") %>
+              items: identity_settings_nav_items,
+              heading: t("settings.sidebar.strip_heading.identity") %>
         <%= yield %>
       </main>
     </div>
