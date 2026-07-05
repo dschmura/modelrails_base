@@ -1,12 +1,10 @@
-<%# locals: (current_workspace:, id_suffix: "") -%>
+<%# locals: (current_workspace:) -%>
 <%# Identity-settings sidebar items — account-level settings (Profile, Notifications,
-    Security, Appearance). Rendered unconditionally; the controller declares
-    settings_context :identity to select this partial.
-
-    Adding a new item: add an i18n key under settings.sidebar.items.<key> and
-    settings.sidebar.aria_labels.<key> if context-disambiguation is needed, then
-    add a render block below. -%>
-<% section_label_id = "settings-sidebar-section-label#{id_suffix}" %>
+    Security, Passkeys, Appearance). Rendered unconditionally; the controller declares
+    settings_context :identity to select this partial. Items come from
+    SettingsNavigationHelper#identity_settings_nav_items — single source of truth,
+    shared with the mobile strip. Adding a new item: add it there + the i18n keys. -%>
+<% section_label_id = "settings-sidebar-section-label" %>
 
 <%# Section label. Rendered as a styled <div> (not a heading) so it doesn't
     conflict with the page's <h1>; associated with the <ul> via aria-labelledby
@@ -19,34 +17,7 @@
 <ul role="list"
     aria-labelledby="<%= section_label_id %>"
     class="flex flex-col gap-1">
-  <%= render "shared/settings_sidebar_item",
-        label: t("settings.sidebar.items.profile"),
-        href: edit_settings_profile_path,
-        aria_label: t("settings.sidebar.aria_labels.profile_personal"),
-        icon: :user_circle,
-        active: current_page?(edit_settings_profile_path) %>
-
-  <%= render "shared/settings_sidebar_item",
-        label: t("settings.sidebar.items.notifications"),
-        href: edit_settings_notification_preferences_path,
-        icon: :bell,
-        active: current_page?(edit_settings_notification_preferences_path) %>
-
-  <%= render "shared/settings_sidebar_item",
-        label: t("settings.sidebar.items.security"),
-        href: settings_connected_accounts_path,
-        icon: :shield_check,
-        active: current_page?(settings_connected_accounts_path) %>
-
-  <%= render "shared/settings_sidebar_item",
-        label: t("settings.sidebar.items.passkeys"),
-        href: settings_passkeys_path,
-        icon: :finger_print,
-        active: current_page?(settings_passkeys_path) %>
-
-  <%= render "shared/settings_sidebar_item",
-        label: t("settings.sidebar.items.appearance"),
-        href: edit_settings_theme_preference_path,
-        icon: :color_swatch,
-        active: current_page?(edit_settings_theme_preference_path) %>
+  <% identity_settings_nav_items.each do |item| %>
+    <%= render "shared/settings_sidebar_item", **item %>
+  <% end %>
 </ul>

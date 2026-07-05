@@ -1,10 +1,9 @@
 <%# locals: (current_workspace:) -%>
 <%# Desktop workspace-sidebar wrapper — provides the <aside> landmark
     and the boxed sidebar visual chrome. Contents (workspace nav items)
-    live in _workspace_sidebar_items.html.erb, which is also rendered
-    directly into the mobile-accordion content_for slot WITHOUT this
-    chrome so the sidebar contents flow inline rather than as a nested
-    sidebar.
+    live in _workspace_sidebar_items.html.erb. Below md, the same items
+    source instead renders as an in-page section-nav strip (see
+    _section_nav_strip) — not this <aside>.
 
     The workspace switcher now lives exclusively in the header
     (#workspace-switcher-button, Phase 2b). The Settings hub has its

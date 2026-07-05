@@ -3,9 +3,13 @@
     <%= t("activity.title") %>
   </h2>
   <% if activities.any? %>
-    <ol class="mt-4 space-y-3">
-      <%= render partial: "activity_logs/activity_log", collection: activities, as: :activity_log %>
-    </ol>
+    <%# Bordered surface gives the (often sparse) feed a defined edge so it reads
+        as an intentional module rather than text floating in whitespace. -%>
+    <div class="mt-4 rounded-lg border border-border bg-surface p-4">
+      <ol class="space-y-3">
+        <%= render partial: "activity_logs/activity_log", collection: activities, as: :activity_log %>
+      </ol>
+    </div>
   <% else %>
     <div class="mt-4">
       <%= render "shared/empty_state", message: t("activity.empty") %>

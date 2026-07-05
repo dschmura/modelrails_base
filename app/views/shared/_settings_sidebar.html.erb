@@ -7,10 +7,9 @@
     _workspace_settings_sidebar_items depending on which context the
     controller declared via settings_context :identity/:workspace.
 
-    The same items partial is also rendered directly into the
-    mobile-accordion content_for slot WITHOUT this chrome — that's how
-    mobile sees the sidebar contents flow inline instead of as a nested
-    sidebar. Workspace switching is handled by the header switcher
+    Below md, the same items source instead renders as an in-page
+    section-nav strip (see _section_nav_strip) — not this <aside>.
+    Workspace switching is handled by the header switcher
     (#workspace-switcher-button) added in Phase 2b. -%>
 <aside aria-label="<%= t("settings.sidebar.aria_label") %>"
        class="w-64 shrink-0 px-4 py-6 border-r border-border bg-surface">

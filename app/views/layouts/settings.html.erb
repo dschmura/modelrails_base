@@ -27,31 +27,21 @@
          data-settings-announcer-workspace-value="<%= current_workspace_announcement_for_aria_live %>">
     </div>
 
-    <%# Settings hub layout. Path Z header-accordion pattern: at md+ the
-        sidebar renders inline to the left of <main> with the <aside>
-        chrome (_settings_sidebar wrapper); below md, the *chrome-free*
-        contents partial is surfaced via content_for(:mobile_menu_sidebar)
-        so the nav items flow inline inside the header accordion instead of
-        appearing as a nested sidebar-within-a-menu. content_for MUST be
-        declared before render "shared/header" so the slot is populated
-        when the header reads it. The sidebar partial is selected by the
-        controller via settings_context :identity/:workspace.
-        Workspace switching is handled by the header switcher — the former
-        in-sidebar switcher has been removed (Phase 2c-1 Task 2). %>
-    <% content_for :mobile_menu_sidebar do %>
-      <%= render settings_sidebar_partial,
-            current_workspace: Current.workspace,
-            id_suffix: "-mobile" %>
-    <% end %>
-    <% content_for :mobile_menu_sidebar_aria_label, t("settings.sidebar.aria_label") %>
-
+    <%# Settings hub layout. At md+ the sidebar renders inline to the left
+        of <main> with the <aside> chrome (_settings_sidebar wrapper);
+        below md, a section_nav_strip renders as the first child of <main>
+        instead (see below) — no header-accordion hoist. The sidebar
+        partial is selected by the controller via settings_context
+        :identity/:workspace. Workspace switching is handled by the header
+        switcher — the former in-sidebar switcher has been removed
+        (Phase 2c-1 Task 2). %>
     <%= render "shared/header" %>
     <%= render "shared/toasts" %>
 
     <div class="flex-1 flex flex-col md:flex-row"
          data-workspace-kind="<%= settings_context_value %>">
-      <%# Desktop sidebar — hidden below md where the header accordion
-          surfaces the same items partial. %>
+      <%# Desktop sidebar — hidden below md where the section_nav_strip
+          inside <main> surfaces the same items instead. %>
       <div class="hidden md:flex shrink-0">
         <%= render "shared/settings_sidebar",
               current_workspace: Current.workspace,
@@ -66,6 +56,9 @@
               data-workspace-branded
               style="--ws-primary-light: oklch(0.40 0.15 <%= ws_hue %>); --ws-primary-dark: oklch(0.78 0.10 <%= ws_hue %>);"
             <% end %>>
+        <%= render "shared/section_nav_strip",
+              items: settings_nav_items,
+              heading: t("settings.sidebar.strip_heading.#{settings_context_value}") %>
         <%= yield %>
       </main>
     </div>

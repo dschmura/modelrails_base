@@ -33,6 +33,7 @@ en:
     sidebar:
       aria_label: "Workspace navigation"
       section_label: "Workspace"
+      strip_heading: "Workspace"
       overview: "Overview"
       projects: "Projects"
       settings: "Settings"

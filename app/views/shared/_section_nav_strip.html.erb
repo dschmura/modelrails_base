@@ -1,0 +1,15 @@
+<%# locals: (items:, heading:) -%>
+<%# Mobile-only contextual section navigation. A horizontally-scrolling strip of
+    plain aria-current links (NOT tabs) at the top of the content column. Renders
+    nothing when the current user may see no items. Zero JS — native scroll. -%>
+<% unless items.empty? %>
+  <nav aria-labelledby="section-nav-strip-heading"
+       class="md:hidden -mx-6 mb-4 overflow-x-auto border-b border-border">
+    <h2 id="section-nav-strip-heading" class="sr-only"><%= heading %></h2>
+    <ul role="list" class="flex flex-row gap-2 px-6 pb-3">
+      <% items.each do |item| %>
+        <%= render "shared/settings_sidebar_item", **item %>
+      <% end %>
+    </ul>
+  </nav>
+<% end %>

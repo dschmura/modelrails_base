@@ -1,68 +1,6 @@
 require "rails_helper"
 
 RSpec.describe SettingsNavigationHelper, type: :helper do
-  describe "#render_nav_item_if_permitted" do
-    let(:user) { create(:user) }
-    let(:workspace) { create(:workspace) }
-
-    before do
-      allow(Current).to receive(:user).and_return(user)
-      allow(Current).to receive(:workspace).and_return(workspace)
-    end
-
-    it "yields when the policy permits the action" do
-      allow(WorkspacePolicy).to receive(:new)
-        .with(user, workspace).and_return(instance_double(WorkspacePolicy, edit?: true))
-
-      output = helper.render_nav_item_if_permitted(workspace, action: :edit?) { "RENDERED" }
-      expect(output).to eq("RENDERED")
-    end
-
-    it "returns nil when the policy denies the action" do
-      allow(WorkspacePolicy).to receive(:new)
-        .with(user, workspace).and_return(instance_double(WorkspacePolicy, edit?: false))
-
-      output = helper.render_nav_item_if_permitted(workspace, action: :edit?) { "RENDERED" }
-      expect(output).to be_nil
-    end
-
-    it "infers the policy class from the record" do
-      membership = create(:membership, user: user, workspace: workspace)
-      allow(MembershipPolicy).to receive(:new)
-        .with(user, membership).and_return(instance_double(MembershipPolicy, index?: true))
-
-      output = helper.render_nav_item_if_permitted(membership, action: :index?) { "RENDERED" }
-      expect(output).to eq("RENDERED")
-    end
-
-    context "with an explicit policy_class:" do
-      it "yields when the given policy class permits the action" do
-        allow(Workspaces::SettingsPolicy).to receive(:new)
-          .with(user, workspace).and_return(instance_double(Workspaces::SettingsPolicy, update?: true))
-
-        output = helper.render_nav_item_if_permitted(
-          workspace, action: :update?, policy_class: Workspaces::SettingsPolicy
-        ) { "RENDERED" }
-        expect(output).to eq("RENDERED")
-      end
-
-      # Discriminator: the record's inferred policy (WorkspacePolicy) would
-      # permit, but the explicitly-requested SettingsPolicy denies — so a nil
-      # result proves the helper consults the given class, not the inferred one.
-      it "consults the given policy class instead of inferring from the record" do
-        allow(WorkspacePolicy).to receive(:new)
-          .and_return(instance_double(WorkspacePolicy, update?: true))
-        allow(Workspaces::SettingsPolicy).to receive(:new)
-          .with(user, workspace).and_return(instance_double(Workspaces::SettingsPolicy, update?: false))
-
-        output = helper.render_nav_item_if_permitted(
-          workspace, action: :update?, policy_class: Workspaces::SettingsPolicy
-        ) { "RENDERED" }
-        expect(output).to be_nil
-      end
-    end
-  end
-
   describe "#current_workspace_announcement_for_aria_live" do
     let(:user) { create(:user) }
 
@@ -119,6 +57,54 @@ RSpec.describe SettingsNavigationHelper, type: :helper do
       result = helper.current_workspace_announcement_for_aria_live
       expect(result).to include("Ghost Inc")
       expect(result).to include("Member")
+    end
+  end
+
+  describe "#workspace_settings_nav_items" do
+    let(:workspace) { create(:workspace) }
+    let(:owner) { create(:user) }
+
+    before do
+      create(:membership, :owner, user: owner, workspace: workspace)
+      allow(Current).to receive(:user).and_return(owner)
+      allow(Current).to receive(:workspace).and_return(workspace)
+      # current_page? is provided by the view context in a helper spec; stub it false.
+      allow(helper).to receive(:current_page?).and_return(false)
+    end
+
+    it "returns Profile, Members, Limits & Plan for an owner" do
+      labels = helper.workspace_settings_nav_items.map { |i| i[:label] }
+      expect(labels).to eq([
+        I18n.t("settings.sidebar.items.profile"),
+        I18n.t("settings.sidebar.items.members"),
+        I18n.t("settings.sidebar.items.limits_and_plan")
+      ])
+    end
+
+    it "each item carries href + icon and gating is applied (no Limits & Plan for a member)" do
+      member = create(:user)
+      create(:membership, user: member, workspace: workspace) # non-owner
+      allow(Current).to receive(:user).and_return(member)
+
+      items = helper.workspace_settings_nav_items
+      expect(items).to all(include(:href, :icon))
+      labels = items.map { |i| i[:label] }
+      expect(labels).not_to include(I18n.t("settings.sidebar.items.limits_and_plan"))
+    end
+  end
+
+  describe "#identity_settings_nav_items" do
+    before { allow(helper).to receive(:current_page?).and_return(false) }
+
+    it "returns the five account items in order" do
+      labels = helper.identity_settings_nav_items.map { |i| i[:label] }
+      expect(labels).to eq([
+        I18n.t("settings.sidebar.items.profile"),
+        I18n.t("settings.sidebar.items.notifications"),
+        I18n.t("settings.sidebar.items.security"),
+        I18n.t("settings.sidebar.items.passkeys"),
+        I18n.t("settings.sidebar.items.appearance")
+      ])
     end
   end
 end

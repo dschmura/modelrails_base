@@ -1,15 +1,14 @@
-<%# locals: (current_workspace:, id_suffix: "") -%>
+<%# locals: (current_workspace:) -%>
 <%# Chrome-free workspace-sidebar contents — workspace nav items.
-    Rendered both inside `_workspace_sidebar` (which adds the <aside>
-    landmark + sidebar visual chrome for the desktop column) AND directly
-    into the mobile-accordion content_for slot (no chrome — contents flow
-    inline alongside the rest of the accordion items, matching the
-    modelrails_agent_os mobile pattern). The mobile path passes
-    `id_suffix: "-mobile"` so the section-label ID is unique across the
-    two coexisting renders.
+    Rendered inside `_workspace_sidebar` (which adds the <aside> landmark
+    + sidebar visual chrome for the desktop column). Below md, the same
+    item source renders as an in-page section-nav strip instead (see
+    _section_nav_strip) — not inside this partial.
     The workspace switcher now lives exclusively in the header
-    (#workspace-switcher-button, Phase 2b) — not in the sidebar. -%>
-<% section_label_id = "workspace-sidebar-section-label#{id_suffix}" %>
+    (#workspace-switcher-button, Phase 2b) — not in the sidebar.
+    Items come from WorkspaceHelper#workspace_shell_nav_items — single
+    source of truth, shared with the mobile strip. -%>
+<% section_label_id = "workspace-sidebar-section-label" %>
 
 <%# Visual divider + section label — matches agent_os mobile rhythm
     and gives the desktop sidebar the same scannable layout. Section
@@ -26,26 +25,7 @@
 <ul role="list"
     aria-labelledby="<%= section_label_id %>"
     class="flex flex-col gap-1">
-  <%= render "shared/settings_sidebar_item",
-        label: t("workspaces.sidebar.overview"),
-        href: workspace_path(current_workspace),
-        icon: :home,
-        active: current_page?(workspace_path(current_workspace)) %>
-
-  <%= render "shared/settings_sidebar_item",
-        label: t("workspaces.sidebar.projects"),
-        href: workspace_projects_path(current_workspace),
-        icon: :folder,
-        active: current_page?(workspace_projects_path(current_workspace)) %>
-
-  <% unless current_workspace.personal? %>
-    <%# Org workspaces: "Settings" → workspace admin hub (Profile/Members/Invitations/Limits).
-        Personal workspaces omit this item — the "Customize" affordance on the Overview
-        replaces it (workspace-settings IA Phase 1). %>
-    <%= render "shared/settings_sidebar_item",
-          label: t("workspaces.sidebar.settings"),
-          href: edit_workspace_path(current_workspace),
-          icon: :cog,
-          active: false %>
+  <% workspace_shell_nav_items.each do |item| %>
+    <%= render "shared/settings_sidebar_item", **item %>
   <% end %>
 </ul>

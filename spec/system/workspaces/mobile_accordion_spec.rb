@@ -3,9 +3,10 @@
 require "rails_helper"
 
 # Mobile-viewport behavior for the workspace-scoped (application layout)
-# header accordion (below md). Path Z drawer replacement: the header
-# expands downward to reveal the _workspace_sidebar partial inline via
-# content_for(:mobile_menu_sidebar). Mirrors the settings accordion spec.
+# header accordion (below md). The accordion holds only GLOBAL chrome now
+# (workspace switcher, user menu, theme toggle); the workspace section sub-nav
+# (Overview/Projects/Settings) lives in an in-page strip, not here. Mirrors the
+# settings accordion spec.
 RSpec.describe "Workspace pages — mobile accordion", type: :system, js: true do
   let(:user) { create(:user) }
   let(:workspace) { create(:workspace, max_members: 50) }
@@ -19,12 +20,12 @@ RSpec.describe "Workspace pages — mobile accordion", type: :system, js: true d
     end
   end
 
-  it "shows the hamburger and reveals the workspace sidebar on tap" do
+  it "shows the hamburger and reveals global chrome on tap (not the section sub-nav)" do
     visit workspace_path(workspace)
     click_button I18n.t("navigation.mobile_menu.open")
     within("[data-mobile-menu-target='menu']") do
-      expect(page).to have_link(I18n.t("workspaces.sidebar.overview"))
-      expect(page).to have_link(I18n.t("workspaces.sidebar.settings"))
+      expect(page).to have_link(I18n.t("navigation.all_workspaces"))    # global chrome
+      expect(page).to have_no_link(I18n.t("workspaces.sidebar.projects")) # sub-nav lives in the in-page strip
     end
   end
 
@@ -32,8 +33,10 @@ RSpec.describe "Workspace pages — mobile accordion", type: :system, js: true d
     visit workspace_path(workspace)
     click_button I18n.t("navigation.mobile_menu.open")
     within("[data-mobile-menu-target='menu']") do
-      click_link I18n.t("workspaces.sidebar.settings")
+      # A global-chrome link (the section sub-nav no longer lives in the panel).
+      click_link I18n.t("navigation.all_workspaces")
     end
+    expect(page).to have_current_path(workspaces_path)
     expect(page).to have_css("[data-mobile-menu-target='menu'].hidden", visible: :all)
   end
 

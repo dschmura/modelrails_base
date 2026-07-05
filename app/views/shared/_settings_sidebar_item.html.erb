@@ -1,5 +1,8 @@
 <%# locals: (label:, href:, aria_label: nil, active: false, icon: nil) -%>
-<li>
+<%# shrink-0 on the <li> (the flex item) is a no-op in the vertical <aside>
+    (flex-col: cross-axis) and stops the horizontal strip's items from squishing
+    (flex-row: main-axis), so the row overflows into its scroll instead. -%>
+<li class="shrink-0">
   <%= link_to href,
         aria: { label: aria_label, current: ("page" if active) },
         data: { turbo_prefetch: "true" },

@@ -7,28 +7,6 @@
   <body class="min-h-screen flex flex-col bg-surface-raised text-text-heading">
     <%= render "shared/skip_link" %>
 
-    <%# Path Z header-accordion pattern: when there's a workspace context,
-        the workspace sidebar renders inline on desktop (md+) and is
-        surfaced inside the shared header's expanded mobile panel via
-        content_for(:mobile_menu_sidebar). One eager-loaded workspaces
-        relation feeds both renders. content_for MUST be declared before
-        render "shared/header" so the slot is populated when the header
-        reads it. %>
-    <% if Current.workspace %>
-      <%# Mobile accordion: chrome-free contents partial so the workspace
-          nav items flow inline rather than appearing as a nested sidebar.
-          Desktop column below still renders the full _workspace_sidebar
-          wrapper with the <aside> chrome.
-          id_suffix: "-mobile" so the section-label ID doesn't collide
-          with the desktop render below. %>
-      <% content_for :mobile_menu_sidebar do %>
-        <%= render "shared/workspace_sidebar_items",
-              current_workspace: Current.workspace,
-              id_suffix: "-mobile" %>
-      <% end %>
-      <% content_for :mobile_menu_sidebar_aria_label, t("workspaces.sidebar.aria_label") %>
-    <% end %>
-
     <%= render "shared/header" %>
     <%= render "shared/email_verification_banner" %>
     <%= render "shared/passkey_enrollment_banner" %>
@@ -37,8 +15,8 @@
     <% if Current.workspace %>
       <%= render "shared/workspace_context_banner" %>
       <div class="flex-1 flex flex-col md:flex-row">
-        <%# Desktop sidebar — hidden below md where the header accordion
-            surfaces the same _workspace_sidebar partial. %>
+        <%# Desktop sidebar — hidden below md where the section_nav_strip
+            inside <main> surfaces the same items instead. %>
         <div class="hidden md:flex shrink-0">
           <%= render "shared/workspace_sidebar",
                 current_workspace: Current.workspace %>
@@ -57,6 +35,14 @@
              end %>
         <%= tag.main id: "main-content", tabindex: "-1", class: "flex-1 min-w-0", **main_context_attrs do %>
           <%= render "shared/workspace_back_link" %>
+          <%# px-6 matches the strip's -mx-6 full-bleed (the workspace <main> has
+              no px of its own, unlike the settings <main>) so it reaches the
+              viewport edge without overflowing. -%>
+          <div class="px-6 md:px-0">
+            <%= render "shared/section_nav_strip",
+                  items: workspace_shell_nav_items,
+                  heading: t("workspaces.sidebar.strip_heading") %>
+          </div>
           <%= yield %>
         <% end %>
       </div>
