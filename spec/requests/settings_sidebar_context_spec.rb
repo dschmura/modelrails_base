@@ -4,9 +4,9 @@ require "rails_helper"
 
 # Guards that each settings controller declares an explicit context (:identity or
 # :workspace) and that the layout renders the matching sidebar partial — not a
-# personal?/org? branch. The hard goal (Task 3): visiting edit_workspace_path
-# for a *personal* workspace must render the workspace sidebar, proving that the
-# old personal?→identity conflation is dead.
+# personal?/org? branch. (WorkspacesController#edit — personal or org — moved
+# off this layout entirely in the nav IA refactor Task 2; see the dedicated
+# describe block below and spec/requests/workspaces/profile_in_shell_spec.rb.)
 #
 # Uses Capybara.string (no browser) to parse real rendered HTML.
 RSpec.describe "Settings sidebar context routing", type: :request do
@@ -71,12 +71,18 @@ RSpec.describe "Settings sidebar context routing", type: :request do
     end
   end
 
-  # ── Hard goal: personal workspace → workspace context (Task 3) ────────────
+  # ── Personal workspace edit → workspace shell, not identity settings ──────
 
-  describe "GET /workspaces/:slug/edit for a personal workspace (workspace context)" do
-    # The personal workspace is the workspace created automatically for the user.
-    # WorkspacesController declares settings_context :workspace, so even though
-    # the workspace is personal? == true, the workspace sidebar must render.
+  describe "GET /workspaces/:slug/edit for a personal workspace" do
+    # The personal workspace is the workspace created automatically for the
+    # user. WorkspacesController#edit now renders in the workspace shell
+    # (layouts/application.html.erb) for every workspace — personal or org —
+    # since it moved off the settings layout (nav IA refactor Task 2). The
+    # old identity/workspace `data-workspace-kind` split only exists on the
+    # settings layout and no longer applies to this action; shell rendering
+    # itself is covered by spec/requests/workspaces/profile_in_shell_spec.rb.
+    # This guards the one thing specific to *personal* workspaces: no
+    # identity-settings items leak in via workspace_settings_nav_items.
     let(:personal_workspace) { user.personal_workspace }
 
     before do
@@ -85,19 +91,20 @@ RSpec.describe "Settings sidebar context routing", type: :request do
       get edit_workspace_path(personal_workspace)
     end
 
-    it "renders data-workspace-kind='workspace' (not 'identity')" do
-      expect(Capybara.string(response.body)).to have_css("[data-workspace-kind='workspace']")
-    end
-
-    it "does NOT render data-workspace-kind='identity' for a personal workspace" do
+    it "renders in the workspace shell, not the settings hub" do
       expect(Capybara.string(response.body)).to have_no_css("[data-workspace-kind='identity']")
+      expect(Capybara.string(response.body)).to have_no_css("#settings-aria-live")
     end
 
-    it "does not show identity sidebar items (Notifications/Security/Appearance absent)" do
-      sb = sidebar(response.body)
-      expect(sb).to have_no_link(item("notifications"))
-      expect(sb).to have_no_link(item("security"))
-      expect(sb).to have_no_link(item("appearance"))
+    it "does not show identity sidebar items in the workspace nav (Notifications/Security/Appearance absent)" do
+      # Scoped to the workspace primary <aside> — the page body also contains
+      # a "Notifications" link in the global header's user menu, which is
+      # unrelated to settings-context routing.
+      workspace_nav = Capybara.string(response.body)
+                        .find("aside[aria-label='#{I18n.t("workspaces.sidebar.aria_label")}']")
+      expect(workspace_nav).to have_no_link(item("notifications"))
+      expect(workspace_nav).to have_no_link(item("security"))
+      expect(workspace_nav).to have_no_link(item("appearance"))
     end
   end
 end

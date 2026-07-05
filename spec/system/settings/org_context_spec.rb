@@ -5,7 +5,12 @@ RSpec.describe "Settings hub — workspace context", type: :system do
   let(:viewer) { create(:user) }
   let(:workspace) { create(:workspace, name: "Acme Corp") }
   let(:axe_options) { { runOnly: { type: "tag", values: [ "wcag2aaa" ] } } }
-  let(:sidebar_selector) { "aside[aria-label='#{I18n.t("settings.sidebar.aria_label")}']" }
+  # edit_workspace_path (Profile) moved off the settings hub into the workspace
+  # shell (nav IA refactor Task 2) — its secondary sub-nav is the equivalent of
+  # the old settings-hub <aside> for this page. Members/Limits & Plan are still
+  # rendered on the old settings hub (later tasks); they're only linked from
+  # here as sibling destinations.
+  let(:subnav_selector) { "nav[aria-label='#{I18n.t("settings.sidebar.strip_heading.workspace")}']" }
 
   before do
     create(:membership, :owner, user: owner, workspace: workspace)
@@ -16,10 +21,10 @@ RSpec.describe "Settings hub — workspace context", type: :system do
   context "as Owner" do
     before { sign_in_via_form(owner) }
 
-    it "renders workspace-context sidebar with all admin items" do
+    it "renders the workspace settings sub-nav with all admin items" do
       visit edit_workspace_path(workspace)
 
-      within(sidebar_selector) do
+      within(subnav_selector) do
         expect(page).to have_link(I18n.t("settings.sidebar.items.profile"))
         expect(page).to have_link(I18n.t("settings.sidebar.items.members"))
         expect(page).to have_link(I18n.t("settings.sidebar.items.limits_and_plan"))
@@ -30,9 +35,11 @@ RSpec.describe "Settings hub — workspace context", type: :system do
       end
     end
 
-    it "exposes the workspace context via data attribute" do
+    it "exposes the workspace-settings section on the shell's primary nav" do
       visit edit_workspace_path(workspace)
-      expect(page).to have_css("[data-workspace-kind='workspace']")
+      within("aside[aria-label='#{I18n.t("workspaces.sidebar.aria_label")}']") do
+        expect(page).to have_link(I18n.t("workspaces.sidebar.settings"), href: edit_workspace_path(workspace))
+      end
     end
 
     it "passes axe-core at WCAG 2.2 AAA in light and dark modes" do

@@ -2,6 +2,11 @@
 <html lang="<%= I18n.locale %>"
       data-controller="theme"
       data-theme-theme-value="<%= current_user_theme %>">
+<%# Morph only for same-URL refreshes on workspace pages (Profile/Limits saves
+    redirect to their own URL and must keep scroll position). Gated on
+    Current.workspace so non-workspace application pages stay plain Drive.
+    Must run before the head partial buffers provide(:head). %>
+<% turbo_refreshes_with method: :morph if Current.workspace %>
 <%= render "shared/layout_head" %>
 
   <body class="min-h-screen flex flex-col bg-surface-raised text-text-heading">
@@ -41,11 +46,28 @@
             <%= render "shared/workspace_identity_bar", workspace: Current.workspace %>
           </div>
           <%= render "shared/workspace_back_link" %>
-          <div class="px-6 md:px-0">
-            <%= render "shared/section_nav_strip",
-                  items: workspace_shell_nav_items,
-                  heading: t("workspaces.sidebar.strip_heading") %>
-          </div>
+          <% if current_workspace_section == :settings %>
+            <div class="px-6 md:px-0">
+              <%# Mobile-only breadcrumb: section-trail orientation. Desktop
+                  orients via the primary sidebar (Settings current) + sub-tab row. %>
+              <div class="md:hidden mb-3">
+                <%= ui :breadcrumb, items: [
+                      { label: Current.workspace.name, href: workspace_path(Current.workspace) },
+                      { label: t("workspaces.sidebar.settings") }
+                    ] %>
+              </div>
+              <%= render "shared/workspace_settings_subnav" %>
+              <%= render "shared/section_nav_strip",
+                    items: workspace_settings_nav_items,
+                    heading: t("settings.sidebar.strip_heading.workspace") %>
+            </div>
+          <% else %>
+            <div class="px-6 md:px-0">
+              <%= render "shared/section_nav_strip",
+                    items: workspace_shell_nav_items,
+                    heading: t("workspaces.sidebar.strip_heading") %>
+            </div>
+          <% end %>
           <%= yield %>
         <% end %>
       </div>
