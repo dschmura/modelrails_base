@@ -1,4 +1,8 @@
-<section aria-label="<%= t('activity.title') %>" class="mt-8">
+<%# locals: (activities:, top_margin: "mt-8") -%>
+<%# top_margin defaults to mt-8 for the project-detail page (feed follows other
+    content); the Overview passes a tighter value since the feed is its lead
+    content and should align with the other shell pages' first heading. -%>
+<section aria-label="<%= t('activity.title') %>" class="<%= top_margin %>">
   <h2 class="text-lg font-semibold text-text-heading">
     <%= t("activity.title") %>
   </h2>
