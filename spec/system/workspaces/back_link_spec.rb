@@ -23,16 +23,25 @@ RSpec.describe "Workspace back-link navigation", type: :system do
     # workspace navigates to that workspace's dashboard.
     # The redundant <nav>-wrapped back-link was removed from settings
     # layout after a Jason Fried-led panel review found it created visual
-    # divorce between the sidebar and the main content.
-
-    it "does not show the back-link on the members page" do
-      visit workspace_members_path(workspace)
-      expect(page).not_to have_link(back_label)
-    end
+    # divorce between the sidebar and the main content. Limits & Plan is
+    # the last page still on that layout (nav IA refactor Task 4 moves it).
 
     it "does not show the back-link on the limits & plan (settings) page" do
       visit edit_workspace_settings_path(workspace)
       expect(page).not_to have_link(back_label)
+    end
+  end
+
+  describe "on workspace shell pages" do
+    # Members moved off the settings layout into the workspace shell (nav IA
+    # refactor Task 3). shared/_workspace_back_link renders unconditionally
+    # for every shell page except the workspace show itself — there's no
+    # settings-hub-style sidebar/main "visual divorce" concern here, since the
+    # shell's own persistent primary sidebar + identity bar already frame the
+    # page differently than the old hub did.
+    it "shows the back-link on the members page" do
+      visit workspace_members_path(workspace)
+      expect(page).to have_link(back_label)
     end
   end
 

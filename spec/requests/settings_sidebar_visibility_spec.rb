@@ -1,10 +1,14 @@
 require "rails_helper"
 
-# Renders the workspace-context settings sidebar through the real request stack
-# and asserts each role sees the correct nav links. The members index uses
-# layout "settings" and is reachable by every role (MembershipPolicy#index? is
-# just membership.present?), so the sidebar renders here even for lower roles —
-# unlike edit_workspace_path, which redirects them before any sidebar shows.
+# Renders the workspace-context settings sub-nav through the real request stack
+# and asserts each role sees the correct nav links. The members index is
+# reachable by every role (MembershipPolicy#index? is just
+# membership.present?), so the sub-nav renders here even for lower roles —
+# unlike edit_workspace_path, which redirects them before any sub-nav shows.
+#
+# Members moved off the settings layout into the workspace shell (nav IA
+# refactor Task 3); "org_sidebar" here is the shell's secondary sub-nav
+# (_workspace_settings_subnav), not the old settings-hub <aside>.
 #
 # This is the fast, no-browser complement to
 # spec/system/settings/org_context_spec.rb (which covers the Owner render, AAA,
@@ -15,7 +19,7 @@ RSpec.describe "Settings sidebar visibility (workspace context)", type: :request
 
   def org_sidebar
     Capybara.string(response.body)
-            .find("aside[aria-label='#{I18n.t("settings.sidebar.aria_label")}']")
+            .find("nav[aria-label='#{I18n.t("settings.sidebar.strip_heading.workspace")}']")
   end
 
   def item(key)

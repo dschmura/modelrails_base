@@ -5,8 +5,11 @@ require "rails_helper"
 # Guards that each settings controller declares an explicit context (:identity or
 # :workspace) and that the layout renders the matching sidebar partial — not a
 # personal?/org? branch. (WorkspacesController#edit — personal or org — moved
-# off this layout entirely in the nav IA refactor Task 2; see the dedicated
-# describe block below and spec/requests/workspaces/profile_in_shell_spec.rb.)
+# off this layout entirely in the nav IA refactor Task 2, and
+# Workspaces::MembersController/InvitationsController followed in Task 3; see
+# the dedicated describe blocks below and
+# spec/requests/workspaces/profile_in_shell_spec.rb +
+# spec/requests/workspaces/members_in_shell_spec.rb.)
 #
 # Uses Capybara.string (no browser) to parse real rendered HTML.
 RSpec.describe "Settings sidebar context routing", type: :request do
@@ -47,24 +50,33 @@ RSpec.describe "Settings sidebar context routing", type: :request do
   end
 
   # ── Workspace context ───────────────────────────────────────────────────────
+  # Members/Invitations moved off the settings layout into the workspace shell
+  # (nav IA refactor Task 3) — the "sidebar" here is the shell's secondary
+  # sub-nav (_workspace_settings_subnav), not the settings-hub <aside>.
 
-  describe "GET /workspaces/:slug/members (workspace context)" do
+  def workspace_subnav(body)
+    Capybara.string(body)
+            .find("nav[aria-label='#{I18n.t("settings.sidebar.strip_heading.workspace")}']")
+  end
+
+  describe "GET /workspaces/:slug/members (workspace shell)" do
     let!(:workspace) { create(:workspace) }
     before do
       create(:membership, :owner, user: user, workspace: workspace)
       get workspace_members_path(workspace)
     end
 
-    it "renders data-workspace-kind='workspace'" do
-      expect(Capybara.string(response.body)).to have_css("[data-workspace-kind='workspace']")
+    it "renders in the workspace shell, not the settings hub" do
+      expect(Capybara.string(response.body)).to have_no_css("[data-workspace-kind='workspace']")
+      expect(Capybara.string(response.body)).to have_no_css("#settings-aria-live")
     end
 
-    it "renders workspace sidebar items (Members present)" do
-      expect(sidebar(response.body)).to have_link(item("members"))
+    it "renders workspace sub-nav items (Members present)" do
+      expect(workspace_subnav(response.body)).to have_link(item("members"))
     end
 
-    it "does not render identity sidebar items in workspace context" do
-      sb = sidebar(response.body)
+    it "does not render identity sidebar items in the workspace sub-nav" do
+      sb = workspace_subnav(response.body)
       expect(sb).to have_no_link(item("notifications"))
       expect(sb).to have_no_link(item("security"))
       expect(sb).to have_no_link(item("appearance"))
