@@ -52,7 +52,7 @@ Capabilities baked in:
 - **`docker-outside-of-docker`** feature → `kamal deploy` works *from inside* the devcontainer (your machine's Docker daemon is exposed)
 - **Named bundle cache volume** → gems survive container rebuilds; no 5-min reinstall on each rebuild
 - **SSH agent forwarding** → `kamal deploy` SSHes to target hosts using your existing keys
-- **Port forwarding** → `:3000` (Rails) and `:1080` (Letter Opener Web) labeled in VS Code's Ports panel
+- **Port forwarding** → `:3000` (Rails) labeled in VS Code's Ports panel; the dev mail inbox (Letter Opener Web) is at `/letter_opener` on that same URL
 
 When the container first boots, `.devcontainer/setup.sh` invokes `bin/setup` (the canonical Rails setup script) plus installs system packages mirroring the production Dockerfile. It ends with explicit next-steps guidance — copy `.env.example`, run `bin/dev`, visit `localhost:3000`.
 

@@ -70,8 +70,9 @@ Next steps:
   1. Run: bin/dev
   2. Open the app: click the port 3000 entry in the PORTS panel (or the
      auto-forward notification) — not http://localhost:3000.
-  3. Sign in (passwordless): request a magic link, then open it from
-     Letter Opener Web on the forwarded port 1080 URL (also in the PORTS panel).
+  3. Sign in (passwordless): request a magic link, then read it in the dev
+     mail inbox — append /letter_opener to your forwarded port 3000 URL
+     (dev never sends real email).
 
 .env was created from .env.example; edit it if you need to change any defaults.
 NEXT_STEPS

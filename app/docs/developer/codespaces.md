@@ -13,7 +13,7 @@ ModelRails runs in a browser-hosted [GitHub Codespace](https://docs.github.com/e
 1. On the repo's GitHub page: **Code → Codespaces → Create codespace**. The first build runs `.devcontainer/setup.sh` (system packages, Playwright chromium, `bin/setup`) — a few minutes.
 2. In the Codespace terminal: `bin/dev`.
 3. Open the app: the **Ports** panel forwards port **3000** — click its URL (or the auto-forward notification). Do not use `http://localhost:3000`.
-4. Sign in: ModelRails is passwordless. Request a magic link, then open it from **Letter Opener Web** on the forwarded port **1080** URL (also in the Ports panel). The link targets the forwarded domain, so it resolves in the browser.
+4. Sign in: ModelRails is passwordless. Request a magic link, then read it in the dev mail inbox at **`/letter_opener`** on your forwarded port **3000** URL (dev never sends real email — `letter_opener_web` mounts there). The link targets the forwarded domain, so it resolves in the browser.
 
 ## Why the Codespaces-specific config exists
 
