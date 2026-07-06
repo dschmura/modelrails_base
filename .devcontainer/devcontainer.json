@@ -21,15 +21,11 @@
     "BINDING": "0.0.0.0"
   },
   "postCreateCommand": "bash .devcontainer/setup.sh",
-  "forwardPorts": [3000, 1080],
+  "forwardPorts": [3000],
   "portsAttributes": {
     "3000": {
       "label": "Rails",
       "onAutoForward": "notify"
-    },
-    "1080": {
-      "label": "Letter Opener Web",
-      "onAutoForward": "silent"
     }
   },
   "customizations": {

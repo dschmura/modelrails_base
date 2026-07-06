@@ -230,11 +230,9 @@ RSpec.describe "Template invariants" do
         "on every devcontainer rebuild. Mounts: #{mounts.inspect}"
     end
 
-    it "forwards ports for Rails and common dev services" do
+    it "forwards the Rails port" do
       expect(Array(devcontainer["forwardPorts"])).to include(3000),
         "expected port 3000 forwarded for Rails"
-      expect(Array(devcontainer["forwardPorts"])).to include(1080),
-        "expected port 1080 forwarded for Letter Opener Web (common forker add)"
     end
 
     it "labels forwarded ports via portsAttributes for visibility in VS Code's Ports panel" do
