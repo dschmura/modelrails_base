@@ -4,6 +4,8 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+## v2.0.0 — Passwordless Auth, Workspace Lifecycle & Navigation IA (2026-07-06)
+
 ### Breaking
 
 - Git history rewritten to purge the internal root `docs/` directory (now the separate [modelrails_base_docs](https://github.com/dschmura/modelrails_base_docs) repo) — every commit SHA changed; existing clones and forks must re-sync (`git fetch && git reset --hard origin/main`).
@@ -12,6 +14,8 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Added
 
+- Workspaces index client-side filter + denser cards — the filter appears once the "Other workspaces" list is long enough to scan; each card sets the logo beside the name with a single metadata line (#428).
+- Persistent workspace-identity bar anchoring the workspace shell, with tightened content spacing (#423).
 - Workspace & project lifecycle — Archive (reversible; restore from the Archived section) and permanent Delete (workspace deletion gated by a type-the-name confirmation), cascading workspace → projects (#413, #414).
 - Operator workspace lock — `rails "workspaces:suspend[slug]"` / `"workspaces:unsuspend[slug]"` puts a workspace on hold ("This workspace is locked."), blocking owners until released (#415).
 - Passwordless-first sign-in — magic link is the default; a password is an opt-in set from Security settings (#374).
@@ -50,6 +54,9 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- Workspace navigation IA — settings becomes a section of the workspace shell (Profile / Members / Limits under an active "Settings"), not a separate layout; drops the `settings_context` macro (#425).
+- Mobile menu restructured — account actions first, workspaces below (recency-ordered, capped, with an "All workspaces" overflow) (#426).
+- Mobile section-nav strip — in-page secondary nav replacing the header-accordion sub-nav hoist (#422).
 - Email-first sign-in — one email field routes to password, magic link, or passkey; the connected-accounts page reflects real linked state (#377).
 - Retired the deferred "personal workspace"/"personal profile" copy → "your workspace"/"your profile"; section label "Account" → "You" (honest-naming).
 - Removed the half-wired dynamic-PWA scaffold; the static `public/manifest.webmanifest` stays (#306).
@@ -75,6 +82,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Removed
 
+- `/me` ("Your home") — the workspace home consolidates to `/workspaces`, which gains an identity anchor (#429).
 - Deprecated `invitations#index` redirect route + the redundant "Invitations" sidebar item — folded into the members surface (#398).
 - `settings-drawer` Stimulus controller, `*.mobile_drawer.*` locales, and the off-canvas markup — superseded by the header accordion.
 - `Workspaces::BrandingsController` + `/workspaces/:slug/branding/*` routes — identity picker moved to `WorkspacesController#identity_picker_hub`.
@@ -84,6 +92,8 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Fixed
 
+- Dev mail-preview location — `/letter_opener` (a Rails engine on the app), not the dead port 1080; corrected across the devcontainer, setup message, `/docs`, and the invariant spec (#431).
+- `base-select` chevron layout + de-duplicated select labels (#421).
 - Signups-closed sign-in view renders inside the turbo-frame instead of vanishing (#384).
 - Codespaces boot — trixie `moby:false`, `bin/setup` (libssl-dev + Node), non-interactive Playwright, Solid Queue self-heal, and forwarded-proxy CSRF Origin (#386, #387, #388, #396, #397).
 - Settings-hub Turbo morph is now actually active — `_layout_head` yields `:head` so the morph meta emits (#327).
@@ -95,6 +105,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Accessibility
 
+- Alert severity icons (modelrails_ui v0.5.0) — a colour-blind-safe non-colour cue on info/success/warning/danger alerts; normalized warning triangle (#427).
 - Quiet-hours warning sits in a stable `role="status"` wrapper so screen readers reliably announce it (#302).
 - `autocomplete="off"` on the read-only join-link copy field, clearing the herb-lint warning (#299).
 - WCAG 2.2 AAA contrast pass — six tokens bumped to 7:1; `text-muted` matches `text-body` (hierarchy via size/weight).
