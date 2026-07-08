@@ -8,3 +8,4 @@ agent-os/
 # would fail on every push for anyone with these present.
 docs/
 working_files/
+graphify-out/
