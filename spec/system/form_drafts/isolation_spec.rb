@@ -89,11 +89,37 @@ RSpec.describe "Form draft isolation", type: :system do
   end
 
   it "keeps new-vs-edit drafts separate on the project forms" do
-    # Covered concretely in Task 11 after adoption; placeholder assertion here
-    # ensures the fallback-chain contract via the harness ids instead:
+    # Pure fallback-chain contract via the harness ids (kept alongside the
+    # concrete real-form proof below).
     sign_in_via_form(user)
     visit "/draft_harness"
     expect(page.evaluate_script("window.formDraftHarness.draftKeyFor(document.querySelector('#harness-main'), '')")).to eq("harness-main")
     expect(page.evaluate_script("window.formDraftHarness.draftKeyFor(document.querySelector('#harness-mini'), '')")).to eq("harness-mini")
+  end
+
+  # Task 11 adoption proof (deferred from Task 10): the real projects/new and
+  # projects/edit forms carry distinct explicit ids ("new_project" via
+  # dom_id(@project), "edit_project_<id>" via dom_id(@project, :edit) —
+  # form_with model: does not auto-id the <form> tag in this app, see
+  # round_trip_spec's adoption note), so a draft typed on /new must never
+  # surface — or leave an entry under — the /edit key for an existing project.
+  it "keeps a projects/new draft from surfacing on projects/edit for an existing project" do
+    workspace = user.personal_workspace
+    existing_project = create(:project, workspace: workspace, created_by: user, name: "Existing Project")
+    create(:project_membership, :creator, project: existing_project, user: user)
+
+    sign_in_via_form(user)
+    visit new_workspace_project_path(workspace)
+    fill_in I18n.t("workspaces.projects.new.name_label"), with: "Draft-only project name"
+    wait_for_draft("new_project")
+
+    visit edit_workspace_project_path(workspace, existing_project)
+    within("#edit_project_#{existing_project.id}") do
+      expect(page).to have_selector("[data-form-draft-target='notice']", visible: :hidden)
+    end
+    expect(find_field(I18n.t("workspaces.projects.edit.name_label")).value).to eq(existing_project.name)
+
+    edit_key = draft_storage_key(user, "edit_project_#{existing_project.id}")
+    expect(page.evaluate_script("localStorage.getItem(#{edit_key.to_json}) === null")).to be(true)
   end
 end

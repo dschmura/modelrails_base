@@ -94,4 +94,29 @@ RSpec.describe "Form draft round trip", type: :system do
     within("#harness-main") { expect(page).to have_text(I18n.t("form_draft.notice")) }
     # example intentionally ends with the chip visible for the axe sweep
   end
+
+  # Task 11 adoption proof: the real workspace-invitation form, not the
+  # harness. `user.personal_workspace` is auto-provisioned as Owner by the
+  # User#onboard_workspace after_create callback (:personal tenancy preset,
+  # the test-env default), which already satisfies
+  # InvitationPolicy#create? (can?("manage_members")) — no extra membership
+  # factory needed. The form's id is explicit ("new_invitation" in
+  # app/views/workspaces/invitations/new.html.erb) because form_with model:
+  # does NOT generate a form-level id by default in this app (verified: Rails
+  # 8.1's form_with_generates_ids only auto-ids individual FIELD tags, never
+  # the <form> element itself — that was form_for's job, and form_with never
+  # inherited it).
+  it "recovers an invitation draft on the real adoption form" do
+    workspace = user.personal_workspace
+    visit new_workspace_invitation_path(workspace)
+    fill_in I18n.t("workspaces.invitations.new.emails_label"), with: "a@example.com, b@example.com"
+    wait_for_draft("new_invitation")
+    visit new_workspace_invitation_path(workspace)
+    expect(page).to have_text(I18n.t("form_draft.notice"))
+    click_button I18n.t("form_draft.recover")
+    # Retrying barrier first: recover() is async (same pattern as the harness
+    # round-trip above) — then the non-retrying .value read is safe.
+    expect(page).to have_field(I18n.t("workspaces.invitations.new.emails_label"), with: /a@example\.com/)
+    expect(find_field(I18n.t("workspaces.invitations.new.emails_label")).value).to include("a@example.com")
+  end
 end
