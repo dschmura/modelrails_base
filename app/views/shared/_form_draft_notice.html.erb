@@ -13,9 +13,9 @@
   `revealed:` exists for previews/render-tests only; production callers use
   the default.
 -%>
-<div data-form-draft-target="notice"
-     <%= "hidden" unless revealed %>
-     class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-warning-border bg-warning-surface px-4 py-3">
+<%= tag.div data: { form_draft_target: "notice" },
+      hidden: !revealed,
+      class: "mb-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-warning-border bg-warning-surface px-4 py-3" do %>
   <p class="font-medium text-warning">
     <%= t("form_draft.notice", default: "You have an unsaved draft of this form.") %>
   </p>
@@ -29,7 +29,7 @@
       <%= t("form_draft.discard", default: "Discard draft") %>
     </button>
   </div>
-</div>
+<% end %>
 <div data-form-draft-target="status"
      role="status" aria-live="polite" aria-atomic="true" class="sr-only"
      data-found-text="<%= t("form_draft.found", default: "Recoverable draft found. Recover and Discard buttons are before the form fields.") %>"
