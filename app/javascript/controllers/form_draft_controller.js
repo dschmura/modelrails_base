@@ -330,7 +330,10 @@ export default class extends Controller {
     if (!this.enabled) return
     if (this.consumeSuppressMarker()) return
     const draft = await this.readDraft()
-    if (!draft || this.disarmed) return
+    if (!draft || this.disarmed) {
+      this.hideNotice()
+      return
+    }
     if (this.hasNoticeTarget) this.noticeTarget.hidden = false
     this.announce(this.statusText("found"))
   }
