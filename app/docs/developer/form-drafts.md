@@ -41,4 +41,4 @@ Drafts are AES-256-GCM-encrypted per user (key derived server-side, delivered vi
 
 ## Expiry and cleanup
 
-Drafts expire after 48 hours. The stored entry is deleted on **Discard**, on a successful submit, or when a read finds it expired or invalid — **Recover** fills the form but leaves the entry in place until one of those events (or the next autosave overwrites it). The browser's `beforeunload` event does not trigger recovery — only page reload/return.
+Drafts expire after 48 hours. The stored entry is deleted on **Discard**, on a successful submit, or when a read finds it expired or invalid — **Recover** fills the form but leaves the entry in place until one of those events (or the next autosave overwrites it). Pending edits are flushed to storage on Turbo navigation (`turbo:before-visit`) and when the tab is hidden (`visibilitychange`); recovery itself is offered only on the next page render.
