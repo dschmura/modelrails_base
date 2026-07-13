@@ -99,7 +99,8 @@ module UI
     def trigger_region
       content_tag(:div, trigger,
         id: @trigger_id,
-        class: "select-none",
+        role: "button",
+        class: "select-none inline-flex min-h-11 min-w-11 items-center",
         tabindex: "0",
         "aria-haspopup": "menu",
         "aria-expanded": "false",
