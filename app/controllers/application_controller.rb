@@ -10,6 +10,12 @@ class ApplicationController < ActionController::Base
   # Changes to the importmap will invalidate the etag for HTML responses
   stale_when_importmap_changes
 
+  # Authenticated HTML must not be written to shared caches or the browser's
+  # disk cache — it now carries the form-draft key meta (spec: key-surface
+  # hardening). Trade-off accepted: this defeats HTML ETag revalidation for
+  # signed-in users.
+  after_action :prevent_authenticated_html_caching
+
   rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
   rescue_from ActiveRecord::RecordNotFound, with: :record_not_found
   rescue_from Suspendable::SuspendedError, with: :workspace_locked
@@ -32,6 +38,12 @@ class ApplicationController < ActionController::Base
   # markdowndocs) — keep it even though app code should prefer Current.user.
   def current_user
     Current.user
+  end
+
+  def prevent_authenticated_html_caching
+    return unless Current.user && request.format.html?
+
+    response.headers["Cache-Control"] = "no-store"
   end
 
   def user_not_authorized
