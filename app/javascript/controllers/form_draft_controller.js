@@ -106,7 +106,7 @@ export default class extends Controller {
   connect() {
     this.disarmed = false
     this.pendingSave = null
-    this.scope = document.querySelector('meta[name="form-draft-scope"]')?.content
+    this.scopeDigest = document.querySelector('meta[name="form-draft-scope"]')?.content
     resolveKey() // scrub + warm the key cache even if this instance no-ops
 
     this.boundStorage = this.onStorage.bind(this)
@@ -135,11 +135,11 @@ export default class extends Controller {
   }
 
   get enabled() {
-    return Boolean(this.scope) && Boolean(window.crypto?.subtle)
+    return Boolean(this.scopeDigest) && Boolean(window.crypto?.subtle)
   }
 
   get storageKey() {
-    return `draft:v1:${this.scope}:${draftKeyFor(this.element, this.keyValue)}`
+    return `draft:v1:${this.scopeDigest}:${draftKeyFor(this.element, this.keyValue)}`
   }
 
   get suppressKey() {
@@ -352,7 +352,7 @@ export default class extends Controller {
       const foreign = []
       for (let i = 0; i < localStorage.length; i += 1) {
         const key = localStorage.key(i)
-        if (key?.startsWith("draft:v1:") && !key.startsWith(`draft:v1:${this.scope}:`)) {
+        if (key?.startsWith("draft:v1:") && !key.startsWith(`draft:v1:${this.scopeDigest}:`)) {
           foreign.push(key)
         }
       }
