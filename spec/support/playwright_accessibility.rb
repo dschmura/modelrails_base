@@ -269,6 +269,17 @@ module PlaywrightAccessibility
           // one of its descendants — a plated chip inside a tabbable tooltip
           // wrapper) with an opaque background means plated; hitting media
           // before ANY opaque background means unguaranteed contrast.
+          // "Media" for contrast purposes is not only <img>/<canvas>/<video>:
+          // an inline <svg>, or a photo set via CSS `background-image: url()`,
+          // is just as unknowable a backdrop (2026-07-13 review). A gradient/
+          // solid background-image is NOT treated as media (not a raster), but
+          // its opacity is also not asserted — an opaque background-color plate
+          // is still required.
+          const isMedia = (node) => {
+            if (node.matches && node.matches("img, canvas, video, svg")) return true;
+            const bg = getComputedStyle(node).backgroundImage;
+            return typeof bg === "string" && bg.includes("url(");
+          };
           const overMediaUnplated = (el) => {
             const r = el.getBoundingClientRect();
             const stack = document.elementsFromPoint(r.left + r.width / 2, r.top + r.height / 2);
@@ -280,7 +291,7 @@ module PlaywrightAccessibility
                 continue;
               }
               if (opaque) return false;
-              if (node.matches("img, canvas, video")) return true;
+              if (isMedia(node)) return true;
             }
             return false;
           };
@@ -311,7 +322,15 @@ module PlaywrightAccessibility
               }
             } else if (["none", "0px"].includes(rule.style.getPropertyValue("outline-style") || rule.style.getPropertyValue("outline-width")) ||
                        rule.style.getPropertyValue("outline") === "0") {
-              for (const part of sel.split(",")) suppressSelectors.push(part.trim());
+              // Strip :focus* SYMMETRICALLY with the focus branch above — a
+              // suppressor like `.btn:focus-visible { outline: none }` must
+              // reduce to `.btn` to match during this UNFOCUSED sweep (keeping
+              // the pseudo made el.matches() always false, silently missing
+              // the most common way focus rings are killed; 2026-07-13 review).
+              for (const part of sel.split(",")) {
+                const stripped = part.replace(/:focus-visible|:focus-within|:focus/g, "").trim();
+                if (stripped) suppressSelectors.push(stripped);
+              }
             }
           } catch (_) {} } };
           for (const s of document.styleSheets) { try { collectRules(s.cssRules); } catch (_) {} }

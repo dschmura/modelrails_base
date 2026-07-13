@@ -105,9 +105,10 @@
    2.5.8 AA floor is enforced by the spec gate). On COARSE pointers — the
    population target size actually protects — every widget item gets the
    full 44px floor. */
-@media (pointer: coarse) {
+@media (any-pointer: coarse) {
   [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="option"] {
     min-height: var(--form-input-height);
+    min-width: var(--form-input-height);
   }
 }
 
@@ -134,7 +135,7 @@
     /* min 44px both axes: text buttons measured ~20px tall (short labels
        ~26px wide) — under the AAA target floor (WCAG 2.5.5). Invisible
        hit-area growth. */
-    @apply inline-flex min-h-11 min-w-11 items-center font-medium underline rounded;
+    @apply inline-flex min-h-11 min-w-11 items-center justify-center font-medium underline rounded;
     @apply focus-ring;
     @apply hover:no-underline;
   }

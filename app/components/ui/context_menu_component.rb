@@ -105,7 +105,12 @@ module UI
         "aria-haspopup": "menu",
         "aria-expanded": "false",
         "aria-controls": @id,
-        data: { menu_target: "trigger", action: "contextmenu->menu#openAt keydown->menu#openContextKey" })
+        # role=button is a PROMISE the trigger honors — triggerKeydown opens
+        # the menu on Enter/Space/ArrowDown (anchored to the trigger), so
+        # keyboard users get button semantics, not only Shift+F10 / the
+        # ContextMenu key (openContextKey). Right-click opens at the pointer.
+        data: { menu_target: "trigger",
+                action: "contextmenu->menu#openAt keydown->menu#openContextKey keydown->menu#triggerKeydown" })
     end
 
     def menu_panel
