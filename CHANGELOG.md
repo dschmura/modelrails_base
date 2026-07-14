@@ -4,6 +4,10 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+### Added
+
+- Parallel test suite — `bin/parallel-rspec` runs RSpec across all cores with example-count and merged-coverage integrity gates; CI and the Lefthook pre-push gate use it, cutting CI's test job from ~14 to ~6 minutes.
+
 ### Fixed
 
 - Toast containers are named region landmarks — clears the app-wide aria-prohibited-attr axe violation and keeps toast content inside a landmark.
