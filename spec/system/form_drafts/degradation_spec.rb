@@ -89,13 +89,11 @@ RSpec.describe "Form draft degradation", type: :system do
   # (the meta tags only render `if Current.user`, shared/_layout_head.html.erb).
   # Re-enable this example once the driver/browser pin resolves the protocol skew.
   it "no-ops entirely without the key meta (fork-invariant)", skip: "add_init_script now works on playwright 1.61.1/chromium-1228, but this never-run example's assertion needs validating (evaluate_script of a removed node returns {} not nil) — separate follow-up" do
-    page.driver.with_playwright_page do |pw|
-      pw.context.add_init_script(script: <<~JS)
-        document.addEventListener('DOMContentLoaded', () => {
-          document.querySelector('meta[name="form-draft-key"]')?.remove()
-        })
-      JS
-    end
+    cdp_add_init_script(<<~JS)
+      document.addEventListener('DOMContentLoaded', () => {
+        document.querySelector('meta[name="form-draft-key"]')?.remove()
+      })
+    JS
 
     win = open_new_window
     within_window(win) do
