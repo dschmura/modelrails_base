@@ -10,7 +10,11 @@
 #   pw.keyboard.press(key)               -> cdp_press(key)
 #   pw.mouse.click(x, y)                 -> cdp_click_at(x, y)
 #   pw.context.clear_cookies             -> cdp_clear_cookies
+#   pw_page.set_viewport_size(w, h)      -> cdp_resize(w, h)
+#   pw_page.emulate_media(reducedMotion: "reduce") -> cdp_emulate_reduced_motion
 #   pw.context.new_cdp_session(...).send_message(m, params:) -> cdp_command(m, **params)
+#   pw_page.route(pattern, handler)      -> see "Network interception" below (no 1:1 wrapper;
+#                                            ferrum's callback API differs enough to inline per-spec)
 module CdpHelpers
   def cdp_browser
     page.driver.browser
@@ -59,6 +63,38 @@ module CdpHelpers
   # Send a raw CDP command to the current page (WebAuthn domain, etc.).
   def cdp_command(method, **params)
     cdp_browser.page.command(method, **params)
+  end
+
+  # Resize the viewport (Playwright's set_viewport_size).
+  def cdp_resize(width, height)
+    cdp_browser.page.resize(width: width, height: height)
+  end
+
+  # Force prefers-reduced-motion: reduce for the current page.
+  def cdp_emulate_reduced_motion
+    cdp_command("Emulation.setEmulatedMedia", features: [ { name: "prefers-reduced-motion", value: "reduce" } ])
+  end
+
+  # Network interception (Playwright's page.route(pattern, handler)). Ferrum
+  # uses a global `browser.on(:request)` callback + `browser.network.intercept`
+  # rather than a per-route handler, so this is a THIN WRAPPER, not 1:1:
+  # matches by substring/regex against the request URL and yields the matched
+  # Ferrum::Network::InterceptedRequest to the block, which MUST call
+  # `.continue`, `.abort`, or `.respond(**opts)` on it. Non-matching requests
+  # are auto-continued — every request must get one of those three calls or
+  # ferrum leaves it hanging indefinitely.
+  #
+  #   cdp_intercept(%r{/settings/avatar}) do |request|
+  #     patch_count += 1 if request.method == "PATCH"
+  #     sleep 1 if request.method == "PATCH" # example: delay to widen a race window
+  #     request.continue
+  #   end
+  def cdp_intercept(pattern)
+    cdp_browser.network.intercept
+    cdp_browser.on(:request) do |request|
+      matched = pattern.is_a?(Regexp) ? request.match?(pattern) : request.url.include?(pattern)
+      matched ? yield(request) : request.continue
+    end
   end
 end
 
