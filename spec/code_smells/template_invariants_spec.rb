@@ -313,7 +313,8 @@ RSpec.describe "Template invariants" do
       "BUNDLE_GEMFILE"      => "set by Bundler, not an operator",
       "CI"                  => "set by the CI runner",
       "PIDFILE"             => "set by bin/dev / Foreman",
-      "SOLID_QUEUE_IN_PUMA" => "set in config/deploy.yml env.clear, not .env (documented in deployment.md)"
+      "SOLID_QUEUE_IN_PUMA" => "set in config/deploy.yml env.clear, not .env (documented in deployment.md)",
+      "TEST_ENV_NUMBER"     => "set by parallel_tests per worker (bin/parallel-rspec), never by a human"
     }
 
     it "documents every operator-settable ENV var the code reads (no rediscovery-by-grep)" do
