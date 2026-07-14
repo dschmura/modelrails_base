@@ -95,9 +95,6 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends libvips42t64
 
-      - name: Install pinned lint tools (markdownlint-cli, @herb-tools/linter)
-        run: npm ci
-
       - name: Check markdown
         run: bundle exec rake markdown:check
 
@@ -126,8 +123,13 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends libvips42t64
 
-      - name: Install Playwright browsers
-        run: npx playwright install chromium --with-deps
+      - name: Verify Chrome is available (Cuprite/ferrum connects to the runner's pre-installed browser)
+        # No install step: ubuntu-latest ships Google Chrome pre-installed and
+        # ferrum auto-detects it (no Node/npm involved). This check converts a
+        # silent runner-image assumption into a fast, explicit, loudly-failing
+        # one — if a future image ever drops Chrome, this step names the exact
+        # problem instead of 100+ confusing system-spec driver errors.
+        run: google-chrome --version || chromium-browser --version || chromium --version
 
       - name: Prepare parallel test databases
         # db:prepare per worker (create + schema + seeds), matching the
