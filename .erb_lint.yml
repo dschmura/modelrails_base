@@ -1,5 +1,11 @@
 ---
 glob: "**/*.html{+*,}.erb"
+# CI installs gems to a project-local vendor/bundle/ (ruby/setup-ruby's
+# bundler-cache: true) — the glob above would otherwise recurse into every
+# vendored gem's own ERB templates (lookbook, markdowndocs, Rails itself).
+# Locally this never surfaces: gems live outside the project tree there.
+exclude:
+  - "vendor/**/*"
 
 # erb_lint enables a curated set of linters by default (RunnerConfig.default,
 # independent of each linter's own schema default) and merges this file on
