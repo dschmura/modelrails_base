@@ -1,6 +1,0 @@
-{
-  "devDependencies": {
-    "@herb-tools/linter": "0.10.1",
-    "markdownlint-cli": "0.49.0"
-  }
-}
