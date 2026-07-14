@@ -4,6 +4,10 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+### Added
+
+- Add opt-in encrypted form-draft recovery on invitation and project forms.
+
 ### Fixed
 
 - Toast containers are named region landmarks — clears the app-wide aria-prohibited-attr axe violation and keeps toast content inside a landmark.

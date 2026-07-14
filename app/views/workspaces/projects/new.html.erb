@@ -4,7 +4,15 @@
     <%= t("workspaces.projects.new.title") %>
   </h1>
 
-  <%= form_with model: @project, url: workspace_projects_path(@workspace), class: "mt-8 space-y-6" do |form| %>
+  <%= form_with model: @project, url: workspace_projects_path(@workspace),
+        id: dom_id(@project),
+        class: "mt-8 space-y-6",
+        data: {
+          controller: "form-draft",
+          action: "input->form-draft#save change->form-draft#save turbo:submit-end->form-draft#submitEnd"
+        } do |form| %>
+    <%= render "shared/form_draft_notice" %>
+
     <%= form.error_summary %>
 
     <%= form.text_field :name,
