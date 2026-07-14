@@ -99,9 +99,7 @@ end
 
 group :test do
   gem "capybara"
-  gem "playwright-ruby-client"
-  gem "capybara-playwright-driver"
-  gem "cuprite" # SPIKE: pure-Ruby CDP driver (ferrum) — evaluating Node removal
+  gem "cuprite" # pure-Ruby CDP driver (ferrum) — no Node/browser-driver dependency
   gem "simplecov", require: false
   gem "webmock"
   gem "rails-controller-testing"
