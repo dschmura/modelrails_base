@@ -829,37 +829,37 @@ RSpec.describe "Template invariants" do
   end
 
   describe "CI lint tooling is version-pinned (no silent drift across CI, local, and forks)" do
-    let(:package_json) { JSON.parse(File.read(root.join("package.json"))) }
-    let(:ci) { File.read(root.join(".github/workflows/ci.yml")) }
+    # Was npm-based (package.json + package-lock.json), replaced with Ruby
+    # gems (erb_lint, mdl) — Bundler/Gemfile.lock pin exact versions the same
+    # way, and `bundle exec` doesn't have npm's "unpinned global install"
+    # footgun (see #299) at all, so there's no equivalent failure mode to
+    # guard against there.
+    let(:gemfile_lock) { File.read(root.join("Gemfile.lock")) }
 
-    it "pins the npm lint tools in package.json devDependencies at exact versions" do
-      dev = package_json["devDependencies"] || {}
-      %w[@herb-tools/linter markdownlint-cli].each do |pkg|
-        version = dev[pkg]
-        expect(version).to be_present,
-          "expected #{pkg} in package.json devDependencies (lockfile-pinned), not an unpinned global install (see #299)"
-        expect(version).to match(/\A\d+\.\d+\.\d+\z/),
-          "expected #{pkg} pinned to an exact version (no ^ or ~) so CI, local, and forks run the same linter — got #{version.inspect}"
+    it "pins the lint gems in Gemfile.lock at an exact resolved version" do
+      %w[erb_lint mdl].each do |gem_name|
+        expect(gemfile_lock).to match(/^\s+#{Regexp.escape(gem_name)}\s+\(\d+\.\d+\.\d+\)/),
+          "expected #{gem_name} pinned to an exact resolved version in Gemfile.lock, " \
+          "so CI, local, and forks run the same linter"
       end
     end
 
-    it "installs lint tools via the lockfile in CI, not unpinned global installs" do
-      expect(ci).to include("npm ci"),
-        "CI should install the pinned devDependencies with `npm ci`"
-      expect(ci).not_to match(/npm install -g.*(markdownlint|herb)/),
-        "CI must not `npm install -g` the linters unpinned — they drift on every release (see #299)"
+    it "invokes the linters via bundle exec, not a bare global command" do
+      expect(File.read(root.join("lib/tasks/markdown_lint.rake"))).to include("bundle exec mdl"),
+        "markdown:check must run the pinned local mdl via bundle exec, not a bare global `mdl`"
+      expect(File.read(root.join("lib/tasks/erb_lint.rake"))).to include("bundle exec erb_lint"),
+        "erb:check must run the pinned local erb_lint via bundle exec, not a bare global `erb_lint`"
     end
 
-    it "invokes the linters from the local pinned install (npx), not a bare global command" do
-      expect(File.read(root.join("lib/tasks/markdown_lint.rake"))).to include("npx markdownlint"),
-        "markdown:check must run the pinned local markdownlint via npx, not a bare global `markdownlint`"
-      expect(File.read(root.join("lib/tasks/erb_lint.rake"))).to include("npx herb-lint"),
-        "erb:check must run the pinned local herb-lint via npx, not a bare global `herb-lint`"
-    end
-
-    it "installs node dependencies in bin/setup so the pinned linters are present locally" do
-      expect(File.read(root.join("bin/setup"))).to match(/npm ci|npm install/),
-        "bin/setup must install node deps so `npx markdownlint`/`herb-lint` resolve the pinned versions (no manual `npm install -g`)"
+    it "ships no leftover Node toolchain (package.json, lockfile, or .tool-versions entry)" do
+      %w[package.json package-lock.json].each do |file|
+        expect(File.exist?(root.join(file))).to be(false),
+          "expected #{file} to be absent — lint tooling is Ruby-gem-based now, a leftover Node " \
+          "manifest would re-invite the drift/toolchain-duplication this describe block guards against"
+      end
+      tool_versions = File.read(root.join(".tool-versions"))
+      expect(tool_versions).not_to match(/^node\b/),
+        "expected no `node` line in .tool-versions — nothing in the template needs Node anymore"
     end
 
     it "does not force brakeman to the latest released version (same drift anti-pattern)" do
