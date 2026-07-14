@@ -374,6 +374,30 @@ RSpec.describe "Template invariants" do
     end
   end
 
+  describe "CI and Lefthook run the same integrity-gated parallel suite" do
+    # CI and the local pre-push gate have drifted before (bundler-audit ran in
+    # CI only — PR #371), so the invariant is: BOTH run bin/parallel-rspec,
+    # which wraps parallel_tests with the example-count parity and merged
+    # coverage gates. A raw `rspec` invocation in either place silently loses
+    # those gates.
+    let(:ci_workflow) { YAML.safe_load(File.read(root.join(".github/workflows/ci.yml")), aliases: true) }
+    let(:lefthook_config) { YAML.safe_load(File.read(root.join("lefthook.yml")), aliases: true) }
+
+    it "CI's test job runs bin/parallel-rspec" do
+      run_steps = Array(ci_workflow.dig("jobs", "test", "steps")).map { |s| s["run"].to_s }
+      expect(run_steps).to include(match(%r{bin/parallel-rspec})),
+        "expected CI's test job to run bin/parallel-rspec (parallel suite + integrity gates); " \
+        "a raw rspec invocation loses the example-count parity and merged-coverage gates"
+    end
+
+    it "Lefthook's pre-push rspec command runs bin/parallel-rspec" do
+      run = lefthook_config.dig("pre-push", "commands", "rspec", "run").to_s
+      expect(run).to include("bin/parallel-rspec"),
+        "expected the pre-push rspec gate to run bin/parallel-rspec so local pushes " \
+        "get the same gates as CI (drift bit us before — see lefthook.yml's bundler_audit note)"
+    end
+  end
+
   describe "CI scans the production image for OS-level CVEs" do
     # brakeman covers app code and bundler-audit covers gem deps, but neither
     # sees the OS packages baked into ruby:slim (glibc, openssl, sqlite3,
