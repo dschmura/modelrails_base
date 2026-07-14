@@ -21,18 +21,20 @@
 
     <fieldset>
       <legend>Tags</legend>
+      <%# size-11 = 44px: the raw tag helpers bypass the design-system sizing,
+          and the CI axe gate's mc-target-size-44 rule audits this page too. %>
       <% %w[ruby rails hotwire].each do |tag| %>
         <%= form.label "tags_#{tag}", tag.capitalize %>
-        <%= check_box_tag "draft[tags][]", tag, false, id: "draft_tags_#{tag}" %>
+        <%= check_box_tag "draft[tags][]", tag, false, id: "draft_tags_#{tag}", class: "size-11" %>
       <% end %>
     </fieldset>
 
     <fieldset>
       <legend>Priority</legend>
       <%= form.label :priority_low, "Low" %>
-      <%= form.radio_button :priority, "low" %>
+      <%= form.radio_button :priority, "low", class: "size-11" %>
       <%= form.label :priority_high, "High" %>
-      <%= form.radio_button :priority, "high" %>
+      <%= form.radio_button :priority, "high", class: "size-11" %>
     </fieldset>
 
     <%= form.select :categories, %w[alpha beta gamma], { label: "Categories" }, multiple: true %>
