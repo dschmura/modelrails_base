@@ -24,11 +24,21 @@ Rails.application.configure do
       "https://github.com"
   end
 
-  # Generate session nonces for permitted importmap and inline scripts.
-  config.content_security_policy_nonce_generator = ->(request) { request.session.id.to_s }
+  # Generate session nonces for permitted importmap and inline scripts. A
+  # visitor's FIRST request has no session yet, so request.session.id is nil
+  # there — falling back to a random nonce avoids emitting the invalid
+  # `script-src ... 'nonce-'` (blank) that browsers ignore, which blocks
+  # every inline script (the importmap bootstrap + `import "application"`),
+  # leaving Stimulus never booting for first-time visitors.
+  config.content_security_policy_nonce_generator = lambda do |request|
+    request.session.id&.to_s.presence || SecureRandom.base64(16)
+  end
   config.content_security_policy_nonce_directives = %w[script-src]
 
-  # Enforce CSP in development and production. Report-only in test because
-  # Playwright system specs don't forward nonces to injected scripts.
-  config.content_security_policy_report_only = Rails.env.test?
+  # Enforcement mode is NOT set here. Rails defaults to enforced (false)
+  # everywhere; config/environments/test.rb explicitly enforces it in test
+  # too (PR #120) so CSP bugs fail the suite instead of shipping silently.
+  # Do not reintroduce a Rails.env.test? override here — an earlier version
+  # of this line did exactly that, loaded after test.rb in Rails' boot order,
+  # and silently undid PR #120's fix for the lifetime of this bug.
 end
