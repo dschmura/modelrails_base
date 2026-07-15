@@ -52,15 +52,6 @@ if ! bin/rails runner 'exit(SolidQueue::Process.connection.table_exists?("solid_
   bin/rails db:reset:queue
 fi
 
-echo "=== Installing Playwright browser (chromium) ==="
-# Runs AFTER bin/setup's `npm ci`, so the pinned @playwright/test (and its
-# `playwright` CLI) is already in node_modules. --no-install forces npx to use
-# that local binary: it never fetches a package, so it can't hang on an
-# interactive "Ok to proceed?" prompt in a non-interactive postCreate, and it
-# installs the browser revision matching the pinned Playwright. `playwright
-# install` is itself idempotent (skips already-downloaded browsers).
-npx --no-install playwright install --with-deps chromium
-
 if [ "${CODESPACES:-}" = "true" ]; then
   cat <<'NEXT_STEPS'
 
