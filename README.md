@@ -4,7 +4,7 @@ A multi-tenant SaaS starter kit built on Rails 8.1.
 
 ## Tech Stack
 
-- **Framework:** Rails 8.1, Ruby 4.0.4
+- **Framework:** Rails 8.1, Ruby 4.0.6
 - **Database:** SQLite (Solid Queue/Cache/Cable in-process)
 - **Frontend:** TailwindCSS 4, Turbo, Stimulus
 - **Assets:** Propshaft, Importmaps
@@ -12,23 +12,23 @@ A multi-tenant SaaS starter kit built on Rails 8.1.
 - **Real-Time:** Turbo Stream broadcasts (morph-based refresh)
 - **Content:** Action Text with [Lexxy](https://github.com/basecamp/lexxy) (Lexical-based rich text editor)
 - **Docs:** Markdowndocs engine at `/docs` (deployment, background jobs, getting started, architecture, security, …)
-- **Testing:** RSpec, FactoryBot, Capybara, Playwright, axe-core (WCAG 2.2 AAA), Bullet (N+1 detection)
+- **Testing:** RSpec, FactoryBot, Capybara, Cuprite (pure-Ruby CDP), axe-core (WCAG 2.2 AAA), Bullet (N+1 detection)
 - **Security:** Rate limiting, security headers, CSP, Pwned password check
 - **Deployment:** Kamal → GitHub Container Registry; CI verifies the production image builds on every PR
 - **Version Management:** [mise](https://mise.jdx.dev/) (see `.tool-versions`; `Gemfile` reads from it so Bundler enforces the Ruby version everywhere)
-- **Dev Container:** Optional VS Code Dev Container ships with `ruby:4.0.4-slim` base (matches production), `docker-outside-of-docker` for in-container `kamal deploy`, named bundle cache volume
+- **Dev Container:** Optional VS Code Dev Container ships with `ruby:4.0.6-slim` base (matches production), `docker-outside-of-docker` for in-container `kamal deploy`, named bundle cache volume
 
 ## Setup
 
 ### Prerequisites
 
 - [mise](https://mise.jdx.dev/) (or asdf) for runtime version management
-- Chromium (installed automatically by Playwright for system tests)
+- Chromium (managed automatically by Cuprite/Ferrum for system tests)
 
 ### Getting started
 
 ```bash
-# Install Ruby and Node versions from .tool-versions
+# Install the Ruby version from .tool-versions
 mise install
 
 # Install dependencies, prepare database, start server
