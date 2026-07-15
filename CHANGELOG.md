@@ -18,6 +18,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Fixed
 
+- Devcontainer installs Chromium for Cuprite system specs — #502 removed the old `npx playwright install` browser step without a replacement, leaving the `ruby:slim`-based devcontainer with no browser to drive, so every system spec failed there; ferrum now auto-detects the apt-installed `chromium`. A template-invariant spec guards that a browser is installed and that Node stays out of `.devcontainer/`.
 - Align `@playwright/test` to 1.61.1 (chromium-1228) to match the `playwright-ruby-client` gem's compatible version — fixes an `add_init_script` protocol skew that flaked the form-draft system specs.
 - Toast containers are named region landmarks — clears the app-wide aria-prohibited-attr axe violation and keeps toast content inside a landmark.
 - **Security:** CSP nonce generator returned blank on a visitor's first request (no session yet), emitting an invalid `'nonce-'` source that blocked every inline script — Stimulus never booted for first-time visitors (#499).
