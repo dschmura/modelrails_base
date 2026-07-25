@@ -80,3 +80,18 @@ en:
           attributes:
             user:
               not_workspace_member: "must be a workspace member"
+        invitation:
+          attributes:
+            base:
+              client_requires_project: "client invitations must target a project"
+        role:
+          attributes:
+            permissions:
+              not_a_hash: "must be a hash"
+              non_string_key: "keys must be strings"
+              non_boolean_value: "values must be booleans"
+        workspace:
+          attributes:
+            join_policy:
+              personal_must_be_invite: "must be 'invite' for personal workspaces"
+              not_permitted_by_instance: "is not permitted by this instance"

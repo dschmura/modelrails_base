@@ -45,6 +45,10 @@ class InvitationAcceptsController < ApplicationController
   def find_valid_invitation
     invitation = Invitation.find_by(token: params[:token])
 
+    # These keys live at controller scope (invitation_accepts.*), not under an
+    # action, because this filter runs for both #show and #create. Rails' lazy
+    # lookup tries "<controller>.<action>.<key>" then falls back to
+    # "<controller>.<key>", so one definition serves both callers.
     if invitation.nil?
       redirect_to root_path, alert: t(".invalid_token")
       return nil

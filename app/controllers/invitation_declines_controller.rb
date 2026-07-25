@@ -19,6 +19,9 @@ class InvitationDeclinesController < ApplicationController
   def find_valid_invitation
     invitation = Invitation.find_by(token: params[:token])
 
+    # Controller-scoped key (invitation_declines.invalid) — shared by #show and
+    # #create via lazy lookup's controller-scope fallback. See the note in
+    # InvitationAcceptsController#find_valid_invitation.
     if invitation.nil? || !invitation.pending? || invitation.expired?
       redirect_to root_path, alert: t(".invalid")
       return nil

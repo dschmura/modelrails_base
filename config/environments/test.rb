@@ -48,8 +48,12 @@ Rails.application.configure do
   # Print deprecation notices to the stderr.
   config.active_support.deprecation = :stderr
 
-  # Raises error for missing translations.
-  # config.i18n.raise_on_missing_translations = true
+  # Raises error for missing translations. Paired with `fallbacks` below so a
+  # non-default recipient locale (notifier `locale:` kwargs) resolves through
+  # :en exactly as it does in production rather than failing only under test.
+  # A key missing from :en too still raises, which is the point.
+  config.i18n.raise_on_missing_translations = true
+  config.i18n.fallbacks = true
 
   # Annotate rendered view with file names.
   # config.action_view.annotate_rendered_view_with_filenames = true
