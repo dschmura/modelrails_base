@@ -41,17 +41,17 @@ class Role < ApplicationRecord
     return if permissions.blank?
 
     unless permissions.is_a?(Hash)
-      errors.add(:permissions, "must be a hash")
+      errors.add(:permissions, :not_a_hash)
       return
     end
 
     permissions.each do |key, value|
       unless key.is_a?(String)
-        errors.add(:permissions, "keys must be strings")
+        errors.add(:permissions, :non_string_key)
         return
       end
       unless value.is_a?(TrueClass) || value.is_a?(FalseClass)
-        errors.add(:permissions, "values must be booleans")
+        errors.add(:permissions, :non_boolean_value)
         return
       end
     end

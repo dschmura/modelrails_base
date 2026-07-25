@@ -60,6 +60,14 @@ RSpec.describe "Pages", type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.body).to include(I18n.t("pages.privacy.title"))
     end
+
+    # The "last updated" stamp renders through I18n.localize, so a fork that
+    # overrides date.formats.long (or ships an en-US locale) changes this page
+    # without editing the template.
+    it "renders the updated-on date through the :long date format" do
+      get privacy_path
+      expect(response.body).to include(I18n.l(Date.current, format: :long))
+    end
   end
 
   describe "GET /contact" do
