@@ -23,6 +23,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 - Toast containers are named region landmarks — clears the app-wide aria-prohibited-attr axe violation and keeps toast content inside a landmark.
 - **Security:** CSP nonce generator returned blank on a visitor's first request (no session yet), emitting an invalid `'nonce-'` source that blocked every inline script — Stimulus never booted for first-time visitors (#499).
 - Cookie-consent banner (biscuit-rails): reject is now the emphasized default action (not accept), the banner no longer flashes visible before JS hides it, and reopening the preferences panel shows the visitor's actual saved choices instead of stale checkboxes (#500).
+- **Notification bell returned a 500 in production for any user whose saved locale was not `en`.** `I18n.available_locales` was derived from the load path, so `faker` (development/test only, ~350 locale files) made it ~60 entries under test and `[:en]` in production — the notifier specs passed while the same code raised `I18n::InvalidLocale` for real users. `config.i18n.available_locales` is now pinned in `config/application.rb`, `UserPreferences#locale` validates against it, and `recipient_locale` falls back to the default for rows written before the validation existed.
 
 ## v2.0.0 — Passwordless Auth, Workspace Lifecycle & Navigation IA (2026-07-06)
 
