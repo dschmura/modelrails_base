@@ -61,12 +61,18 @@ RSpec.describe "Pages", type: :request do
       expect(response.body).to include(I18n.t("pages.privacy.title"))
     end
 
-    # The "last updated" stamp renders through I18n.localize, so a fork that
-    # overrides date.formats.long (or ships an en-US locale) changes this page
-    # without editing the template.
-    it "renders the updated-on date through the :long date format" do
-      get privacy_path
-      expect(response.body).to include(I18n.l(Date.current, format: :long))
+    # Guards the :long format on the "last updated" stamp — switching the
+    # template to :short, or dropping the `l` call for a raw strftime, fails
+    # here. It does NOT guard locale overrides: a fork redefining
+    # date.formats.long moves the rendered output and an `I18n.l` expectation
+    # together, so the literal is the only version that can fail.
+    # Time is frozen because Date.current would otherwise be evaluated once in
+    # the request and once in the assertion — different values across midnight.
+    it "renders the updated-on date in the :long format" do
+      travel_to Time.zone.local(2026, 7, 25, 12, 0, 0) do
+        get privacy_path
+        expect(response.body).to include("July 25, 2026")
+      end
     end
   end
 

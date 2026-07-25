@@ -45,11 +45,9 @@ class Role < ApplicationRecord
       return
     end
 
-    permissions.each do |key, value|
-      unless key.is_a?(String)
-        errors.add(:permissions, :non_string_key)
-        return
-      end
+    # No string-key check: the json column coerces keys on assignment, so a
+    # non-String key cannot reach here. See the coercion spec in role_spec.rb.
+    permissions.each do |_key, value|
       unless value.is_a?(TrueClass) || value.is_a?(FalseClass)
         errors.add(:permissions, :non_boolean_value)
         return

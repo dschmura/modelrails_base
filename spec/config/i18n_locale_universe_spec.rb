@@ -27,6 +27,15 @@ RSpec.describe "I18n locale universe" do
     expect(I18n.available_locales).not_to include(:ru, :fr, :ja)
   end
 
+  # Everything this branch protects rests on one uncommented line in
+  # config/environments/test.rb. Assert the outcome, not the setting, so it
+  # survives Rails changing how the flag is wired — and so nobody can quietly
+  # comment it out to unblock a red build.
+  it "raises rather than resolving a missing key to placeholder text" do
+    expect { I18n.t("definitely.not.a.real.key.anywhere") }
+      .to raise_error(I18n::MissingTranslationData)
+  end
+
   it "rejects a locale outside the pinned set, as production does" do
     expect { I18n.t("notifications.placeholder", locale: :fr) }
       .to raise_error(I18n::InvalidLocale)

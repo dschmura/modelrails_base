@@ -11,11 +11,14 @@ All notable changes to ModelRails are documented here, organized by phase.
 - Add opt-in encrypted form-draft recovery on invitation and project forms.
 - Cancel superseded CI runs on new pushes to the same branch/PR (#489).
 - `i18n-tasks` gate — `spec/i18n_spec.rb` fails the suite on missing keys and inconsistent interpolations, so CI and Lefthook both cover it with no separate step to keep in sync.
+- `/docs/developer/i18n` — where locale keys live, the two gates, the lazy-key rule for private controller methods, the `date.formats` seam, and how to add a language.
 
 ### Changed
 
 - Replaced Playwright/Node with Cuprite (pure-Ruby CDP) for system specs, and swapped npm-based linters for Ruby gems (`erb_lint`, `mdl`) — the template no longer requires Node at all (#497).
 - Bumped Ruby to 4.0.6 (#501).
+- **Locale keys moved** — forks that overrode any of these need to move their override: `invitation_accepts.create.invalid_token` → `invitation_accepts.invalid_token`, `invitation_accepts.create.expired_or_used` → `invitation_accepts.expired_or_used`, `invitation_declines.create.invalid` → `invitation_declines.invalid`. They are emitted by a filter shared across two actions, so they now sit at controller scope. An override left at the old key silently reverts to upstream English.
+- `t(".key")` is now used only inside controller actions; private helpers use absolute keys, so `i18n-tasks` can verify them statically.
 
 ### Fixed
 

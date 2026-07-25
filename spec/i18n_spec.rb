@@ -23,20 +23,17 @@ RSpec.describe I18n do
     expect(inconsistent).to be_empty, error_message
   end
 
-  # Two further i18n-tasks checks are deliberately not gating the suite yet:
+  # Two further i18n-tasks checks are deliberately not gating the suite yet.
   #
-  # `unused` reports ~143 keys orphaned by past refactors — the whole
+  # `unused` (#522) reports ~140 keys orphaned by past refactors — the whole
   # workspaces.invitations.index.* block, for instance, outlived the route and
   # view it belonged to. Clearing those is its own change with its own review.
   #
-  # `normalize` would rewrite all 31 locale files (~1300 lines). Worse, the
-  # dotted activity.actions keys ("workspace.updated") read as nested paths to
-  # its router, so normalizing relocates them out of activity.en.yml into the
-  # catch-all — fragmenting the domain-split layout this project curates by
-  # hand. Needs per-namespace write rules before it can be turned on.
+  # `normalize` (#523) rewrites every locale file, and the dotted
+  # activity.actions keys ("workspace.updated") read as nested paths to its
+  # router — so normalizing relocates them out of activity.en.yml into the
+  # catch-all, fragmenting the domain-split layout this project curates by
+  # hand. Needs per-namespace write rules first.
   #
   # Run `bundle exec i18n-tasks unused` / `normalize` to see either.
-  it "has follow-up checks tracked outside the suite" do
-    skip "See comment above — `unused` and `normalize` are not gated yet"
-  end
 end
