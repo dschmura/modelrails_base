@@ -10,6 +10,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 - Runtime-balanced parallel test split — spec files split across workers by recorded per-file runtime instead of file size, evening out the slowest worker; the timing log (`tmp/parallel_runtime_rspec.log`) is written each run and cached in CI, and falls back to file-size splitting when absent (#488).
 - Add opt-in encrypted form-draft recovery on invitation and project forms.
 - Cancel superseded CI runs on new pushes to the same branch/PR (#489).
+- `i18n-tasks` gate — `spec/i18n_spec.rb` fails the suite on missing keys and inconsistent interpolations, so CI and Lefthook both cover it with no separate step to keep in sync.
 
 ### Changed
 
@@ -24,6 +25,8 @@ All notable changes to ModelRails are documented here, organized by phase.
 - **Security:** CSP nonce generator returned blank on a visitor's first request (no session yet), emitting an invalid `'nonce-'` source that blocked every inline script — Stimulus never booted for first-time visitors (#499).
 - Cookie-consent banner (biscuit-rails): reject is now the emphasized default action (not accept), the banner no longer flashes visible before JS hides it, and reopening the preferences panel shows the visitor's actual saved choices instead of stale checkboxes (#500).
 - **Notification bell returned a 500 in production for any user whose saved locale was not `en`.** `I18n.available_locales` was derived from the load path, so `faker` (development/test only, ~350 locale files) made it ~60 entries under test and `[:en]` in production — the notifier specs passed while the same code raised `I18n::InvalidLocale` for real users. `config.i18n.available_locales` is now pinned in `config/application.rb`, `UserPreferences#locale` validates against it, and `recipient_locale` falls back to the default for rows written before the validation existed.
+- Six locale keys that silently rendered `translation missing` to users — the flash after saving notification preferences, the invalid/expired flashes on the invitation accept and decline pages, and an Invitation validation message. Enabling `config.i18n.raise_on_missing_translations` in test surfaced all of them; the invitation flashes were defined only under `create` while a shared filter also served `show`.
+- Digest email's per-notification link read from a `notifications.bell.see_all` key that never existed, falling back to an inline default.
 
 ## v2.0.0 — Passwordless Auth, Workspace Lifecycle & Navigation IA (2026-07-06)
 
