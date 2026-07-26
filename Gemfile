@@ -85,6 +85,11 @@ group :development, :test do
   # Static analysis for security vulnerabilities [https://brakemanscanner.org/]
   gem "brakeman", require: false
 
+  # Detects missing and unused locale keys. Driven from spec/i18n_spec.rb so it
+  # runs in the normal suite rather than as a separate CI step that Lefthook
+  # would have to mirror.
+  gem "i18n-tasks", "~> 1.0", require: false
+
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
 
