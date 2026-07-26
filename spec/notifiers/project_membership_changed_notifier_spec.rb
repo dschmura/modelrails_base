@@ -99,15 +99,17 @@ RSpec.describe ProjectMembershipChangedNotifier, type: :notifier do
       # rendered string respects the recipient's prefs.locale rather than the
       # ambient I18n.locale at dispatch time. Verified by intercepting the
       # I18n.t call to assert the keyword is forwarded.
-      prefs = create(:user_preferences, user: user)
-      prefs.update!(locale: "fr")
-      described_class.with(record: project_membership).deliver(user)
-      notification = user.notifications.last
-      expect(I18n).to receive(:t).with(
-        "notifications.project_membership_changed.message",
-        hash_including(locale: :fr)
-      ).and_call_original
-      notification.message
+      with_available_locale(:fr, notifications: { project_membership_changed: { message: "FR %{project} %{new_role}" } }) do
+        prefs = create(:user_preferences, user: user)
+        prefs.update!(locale: "fr")
+        described_class.with(record: project_membership).deliver(user)
+        notification = user.notifications.last
+        expect(I18n).to receive(:t).with(
+          "notifications.project_membership_changed.message",
+          hash_including(locale: :fr)
+        ).and_call_original
+        notification.message
+      end
     end
   end
 
