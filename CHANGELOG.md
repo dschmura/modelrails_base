@@ -17,6 +17,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 - Replaced Playwright/Node with Cuprite (pure-Ruby CDP) for system specs, and swapped npm-based linters for Ruby gems (`erb_lint`, `mdl`) — the template no longer requires Node at all (#497).
 - Bumped Ruby to 4.0.6 (#501).
+- Bumped SimpleCov to 1.0.2 (major). `SimpleCov.running` was removed; the coverage-config spec now asserts stdlib `Coverage.running?` instead. 1.0 also absorbs `simplecov-html`, `simplecov_json_formatter` and `docile`, so those drop out of the lockfile — HTML reports and `SimpleCov.collate`'s merged-resultset floor are unaffected. A fork with its own coverage spec will hit the same removal.
 - **Locale keys moved** — forks that overrode any of these need to move their override: `invitation_accepts.create.invalid_token` → `invitation_accepts.invalid_token`, `invitation_accepts.create.expired_or_used` → `invitation_accepts.expired_or_used`, `invitation_declines.create.invalid` → `invitation_declines.invalid`. They are emitted by a filter shared across two actions, so they now sit at controller scope. An override left at the old key silently reverts to upstream English.
 - `t(".key")` is now used only inside controller actions; private helpers use absolute keys, so `i18n-tasks` can verify them statically.
 
