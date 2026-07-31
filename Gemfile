@@ -3,7 +3,12 @@ source "https://rubygems.org"
 ruby file: ".tool-versions"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", "~> 8.1.3"
+# The `>= x.y.z` floor is a security floor, not decoration: it keeps a fork's
+# fresh resolve off a version patched for a known CVE (here 8.1.3.1 for
+# CVE-2026-66066). Dependabot rewrites this line on every Rails bump and will
+# drop the floor — spec/code_smells/template_invariants_spec.rb fails if the
+# requirement ever admits a vulnerable release again.
+gem "rails", "~> 8.1.3", ">= 8.1.3.1"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
 # Use sqlite3 as the database for Active Record
