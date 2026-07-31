@@ -4,6 +4,12 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+### Breaking
+
+- **libvips 8.13+ and ruby-vips 2.2.1+ are now required** — Active Storage raises at boot below either. The production image, devcontainer and CI already satisfy this; custom images may not.
+- **BMP, ICO and PSD attachments no longer generate variants** — `config/initializers/active_storage.rb` drops them from `variable_content_types` so they render as a file chip, rather than an image whose representation URL raises `Vips::Error` when fetched. Forks that legitimately transform those formats can re-enable the specific libvips operation in an initializer.
+- **Forks that ran an affected Rails version with untrusted uploads should rotate their secrets** — see "Responding to a Secret Exposure" in `/docs/developer/security`.
+
 ### Added
 
 - Parallel test suite — `bin/parallel-rspec` runs RSpec across all cores with example-count and merged-coverage integrity gates; CI and the Lefthook pre-push gate use it, cutting CI's test job from ~14 to ~8.5 minutes (#485; further wins tracked in #486–#488).
@@ -15,6 +21,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- **Security:** Raised the `rails` Gemfile floor to `>= 8.1.3.1` for CVE-2026-66066 — Active Storage did not disable libvips's unfuzzed image loaders, so a crafted upload could read arbitrary server files including `secret_key_base` (GHSA-xr9x-r78c-5hrm). #531 bumped the lock; the floor is what stops a fork's fresh resolve landing back on a vulnerable release, and a template invariant now fails if the requirement ever admits one.
 - Replaced Playwright/Node with Cuprite (pure-Ruby CDP) for system specs, and swapped npm-based linters for Ruby gems (`erb_lint`, `mdl`) — the template no longer requires Node at all (#497).
 - Bumped Ruby to 4.0.6 (#501).
 - Bumped SimpleCov to 1.0.2 (major). `SimpleCov.running` was removed; the coverage-config spec now asserts stdlib `Coverage.running?` instead. 1.0 also absorbs `simplecov-html`, `simplecov_json_formatter` and `docile`, so those drop out of the lockfile — HTML reports and `SimpleCov.collate`'s merged-resultset floor are unaffected. A fork with its own coverage spec will hit the same removal.
