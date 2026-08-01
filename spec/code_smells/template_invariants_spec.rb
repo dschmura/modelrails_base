@@ -783,6 +783,19 @@ RSpec.describe "Template invariants" do
         "unaccepted preset gets a .env the app refuses to start on"
     end
 
+    # bin/setup validates the preset it reads from .fork.yml independently of
+    # bin/fork, so it carries its own copy of the list and can drift.
+    it "keeps bin/setup's preset validation in step with the initializer" do
+      accepted = File.read(root.join("config/initializers/tenancy.rb"))[/valid_onboarding = \[(.*?)\]/m, 1]
+                     .to_s.scan(/:(\w+)/).flatten
+      declared = File.read(root.join("bin/setup"))[/valid_presets = %w\[(.*?)\]/m, 1].to_s.split
+
+      expect(declared).to match_array(accepted),
+        "bin/setup validates presets as #{declared.inspect} but the app accepts " \
+        "#{accepted.inspect} — a drift here either rejects a valid fork or lets a " \
+        "typo through into every teammate's .env"
+    end
+
     it "names only files the template actually has" do
       missing = ForkFlow::RENAME_FILES.reject { |path| File.exist?(root.join(path)) }
 

@@ -25,7 +25,14 @@ FileUtils.chdir APP_ROOT do
   # The merge=ours driver is deliberately NOT set in the template repo itself:
   # it would silently mis-resolve the template's own PR merges that touch
   # fork-owned paths.
-  fork_config = File.exist?(".fork.yml") ? (YAML.safe_load_file(".fork.yml") || {}) : {}
+  # Committed and hand-editable, so read defensively: a bad file must not take
+  # down every teammate's setup with a Psych backtrace.
+  fork_config =
+    begin
+      File.exist?(".fork.yml") ? (YAML.safe_load_file(".fork.yml") || {}) : {}
+    rescue Psych::Exception => e
+      abort "bin/setup: .fork.yml is not valid YAML (#{e.message.lines.first.to_s.strip})"
+    end
 
   if fork_config.any? || system("git remote get-url upstream", out: File::NULL, err: File::NULL)
     puts "\n== Fork detected — applying per-clone setup =="
@@ -39,12 +46,22 @@ FileUtils.chdir APP_ROOT do
 
     system! "git config merge.ours.driver true"
 
+    # Validated here, not just where it was written: .fork.yml is committed and
+    # hand-editable, so an unchecked value would propagate a typo into every
+    # teammate's .env and surface as an initializer raise at boot with nothing
+    # pointing back to this file. Kept in step with config/initializers/tenancy.rb.
+    valid_presets = %w[personal shared none]
+    preset = fork_config["preset"]
+    if preset && !valid_presets.include?(preset)
+      abort "bin/setup: .fork.yml records an unknown preset #{preset.inspect} " \
+            "(expected #{valid_presets.join('/')}). The app would refuse to boot."
+    end
+
     # Only when unset: a developer's local override of the tenancy mode must
     # survive re-running setup.
-    preset = fork_config["preset"]
     env = File.exist?(".env") ? File.read(".env") : ""
     if preset && !env.match?(/^WORKSPACE_ON_SIGNUP=/)
-      lines = ["WORKSPACE_ON_SIGNUP=#{preset}"]
+      lines = [ "WORKSPACE_ON_SIGNUP=#{preset}" ]
       # config/initializers/tenancy.rb raises at boot without the slug.
       lines << "TENANCY_SHARED_WORKSPACE_SLUG=#{fork_config['name']}" if preset == "shared"
       env += "\n" unless env.empty? || env.end_with?("\n")

@@ -97,6 +97,32 @@ RSpec.describe ForkFlow do
       expect { run_fork(name: "data", yes: true) }.to raise_error(SystemExit)
     end
 
+    # bin/fork is stdlib-only, so Rails and friends are NOT defined in its
+    # process — Object.const_defined? cannot see them. Without an explicit
+    # denylist, `bin/fork --name rails` writes `module Rails` into
+    # config/application.rb and reopens the framework.
+    #
+    # NOTE: the behavioural examples below cannot prove this on their own —
+    # RSpec HAS loaded Rails, so Object.const_defined?("Rails") is true here and
+    # they would pass even with no denylist at all. The data assertion is what
+    # actually pins the guarantee for the stdlib-only CLI.
+    it "denies framework constants a stdlib-only process cannot see" do
+      expect(ForkFlow::RESERVED_CONSTANTS)
+        .to include("Rails", "ActiveRecord", "ActiveSupport", "ActionController")
+    end
+
+    %w[rails active_record action_controller active_support].each do |framework|
+      it "refuses #{framework.inspect}, whose module would collide with the framework" do
+        expect { run_fork(name: framework, yes: true) }.to raise_error(SystemExit)
+      end
+    end
+
+    # "café" → "caf" is a surprising thing to discover in your module name and
+    # your Kamal service name months later.
+    it "refuses a name whose non-ASCII characters would be silently dropped" do
+      expect { run_fork(name: "café", yes: true) }.to raise_error(SystemExit)
+    end
+
     it "refuses a name that reduces to nothing" do
       expect { run_fork(name: "___", yes: true) }.to raise_error(SystemExit)
     end
@@ -244,6 +270,17 @@ RSpec.describe ForkFlow do
 
     # Anchoring matters: an unanchored pattern matches "me/not_modelrails_base",
     # which would disconnect a user's own repository.
+    # A half-configured repo (someone followed the guide partway, or an earlier
+    # run died) must be diagnosed BEFORE the first mutation — `remote rename`
+    # would fail on the existing name, leaving origin's push URL already
+    # disabled and the user stranded mid-surgery.
+    it "aborts without mutating when an unexpected upstream already exists" do
+      git("remote", "add", "upstream", template_bare.to_s)
+
+      expect { run_fork(name: "my_app", yes: true) }.to raise_error(SystemExit)
+      expect(capture_git("remote", "get-url", "--push", "origin")).to eq(template_bare.to_s)
+    end
+
     it "leaves a non-template origin alone" do
       git("remote", "set-url", "origin", "git@github.com:me/not_modelrails_base.git")
 
@@ -280,6 +317,27 @@ RSpec.describe ForkFlow do
       run_fork(name: "my_app", yes: true)
 
       expect(repo.join("config/deploy.yml").read).not_to include("modelrails_base")
+    end
+
+    # The likeliest interruption of all: files written, commit never made (a
+    # Ctrl-C, a machine with no git identity, a failing pre-commit hook). The
+    # clean-tree preflight must not then refuse the very repair the header
+    # promises — "commit or stash first" would have the user stash their own
+    # half-finished rename.
+    it "completes a rename whose commit never happened" do
+      repo.join("config/application.rb").write("module MyApp\nend\n")
+      repo.join("config/deploy.yml").write("service: modelrails_base\n")
+
+      expect { run_fork(name: "my_app", yes: true) }.not_to raise_error
+
+      expect(repo.join("config/deploy.yml").read).not_to include("modelrails_base")
+      expect(capture_git("status", "--porcelain")).to be_empty
+    end
+
+    it "still refuses when the dirty files are the developer's own work" do
+      repo.join("app_notes.txt").write("wip")
+
+      expect { run_fork(name: "my_app", yes: true) }.to raise_error(SystemExit)
     end
 
     it "treats a hand-renamed module without provenance as unfinished" do
@@ -443,6 +501,23 @@ RSpec.describe ForkFlow do
       repo.join("uncommitted.txt").write("wip")
 
       expect { run_fork(name: "my_app", dry_run: true, yes: true) }.not_to raise_error
+    end
+  end
+
+  describe "provenance" do
+    # .fork.yml is committed and hand-editable, so it will be hand-edited.
+    it "reports a corrupt .fork.yml instead of raising Psych internals" do
+      run_fork(name: "my_app", preset: "none", yes: true)
+      repo.join(".fork.yml").write("preset: [unclosed\n")
+
+      expect { run_fork(preset: "none", yes: true) }.to raise_error(SystemExit)
+    end
+
+    it "refuses a hand-edited preset the app would not boot on" do
+      run_fork(name: "my_app", preset: "none", yes: true)
+      repo.join(".fork.yml").write("preset: personl\nname: my_app\n")
+
+      expect { run_fork(preset: "personl", yes: true) }.to raise_error(SystemExit)
     end
   end
 

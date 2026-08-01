@@ -64,6 +64,17 @@ class ForkFlow
   # not implemented — offering it here would write a .env the app won't boot on.
   PRESETS = %w[personal shared none].freeze
 
+  # Object.const_defined? catches Ruby core (always loaded), but this script is
+  # stdlib-only by design — Rails and friends are NOT defined in its process, so
+  # `--name rails` would sail through and write `module Rails` into
+  # config/application.rb. Listed explicitly so the check behaves identically
+  # here and under a spec suite that HAS loaded Rails.
+  RESERVED_CONSTANTS = %w[
+    Rails ActiveRecord ActiveSupport ActiveModel ActiveJob ActiveStorage
+    ActionController ActionView ActionMailer ActionCable ActionText ActionDispatch
+    Rack Puma Turbo Stimulus Pundit Capybara RSpec Minitest Bundler Gem
+  ].freeze
+
   PRESET_DESCRIPTIONS = {
     "personal" => "Solo-default: every user gets a workspace on signup (shipped default)",
     "shared"   => "Single-tenant: one shared workspace, users join it",
@@ -177,9 +188,22 @@ class ForkFlow
     dirty, = capture("git", "-C", @root, "status", "--porcelain")
     return if dirty.empty?
 
+    # The likeliest interruption is "files written, commit never made" — a
+    # Ctrl-C, a machine with no git identity, a failing pre-commit hook. Those
+    # dirty paths are OUR work, and refusing them would tell the user to stash
+    # their own half-finished rename. Anything else is genuinely theirs.
+    # Parsed by pattern, not fixed columns: `capture` strips the whole output,
+    # so porcelain's leading status space is gone on the first line only.
+    # Anything unrecognized (a rename's "old -> new") falls through as theirs,
+    # which fails closed.
+    ours = RENAME_FILES + [ FORK_FILE ]
+    theirs = dirty.lines.map { |line| line.strip.sub(/\A\S{1,2}\s+/, "").delete('"') } - ours
+    return say("  · resuming an interrupted rename (working tree has only bin/fork's own edits)") if theirs.empty?
+
     abort(<<~MSG)
       bin/fork: working tree is not clean. The identity rename wants to be one
-      clean commit you can always find again — commit or stash first.
+      clean commit you can always find again — commit or stash first:
+        #{theirs.join("\n  ")}
     MSG
   end
 
@@ -195,7 +219,15 @@ class ForkFlow
   # unusable one produces a committed app that cannot boot. The directory name
   # is the default, so `git clone … 5by5 && bin/fork` gets here with no flags.
   def normalize_name(raw)
-    name = raw.to_s.downcase.gsub(/[^a-z0-9]+/, "_").gsub(/\A_+|_+\z/, "")
+    raw = raw.to_s
+    # Silent transliteration is how you discover months later that your module
+    # and Kamal service are named after a word you didn't choose.
+    unless raw.ascii_only?
+      abort("bin/fork: #{raw.inspect} contains non-ASCII characters, which would be " \
+            "dropped rather than transliterated — pass --name with an ASCII name")
+    end
+
+    name = raw.downcase.gsub(/[^a-z0-9]+/, "_").gsub(/\A_+|_+\z/, "")
 
     abort("bin/fork: could not derive a project name from #{raw.inspect} — pass --name") if name.empty?
     abort("bin/fork: project name is still the template's — pass --name") if name == TEMPLATE_TOKEN
@@ -205,8 +237,8 @@ class ForkFlow
     end
 
     constant = name.split(/_+/).map(&:capitalize).join
-    if Object.const_defined?(constant, false)
-      abort("bin/fork: module #{constant} would reopen the existing Ruby constant " \
+    if RESERVED_CONSTANTS.include?(constant) || Object.const_defined?(constant, false)
+      abort("bin/fork: module #{constant} would collide with the existing constant " \
             "::#{constant} — pass --name with something else")
     end
 
@@ -237,6 +269,17 @@ class ForkFlow
     if upstream_configured?
       skip("upstream remote configured, push DISABLED")
       @template_url ||= capture("git", "-C", @root, "remote", "get-url", "upstream").first
+    elsif @template_url && upstream_taken?
+      # Diagnosed before the first mutation: `remote rename` would fail on the
+      # existing name, leaving origin's push URL already disabled and the user
+      # stranded halfway through the surgery.
+      abort(<<~MSG)
+        bin/fork: an `upstream` remote already exists but isn't the template with
+        push DISABLED, so the remote surgery can't proceed safely. Inspect it:
+          git remote -v
+        Then either fix it by hand (see /docs/developer/forking) or remove it:
+          git remote remove upstream
+      MSG
     elsif @template_url
       # Push URL first: if the rename succeeded and this failed, the fork would
       # be left with a live, writable push URL aimed at the template.
@@ -264,6 +307,11 @@ class ForkFlow
 
     @todos << "Record the cut point, in your TEMPLATE checkout:\n" \
               "     git tag forks/#{snake}-baseline main && git push origin forks/#{snake}-baseline"
+  end
+
+  def upstream_taken?
+    _, status = capture("git", "-C", @root, "remote", "get-url", "upstream")
+    status.zero?
   end
 
   def tracking_branch?
@@ -497,8 +545,16 @@ class ForkFlow
     sh("git", "-C", @root, "commit", "-m", message, "--", *paths)
   end
 
+  # .fork.yml is committed and hand-editable, so it will be hand-edited. A raw
+  # Psych backtrace names neither the file nor the fix.
   def fork_config
-    @fork_config ||= File.exist?(path_to(FORK_FILE)) ? (YAML.safe_load_file(path_to(FORK_FILE)) || {}) : {}
+    return @fork_config if @fork_config
+    return @fork_config = {} unless File.exist?(path_to(FORK_FILE))
+
+    @fork_config = YAML.safe_load_file(path_to(FORK_FILE)) || {}
+  rescue Psych::Exception => e
+    abort("bin/fork: #{FORK_FILE} is not valid YAML (#{e.message.lines.first.to_s.strip}). " \
+          "Fix it by hand, or delete it and re-run — nothing gates on it.")
   end
 
   def write_fork_file(data)
