@@ -4,6 +4,10 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+### Added
+
+- **`bin/fork`** — one-command fork onboarding: remote surgery, identity rename, and tenancy preset in a single commit, with provenance recorded in `.fork.yml`. Run it once after cloning, before `bin/setup`. Teammates run only `bin/setup`, which now applies the fork's recorded preset and adds the upstream remote per clone. See [Forking](/docs/developer/forking).
+
 ### Breaking
 
 - **libvips 8.13+ and ruby-vips 2.2.1+ are now required** — Active Storage raises at boot below either. The production image, devcontainer and CI already satisfy this; custom images may not.

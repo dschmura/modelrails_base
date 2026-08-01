@@ -763,6 +763,80 @@ RSpec.describe "Template invariants" do
     end
   end
 
+  # bin/fork hardcodes the paths and tokens it rewrites. The fork spec runs
+  # against a generated skeleton, so it stays green even if the template moves a
+  # file or drops a token — and bin/fork would then silently stop renaming it.
+  # A vanished token is indistinguishable from a completed rename (both mean
+  # "not found"), so the script would report success while shipping template
+  # branding to every fork. These pin the template side.
+  describe "bin/fork's rename targets still exist upstream" do
+    before { load Rails.root.join("bin/fork").to_s unless defined?(ForkFlow) }
+
+    it "offers only presets the app will boot with" do
+      accepted = File.read(root.join("config/initializers/tenancy.rb"))[/valid_onboarding = \[(.*?)\]/m, 1]
+                     .to_s.scan(/:(\w+)/).flatten
+
+      expect(accepted).not_to be_empty, "could not parse valid_onboarding from config/initializers/tenancy.rb"
+      expect(ForkFlow::PRESETS).to match_array(accepted),
+        "bin/fork offers presets #{ForkFlow::PRESETS.inspect} but config/initializers/tenancy.rb " \
+        "accepts #{accepted.inspect} and raises at boot on anything else — a forker choosing an " \
+        "unaccepted preset gets a .env the app refuses to start on"
+    end
+
+    it "names only files the template actually has" do
+      missing = ForkFlow::RENAME_FILES.reject { |path| File.exist?(root.join(path)) }
+
+      expect(missing).to be_empty,
+        "bin/fork expects to rename #{missing.join(', ')}, which no longer exist — " \
+        "forks would abort in preflight"
+    end
+
+    it "searches for tokens that are still present in each file" do
+      stale = ForkFlow::SUBSTITUTIONS.flat_map do |path, substitutions|
+        content = File.read(root.join(path))
+        substitutions.reject { |from, _| content.include?(from) }.map { |from, _| "#{path}: #{from.inspect}" }
+      end
+
+      expect(stale).to be_empty,
+        "bin/fork looks for tokens that are gone: #{stale.join(', ')}. A missing token is " \
+        "indistinguishable from an already-completed rename, so bin/fork would report success " \
+        "while leaving template identity in every fork."
+    end
+  end
+
+  # bin scripts in this repo are spec'd by `load`ing them (see
+  # spec/bin/parallel_rspec_spec.rb), which only works because the top-level
+  # invocation is guarded. Without the guard, loading a script in a spec RUNS
+  # it against the developer's own checkout — for bin/fork that means
+  # `git remote rename` and a commit. Asserted on source because the safe way
+  # to test "loading is safe" cannot itself be to load it.
+  describe "bin scripts are safe to load in a spec" do
+    %w[bin/fork bin/parallel-rspec].each do |script|
+      it "#{script} guards top-level execution behind $PROGRAM_NAME" do
+        source = File.read(root.join(script))
+
+        expect(source).to match(/\$PROGRAM_NAME == __FILE__/),
+          "expected #{script} to guard its top-level run with " \
+          "`if $PROGRAM_NAME == __FILE__` so specs can `load` it without executing it " \
+          "against the developer's checkout"
+      end
+    end
+
+    # OptionParser#parse! mutates ARGV in place. Left at top level it runs on
+    # load too, so `rspec --format doc` would raise InvalidOption before any
+    # example ran, and parallel_tests (which reads ARGV) would see it emptied.
+    it "bin/fork parses options inside the guard, not at load time" do
+      source = File.read(root.join("bin/fork"))
+      guard_at = source.index("$PROGRAM_NAME == __FILE__")
+      parse_at = source.index("OptionParser")
+
+      expect(guard_at).not_to be_nil, "expected bin/fork to have a $PROGRAM_NAME guard"
+      expect(parse_at).to be > guard_at,
+        "expected bin/fork's OptionParser block to sit INSIDE the $PROGRAM_NAME guard — " \
+        "parse! mutates ARGV, so at load time it corrupts the spec runner's own arguments"
+    end
+  end
+
   describe "bin/setup leaves a checkout whose specs can pass" do
     # tailwindcss-rails enhances `assets:clobber` with `tailwindcss:clobber`,
     # so the Propshaft heal below also deletes app/assets/builds/tailwind.css.
@@ -770,6 +844,19 @@ RSpec.describe "Template invariants" do
     # which --skip-server never reaches — leaving a fork's very first
     # `bundle exec rspec` failing every system spec at once.
     let(:setup_sh) { File.read(root.join("bin/setup")) }
+
+    # bin/fork records the tenancy preset in .fork.yml; bin/setup is what
+    # applies it per clone. That split is deliberate — a teammate cloning an
+    # already-forked repo runs bin/setup, never bin/fork, so if bin/setup
+    # doesn't read the provenance the second developer silently runs on the
+    # wrong tenancy mode.
+    it "applies the fork's recorded tenancy preset to .env" do
+      expect(setup_sh).to include(".fork.yml"),
+        "expected bin/setup to read .fork.yml — it is the only thing a teammate runs, " \
+        "so it must apply the fork's recorded preset to their .env"
+      expect(setup_sh).to match(/WORKSPACE_ON_SIGNUP/),
+        "expected bin/setup to write WORKSPACE_ON_SIGNUP from the recorded preset"
+    end
 
     it "rebuilds the Tailwind stylesheet after clobbering assets" do
       clobber = setup_sh.index("assets:clobber")

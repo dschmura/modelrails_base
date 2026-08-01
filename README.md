@@ -89,12 +89,12 @@ in fork-owned files, and merge upstream improvements back in periodically.
 ```bash
 git clone git@github.com:dschmura/modelrails_base.git myapp
 cd myapp
-git remote rename origin upstream
-git remote set-url --push upstream DISABLED
-git remote add origin git@github.com:YOU/myapp.git   # an empty repo — no README/license
-git push -u origin main
-git config merge.ours.driver true                    # activates the fork-owned merge driver
+bin/fork      # remote surgery + identity rename + tenancy preset, then bin/setup
 ```
+
+`bin/fork` runs once per fork, before `bin/setup`, and prints every git command
+it runs. Teammates cloning your app afterwards run only `bin/setup`. The by-hand
+equivalent is in the forking guide.
 
 The complete guide — identity-rename checklist, secrets bootstrap, the fork-owned
 file contract, and the upstream-update workflow — lives in
