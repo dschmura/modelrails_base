@@ -33,6 +33,7 @@ class ParallelRspecRunner
     reset_artifacts
     enumerate!
     puts "==> Expecting #{expected_count} examples"
+    build_assets!
     run_suite!
     verify_count!
     puts "==> Example-count parity verified (#{executed_count}/#{expected_count})"
@@ -57,6 +58,18 @@ class ParallelRspecRunner
       The parallel splitter dropped or duplicated at least one spec file.
       Per-worker counts: #{per_worker.empty? ? '(none recorded)' : per_worker}
     MSG
+  end
+
+  # Built once here, serially, before any worker forks. tailwindcss-rails
+  # enhances `assets:clobber` with `tailwindcss:clobber`, so bin/setup leaves
+  # no stylesheet behind, and the gem's rebuild hook fires on `test:prepare` —
+  # the Minitest path RSpec never takes. Without this, a post-setup run fails
+  # every axe-contrast and layout-dependent system spec at once, naming
+  # neither Tailwind nor assets.
+  def build_assets!
+    puts "==> Building Tailwind CSS (system specs render unstyled without it)"
+    system("bundle", "exec", "rails", "tailwindcss:build") ||
+      abort("parallel-rspec: tailwindcss:build failed (see output above)")
   end
 
   private

@@ -45,6 +45,10 @@ Capybara.javascript_driver = :cuprite
 
 RSpec.configure do |config|
   config.before(:each, type: :system) do
+    # Cheap stat, and it turns "132 unexplained contrast failures" into one
+    # actionable message. Scoped to :system because nothing else renders CSS.
+    CompiledAssetsGuard.verify!
+
     # .dup because Rails' SystemTesting::Driver mutates the hash it is handed
     # (it deletes :name), which raises on a frozen constant.
     driven_by :cuprite, screen_size: CUPRITE_SCREEN_SIZE, options: CUPRITE_DRIVER_OPTIONS.dup

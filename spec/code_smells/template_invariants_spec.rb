@@ -763,6 +763,28 @@ RSpec.describe "Template invariants" do
     end
   end
 
+  describe "bin/setup leaves a checkout whose specs can pass" do
+    # tailwindcss-rails enhances `assets:clobber` with `tailwindcss:clobber`,
+    # so the Propshaft heal below also deletes app/assets/builds/tailwind.css.
+    # bin/setup used to rebuild it only as a side effect of `exec bin/dev`,
+    # which --skip-server never reaches — leaving a fork's very first
+    # `bundle exec rspec` failing every system spec at once.
+    let(:setup_sh) { File.read(root.join("bin/setup")) }
+
+    it "rebuilds the Tailwind stylesheet after clobbering assets" do
+      clobber = setup_sh.index("assets:clobber")
+      rebuild = setup_sh.index("tailwindcss:build")
+
+      expect(clobber).not_to be_nil, "expected bin/setup to clobber precompiled assets"
+      expect(rebuild).not_to be_nil,
+        "expected bin/setup to run tailwindcss:build — assets:clobber removes the " \
+        "compiled stylesheet, and without it every system spec fails on contrast/layout"
+      expect(rebuild).to be > clobber,
+        "tailwindcss:build must run AFTER assets:clobber, or the clobber deletes " \
+        "the stylesheet the rebuild just produced"
+    end
+  end
+
   describe ".graphifyignore carries only graph-scoping deltas" do
     # graphify merges .gitignore and .graphifyignore (gitignore first, this file
     # second), so any rule copied from .gitignore is dead weight that goes stale

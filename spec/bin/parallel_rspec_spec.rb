@@ -36,6 +36,45 @@ RSpec.describe ParallelRspecRunner do
     end
   end
 
+  # Stubbed so these examples don't print the runner's progress banners into
+  # the suite's own output, where they read as a real build/parity result.
+  before { allow(runner).to receive(:puts) }
+
+  describe "#build_assets!" do
+    it "passes silently when the Tailwind build succeeds" do
+      allow(runner).to receive(:system).and_return(true)
+
+      expect { runner.build_assets! }.not_to raise_error
+    end
+
+    it "aborts rather than running a suite that would fail on missing CSS" do
+      allow(runner).to receive(:system).and_return(false)
+
+      expect { runner.build_assets! }.to raise_error(SystemExit) do |error|
+        expect(error.status).not_to eq(0)
+      end
+    end
+  end
+
+  # Ordering is the invariant, not just presence: lefthook.yml pipes
+  # tailwind_build ahead of rspec because a build racing the workers leaves
+  # them reading a partial stylesheet and reporting phantom axe violations.
+  # Building once here, before any worker forks, is the same guarantee.
+  it "builds assets before running the suite" do
+    called = []
+    allow(runner).to receive(:reset_artifacts)
+    allow(runner).to receive(:enumerate!)
+    allow(runner).to receive(:expected_count).and_return(0)
+    allow(runner).to receive(:verify_count!)
+    allow(runner).to receive(:enforce_coverage!)
+    allow(runner).to receive(:build_assets!) { called << :build }
+    allow(runner).to receive(:run_suite!) { called << :suite }
+
+    runner.run
+
+    expect(called).to eq([ :build, :suite ])
+  end
+
   describe "#verify_count!" do
     it "passes silently when executed matches expected" do
       write_dry_run(10)
