@@ -763,6 +763,46 @@ RSpec.describe "Template invariants" do
     end
   end
 
+  describe ".graphifyignore carries only graph-scoping deltas" do
+    # graphify merges .gitignore and .graphifyignore (gitignore first, this file
+    # second), so any rule copied from .gitignore is dead weight that goes stale
+    # silently — the copy this replaced still described node_modules as the
+    # "Playwright browser driver" months after Playwright was removed in #497.
+    # The tracked file lists only paths git DOES track but that add noise rather
+    # than architecture to the graph.
+    let(:graphifyignore_path) { root.join(".graphifyignore") }
+
+    # Mirrors graphify's own parser: full-line comments and blanks drop out,
+    # inline comments count only when preceded by whitespace (so a literal
+    # path#with#hash survives).
+    def substantive_rules(path)
+      File.readlines(path).filter_map do |raw|
+        line = raw.rstrip.lstrip
+        next if line.empty? || line.start_with?("#")
+
+        line.sub(/\s+#.*\z/, "").rstrip.presence
+      end
+    end
+
+    it "is tracked in git so forks inherit the graph-scoping rules" do
+      tracked = `git -C #{root} ls-files .graphifyignore`.strip
+      expect(tracked).to eq(".graphifyignore"),
+        "expected .graphifyignore tracked in git — the rules describe this repo's " \
+        "directory layout, so every fork should inherit them rather than rediscover " \
+        "which directories bloat the graph."
+    end
+
+    it "duplicates no rule already present in .gitignore" do
+      duplicated = substantive_rules(graphifyignore_path) &
+        substantive_rules(root.join(".gitignore"))
+
+      expect(duplicated).to be_empty,
+        "expected .graphifyignore to hold only rules .gitignore does NOT already " \
+        "cover, found duplicates: #{duplicated.join(', ')}. graphify reads .gitignore " \
+        "first, so copying it here adds nothing and rots out of sync."
+    end
+  end
+
   describe "the template ships zero encrypted credential blobs" do
     # A committed .yml.enc is undecryptable dead weight to every fork and a
     # guaranteed merge conflict whenever upstream rotates a secret. Forks
