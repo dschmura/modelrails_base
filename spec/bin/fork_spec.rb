@@ -18,7 +18,10 @@ RSpec.describe ForkFlow do
   # example passes vacuously against the "no template remote" branch.
   let(:template_bare) { workdir.join("modelrails_base.git") }
 
-  after { FileUtils.remove_entry(workdir) }
+  # rm_rf, not remove_entry: remove_entry raises on a file that vanishes
+  # mid-walk, which is exactly what git's background maintenance does to its own
+  # lock files. Belt-and-braces with the gc config below.
+  after { FileUtils.rm_rf(workdir) }
 
   def git(*args, dir: repo)
     # -c user.* so commits work on a machine (or CI runner) with no global git
@@ -57,6 +60,12 @@ RSpec.describe ForkFlow do
     system("git", "init", "--bare", "-q", template_bare.to_s) || raise("bare init failed")
     FileUtils.mkdir_p(repo)
     git("init", "-q", "-b", "main")
+    # Git otherwise spawns background gc/maintenance in these throwaway repos.
+    # Under the parallel suite that races the after-hook cleanup, which then
+    # fails on a lock file that git deleted mid-walk — an intermittent failure
+    # attributed to whichever example happened to be running.
+    git("config", "gc.auto", "0")
+    git("config", "maintenance.auto", "false")
     write_skeleton
     git("remote", "add", "origin", template_bare.to_s)
     git("add", "-A")
