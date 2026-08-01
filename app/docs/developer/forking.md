@@ -56,6 +56,10 @@ It refuses to run on a dirty working tree: the identity rename wants to be one
 clean commit you can always find again. Re-running is safe — it detects what is
 already done, and completes a rename that was interrupted partway.
 
+When run interactively it finishes by offering to run `bin/setup` for you (the
+dev server is not started — that stays your call). Under `--yes`, or when stdin
+isn't a terminal, it never does: scripted and CI runs stay fast and predictable.
+
 ### By hand (what bin/fork does)
 
 Use this if you'd rather drive it yourself, or to finish up after an interrupted

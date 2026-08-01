@@ -513,6 +513,80 @@ RSpec.describe ForkFlow do
     end
   end
 
+  # Shelling out is the behaviour here, so `system` is the right thing to stub —
+  # actually running bundle install and db:prepare inside an example would be
+  # absurd. (Contrast the git specs above, where repository state is the point
+  # and stubbing would prove nothing.)
+  describe "offering bin/setup" do
+    def flow_for(opts)
+      described_class.new(opts, root: repo.to_s).tap { |f| allow(f).to receive(:puts) }
+    end
+
+    it "does not offer under --yes, so scripts and orchestrators stay deterministic" do
+      flow = flow_for(name: "my_app", yes: true)
+      expect(flow).not_to receive(:system)
+
+      flow.offer_setup!
+    end
+
+    it "does not offer when stdin is not a terminal" do
+      flow = flow_for(name: "my_app")
+      allow($stdin).to receive(:tty?).and_return(false)
+      expect(flow).not_to receive(:system)
+
+      flow.offer_setup!
+    end
+
+    it "does not offer under --dry-run" do
+      flow = flow_for(name: "my_app", dry_run: true)
+      allow($stdin).to receive(:tty?).and_return(true)
+      expect(flow).not_to receive(:system)
+
+      flow.offer_setup!
+    end
+
+    context "when interactive" do
+      let(:flow) { flow_for(name: "my_app") }
+
+      before do
+        allow($stdin).to receive(:tty?).and_return(true)
+        allow(flow).to receive(:print)
+      end
+
+      # --skip-server matters: bin/setup ends with `exec bin/dev`, which would
+      # replace this process and launch a server nobody asked for.
+      it "runs bin/setup without starting the dev server when accepted" do
+        allow($stdin).to receive(:gets).and_return("\n") # bare Enter takes the default
+
+        expect(flow).to receive(:system).with("bin/setup", "--skip-server", hash_including(chdir: repo.to_s)).and_return(true)
+
+        flow.offer_setup!
+      end
+
+      it "does nothing when declined" do
+        allow($stdin).to receive(:gets).and_return("n\n")
+        expect(flow).not_to receive(:system)
+
+        flow.offer_setup!
+      end
+
+      # The fork is committed before setup is even offered, so a setup failure
+      # must not send anyone back to re-run bin/fork.
+      it "reports that the fork itself is already committed when setup fails" do
+        allow($stdin).to receive(:gets).and_return("y\n")
+        allow(flow).to receive(:system).and_return(false)
+
+        messages = []
+        allow(flow).to receive(:say) { |m| messages << m }
+
+        flow.offer_setup!
+
+        expect(messages.join("\n")).to match(/already committed/i)
+        expect(messages.join("\n")).to match(/re-run bin\/setup/i)
+      end
+    end
+  end
+
   describe "provenance" do
     # .fork.yml is committed and hand-editable, so it will be hand-edited.
     it "reports a corrupt .fork.yml instead of raising Psych internals" do

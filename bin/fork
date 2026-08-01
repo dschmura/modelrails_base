@@ -125,6 +125,7 @@ class ForkFlow
     step_preset!(@preset)
     step_verify!
     print_summary!
+    offer_setup!
   end
 
   # ------------------------------------------------------------------ naming
@@ -490,6 +491,25 @@ class ForkFlow
       inside = false if closes
     end
   end
+
+  # The first developer always needs bin/setup next, and this is the moment they
+  # are least oriented — so offer it rather than making them find the command.
+  # Only ever offered: --yes and non-TTY runs (CI, orchestrators) stay fast and
+  # deterministic instead of silently carrying a full environment bootstrap.
+  def offer_setup!
+    return unless interactive?
+    return unless ask("\nRun bin/setup now? (installs dependencies, prepares the database)", "Y").match?(/\A[Yy]/)
+
+    say("\n== Running bin/setup ==")
+    # --skip-server: bin/setup ends with `exec bin/dev`, which would replace this
+    # process and start a server nobody asked for.
+    return if system("bin/setup", "--skip-server", chdir: @root)
+
+    say("\n  ! bin/setup failed — but the fork itself is already committed, so there")
+    say("    is nothing here to redo. Fix the setup problem and re-run bin/setup.")
+  end
+
+  def interactive? = !dry_run? && !@opts[:yes] && $stdin.tty?
 
   def print_summary!
     return if @todos.empty?
