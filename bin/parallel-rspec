@@ -15,6 +15,7 @@
 # Plain `bundle exec rspec` remains the single-process reference path.
 
 require_relative "../config/boot"
+require_relative "../spec/coverage_config"
 require "json"
 require "fileutils"
 require "pathname"
@@ -22,7 +23,6 @@ require "pathname"
 class ParallelRspecRunner
   COUNTS_DIR = "tmp/parallel_example_counts"
   DRY_RUN_JSON = "tmp/parallel_rspec_dry_run.json"
-  MINIMUM_COVERAGE = 40 # keep in sync with spec/rails_helper.rb
 
   def initialize(counts_dir: COUNTS_DIR, dry_run_json: DRY_RUN_JSON)
     @counts_dir = Pathname.new(counts_dir)
@@ -92,24 +92,28 @@ class ParallelRspecRunner
 
   def run_suite!
     puts "==> Running the suite with parallel_rspec"
-    system("bundle", "exec", "parallel_rspec", "spec") ||
+    # -f progress passed explicitly, so the two support formatters no longer
+    # each have to restore the implicit default the other suppressed via a
+    # `config.formatters.empty?` side-effect (#496). parallel_tests reads its
+    # worker summaries from this formatter, so it must stay present.
+    system("bundle", "exec", "parallel_rspec", "spec", "--test-options", "-f progress") ||
       abort("parallel-rspec: spec failures (see output above)")
   end
 
   def enforce_coverage!
-    puts "==> Merging coverage and enforcing the #{MINIMUM_COVERAGE}% floor"
+    puts "==> Merging coverage and enforcing the #{CoverageConfig::MINIMUM}% floor"
     # Shell out so SimpleCov.collate's at_exit hook runs in a throwaway
     # process (loading this file elsewhere must never register it).
     collate = <<~RUBY
       require "simplecov"
       SimpleCov.collate Dir["coverage/.resultset.json"], "rails" do
         enable_coverage :branch
-        merge_timeout 3600
-        minimum_coverage #{MINIMUM_COVERAGE}
+        merge_timeout #{CoverageConfig::MERGE_TIMEOUT}
+        minimum_coverage #{CoverageConfig::MINIMUM}
       end
     RUBY
     system("bundle", "exec", "ruby", "-e", collate) ||
-      abort("parallel-rspec: merged coverage below #{MINIMUM_COVERAGE}% (see report above)")
+      abort("parallel-rspec: merged coverage below #{CoverageConfig::MINIMUM}% (see report above)")
   end
 end
 
