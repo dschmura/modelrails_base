@@ -14,6 +14,29 @@ require "rails_helper"
 #
 # BORDERS and ICONS are fine and deliberately allowed: WCAG 1.4.11 applies 3:1
 # to non-text contrast, which is what the token was designed against.
+# The companion runtime gate. Both of these exist because of #541: a real AAA
+# violation reached main under a green CI, and the two reasons were that the
+# audit only ran on CI and only ever saw one theme.
+RSpec.describe "the accessibility audit is a real gate" do
+  let(:source) { File.read(Rails.root.join("spec/support/playwright_accessibility.rb")) }
+
+  it "audits everywhere, not only on CI" do
+    expect(source).not_to match(/^\s*if ENV\["CI"\]/),
+      "the per-example axe hook is gated on ENV[\"CI\"] again. Gating it means a " \
+      "developer gets no accessibility feedback until they push, which is how the " \
+      "contrast bug in #540 reached main. Keep it opt-OUT (SKIP_AXE=1)."
+  end
+
+  it "sets the theme explicitly rather than auditing whatever was left behind" do
+    hook = source[/config\.after\(:each, type: :system\).*/m].to_s
+
+    expect(hook).to include("set_theme"),
+      "the axe hook audits whatever theme the example happened to leave the page in, " \
+      "which makes the verdict depend on test choreography rather than the UI — the " \
+      "same command catches a violation on one run and misses it on the next (#541)."
+  end
+end
+
 RSpec.describe "signal -strong tokens are never used as text colors" do
   TEXT_UTILITY = /(?<![\w-])(?:dark:)?text-(?:danger|warning|success|info)-strong(?![\w-])/
 
