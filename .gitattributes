@@ -23,3 +23,9 @@ config/routes/app.rb merge=ours
 config/markdowndocs_categories.local.yml merge=ours
 app/assets/tailwind/tokens/_brand.css merge=ours
 README.md merge=ours
+# Fork provenance (bin/fork). Upstream ships no .fork.yml today, so merges are
+# clean — this is insurance for the day it ships an example and every fork would
+# otherwise conflict on its own provenance. bin/fork itself stays template-owned:
+# forks shouldn't edit it, and freezing it would pin them to the version they
+# forked at, bugs included.
+.fork.yml merge=ours
