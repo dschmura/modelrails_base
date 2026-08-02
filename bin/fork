@@ -186,6 +186,19 @@ class ForkFlow
 
     return if dry_run? || forked?
 
+    # This script commits on your behalf, and a fresh laptop, container, or CI
+    # runner may have no identity configured. Say so now rather than dying on
+    # `fatal: empty ident name` after the remote surgery has already happened.
+    _, ident_status = capture("git", "-C", @root, "var", "GIT_COMMITTER_IDENT")
+    unless ident_status.zero?
+      abort(<<~MSG)
+        bin/fork: git has no identity configured, so the rename commit would fail
+        partway through. Set one first:
+          git config --global user.name "Your Name"
+          git config --global user.email "you@example.com"
+      MSG
+    end
+
     dirty, = capture("git", "-C", @root, "status", "--porcelain")
     return if dirty.empty?
 

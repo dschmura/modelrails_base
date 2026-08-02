@@ -60,6 +60,15 @@ RSpec.describe ForkFlow do
     system("git", "init", "--bare", "-q", template_bare.to_s) || raise("bare init failed")
     FileUtils.mkdir_p(repo)
     git("init", "-q", "-b", "main")
+    # bin/fork makes its OWN commits, which do not inherit the `-c user.*` the
+    # helper above passes. A CI runner has no global identity, so without a
+    # local one those commits fail — the exact way this suite went red on CI
+    # while passing on a laptop that derives an identity from the OS account.
+    # useConfigOnly keeps the fixture strict so it can never silently depend on
+    # the developer's machine again.
+    git("config", "user.useConfigOnly", "true")
+    git("config", "user.email", "fixture@example.com")
+    git("config", "user.name", "Fixture")
     # Git otherwise spawns background gc/maintenance in these throwaway repos.
     # Under the parallel suite that races the after-hook cleanup, which then
     # fails on a lock file that git deleted mid-walk — an intermittent failure
@@ -605,6 +614,21 @@ RSpec.describe ForkFlow do
   end
 
   describe "preflight" do
+    # A fresh laptop, a container, or a CI runner may have no git identity. The
+    # script commits on the user's behalf, so it must say so up front rather
+    # than dying on `fatal: empty ident name` after the remote surgery.
+    it "refuses, without mutating, when git has no identity configured" do
+      # Blanked locally rather than unset: unsetting would still fall through to
+      # the developer's global identity, making this pass or fail depending on
+      # whose machine it runs on — the very class of bug this example exists for.
+      git("config", "user.email", "")
+      git("config", "user.name", "")
+
+      expect { run_fork(name: "my_app", yes: true) }.to raise_error(SystemExit)
+      expect(repo.join("config/application.rb").read).to include("module ModelrailsBase")
+      expect(capture_git("remote")).to eq("origin")
+    end
+
     it "refuses a dirty working tree" do
       repo.join("uncommitted.txt").write("wip")
 
