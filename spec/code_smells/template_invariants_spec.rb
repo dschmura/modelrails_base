@@ -233,6 +233,48 @@ RSpec.describe "Template invariants" do
     end
   end
 
+  # Every assertion in the blocks below is a STATIC TEXT CHECK. They catch
+  # config drift and nothing else — they cannot catch a build or provisioning
+  # failure, and three of those shipped past them (#129/#132, #385/#386, #502)
+  # because the only real verification was a human remembering to build locally.
+  # #535 added a CI job that actually provisions the container; this asserts the
+  # job still exists, so the static checks can never quietly become the only
+  # line of defence again.
+  describe "the devcontainer has a CI gate that actually builds it" do
+    let(:workflow_path) { root.join(".github/workflows/devcontainer.yml") }
+
+    it "ships a workflow that provisions the devcontainer" do
+      expect(File.exist?(workflow_path)).to be(true),
+        "expected .github/workflows/devcontainer.yml — without it the devcontainer's " \
+        "only protection is the static assertions in this file, which cannot catch a " \
+        "build failure (#535)"
+    end
+
+    it "runs a command INSIDE the container, not just a build" do
+      workflow = YAML.safe_load(File.read(workflow_path), aliases: true)
+      step = workflow.dig("jobs", "devcontainer", "steps").to_a
+        .find { |s| s["uses"].to_s.start_with?("devcontainers/ci") }
+
+      expect(step).not_to be_nil,
+        "expected the devcontainers/ci action — `devcontainer build` alone never runs " \
+        "postCreateCommand, and everything risky (apt installs, libvips, chromium, " \
+        "bin/setup) lives in .devcontainer/setup.sh"
+      expect(step.dig("with", "runCmd")).to be_present,
+        "expected a runCmd: building the image proves nothing about whether the " \
+        "container provisions and can drive a browser"
+    end
+
+    it "exercises the browser rather than only asserting it is installed" do
+      run_cmd = YAML.safe_load(File.read(workflow_path), aliases: true)
+        .dig("jobs", "devcontainer", "steps").to_a
+        .filter_map { |s| s.dig("with", "runCmd") }.join("\n")
+
+      expect(run_cmd).to match(%r{rspec .*spec/system/}m),
+        "expected the gate to run a real system spec inside the container — #502 " \
+        "removed the browser install and a presence check alone would still have passed"
+    end
+  end
+
   describe "Devcontainer matches production runtime (Option C: shared base image)" do
     let(:devcontainer_path) { root.join(".devcontainer/devcontainer.json") }
     let(:devcontainer) do
