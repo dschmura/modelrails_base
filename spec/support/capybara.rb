@@ -29,7 +29,17 @@ CUPRITE_DRIVER_OPTIONS = {
   # the harness. Capybara's own have_css/axe waiting still asserts the real
   # content, so a genuinely broken page still fails (just via a matcher
   # timeout, not this error). Standard Cuprite remedy for asset-heavy pages.
-  pending_connection_errors: false
+  pending_connection_errors: false,
+  # Chromium refuses to start as root without --no-sandbox
+  # ("Running as root without --no-sandbox is not supported", crbug.com/638180),
+  # and the devcontainer's remoteUser is root — so every system spec there failed
+  # with `Ferrum::ProcessTimeoutError: Browser did not produce websocket url`,
+  # which names neither root nor the sandbox. Docker's 64MB /dev/shm is the
+  # second half: Chromium exhausts it mid-run and the tab crashes.
+  #
+  # Applied only when actually running as root. --no-sandbox gives up a real
+  # security boundary, and on a developer's own machine there is no reason to.
+  **(Process.uid.zero? ? { browser_options: { "no-sandbox" => nil, "disable-dev-shm-usage" => nil } } : {})
 }.freeze
 
 CUPRITE_SCREEN_SIZE = [ 1400, 1400 ].freeze
