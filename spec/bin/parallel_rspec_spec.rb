@@ -82,12 +82,33 @@ RSpec.describe ParallelRspecRunner do
       expect { runner.verify_count! }.not_to raise_error
     end
 
-    it "aborts with a diagnostic when an example went missing" do
+    # Same reasoning as the `puts` stub above, for the one path it cannot
+    # reach: `abort` writes to $stderr directly, so stubbing `puts` does not
+    # silence it. Uncaptured, this example prints
+    #   "example-count mismatch — expected 10, ran 9 ... worker 1: 4, worker 2: 5"
+    # into every suite run's stderr, where it reads as a genuine splitter
+    # failure — it has already cost one full false-alarm investigation into
+    # whether CI was silently under-testing.
+    #
+    # Capturing it also lets us assert the diagnostic's CONTENT, which nothing
+    # did before: the counts and the per-worker breakdown are the whole reason
+    # the message exists, and an empty or countless abort would have passed.
+    it "aborts with a diagnostic naming the counts and the per-worker split" do
       write_dry_run(10)
       write_counts("1" => 4, "2" => 5)
-      expect { runner.verify_count! }.to raise_error(SystemExit) do |error|
-        expect(error.status).not_to eq(0)
+
+      captured = StringIO.new
+      original_stderr, $stderr = $stderr, captured
+      begin
+        expect { runner.verify_count! }.to raise_error(SystemExit) do |error|
+          expect(error.status).not_to eq(0)
+        end
+      ensure
+        $stderr = original_stderr
       end
+
+      expect(captured.string).to include("expected 10, ran 9")
+      expect(captured.string).to include("worker 1: 4, worker 2: 5")
     end
   end
 end
