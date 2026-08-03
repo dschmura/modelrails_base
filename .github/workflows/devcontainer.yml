@@ -56,8 +56,14 @@ jobs:
           # SKIP_AXE: this gate answers "did the container provision and can it
           # drive a browser", not "is the UI accessible" — the suite covers that
           # on every PR. Skipping the audit keeps the smoke spec focused and fast.
+          #
+          # SKIP_COVERAGE: rails_helper enforces a 40% floor on a single-process
+          # run. Two spec files cover ~5%, so without this the command exits 2 on
+          # a coverage error even though every example passed — which is exactly
+          # how this job first failed in CI while looking green locally.
           env: |
             SKIP_AXE=1
+            SKIP_COVERAGE=1
           runCmd: |
             set -e
 
