@@ -769,6 +769,27 @@ RSpec.describe "Template invariants" do
   # A vanished token is indistinguishable from a completed rename (both mean
   # "not found"), so the script would report success while shipping template
   # branding to every fork. These pin the template side.
+  # The coverage floor is enforced from two processes that never share a
+  # runtime — spec/rails_helper.rb for a single-process run, bin/parallel-rspec's
+  # collate for the merged parallel result. They used to be literals in both,
+  # each carrying a "keep in sync" comment: an admission DRY had failed, in the
+  # files whose whole job is preventing that class of drift (#496).
+  describe "coverage thresholds have a single source of truth" do
+    it "declares the floor and merge timeout in exactly one place" do
+      sources = { "bin/parallel-rspec" => nil, "spec/rails_helper.rb" => nil }
+        .keys.to_h { |f| [ f, File.read(root.join(f)) ] }
+
+      sources.each do |file, content|
+        expect(content).not_to match(/keep in sync/i),
+          "#{file} still carries a 'keep in sync' comment — the thresholds belong " \
+          "in spec/coverage_config.rb, which both processes read"
+        expect(content).to include("CoverageConfig::"),
+          "expected #{file} to read the threshold from CoverageConfig rather than " \
+          "restating the literal"
+      end
+    end
+  end
+
   describe "bin/fork's rename targets still exist upstream" do
     before { load Rails.root.join("bin/fork").to_s unless defined?(ForkFlow) }
 
