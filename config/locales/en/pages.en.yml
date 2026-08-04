@@ -110,7 +110,7 @@ en:
         email:
           title: "Email"
           description: "For general inquiries and support."
-          address: "support@modelrails.dev"
+          address: "support@example.com"
         bugs:
           title: "Bug reports"
           description: "Found a bug? Report it on GitHub."
