@@ -560,30 +560,46 @@ RSpec.describe "Template invariants" do
         "are scanned pre-merge"
     end
 
-    it "builds with the shared GHA layer cache and loads the image for the scanner" do
+    it "loads the built image so the scanner has something to scan" do
       build_step = scan_steps.find { |s| s["uses"].to_s.include?("docker/build-push-action") }
       expect(build_step).not_to be_nil, "expected a docker/build-push-action build step"
 
-      expect(build_step.dig("with", "cache-from").to_s).to include("type=gha"),
-        "expected cache-from: type=gha so the scan reuses docker_build's layers " \
-        "instead of paying a cold build"
       expect(build_step.dig("with", "load")).to be(true),
         "expected load: true — without it the image exists only in the build cache " \
         "and the scanner has nothing to scan"
     end
 
-    it "scheduled runs bypass the layer cache (a cached apt layer hides current package state)" do
-      # The first real scan proved this: the GHA-cached apt layer carried
-      # OpenSSL/poppler packages that Debian had already fixed. A weekly scan
-      # against cached layers answers "what did we build last time", not
-      # "what would we ship if we rebuilt today".
+    # This scan NEVER uses the layer cache, on any trigger (#536).
+    #
+    # It was conditional (schedule + workflow_dispatch only), on the theory that
+    # a PR could reuse main's refreshed layers. It cannot: GitHub Actions cache
+    # scoping makes a branch read its OWN scope first, and ci.yml's docker_build
+    # runs on every PR and writes `mode=max` into exactly that scope. So an
+    # affected PR replays its own stale apt layer and main's fix is never
+    # consulted — observed 2026-07-30, when four dependabot PRs kept reporting 5
+    # HIGH CVEs in libexpat1 that Debian had already fixed, and clearing them
+    # took a per-branch dispatch.
+    #
+    # Keying the cache on the base-image digest does NOT fix this: ruby:slim
+    # rebuilds on Debian point releases, not interim security updates (see the
+    # Dockerfile's apt-get upgrade comment), so the digest is unchanged exactly
+    # when the packages inside it are not. The staleness lives in the apt layer,
+    # not in the base reference.
+    #
+    # Measured cost of always rebuilding: ~3.8 min vs ~3.1 min cached — about 45
+    # seconds, because most of the job is Trivy rather than layer building. That
+    # is a cheap price for a red that always means what it says.
+    it "never reuses the layer cache — a cached apt layer hides current package state" do
       build_step = scan_steps.find { |s| s["uses"].to_s.include?("docker/build-push-action") }
       next if build_step.nil?
 
-      no_cache = build_step.dig("with", "no-cache").to_s
-      expect(no_cache).to include("schedule"),
-        "expected no-cache to be conditional on the schedule event " \
-        "(e.g. no-cache: ${{ github.event_name == 'schedule' }})"
+      expect(build_step.dig("with", "no-cache")).to be(true),
+        "expected `no-cache: true` unconditionally. Anything conditional reintroduces " \
+        "#536: a PR replays its own cached apt layer, and a stale-package failure is " \
+        "indistinguishable from a real finding."
+      expect(build_step.dig("with", "cache-from")).to be_nil,
+        "expected no cache-from: it is dead config alongside no-cache: true, and reads " \
+        "as though the scan still reuses layers"
     end
 
     it ".trivyignore entries each carry a rationale and a Revisit marker" do
