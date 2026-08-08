@@ -5,6 +5,7 @@ module Workspaces
     def index
       authorize Membership
       @roles = @workspace.effective_roles
+      @assignable_roles = assignable_roles_for(Invitation)
 
       memberships = @workspace.memberships.for_members_index(
         q: params[:q], role: params[:role], status: params[:status],
@@ -24,13 +25,14 @@ module Workspaces
     def edit
       @membership = @workspace.memberships.find(params[:id])
       authorize @membership
-      @roles = @workspace.effective_roles
+      @assignable_roles = assignable_roles_for(@membership)
     end
 
     def update
       @membership = @workspace.memberships.find(params[:id])
       authorize @membership
       role = @workspace.effective_roles.find(membership_params[:role_id])
+      authorize_role_grant!(@membership, role)
       @membership.change_role!(role)
       # Frame request → swap just the role cell. Non-Turbo clients → full redirect.
       if request.headers["Turbo-Frame"].present?
@@ -38,6 +40,8 @@ module Workspaces
       else
         redirect_to workspace_members_path(@workspace), notice: t(".success")
       end
+    rescue ActiveRecord::RecordInvalid
+      redirect_to workspace_members_path(@workspace), alert: t(".cannot_demote_last_owner")
     end
 
     def destroy

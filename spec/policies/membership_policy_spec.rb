@@ -115,4 +115,114 @@ RSpec.describe MembershipPolicy do
       expect(policy.destroy?).to be(false)
     end
   end
+
+  # SEC-1: privilege-elevation guard. An actor may grant a role only if they
+  # already hold every permission it confers.
+  describe "#may_grant?" do
+    let(:owner)  { Role.system_default!("owner") }
+    let(:admin)  { Role.system_default!("admin") }
+    let(:member) { Role.system_default!("member") }
+    let(:viewer) { Role.system_default!("viewer") }
+    let(:record) { create(:membership, workspace: workspace) }
+    subject(:policy) { described_class.new(user, record) }
+
+    context "actor is owner" do
+      let(:user) { create(:user) }
+      before { create(:membership, :owner, user: user, workspace: workspace) }
+
+      it "may grant owner" do
+        expect(policy.may_grant?(owner)).to be(true)
+      end
+
+      it "may grant admin" do
+        expect(policy.may_grant?(admin)).to be(true)
+      end
+    end
+
+    context "actor is admin" do
+      let(:user) { create(:user) }
+      before { create(:membership, :admin, user: user, workspace: workspace) }
+
+      it "may NOT grant owner (no manage_workspace)" do
+        expect(policy.may_grant?(owner)).to be(false)
+      end
+
+      it "may NOT grant a custom role that confers a permission it lacks" do
+        superadmin = create(:role, workspace: workspace, name: "Superadmin", slug: "superadmin",
+                                   permissions: { "manage_workspace" => true })
+        expect(policy.may_grant?(superadmin)).to be(false)
+      end
+
+      it "may grant admin (lateral)" do
+        expect(policy.may_grant?(admin)).to be(true)
+      end
+
+      it "may grant member" do
+        expect(policy.may_grant?(member)).to be(true)
+      end
+
+      it "may grant viewer" do
+        expect(policy.may_grant?(viewer)).to be(true)
+      end
+    end
+
+    context "actor is member" do
+      let(:user) { create(:user) }
+      before { create(:membership, user: user, workspace: workspace) }
+
+      it "may NOT grant admin" do
+        expect(policy.may_grant?(admin)).to be(false)
+      end
+
+      it "may grant viewer (member holds no permissions viewer requires)" do
+        expect(policy.may_grant?(viewer)).to be(true)
+      end
+    end
+
+    context "actor has no membership in the current workspace" do
+      let(:user) { create(:user) }
+
+      it "may grant nothing, not even viewer" do
+        expect(policy.may_grant?(viewer)).to be(false)
+        expect(policy.may_grant?(admin)).to be(false)
+      end
+    end
+  end
+
+  # SEC-1: #update? is also gated on the target's current rank so an actor
+  # cannot manage (and thereby demote) a membership whose role outranks them.
+  describe "#update? — target rank gate" do
+    let(:user) { create(:user) }
+    subject(:policy) { described_class.new(user, record) }
+
+    context "actor is admin, target is owner" do
+      let(:owner_user) { create(:user) }
+      let(:record) { create(:membership, :owner, user: owner_user, workspace: workspace) }
+      before { create(:membership, :admin, user: user, workspace: workspace) }
+
+      it "denies update (admin cannot manage an owner's membership)" do
+        expect(policy.update?).to be(false)
+      end
+    end
+
+    context "actor is admin, target is member" do
+      let(:member_user) { create(:user) }
+      let(:record) { create(:membership, user: member_user, workspace: workspace) }
+      before { create(:membership, :admin, user: user, workspace: workspace) }
+
+      it "allows update" do
+        expect(policy.update?).to be(true)
+      end
+    end
+
+    context "actor is owner, target is owner" do
+      let(:owner_user) { create(:user) }
+      let(:record) { create(:membership, :owner, user: owner_user, workspace: workspace) }
+      before { create(:membership, :owner, user: user, workspace: workspace) }
+
+      it "allows update (co-owner management is legitimate)" do
+        expect(policy.update?).to be(true)
+      end
+    end
+  end
 end
