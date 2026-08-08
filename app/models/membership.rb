@@ -199,6 +199,19 @@ class Membership < ApplicationRecord
     raise ActiveRecord::RecordInvalid, self
   end
 
+  # SEC-1 audit: a role change is a privilege event. Record the role slugs by
+  # value (not the mutable role_id FK) and route it to the admin-only feed.
+  def enrich_tracked_changes(changes)
+    return changes unless changes.key?("role_id")
+    from_id, to_id = changes["role_id"]
+    slugs = Role.where(id: [ from_id, to_id ].compact).pluck(:id, :slug).to_h
+    changes.merge("role" => [ slugs[from_id], slugs[to_id] ])
+  end
+
+  def activity_visibility(action)
+    (action == "membership.updated" && saved_change_to_role_id?) ? "admin" : "workspace"
+  end
+
   def notify_role_changed
     return if user.blank?
     WorkspaceRoleChangedNotifier.with(record: self).deliver(user)
