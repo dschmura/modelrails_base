@@ -44,6 +44,8 @@ Pundit policies check permissions at two levels:
 - **Workspace level**: `ApplicationPolicy#can?("permission_name")` reads from `role.permissions` JSON
 - **Project level**: `ProjectPolicy` and `ResourcePolicy` check `project_membership.creator?` / `.editor?` / `.viewer?`
 
+**Granting roles** is gated separately by `ApplicationPolicy#may_grant?(role)`: an actor can grant a role only if they already hold every permission it confers (a superset check, not a rank). This blocks privilege escalation — e.g. an Admin promoting anyone to Owner — and `MembershipPolicy#update?`/`#reactivate?` additionally refuse to manage a membership whose role the actor couldn't grant. `Workspace#admit` (invitation-accept / open-link self-join) deliberately does **not** re-check this: the role is authorized when the invitation or link is *created* (`authorize_role_grant!`), not when redeemed. If you add a new membership-grant entry point, gate the role where it is minted, not where it is consumed.
+
 The `Clientside::` controller namespace is a distinct, authenticated access axis that never sets `Current.workspace` and is never covered by workspace Pundit policies. Project resolution in that namespace is gated on a kept `ClientAccess` record — slug knowledge alone grants nothing. See the [Security](/docs/developer/security) page for the full threat model.
 
 ## Activity Tracking

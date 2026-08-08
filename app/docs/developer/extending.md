@@ -233,6 +233,21 @@ def manage_billing?
 end
 ```
 
+> **Keep Owner a permission superset.** A role can only be granted by someone who
+> already holds every permission it confers (`ApplicationPolicy#may_grant?` — this
+> is what blocks Admin→Owner escalation). So every permission you introduce —
+> `manage_billing` above — must also be added to the **Owner** role, or *no one*,
+> not even an Owner, can assign the role that uses it and it silently disappears
+> from every role picker. Add the key to Owner in the same seed:
+>
+> ```ruby
+> owner = Role.find_by!(slug: "owner", workspace_id: nil)
+> owner.update!(permissions: owner.permissions.merge("manage_billing" => true))
+> ```
+>
+> Editing `seeds.rb` does **not** touch Owner rows already persisted in
+> production/staging — backfill those with a data migration.
+
 ## Upgrading Project Roles to Role Model
 
 If you need custom project roles beyond creator/editor/viewer:
