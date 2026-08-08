@@ -187,6 +187,62 @@ RSpec.describe MembershipPolicy do
         expect(policy.may_grant?(admin)).to be(false)
       end
     end
+
+    context "actor is member; custom role explicitly DISABLES a permission" do
+      let(:user) { create(:user) }
+      before { create(:membership, user: user, workspace: workspace) }
+
+      it "may grant a role that turns a permission it lacks OFF" do
+        locked = create(:role, workspace: workspace, name: "Locked", slug: "locked",
+                               permissions: { "manage_workspace" => false })
+        expect(policy.may_grant?(locked)).to be(true)
+      end
+    end
+
+    context "target membership belongs to another workspace (cross-tenant guard)" do
+      let(:user) { create(:user) }
+      let(:other_workspace) { create(:workspace) }
+      let(:record) { create(:membership, workspace: other_workspace) }
+      before { create(:membership, :owner, user: user, workspace: workspace) }
+
+      it "grants nothing — the actor's home-workspace role can't authorize a foreign record" do
+        expect(policy.may_grant?(member)).to be(false)
+      end
+    end
+  end
+
+  # SEC-1: #reactivate? is gated the same way as #update? — an actor must not
+  # be able to restore an Owner seat (a role they could not grant) by
+  # reactivating a deactivated membership.
+  describe "#reactivate? — target rank gate" do
+    let(:user) { create(:user) }
+    subject(:policy) { described_class.new(user, record) }
+
+    context "actor is admin, target is a deactivated owner" do
+      let(:owner_user) { create(:user) }
+      let(:record) { create(:membership, :owner, user: owner_user, workspace: workspace) }
+      before do
+        create(:membership, :admin, user: user, workspace: workspace)
+        record.discard!
+      end
+
+      it "denies reactivate (admin cannot restore an owner)" do
+        expect(policy.reactivate?).to be(false)
+      end
+    end
+
+    context "actor is admin, target is a deactivated member" do
+      let(:member_user) { create(:user) }
+      let(:record) { create(:membership, user: member_user, workspace: workspace) }
+      before do
+        create(:membership, :admin, user: user, workspace: workspace)
+        record.discard!
+      end
+
+      it "allows reactivate" do
+        expect(policy.reactivate?).to be(true)
+      end
+    end
   end
 
   # SEC-1: #update? is also gated on the target's current rank so an actor

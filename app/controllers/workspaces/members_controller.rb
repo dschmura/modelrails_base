@@ -41,7 +41,15 @@ module Workspaces
         redirect_to workspace_members_path(@workspace), notice: t(".success")
       end
     rescue ActiveRecord::RecordInvalid
-      redirect_to workspace_members_path(@workspace), alert: t(".cannot_demote_last_owner")
+      # The edit form posts from inside a Turbo Frame; a redirect's flash lives
+      # in the layout outside the frame and would be dropped. Answer frame
+      # submissions with a toast stream so the error is actually announced.
+      message = t(".cannot_demote_last_owner")
+      if request.headers["Turbo-Frame"].present?
+        render turbo_stream: error_toast(message), status: :unprocessable_entity
+      else
+        redirect_to workspace_members_path(@workspace), alert: message
+      end
     end
 
     def destroy

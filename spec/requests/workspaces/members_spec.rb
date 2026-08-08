@@ -267,6 +267,32 @@ RSpec.describe "Workspace Members", type: :request do
         patch workspace_member_path(workspace, target), params: { membership: { role_id: admin_role.id } }
         expect(target.reload.role).to eq(admin_role)
       end
+
+      it "refuses an admin reactivating a deactivated owner and leaves it discarded" do
+        deactivated_owner = create(:membership, :owner, user: create(:user), workspace: workspace)
+        deactivated_owner.discard!
+        patch reactivate_workspace_member_path(workspace, deactivated_owner)
+        expect(deactivated_owner.reload).to be_discarded
+        expect(response).to have_http_status(:redirect)
+      end
+    end
+
+    describe "PATCH .../members/:id — viewer actor" do
+      let(:member_role) { Role.system_default!("member") }
+      let(:viewer_user) { create(:user) }
+      let!(:viewer_membership) do
+        create(:membership, user: viewer_user, workspace: workspace, role: Role.system_default!("viewer"))
+      end
+
+      before { sign_in(viewer_user) }
+
+      it "denies a viewer changing anyone's role and leaves it unchanged" do
+        target = create(:membership, user: create(:user), workspace: workspace)
+        original = target.role
+        patch workspace_member_path(workspace, target), params: { membership: { role_id: member_role.id } }
+        expect(target.reload.role).to eq(original)
+        expect(response).to have_http_status(:redirect)
+      end
     end
 
     # SEC-1 (adjacent): a workspace must always retain at least one owner.
