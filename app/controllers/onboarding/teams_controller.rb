@@ -6,7 +6,7 @@ module Onboarding
     def new
       authorize Invitation
       @invitation = Invitation.new
-      @roles = Current.workspace.effective_roles
+      @roles = assignable_roles_for(Invitation)
     end
 
     def create
@@ -17,12 +17,13 @@ module Onboarding
       if emails.empty?
         flash.now[:alert] = t(".no_emails")
         @invitation = Invitation.new
-        @roles = Current.workspace.effective_roles
+        @roles = assignable_roles_for(Invitation)
         render :new, status: :unprocessable_entity
         return
       end
 
       role = Current.workspace.effective_roles.find(invitation_params[:role_id])
+      authorize_role_grant!(Invitation, role)
       Invitation.bulk_invite!(workspace: Current.workspace, emails: emails, role: role, invited_by: Current.user)
 
       Current.user.update!(onboarded_at: Time.current) unless Current.user.onboarded?
