@@ -12,6 +12,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Added
 
+- **Active-devices management** — `/settings/sessions` lists the devices where you're signed in (browser/OS, IP, last active), marks the current one, and lets you revoke any device or "sign out all other devices." Revoking is scoped to your own sessions.
 - **`bin/fork`** — one-command fork onboarding: remote surgery, identity rename, and tenancy preset in a single commit, with provenance recorded in `.fork.yml`. Run it once after cloning, before `bin/setup`. Teammates run only `bin/setup`, which now applies the fork's recorded preset and adds the upstream remote per clone. See [Forking](/docs/developer/forking).
 - Parallel test suite — `bin/parallel-rspec` runs RSpec across all cores with example-count and merged-coverage integrity gates; CI and the Lefthook pre-push gate use it, cutting CI's test job from ~14 to ~8.5 minutes (#485; further wins tracked in #486–#488).
 - Runtime-balanced parallel test split — spec files split across workers by recorded per-file runtime instead of file size, evening out the slowest worker; the timing log (`tmp/parallel_runtime_rspec.log`) is written each run and cached in CI, and falls back to file-size splitting when absent (#488).
@@ -29,6 +30,10 @@ All notable changes to ModelRails are documented here, organized by phase.
 - Bumped SimpleCov to 1.0.2 (major). `SimpleCov.running` was removed; the coverage-config spec now asserts stdlib `Coverage.running?` instead. 1.0 also absorbs `simplecov-html`, `simplecov_json_formatter` and `docile`, so those drop out of the lockfile — HTML reports and `SimpleCov.collate`'s merged-resultset floor are unaffected. A fork with its own coverage spec will hit the same removal.
 - **Locale keys moved** — forks that overrode any of these need to move their override: `invitation_accepts.create.invalid_token` → `invitation_accepts.invalid_token`, `invitation_accepts.create.expired_or_used` → `invitation_accepts.expired_or_used`, `invitation_declines.create.invalid` → `invitation_declines.invalid`. They are emitted by a filter shared across two actions, so they now sit at controller scope. An override left at the old key silently reverts to upstream English.
 - `t(".key")` is now used only inside controller actions; private helpers use absolute keys, so `i18n-tasks` can verify them statically.
+
+### Security
+
+- **Sessions now expire (SEC-2a).** Previously a session was valid forever (a 20-year `permanent` cookie, no server-side lifetime), so a stolen cookie never went stale. Sessions are now signed out after an idle window (default 30 days) or an absolute lifetime (default 90 days) — both tunable in `config/initializers/sessions.rb` — enforced fail-closed at request time, with an announced "your session has ended" flash rather than a silent bounce to sign-in. `last_active_at` is refreshed off the SQLite writer-lock hot path via an in-memory throttle. Expired rows are swept daily (`ExpiredSessionsSweepJob`). Changing or removing your password now signs out every *other* device. **Rollout:** existing sessions get a fresh idle window on deploy (they are not retroactively expired); sessions older than the absolute timeout will be signed out. Forks that customized `Authenticatable#start_new_session_for` / `find_session_by_cookie` should expect a merge here.
 
 ### Fixed
 
