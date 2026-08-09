@@ -84,7 +84,8 @@ module Authenticatable
 
     def start_new_session_for(user)
       user.sessions.create!(
-        user_agent: request.user_agent, ip_address: request.remote_ip, last_active_at: Time.current
+        user_agent: request.user_agent, ip_address: request.remote_ip,
+        last_active_at: Time.current, reauthenticated_at: Time.current
       ).tap do |session|
         Current.session = session
         cookies.signed[:session_id] = {

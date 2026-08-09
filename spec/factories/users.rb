@@ -13,6 +13,13 @@ FactoryBot.define do
       passkey_prompt_seen_at { nil }
     end
 
+    # Magic-link / OAuth-only account — the common case in a passwordless-first
+    # app, and the reason re-auth can't assume a password.
+    trait :passwordless do
+      password { nil }
+      password_digest { nil }
+    end
+
     trait :with_email_auth do
       after(:create) do |user|
         user.authentications.find_or_create_by!(provider: "email") do |auth|

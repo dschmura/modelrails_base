@@ -1,5 +1,6 @@
 module Settings
   class ConnectedAccountsController < ApplicationController
+    before_action :require_reauthentication!, only: :destroy
     layout "settings"
 
     allow_unauthenticated_access only: :verify
