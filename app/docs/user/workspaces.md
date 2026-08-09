@@ -46,11 +46,11 @@ The members index supports:
 
 ### Changing a Member's Role
 
-Select from the workspace's effective roles (system defaults plus any workspace-specific custom roles).
+Pick from the roles you're able to assign. You can only grant a role whose permissions you already hold — so an Admin sees Admin, Member, and Viewer, but not Owner. Only an Owner can make another member an Owner. Admins can view an Owner's row but can't edit it. The last Owner can't be demoted here — transfer ownership or promote a second Owner first.
 
 ### Deactivating a Member
 
-Deactivation is a **soft operation** — the membership is discarded (not destroyed), and the user is removed from all projects in that workspace. The last owner cannot be deactivated.
+Deactivation is a **soft operation** — the membership is discarded (not destroyed), and the user is removed from all projects in that workspace. The last owner cannot be deactivated. Reactivating a member follows the same rule as changing a role: you can only restore a member to a role you could assign.
 
 ### Reactivating a Member
 
@@ -74,7 +74,7 @@ Transfers ownership atomically:
 ### Email Invitations
 
 1. Enter one or more email addresses (comma or newline separated).
-2. Select a role for the invitees.
+2. Select a role for the invitees. You can only invite at a role you could grant yourself — an Admin can't invite someone straight in as Owner.
 3. The system creates invitation records and sends emails via `InvitationMailer`.
 4. Each invitation has a unique token and **7-day expiry**.
 
@@ -82,7 +82,7 @@ Bulk invite skips emails that are invalid, already members, or already have pend
 
 ### Magic Link Invitations
 
-Creates a shareable URL (no email required). Share the link directly — anyone with it can accept. Useful for Slack channels, team chats, or onboarding docs.
+Creates a shareable URL (no email required). Share the link directly — anyone with it can accept. Useful for Slack channels, team chats, or onboarding docs. The role is fixed at creation and is subject to the same rule — you can only mint a link at a role you could grant yourself.
 
 ### Accepting an Invitation
 
@@ -111,7 +111,7 @@ A workspace's `join_policy` controls how new members can join, layered on the in
 
 **Hard guard:** personal workspaces can never be open-joinable, regardless of `join_policy`. `Workspace#open_join?` enforces `!personal?` as the first check; model validation rejects setting `open_link` on a personal workspace.
 
-**Single membership-grant entry point.** Both invitation acceptance and open-link self-join go through `Workspace#admit(user, role:)`, which handles workspace locking, capacity, discarded-membership reactivation, and (under the `:shared` tenancy preset) role reconciliation.
+**Single membership-grant entry point.** Both invitation acceptance and open-link self-join go through `Workspace#admit(user, role:)`, which handles workspace locking, capacity, discarded-membership reactivation, and (under the `:shared` tenancy preset) role reconciliation. Authority over the granted role is checked when the invitation or link is **created**, not when it is redeemed — a legitimately-created invitation still admits at its role even if the inviter's privileges later change.
 
 ## Roles & Permissions
 
@@ -142,6 +142,10 @@ Create workspace-specific roles by seeding `Role` records with `workspace_id` se
 ### How Permissions Are Checked
 
 Pundit policies call `can?("permission_name")`, which looks up `membership.role.permissions["permission_name"]`. Returns `false` if the membership, role, or permission key doesn't exist.
+
+### Who Can Assign a Role
+
+A role is assignable only by someone who already holds every permission it confers (`ApplicationPolicy#may_grant?`). This is a permission-**superset** check, not a rank — it applies everywhere a role is chosen: member role changes, reactivations, email invitations, and magic links. Because Owner holds all permissions, only an Owner can grant Owner. If you add a custom permission, add it to Owner too, or the role using it becomes unassignable by anyone — see [Extending](/docs/developer/extending).
 
 ## Branding
 
