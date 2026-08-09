@@ -84,12 +84,12 @@ class Authentication < ApplicationRecord
   # visitor who was never a member must not learn the workspace is locked.
   # Capacity/already-member errors propagate up so the caller can surface them.
   def claim_pending_join_link!(user)
-    return if pending_join_link_token.blank?
+    return if pending_join_link_digest.blank?
 
-    link = WorkspaceJoinLink.active.find_by(token: pending_join_link_token)
+    link = WorkspaceJoinLink.active.find_by(token_digest: pending_join_link_digest)
 
     if link.nil? || !link.workspace.open_join? || !link.workspace.admittable?
-      update!(pending_join_link_token: nil)
+      update!(pending_join_link_digest: nil)
       return
     end
 
@@ -100,7 +100,7 @@ class Authentication < ApplicationRecord
     begin
       link.workspace.admit(user, role: link.workspace.default_self_join_role)
     ensure
-      update!(pending_join_link_token: nil)
+      update!(pending_join_link_digest: nil)
     end
   end
 

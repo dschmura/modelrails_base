@@ -232,7 +232,7 @@ Navigate to `settings/connected_accounts`. Next to a verified provider, click **
    `stash_for_signup` stores the link token in `session[:pending_join_token]` and redirects to `new_session_path`.
    **Expect (open signup):** Navigate to `/session/new`, enter your email, click the registration magic link, and fill in name — the pending join-link token satisfies `signups_open?` even under `invite_only`.
    **Expect (invite-only):** Same — the pending join token opens the gate regardless of `SIGNUP_MODE`.
-3. After registration, the join token is persisted on the email `Authentication` (`pending_join_link_token`) and claimed at sign-in. The email is already verified inside the registration transaction.
+3. After registration, the join token's **digest** is persisted on the email `Authentication` (`pending_join_link_digest` — the token is hashed at rest) and claimed at sign-in. The email is already verified inside the registration transaction.
    `auth.claim_pending_join_link!` calls `workspace.admit` if the link is still valid.
    **Expect:** You are signed in. If the link was still valid, you are now a member of the workspace. Stale conditions (revoked link, policy changed back to invite, instance allowlist tightened) are silently no-op'd — sign-in proceeds and you land without workspace membership.
 

@@ -33,7 +33,7 @@ RSpec.describe "Passwordless join-link signup", type: :system do
   # and stores the session cookie for all subsequent requests in this Playwright
   # session — the same pattern used by invite_only_signup_spec.
   def confirm_join_link
-    visit workspace_join_path(join_workspace, token: join_link.token)
+    visit workspace_join_path(join_workspace, token: join_link.plaintext_token)
 
     # Native form POST via execute_script bypasses Turbo's fetch-based submission.
     # forgery_protection is disabled in test env, so no CSRF token needed.
