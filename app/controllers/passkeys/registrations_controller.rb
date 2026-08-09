@@ -5,6 +5,7 @@ module Passkeys
   # Requires an active session — unauthenticated requests are redirected to sign-in
   # by the default Authenticatable before_action.
   class RegistrationsController < ApplicationController
+    before_action :require_reauthentication!, only: [ :options, :verify ]
     def options
       render json: RegisterCeremony.options(user: Current.user)
     end

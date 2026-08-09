@@ -57,6 +57,7 @@ RSpec.describe "Flash messages are asserted, not just redirects" do
     "settings.connected_accounts.resend_verification.already_verified",
     "settings.connected_accounts.resend_verification.rate_limited",
     "settings.connected_accounts.resend_verification.resent",
+    "settings.reauthentications.rate_limited",
     "settings.connected_accounts.verify.invalid_or_expired",
     "settings.connected_accounts.verify.success",
     "settings.passkeys.destroy.success",

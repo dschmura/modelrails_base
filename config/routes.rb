@@ -16,6 +16,8 @@ Rails.application.routes.draw do
     post "registration/verify",    to: "registrations#verify",    as: :registration_verify
     post "authentication/options", to: "authentications#options", as: :authentication_options
     post "authentication/verify",  to: "authentications#verify",  as: :authentication_verify
+    post "reauthentication/options", to: "reauthentications#options", as: :reauthentication_options
+    post "reauthentication/verify",  to: "reauthentications#verify",  as: :reauthentication_verify
   end
 
   resource :email_verification_resend, only: [ :create ]
@@ -45,6 +47,8 @@ Rails.application.routes.draw do
     end
     resources :sessions, only: [ :index, :destroy ]
     resource :other_sessions, only: [ :destroy ]
+    resource :reauthentication, only: [ :new, :create ]
+    resource :reauthentication_code, only: [ :create ]
     resources :passkeys, only: [ :index, :destroy ]
     resources :connected_accounts, only: [ :index, :destroy ] do
       member do
