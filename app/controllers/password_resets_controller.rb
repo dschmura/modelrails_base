@@ -11,7 +11,7 @@ class PasswordResetsController < ApplicationController
     # exists or has a password. Only a real password-holder gets a link.
     if user&.has_password?
       token = MagicLinkToken.create_for_email(user.email_address, intent: "set_password")
-      MagicLinkMailer.sign_in_link(user.email_address, token).deliver_later
+      MagicLinkMailer.sign_in_link(user.email_address, token).deliver_later if token
     end
 
     @email_address = email

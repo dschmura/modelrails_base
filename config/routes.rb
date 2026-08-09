@@ -26,6 +26,9 @@ Rails.application.routes.draw do
   resource :password_reset, only: [ :create ]
   get "magic_link_callback/:token", to: "magic_link_callbacks#show", as: :magic_link_callback
   post "magic_link_callback/:token", to: "magic_link_callbacks#create"
+  # Existing-user sign-in is a POST so a GET (mail scanner / prefetch) can't
+  # burn the token or establish a session — the GET only renders a confirmation.
+  post "magic_link_callback/:token/sign_in", to: "magic_link_callbacks#sign_in", as: :magic_link_callback_sign_in
   post "session/lookup", to: "sessions#lookup", as: :session_lookup
   get  "session/password", to: "sessions#password_form", as: :session_password_form
 
