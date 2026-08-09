@@ -82,7 +82,25 @@ module Authenticatable
       end
     end
 
+    # Session keys that must survive login. Everything else in the pre-auth
+    # session hash is dropped at the privilege boundary (reset_session below).
+    # Deliberately NOT preserved: current_workspace_id (re-derived per request),
+    # return_to_after_reauthentication and reauthentication_code_sent (only set
+    # while already authenticated, never during initial sign-in). A fork adding
+    # its own pre-auth key registers it here.
+    SESSION_KEYS_SURVIVING_LOGIN = %i[
+      return_to_after_authenticating pending_invitation_token pending_join_token
+    ].freeze
+
     def start_new_session_for(user)
+      # Clear leftover pre-auth session state at the privilege boundary, keeping
+      # only the keys the post-login flow needs. Hygiene, not a fixation fix —
+      # Rails' encrypted cookie store already prevents a forged session hash and
+      # the DB Session row is rotated on every login.
+      preserved = SESSION_KEYS_SURVIVING_LOGIN.index_with { |key| session[key] }.compact
+      reset_session
+      preserved.each { |key, value| session[key] = value }
+
       user.sessions.create!(
         user_agent: request.user_agent, ip_address: request.remote_ip,
         last_active_at: Time.current, reauthenticated_at: Time.current
