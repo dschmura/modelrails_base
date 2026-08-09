@@ -26,10 +26,12 @@ module Reauthenticatable
     end
   end
 
+  # Return the user to the page they triggered the action from (a same-origin
+  # referer), so after confirming they can retry it. Gated actions are all
+  # mutating requests, so their own path isn't a useful landing.
   def store_reauthentication_return_to
     referer_path = url_from(request.referer)&.then { |uri| URI(uri).request_uri } rescue nil
-    session[:return_to_after_reauthentication] =
-      referer_path.presence || (request.get? ? request.fullpath : edit_settings_profile_path)
+    session[:return_to_after_reauthentication] = referer_path.presence || edit_settings_profile_path
   end
 
   def reauthentication_return_to

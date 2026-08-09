@@ -44,6 +44,25 @@ off the SQLite single-writer hot path. Changing or removing a password signs
 out every *other* session; users can review and revoke devices at
 `/settings/sessions`. `ExpiredSessionsSweepJob` deletes expired rows daily.
 
+### Re-Authentication (Sensitive Changes)
+
+Actions that add, remove, or change an authentication factor require a recent
+proof of identity, so a borrowed session can't be turned into a takeover.
+`Reauthenticatable#require_reauthentication!` gates: password change/removal,
+passkey enrollment and deletion, email change, and OAuth unlink. It checks
+`Session#reauthenticated?` (a 15-minute window on `reauthenticated_at`, set at
+sign-in and refreshed by the interstitial) and, if stale, sends the user to
+`/settings/reauthentication`.
+
+The interstitial offers only the factors the user has (`User#available_reauth_factors`):
+password, a passkey (verified through `AuthenticateCeremony` **bound to the
+current user** — another account's passkey is rejected), or a one-time
+`ReauthenticationChallenge` code emailed and entered in-page (never a link, so
+it can't be replayed into a sign-in). All of it is tunable in
+`config/initializers/sessions.rb`; `reauth_enabled = false` makes the gate a
+no-op. Email changes are gated here rather than on a password, so passwordless
+users can change their email.
+
 ### Security Headers
 
 Configured in `config/initializers/security_headers.rb`:
