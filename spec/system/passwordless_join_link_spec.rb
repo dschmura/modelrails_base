@@ -58,8 +58,7 @@ RSpec.describe "Passwordless join-link signup", type: :system do
 
     expect(page).to have_text(I18n.t("sessions.check_email.title"))
 
-    token_record = MagicLinkToken.where(email: email).order(:created_at).last
-    visit magic_link_callback_path(token: token_record.token)
+    visit magic_link_callback_path(token: MagicLinkToken.create_for_email(email))
 
     fill_in I18n.t("magic_link_callbacks.new_registration.first_name_label"), with: first_name
     fill_in I18n.t("magic_link_callbacks.new_registration.last_name_label"), with: last_name
