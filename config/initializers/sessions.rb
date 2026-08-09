@@ -7,3 +7,10 @@
 Rails.application.config.x.session.idle_timeout = 30.days
 Rails.application.config.x.session.absolute_timeout = 90.days
 Rails.application.config.x.session.touch_throttle = 5.minutes
+
+# Re-authentication ("confirm it's you") for sensitive account changes:
+# - reauth_window: how long a proven factor keeps the session sudo-fresh
+# - reauth_enabled: master switch; when false, require_reauthentication! is a
+#   no-op (some single-tenant/internal-tool forks won't want the friction)
+Rails.application.config.x.session.reauth_window = 15.minutes
+Rails.application.config.x.session.reauth_enabled = true

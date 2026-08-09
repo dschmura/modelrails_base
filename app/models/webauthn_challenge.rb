@@ -1,7 +1,7 @@
 class WebauthnChallenge < ApplicationRecord
   belongs_to :user, optional: true
   validates :challenge, presence: true, uniqueness: true
-  validates :purpose, inclusion: { in: %w[registration authentication] }
+  validates :purpose, inclusion: { in: %w[registration authentication reauthentication] }
 
   def self.store(challenge:, purpose:, user: nil)
     create!(challenge: challenge, purpose: purpose, user: user, expires_at: 5.minutes.from_now)

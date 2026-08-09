@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_09_021927) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_09_112829) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -217,6 +217,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_09_021927) do
     t.index ["workspace_id"], name: "index_projects_on_workspace_id"
   end
 
+  create_table "reauthentication_challenges", force: :cascade do |t|
+    t.string "code_digest", null: false
+    t.datetime "consumed_at"
+    t.datetime "created_at", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["user_id"], name: "index_active_reauth_challenge_per_user", unique: true, where: "consumed_at IS NULL"
+    t.index ["user_id"], name: "index_reauthentication_challenges_on_user_id"
+  end
+
   create_table "resources", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "created_by_id", null: false
@@ -252,6 +263,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_09_021927) do
     t.datetime "created_at", null: false
     t.string "ip_address"
     t.datetime "last_active_at"
+    t.datetime "reauthenticated_at"
     t.datetime "updated_at", null: false
     t.string "user_agent"
     t.integer "user_id", null: false
@@ -381,6 +393,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_09_021927) do
   add_foreign_key "project_memberships", "users"
   add_foreign_key "projects", "users", column: "created_by_id"
   add_foreign_key "projects", "workspaces"
+  add_foreign_key "reauthentication_challenges", "users"
   add_foreign_key "resources", "projects"
   add_foreign_key "resources", "users", column: "created_by_id"
   add_foreign_key "roles", "workspaces"

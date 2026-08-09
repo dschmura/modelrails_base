@@ -1,6 +1,5 @@
 class User < ApplicationRecord
   has_secure_password validations: false
-  attr_accessor :current_password
 
   has_many :sessions, dependent: :destroy
   has_many :authentications, dependent: :destroy
@@ -130,10 +129,21 @@ class User < ApplicationRecord
     sources
   end
 
-  def initiate_email_change!(new_email, password)
-    return false unless has_password?
-    return false unless authenticate(password)
+  # Factors this user can prove for re-authentication. The interstitial view
+  # and the reauthentication controller both read this so they can't diverge on
+  # which factors are on offer. Email is always available as the fallback.
+  def available_reauth_factors
+    factors = []
+    factors << :password if has_password?
+    factors << :passkey if webauthn_credentials.kept.any?
+    factors << :email
+    factors
+  end
 
+  # Authorization to change email is handled by re-authentication at the
+  # controller (require_reauthentication!), not a password here — otherwise
+  # passwordless users could never change their email.
+  def initiate_email_change!(new_email)
     normalized = EmailNormalizer.normalize(new_email)
     return false if EmailNormalizer.equivalent?(normalized, email_address)
 
