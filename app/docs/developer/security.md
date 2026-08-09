@@ -63,6 +63,18 @@ it can't be replayed into a sign-in). All of it is tunable in
 no-op. Email changes are gated here rather than on a password, so passwordless
 users can change their email.
 
+### Magic-Link Tokens
+
+The bearer token is stored only as a SHA256 digest (`MagicLinkToken.token_digest`);
+the plaintext lives solely in the emailed URL, so a leaked table can't be used
+to sign in. 256 bits of entropy means a plain unsalted digest is sufficient —
+contrast the 6-digit `ReauthenticationChallenge`, which needs a pepper + rate
+limit. Clicking a magic link is a two-step GET→POST: the GET renders a
+"Sign in as x@y?" confirmation and never consumes the token or starts a session,
+so a mail scanner or prefetcher doing a bare GET can't burn the link; the POST
+(the visible button) runs the atomic consume and signs in. Mirrors the join-link
+confirmation flow.
+
 ### Security Headers
 
 Configured in `config/initializers/security_headers.rb`:
