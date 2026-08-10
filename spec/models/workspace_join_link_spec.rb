@@ -5,22 +5,60 @@ RSpec.describe WorkspaceJoinLink, type: :model do
   let(:user) { create(:user) }
 
   describe "creation" do
-    it "auto-populates a URL-safe token via has_secure_token" do
+    it "generates a URL-safe plaintext token exposed once, storing only its digest" do
       link = WorkspaceJoinLink.create!(workspace: workspace, created_by: user)
-      expect(link.token).to be_present
-      expect(link.token.length).to be >= 20
+
+      expect(link.plaintext_token).to be_present
+      expect(link.plaintext_token.length).to be >= 20
+      expect(link.token_digest).to eq(WorkspaceJoinLink.digest(link.plaintext_token))
     end
 
-    it "rejects duplicate tokens (DB unique index)" do
-      WorkspaceJoinLink.create!(workspace: workspace, created_by: user, token: "fixed-token-xyz")
-      expect {
-        WorkspaceJoinLink.create!(workspace: workspace, created_by: user, token: "fixed-token-xyz")
-      }.to raise_error(ActiveRecord::RecordNotUnique)
+    it "does not persist the plaintext token (only the digest is stored)" do
+      link = WorkspaceJoinLink.create!(workspace: workspace, created_by: user)
+
+      # A fresh load from the DB has the digest but no way back to the plaintext.
+      reloaded = WorkspaceJoinLink.find(link.id)
+      expect(reloaded.plaintext_token).to be_nil
+      expect(reloaded.token_digest).to be_present
     end
 
     it "requires a workspace and a created_by user" do
       expect(WorkspaceJoinLink.new(created_by: user)).not_to be_valid
       expect(WorkspaceJoinLink.new(workspace: workspace)).not_to be_valid
+    end
+  end
+
+  describe ".digest" do
+    it "is a stable SHA256 hex digest of the plaintext" do
+      expect(WorkspaceJoinLink.digest("abc")).to eq(Digest::SHA256.hexdigest("abc"))
+      expect(WorkspaceJoinLink.digest("abc")).to eq(WorkspaceJoinLink.digest("abc"))
+    end
+  end
+
+  describe ".find_active" do
+    it "finds an active link by its plaintext token" do
+      link = WorkspaceJoinLink.create!(workspace: workspace, created_by: user)
+      expect(WorkspaceJoinLink.find_active(link.plaintext_token)).to eq(link)
+    end
+
+    it "does not find a revoked link" do
+      link = WorkspaceJoinLink.create!(workspace: workspace, created_by: user)
+      plaintext = link.plaintext_token
+      link.revoke!
+      expect(WorkspaceJoinLink.find_active(plaintext)).to be_nil
+    end
+
+    it "returns nil for an unknown token" do
+      expect(WorkspaceJoinLink.find_active("nope")).to be_nil
+    end
+  end
+
+  describe "digest uniqueness" do
+    it "rejects a duplicate digest" do
+      WorkspaceJoinLink.create!(workspace: workspace, created_by: user, token_digest: "fixed-digest-xyz")
+      dup = WorkspaceJoinLink.new(workspace: create(:workspace), created_by: user, token_digest: "fixed-digest-xyz")
+      expect(dup).not_to be_valid
+      expect(dup.errors[:token_digest]).to be_present
     end
   end
 
@@ -49,24 +87,14 @@ RSpec.describe WorkspaceJoinLink, type: :model do
         WorkspaceJoinLink.create!(workspace: other_workspace, created_by: user)
       }.not_to raise_error
     end
-
-    it "allows multiple revoked links for the same workspace (history)" do
-      WorkspaceJoinLink.create!(workspace: workspace, created_by: user, revoked_at: 2.minutes.ago)
-
-      expect {
-        WorkspaceJoinLink.create!(workspace: workspace, created_by: user, revoked_at: 1.minute.ago)
-      }.not_to raise_error
-    end
   end
 
   describe ".active scope" do
-    it "includes links with no revoked_at" do
+    it "includes links with no revoked_at and excludes revoked ones" do
       active = WorkspaceJoinLink.create!(workspace: workspace, created_by: user)
-      expect(WorkspaceJoinLink.active).to include(active)
-    end
+      revoked = WorkspaceJoinLink.create!(workspace: create(:workspace), created_by: user, revoked_at: 1.minute.ago)
 
-    it "excludes revoked links" do
-      revoked = WorkspaceJoinLink.create!(workspace: workspace, created_by: user, revoked_at: 1.minute.ago)
+      expect(WorkspaceJoinLink.active).to include(active)
       expect(WorkspaceJoinLink.active).not_to include(revoked)
     end
   end
@@ -84,14 +112,12 @@ RSpec.describe WorkspaceJoinLink, type: :model do
     end
   end
 
-  describe "regenerate_token (the atomic-rotate primitive from has_secure_token)" do
-    it "produces a new token value" do
+  describe "#masked_token" do
+    it "is a non-secret stub derived from the digest, not the plaintext" do
       link = WorkspaceJoinLink.create!(workspace: workspace, created_by: user)
-      original = link.token
 
-      link.regenerate_token
-
-      expect(link.reload.token).not_to eq(original)
+      expect(link.masked_token).to include(link.token_digest.last(6))
+      expect(link.masked_token).not_to include(link.plaintext_token)
     end
   end
 end

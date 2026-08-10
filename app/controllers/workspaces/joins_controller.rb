@@ -47,7 +47,7 @@ module Workspaces
     # (registrations_controller, omniauth_callbacks) and claimed at email
     # verification (Settings::ConnectedAccountsController#verify).
     def stash_for_signup
-      session[:pending_join_token] = @link.token
+      session[:pending_join_token] = params[:token]
       redirect_to new_session_path, notice: t("workspaces.joins.create.register_first", workspace: @workspace.name)
     end
 
@@ -60,7 +60,7 @@ module Workspaces
     # everything, including outsiders learning its lifecycle state).
     def set_workspace_and_link
       @workspace = Workspace.kept.find_by(slug: params[:workspace_slug])
-      @link = @workspace&.join_links&.active&.find_by(token: params[:token])
+      @link = @workspace&.join_links&.active&.find_by(token_digest: WorkspaceJoinLink.digest(params[:token]))
 
       unless @workspace && @link && @workspace.open_join? && @workspace.admittable?
         redirect_to root_path, alert: t("workspaces.joins.invalid_or_revoked")

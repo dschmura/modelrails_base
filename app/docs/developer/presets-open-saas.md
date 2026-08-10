@@ -107,7 +107,7 @@ If `permits_strategy?(:open_link)` is `false`, the env var isn't set — links w
 
 1. Set `SIGNUP_PERMITTED_JOIN_STRATEGIES=invite,open_link` (default is `invite` alone — preserves Solo-default).
 2. Owner/Admin opens their workspace's `/workspaces/:slug/settings/edit` and selects "Shareable join link" under Join policy.
-3. The settings page shows the active link with **Copy / Rotate / Revoke** controls. The link follows the form `/workspaces/:slug/joins/:token`.
+3. The full link (form `/workspaces/:slug/joins/:token`) is shown **once**, right after you generate or rotate it — copy it then. The token is hashed at rest, so the settings page can't re-display it later: it shows a masked stub with **Rotate / Revoke**, and Rotate mints a fresh link to copy.
 4. Share the link with anyone who has an account on this instance — clicking lands them on a confirmation page; the Join button admits them as a Member.
 
 **Key behaviors (Reshape 2a):**

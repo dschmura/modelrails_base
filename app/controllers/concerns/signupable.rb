@@ -72,7 +72,7 @@ module Signupable
     token = session[:pending_join_token]
     return if token.blank?
 
-    link = WorkspaceJoinLink.active.find_by(token: token)
+    link = WorkspaceJoinLink.find_active(token)
     if link.nil? || !link.workspace.open_join? || !link.workspace.admittable?
       session.delete(:pending_join_token)
       return
