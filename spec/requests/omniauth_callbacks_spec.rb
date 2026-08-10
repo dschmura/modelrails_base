@@ -1019,7 +1019,7 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
       OmniAuth.config.test_mode = true
       OmniAuth.config.mock_auth[:google_oauth2] = join_oauth_hash
       # POST to the join route — sets session[:pending_join_token].
-      post workspace_join_path(workspace_slug: join_workspace.slug, token: join_link.token)
+      post workspace_join_path(workspace_slug: join_workspace.slug, token: join_link.plaintext_token)
     end
 
     after do

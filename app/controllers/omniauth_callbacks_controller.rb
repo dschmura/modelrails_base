@@ -161,7 +161,7 @@ class OmniauthCallbacksController < ApplicationController
         # Park both pending claims for the deferred-OAuth flow (mirror
         # registrations_controller).
         pending_invitation_token: session[:pending_invitation_token],
-        pending_join_link_token: session[:pending_join_token],
+        pending_join_link_digest: parked_join_digest,
         **oauth_attrs(auth_hash)
       )
       auth.save!
@@ -182,6 +182,13 @@ class OmniauthCallbacksController < ApplicationController
 
   def fallback_path
     Current.user.present? ? settings_connected_accounts_path : new_session_path
+  end
+
+  # The join token is hashed at rest (WorkspaceJoinLink stores only a digest),
+  # so park the digest — not the plaintext — for the deferred-OAuth claim.
+  def parked_join_digest
+    token = session[:pending_join_token]
+    WorkspaceJoinLink.digest(token) if token.present?
   end
 
   def normalized_provider(auth_hash)

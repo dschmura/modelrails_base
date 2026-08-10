@@ -274,7 +274,7 @@ RSpec.describe "Magic Link Callbacks", type: :request do
         # default_self_join_role calls Role.find_by!(slug: "member") — ensure it exists.
         Role.find_or_create_by!(slug: "member", workspace_id: nil) { |r| r.name = "Member" }
         # POST to the join route — sets session[:pending_join_token].
-        post workspace_join_path(workspace_slug: join_workspace.slug, token: join_link.token)
+        post workspace_join_path(workspace_slug: join_workspace.slug, token: join_link.plaintext_token)
       end
 
       it "admits the brand-new magic-link user as a member" do

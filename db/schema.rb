@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_09_125931) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_09_172239) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -73,7 +73,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_09_125931) do
     t.string "oauth_refresh_token"
     t.string "oauth_token"
     t.string "pending_invitation_token"
-    t.string "pending_join_link_token"
+    t.string "pending_join_link_digest"
     t.string "provider"
     t.string "uid"
     t.datetime "updated_at", null: false
@@ -343,11 +343,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_09_125931) do
     t.datetime "created_at", null: false
     t.integer "created_by_id", null: false
     t.datetime "revoked_at"
-    t.string "token", null: false
+    t.string "token_digest", null: false
     t.datetime "updated_at", null: false
     t.integer "workspace_id", null: false
     t.index ["created_by_id"], name: "index_workspace_join_links_on_created_by_id"
-    t.index ["token"], name: "index_workspace_join_links_on_token", unique: true
+    t.index ["token_digest"], name: "index_workspace_join_links_on_token_digest", unique: true
     t.index ["workspace_id", "revoked_at"], name: "index_workspace_join_links_on_workspace_id_and_revoked_at"
     t.index ["workspace_id"], name: "index_workspace_join_links_on_workspace_id"
     t.index ["workspace_id"], name: "index_workspace_join_links_unique_active_per_workspace", unique: true, where: "revoked_at IS NULL"
