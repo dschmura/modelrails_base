@@ -37,6 +37,10 @@ Rails.application.routes.draw do
 
   resource :passkey_prompt, only: [ :update ]
 
+  # A pre-existing user's parked open-link join (Flow B): accept it (create) or
+  # dismiss it (destroy). Both act only on the signed-in user's own session.
+  resource :pending_join, only: [ :create, :destroy ]
+
   namespace :settings do
     resource :profile, only: [ :edit, :update ]
     resource :password, only: [ :new, :create, :edit, :update, :destroy ]

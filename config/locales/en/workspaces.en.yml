@@ -11,6 +11,10 @@ en:
     unauthorized: "You don't have permission to do that."
     creation_disabled: "Workspace creation is disabled on this instance."
     archived_banner: "This workspace is archived."
+    pending_join_banner:
+      message: "You followed a link to join %{workspace}."
+      join: "Join %{workspace}"
+      dismiss: "Dismiss"
     join_links:
       create:
         rotated: "Shareable join link rotated. Previous link no longer works."
@@ -215,3 +219,10 @@ en:
         success: "Branding updated."
       destroy:
         success: "Logo removed."
+  pending_joins:
+    create:
+      joined: "Welcome to %{workspace}."
+      unavailable: "That join link is no longer available."
+      could_not_join: "You couldn't be added to %{workspace} right now."
+    destroy:
+      dismissed: "Dismissed."

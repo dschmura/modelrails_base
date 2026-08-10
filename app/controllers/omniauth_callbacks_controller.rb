@@ -117,9 +117,12 @@ class OmniauthCallbacksController < ApplicationController
   end
 
   def handle_verified_email_oauth(auth_hash)
-    @user = find_verified_user_by_email(auth_hash.info.email) || create_user_from_oauth(auth_hash)
+    existing = find_verified_user_by_email(auth_hash.info.email)
+    @user = existing || create_user_from_oauth(auth_hash)
 
-    success = commit_signup_atomically(@user) do |user|
+    # A pre-existing user linking a new verified provider must not be silently
+    # force-joined by a pending join token riding the session (drive-by join).
+    success = commit_signup_atomically(@user, newly_registered: existing.nil?) do |user|
       user.authentications.create!(
         provider: normalized_provider(auth_hash),
         uid: auth_hash.uid,

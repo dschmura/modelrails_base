@@ -22,7 +22,7 @@ class ApplicationController < ActionController::Base
   rescue_from Suspendable::SuspendedError, with: :workspace_locked
   rescue_from Workspace::NotAdmittableError, with: :not_admittable
 
-  helper_method :signups_open?
+  helper_method :signups_open?, :pending_join_workspace
 
   def signups_open?
     return @signups_open if defined?(@signups_open)
@@ -33,7 +33,31 @@ class ApplicationController < ActionController::Base
     )
   end
 
+  # A join token parked in the session (open-link Flow B) that resolves to a
+  # workspace the signed-in user could join but isn't in yet. Surfaced as a
+  # dismissible banner so a pre-existing user re-consents to the join instead of
+  # being force-joined — the drive-by-join guard's other half. nil when there's
+  # nothing actionable to offer.
+  def pending_join_workspace
+    return @pending_join_workspace if defined?(@pending_join_workspace)
+
+    @pending_join_workspace = resolve_pending_join_workspace
+  end
+
   private
+
+  def resolve_pending_join_workspace
+    return nil unless Current.user
+
+    token = session[:pending_join_token]
+    return nil if token.blank?
+
+    workspace = WorkspaceJoinLink.find_active(token)&.workspace
+    return nil unless workspace&.open_join? && workspace&.admittable?
+    return nil if workspace.memberships.kept.exists?(user: Current.user)
+
+    workspace
+  end
 
   # Backs Pundit's pundit_user and is consumed by mounted engines (e.g.
   # markdowndocs) — keep it even though app code should prefer Current.user.
