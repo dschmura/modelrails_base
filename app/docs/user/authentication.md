@@ -12,9 +12,9 @@ This app is **passwordless-first**: you sign in by entering your email address, 
 
 1. Go to the sign-in page and enter your email address.
 2. Check your inbox for a sign-in email (subject: "Sign in to …"). It arrives within a few seconds.
-3. Click the link in the email — it signs you in immediately.
+3. Click the link in the email — you'll land on a quick "Sign in as `you@example.com`?" confirmation page. Press the button to finish signing in.
 
-The link is single-use and expires after a short window. If it expires, return to the sign-in page and request a fresh one.
+The confirmation step means a link that's merely *opened* (by a mail scanner or preview) can't sign anyone in — only the button press does. The link is single-use and expires after a short window. If it expires, return to the sign-in page and request a fresh one.
 
 For more on the emails this process sends, see [Email Flows](/docs/user/emails).
 
@@ -45,6 +45,12 @@ There is no separate "forgot password" reset flow. If you can't sign in, request
 ## Signing out
 
 Use the user menu (top right) to sign out. Sessions are not shared across browsers or devices.
+
+## Sessions and devices
+
+Signing in creates a session that stays valid until you sign out, or until it expires — after a stretch of inactivity, or once it reaches a maximum age, whichever comes first. When a session expires you're simply asked to sign in again.
+
+**Settings → Sessions** lists every device where you're currently signed in — browser, operating system, rough location, and when it was last active — and marks the one you're using now. From there you can sign out a single device or **sign out all other devices** at once, which is the fastest way to lock out a lost or shared machine. Changing or removing your password also signs out every other device automatically.
 
 ---
 
