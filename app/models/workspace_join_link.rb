@@ -22,7 +22,27 @@ class WorkspaceJoinLink < ApplicationRecord
   end
 
   def self.find_active(token)
-    active.find_by(token_digest: digest(token))
+    find_active_by_digest(digest(token))
+  end
+
+  # For the deferred-OAuth claim, where the digest is parked directly on the
+  # Authentication (no plaintext to re-digest).
+  def self.find_active_by_digest(token_digest)
+    active.find_by(token_digest: token_digest)
+  end
+
+  # Admit `user` through this link, at the pinned self-join role — but only if
+  # the workspace still accepts open-link joins (its policy may have reverted or
+  # it may have gone non-admittable since the token was parked). A no-op for a
+  # stale link. The single home for "join through this link"; both the signup
+  # (session-token) and deferred-OAuth (parked-digest) claim paths call it, so
+  # the accepting-state guard and self-join role can't diverge between them.
+  # Raises Workspace::AlreadyMember / Workspace::AtCapacity from Workspace#admit;
+  # callers decide how to treat those.
+  def admit(user)
+    return unless workspace.accepting_open_joins?
+
+    workspace.admit(user, role: workspace.default_self_join_role)
   end
 
   def revoked?

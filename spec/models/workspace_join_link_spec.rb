@@ -53,6 +53,44 @@ RSpec.describe WorkspaceJoinLink, type: :model do
     end
   end
 
+  describe ".find_active_by_digest" do
+    it "finds an active link by a parked digest, and skips revoked ones" do
+      link = WorkspaceJoinLink.create!(workspace: workspace, created_by: user)
+      digest = link.token_digest
+      expect(WorkspaceJoinLink.find_active_by_digest(digest)).to eq(link)
+      link.revoke!
+      expect(WorkspaceJoinLink.find_active_by_digest(digest)).to be_nil
+    end
+  end
+
+  describe "#admit" do
+    let(:open_workspace) { create(:workspace, personal: false, join_policy: "open_link") }
+    let(:link) { WorkspaceJoinLink.create!(workspace: open_workspace, created_by: user) }
+    let(:joiner) { create(:user) }
+
+    before do
+      allow(Rails.configuration.x.signup).to receive(:permitted_join_strategies).and_return(%i[invite open_link])
+      Role.find_or_create_by!(slug: "member", workspace_id: nil) { |r| r.name = "Member" }
+    end
+
+    it "admits the user at the self-join role when the workspace accepts open joins" do
+      link.admit(joiner)
+      membership = open_workspace.memberships.find_by(user: joiner)
+      expect(membership.role.slug).to eq("member")
+    end
+
+    it "is a no-op for a stale link (workspace no longer accepting open joins)" do
+      joiner # create outside the expect — onboarding creates its own membership
+      open_workspace.update!(join_policy: "invite")
+      expect { link.admit(joiner) }.not_to change { open_workspace.memberships.count }
+    end
+
+    it "raises Workspace::AlreadyMember for a duplicate join (callers decide how to treat it)" do
+      create(:membership, workspace: open_workspace, user: joiner)
+      expect { link.admit(joiner) }.to raise_error(Workspace::AlreadyMember)
+    end
+  end
+
   describe "digest uniqueness" do
     it "rejects a duplicate digest" do
       WorkspaceJoinLink.create!(workspace: workspace, created_by: user, token_digest: "fixed-digest-xyz")

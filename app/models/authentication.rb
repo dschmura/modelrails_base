@@ -90,19 +90,15 @@ class Authentication < ApplicationRecord
   def claim_pending_join_link!(user)
     return if pending_join_link_digest.blank?
 
-    link = WorkspaceJoinLink.active.find_by(token_digest: pending_join_link_digest)
-
-    if link.nil? || !link.workspace.accepting_open_joins?
-      update!(pending_join_link_digest: nil)
-      return
-    end
+    link = WorkspaceJoinLink.find_active_by_digest(pending_join_link_digest)
 
     # The token is a one-shot claim: verify never retries, so once we attempt
     # admission the token is spent regardless of outcome. Clearing it lives in
     # `ensure` (not bundled in admit's transaction) so a terminal failure like
-    # capacity rolls back the membership but does NOT resurrect the token.
+    # capacity rolls back the membership but does NOT resurrect the token. A
+    # stale link is a silent no-op inside WorkspaceJoinLink#admit.
     begin
-      link.workspace.admit(user, role: link.workspace.default_self_join_role)
+      link&.admit(user)
     ensure
       update!(pending_join_link_digest: nil)
     end
