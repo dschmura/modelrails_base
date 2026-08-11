@@ -29,15 +29,13 @@ module Workspaces
     def admit_authenticated_user
       @workspace.admit(Current.user, role: @workspace.default_self_join_role)
       redirect_to workspace_path(@workspace), notice: t("workspaces.joins.create.joined", workspace: @workspace.name)
-    rescue ActiveRecord::RecordInvalid => e
-      if e.message =~ /already a member/i
-        # Already in: no-op, land them in the workspace.
-        redirect_to workspace_path(@workspace), notice: t("workspaces.joins.create.already_member", workspace: @workspace.name)
-      else
-        # Capacity, etc. — a generic i18n message, never the raw model string
-        # (avoids leaking internal validation text to an outsider).
-        redirect_to root_path, alert: t("workspaces.joins.create.could_not_join", workspace: @workspace.name)
-      end
+    rescue Workspace::AlreadyMember
+      # Already in: no-op, land them in the workspace.
+      redirect_to workspace_path(@workspace), notice: t("workspaces.joins.create.already_member", workspace: @workspace.name)
+    rescue Workspace::AtCapacity
+      # A generic i18n message, never the raw model string (avoids leaking
+      # internal validation text to an outsider).
+      redirect_to root_path, alert: t("workspaces.joins.create.could_not_join", workspace: @workspace.name)
     end
 
     # Flow B entry: park the validated token on the session so
