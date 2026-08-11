@@ -16,7 +16,7 @@ The public-SaaS / multi-workspace shape: per-workspace control over how new memb
 |---|---|
 | Per-workspace `join_policy` (invite / open_link) | ✅ |
 | `WorkspaceJoinLink` model + atomic rotate + revoke | ✅ |
-| Workspace settings UI (radio + active link + copy/rotate/revoke) | ✅ |
+| Workspace settings UI (radio + show-once link reveal + rotate/revoke) | ✅ |
 | Instance allowlist (`SIGNUP_PERMITTED_JOIN_STRATEGIES`) | ✅ |
 | Flow A — *existing* authenticated user joins via link | ✅ |
 | Flow B — *new* user via link (link opens the signup gate) | ✅ |

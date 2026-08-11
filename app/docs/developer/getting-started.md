@@ -182,7 +182,7 @@ Runs the same checks plus additional linting:
 | `scan_ruby` | Brakeman + bundler-audit (gem CVEs) |
 | `scan_js` | importmap audit (JS dependency CVEs) |
 | `lint` | RuboCop with GitHub annotations |
-| `lint_docs` | markdownlint + herb ERB linter |
+| `lint_docs` | `mdl` (markdown) + `erb_lint` (ERB) |
 | `test` | Full RSpec with Cuprite, axe accessibility, screenshot artifacts on failure |
 | `docker_build` | Verifies the production `Dockerfile` builds successfully on every PR (catches build-time regressions that structural specs cannot). Uses GHA layer caching — cold builds ~3-5 min, warm builds ~30-60s. See [Deployment](/docs/developer/deployment). |
 
