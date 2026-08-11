@@ -74,20 +74,17 @@ module Signupable
     return if token.blank?
 
     link = WorkspaceJoinLink.find_active(token)
-    if link.nil? || !link.workspace.accepting_open_joins?
-      session.delete(:pending_join_token)
-      return
-    end
 
     # A brand-new account's signup is its own consent to join the link it
     # followed. A pre-existing user, though, may be authenticating for an
     # unrelated reason (linking a new verified OAuth provider) with a lured-in
-    # token riding the session — never silently force-join them. Leave the token
-    # parked so the pending-join banner can offer an explicit Join / Dismiss.
-    return unless newly_registered
+    # token riding the session — never silently force-join them. Leave a
+    # still-valid token parked so the pending-join banner can offer an explicit
+    # Join / Dismiss; everything else (stale/consumed) clears below.
+    return if !newly_registered && link&.workspace&.accepting_open_joins?
 
     begin
-      link.workspace.admit(user, role: link.workspace.default_self_join_role)
+      link&.admit(user)
     rescue Workspace::AlreadyMember
       # Benign: already in the workspace. Capacity (Workspace::AtCapacity)
       # propagates to commit_signup_atomically, which rolls the signup back.
