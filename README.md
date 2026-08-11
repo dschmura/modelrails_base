@@ -178,5 +178,5 @@ Tests are organized by type:
 
 - `spec/models/` — Model validations, associations, business logic
 - `spec/requests/` — Controller/integration tests
-- `spec/system/` — Browser tests with Playwright
+- `spec/system/` — Browser tests with Cuprite (headless Chromium via CDP; no Node)
 - `spec/mailers/` — Mailer content and delivery tests
