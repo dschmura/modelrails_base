@@ -53,7 +53,7 @@ class ApplicationController < ActionController::Base
     return nil if token.blank?
 
     workspace = WorkspaceJoinLink.find_active(token)&.workspace
-    return nil unless workspace&.open_join? && workspace&.admittable?
+    return nil unless workspace&.accepting_open_joins?
     return nil if workspace.memberships.kept.exists?(user: Current.user)
 
     workspace

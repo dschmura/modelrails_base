@@ -182,6 +182,15 @@ class Workspace < ApplicationRecord
     open_link? && !personal? && SignupPolicy.permits_strategy?(:open_link)
   end
 
+  # Whether an active open-link join can be admitted right now: the join policy
+  # is open AND the workspace is in an admittable state (not archived/suspended/
+  # deleted). The single home for the "open_join? && admittable?" rule the join
+  # claim/resolution sites share. (SignupPolicy's gate deliberately checks only
+  # open_join? — admittable? is re-checked here at claim time.)
+  def accepting_open_joins?
+    open_join? && admittable?
+  end
+
   # Role granted to users self-joining via an open-link. Pinned to the
   # lowest-privilege system role for safety (Reshape 1 reasoning); per-link
   # or per-workspace role customization is deferred until requested.

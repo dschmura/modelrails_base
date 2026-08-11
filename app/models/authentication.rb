@@ -92,7 +92,7 @@ class Authentication < ApplicationRecord
 
     link = WorkspaceJoinLink.active.find_by(token_digest: pending_join_link_digest)
 
-    if link.nil? || !link.workspace.open_join? || !link.workspace.admittable?
+    if link.nil? || !link.workspace.accepting_open_joins?
       update!(pending_join_link_digest: nil)
       return
     end
