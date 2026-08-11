@@ -16,6 +16,11 @@ class Workspace < ApplicationRecord
   # rescue can map to GENERIC, non-disclosing copy — an outsider following a
   # join link/invitation must not learn which lifecycle state blocked them.
   NotAdmittableError = Class.new(StandardError)
+  # Typed outcomes of #admit — callers rescue these instead of matching the
+  # humanized validation string (which breaks on any locale edit). Sibling of
+  # the passkeys typed-error hierarchy.
+  AlreadyMember = Class.new(StandardError)
+  AtCapacity = Class.new(StandardError)
 
   has_one_attached :logo
   has_one_attached :logo_original
@@ -204,10 +209,10 @@ class Workspace < ApplicationRecord
           # (:personal) semantics are preserved exactly.
           existing.update!(role: role) unless existing.role_id == role.id
         else
-          raise ActiveRecord::RecordInvalid.new(self), "User is already a member"
+          raise AlreadyMember
         end
       else
-        raise ActiveRecord::RecordInvalid.new(self), "Workspace is at capacity" if memberships.kept.count >= max_members
+        raise AtCapacity if memberships.kept.count >= max_members
         memberships.create!(user: user, role: role)
       end
     end

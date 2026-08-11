@@ -204,7 +204,7 @@ RSpec.describe Invitation, type: :model do
 
     it "raises if user is already a member" do
       create(:membership, user: user, workspace: workspace)
-      expect { invitation.accept!(user) }.to raise_error(ActiveRecord::RecordInvalid)
+      expect { invitation.accept!(user) }.to raise_error(Workspace::AlreadyMember)
     end
   end
 
@@ -241,7 +241,7 @@ RSpec.describe Invitation, type: :model do
       user = create(:user)
 
       expect { invitation.accept!(user) }
-        .to raise_error(ActiveRecord::RecordInvalid)
+        .to raise_error(Workspace::AtCapacity)
 
       expect(workspace.memberships.kept.count).to eq(2)
       expect(invitation.reload).to be_pending
