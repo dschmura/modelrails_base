@@ -5,6 +5,8 @@
 # index means it can't collide with an in-flight sign-in link. Only the digest
 # is stored; the plaintext code lives only in the email.
 class ReauthenticationChallenge < ApplicationRecord
+  include Consumable
+
   belongs_to :user
 
   EXPIRY = 10.minutes
@@ -21,16 +23,13 @@ class ReauthenticationChallenge < ApplicationRecord
     code
   end
 
-  # Atomic, single-use, user-bound. The guard lives in the WHERE (mirroring
-  # MagicLinkToken.consume!) so concurrent verifies serialize to one winner and
-  # a wrong guess never consumes the challenge.
+  # Atomic, single-use, user-bound (see Consumable#consume_matching): concurrent
+  # verifies serialize to one winner and a wrong guess never consumes the
+  # challenge. Returns whether this code was the one that consumed it.
   def self.consume(user:, code:)
     return false if code.blank?
 
-    rows = where(user_id: user.id, code_digest: digest(code.to_s.strip), consumed_at: nil)
-             .where("expires_at > ?", Time.current)
-             .update_all(consumed_at: Time.current)
-    rows.positive?
+    consume_matching(user_id: user.id, code_digest: digest(code.to_s.strip)).positive?
   end
 
   # SHA256 peppered with secret_key_base: a leaked table can't be brute-forced
