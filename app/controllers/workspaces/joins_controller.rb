@@ -60,7 +60,7 @@ module Workspaces
       @workspace = Workspace.kept.find_by(slug: params[:workspace_slug])
       @link = @workspace&.join_links&.active&.find_by(token_digest: WorkspaceJoinLink.digest(params[:token]))
 
-      unless @workspace && @link && @workspace.open_join? && @workspace.admittable?
+      unless @workspace && @link && @workspace.accepting_open_joins?
         redirect_to root_path, alert: t("workspaces.joins.invalid_or_revoked")
       end
     end
