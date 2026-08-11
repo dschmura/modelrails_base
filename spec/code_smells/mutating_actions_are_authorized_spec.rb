@@ -91,6 +91,8 @@ RSpec.describe "Mutating controller actions authorize or are allow-listed" do
     passkeys/registrations#verify
     onboardings#update
     passkey_prompts#update
+    pending_joins#create
+    pending_joins#destroy
     settings/connected_accounts#destroy
     settings/connected_accounts#resend_verification
     settings/email_confirmations#destroy

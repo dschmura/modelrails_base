@@ -83,6 +83,10 @@ class Authentication < ApplicationRecord
   # isn't blocked by a workspace whose join policy changed mid-flight. A
   # visitor who was never a member must not learn the workspace is locked.
   # Capacity/already-member errors propagate up so the caller can surface them.
+  # No newly-registered guard (unlike Signupable#accept_pending_join_link!) is
+  # needed: the digest is parked only by handle_unverified_email_oauth, which
+  # always creates a fresh user and refuses to link an existing one, so the
+  # claimer here is never a pre-existing account being drive-by joined.
   def claim_pending_join_link!(user)
     return if pending_join_link_digest.blank?
 

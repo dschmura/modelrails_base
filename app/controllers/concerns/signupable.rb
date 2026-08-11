@@ -18,12 +18,12 @@ module Signupable
   # stale-workspace parked joins never reach here — the pre-check drops them.
   # Sets flash.now[:alert] only on Invitation::NotAcceptable (so the caller
   # can rely on @user.errors for model-validation failures).
-  def commit_signup_atomically(user, &block)
+  def commit_signup_atomically(user, newly_registered: true, &block)
     ApplicationRecord.transaction do
       user.save!
       yield(user)
       accept_pending_invitation!(user)
-      accept_pending_join_link!(user)
+      accept_pending_join_link!(user, newly_registered: newly_registered)
     end
     true
   rescue Invitation::NotAcceptable
@@ -68,7 +68,7 @@ module Signupable
   # "already a member" is rescued; other capacity errors propagate — the
   # outer commit_signup_atomically rescues RecordInvalid and returns false,
   # consistent with the invitation path.
-  def accept_pending_join_link!(user)
+  def accept_pending_join_link!(user, newly_registered:)
     token = session[:pending_join_token]
     return if token.blank?
 
@@ -77,6 +77,13 @@ module Signupable
       session.delete(:pending_join_token)
       return
     end
+
+    # A brand-new account's signup is its own consent to join the link it
+    # followed. A pre-existing user, though, may be authenticating for an
+    # unrelated reason (linking a new verified OAuth provider) with a lured-in
+    # token riding the session — never silently force-join them. Leave the token
+    # parked so the pending-join banner can offer an explicit Join / Dismiss.
+    return unless newly_registered
 
     begin
       link.workspace.admit(user, role: link.workspace.default_self_join_role)
