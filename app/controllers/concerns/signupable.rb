@@ -35,7 +35,8 @@ module Signupable
     session.delete(:pending_invitation_token)
     flash.now[:alert] = I18n.t("registrations.create.invitation_consumed")
     false
-  rescue ActiveRecord::RecordInvalid, Workspace::NotAdmittableError
+  rescue ActiveRecord::RecordInvalid, Workspace::NotAdmittableError,
+         Workspace::AlreadyMember, Workspace::AtCapacity
     false
   end
 
@@ -64,10 +65,10 @@ module Signupable
   # Consumes the session's pending open-link join token for a freshly-signed-up,
   # email-verified user. Stale link conditions (revoked, policy reverted,
   # workspace archived/suspended/deleted) are silent no-ops — a visitor who
-  # was never a member must not learn the workspace is locked. Benign
-  # "already a member" is rescued; other capacity errors propagate — the
-  # outer commit_signup_atomically rescues RecordInvalid and returns false,
-  # consistent with the invitation path.
+  # was never a member must not learn the workspace is locked. A benign
+  # Workspace::AlreadyMember is swallowed; Workspace::AtCapacity propagates —
+  # the outer commit_signup_atomically rescues it and returns false, consistent
+  # with the invitation path.
   def accept_pending_join_link!(user, newly_registered:)
     token = session[:pending_join_token]
     return if token.blank?
@@ -87,8 +88,9 @@ module Signupable
 
     begin
       link.workspace.admit(user, role: link.workspace.default_self_join_role)
-    rescue ActiveRecord::RecordInvalid => e
-      raise unless e.message.match?(/already a member/i)
+    rescue Workspace::AlreadyMember
+      # Benign: already in the workspace. Capacity (Workspace::AtCapacity)
+      # propagates to commit_signup_atomically, which rolls the signup back.
     ensure
       session.delete(:pending_join_token)
     end

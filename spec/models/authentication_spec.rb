@@ -344,7 +344,7 @@ RSpec.describe Authentication, type: :model do
 
       expect {
         authentication.claim_pending_join_link!(user)
-      }.to raise_error(ActiveRecord::RecordInvalid, /at capacity/i)
+      }.to raise_error(Workspace::AtCapacity)
 
       # The token represents a one-shot claim. A capacity failure is terminal
       # for this attempt (verify never retries), so the token must not survive

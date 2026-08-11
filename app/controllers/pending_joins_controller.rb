@@ -15,10 +15,9 @@ class PendingJoinsController < ApplicationController
     workspace.admit(Current.user, role: workspace.default_self_join_role)
     clear_pending_join
     redirect_to workspace_path(workspace), notice: t(".joined", workspace: workspace.name)
-  rescue ActiveRecord::RecordInvalid
+  rescue Workspace::AlreadyMember, Workspace::AtCapacity
     # Capacity, or a lost race where they were admitted elsewhere first. The
-    # resolver already excluded current members, so this is an edge, not the
-    # norm — a generic message, never the raw model string.
+    # resolver already excluded current members, so this is an edge, not the norm.
     clear_pending_join
     redirect_to root_path, alert: t(".could_not_join", workspace: workspace.name)
   end

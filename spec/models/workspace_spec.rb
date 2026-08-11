@@ -341,6 +341,15 @@ RSpec.describe Workspace, type: :model do
   # Single membership-grant entry point — extracted from Invitation so the
   # open-link self-join path can share the same lock + capacity + discarded-
   # reactivation + role-reconciliation logic.
+  describe "typed admission errors" do
+    it "are standalone StandardErrors, not ActiveRecord::RecordInvalid subclasses" do
+      [ Workspace::AlreadyMember, Workspace::AtCapacity, Workspace::NotAdmittableError ].each do |klass|
+        expect(klass.ancestors).to include(StandardError)
+        expect(klass.ancestors).not_to include(ActiveRecord::RecordInvalid)
+      end
+    end
+  end
+
   describe "#admit" do
     let(:workspace) { create(:workspace, max_members: 3, personal: false) }
     let(:user) { create(:user) }
@@ -381,23 +390,23 @@ RSpec.describe Workspace, type: :model do
       expect(discarded.reload).not_to be_discarded
     end
 
-    it "raises RecordInvalid when the workspace is at capacity" do
+    it "raises AtCapacity when the workspace is at capacity" do
       # Fill the workspace to max_members.
       workspace.update!(max_members: 1)
       workspace.memberships.create!(user: create(:user), role: owner_role)
 
       expect {
         workspace.admit(user, role: member_role)
-      }.to raise_error(ActiveRecord::RecordInvalid, /capacity/i)
+      }.to raise_error(Workspace::AtCapacity)
     end
 
     context "when user is already a kept member" do
       before { workspace.memberships.create!(user: user, role: member_role) }
 
-      it "raises under :personal (duplicate-accept error)" do
+      it "raises AlreadyMember under :personal (duplicate-accept error)" do
         expect {
           workspace.admit(user, role: owner_role)
-        }.to raise_error(ActiveRecord::RecordInvalid, /already a member/i)
+        }.to raise_error(Workspace::AlreadyMember)
       end
 
       context "under :shared posture" do
