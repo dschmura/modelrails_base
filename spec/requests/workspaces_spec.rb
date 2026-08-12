@@ -208,14 +208,12 @@ RSpec.describe "Workspaces", type: :request do
         expect(flash[:alert]).to eq(I18n.t("workspaces.brandings.source_unavailable"))
       end
 
-      # CHARACTERIZATION of current behavior. The Identity write-flow PR
-      # deliberately unifies this to user-side semantics (a file upload wins
-      # over a stale source param) — spec §"Deliberate behavior changes".
-      # That PR updates this example; do not "fix" it here.
-      it "rejects the whole request when a file is sent with an unavailable source [changes in write-flow PR]" do
+      it "lets a file upload win over a stale unavailable source param (unified with user side)" do
         patch workspace_path(workspace), params: { avatar: file, avatar_source: "gravatar" }, headers: turbo_headers
-        expect(response).to have_http_status(:forbidden)
-        expect(workspace.reload.logo).not_to be_attached
+        expect(response.status).to be < 400
+        workspace.reload
+        expect(workspace.logo).to be_attached
+        expect(workspace.logo_source).to eq("upload")
       end
 
       it "keeps the modal open on a crop save (file present)" do
@@ -248,6 +246,12 @@ RSpec.describe "Workspaces", type: :request do
           expect(response).to have_http_status(:unprocessable_content)
           expect(workspace.reload.logo).not_to be_attached
         end
+      end
+
+      it "ignores a non-scalar name (strong params drop it)" do
+        original_name = workspace.name
+        patch workspace_path(workspace), params: { workspace: { name: { foo: "bar" } } }
+        expect(workspace.reload.name).to eq(original_name)
       end
     end
 

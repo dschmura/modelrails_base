@@ -11,4 +11,10 @@ class UserIdentity < Identity
     return nil unless available_sources.include?("gravatar")
     model.gravatar_url(size: size)
   end
+
+  private
+
+  def assign_image(file) = model.avatar = file
+  def assign_image_original(file) = model.avatar_original = file
+  def write_source(value) = model.avatar_source = value
 end
