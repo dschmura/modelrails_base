@@ -50,7 +50,6 @@ RSpec.describe "Flash messages are asserted, not just redirects" do
     "sessions.create.success",
     "sessions.destroy.success",
     "settings.avatars.destroy.success",
-    "settings.avatars.source_unavailable",
     "settings.avatars.update.rate_limited",
     "settings.avatars.update.success",
     "settings.connected_accounts.destroy.success",
