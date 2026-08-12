@@ -9,4 +9,5 @@ class WorkspaceIdentity < Identity
   def assign_image(file) = model.logo = file
   def assign_image_original(file) = model.logo_original = file
   def write_source(value) = model.logo_source = value
+  def write_name(value) = model.name = value
 end

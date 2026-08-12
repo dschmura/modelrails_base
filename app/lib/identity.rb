@@ -67,7 +67,7 @@ class Identity
     end
 
     model.primary_color = color.to_i if color
-    model.name = name unless name.nil?
+    write_name(name) unless name.nil?
 
     save_result
   end
@@ -75,6 +75,13 @@ class Identity
   private
 
   attr_reader :model
+
+  # name is workspace-only (User has no name attribute); the base
+  # implementation raises so a mistaken user.identity.apply(name: ...) fails
+  # loud with an intent-revealing message instead of a bare NoMethodError.
+  def write_name(_value)
+    raise ArgumentError, "name is not part of #{self.class.name} — workspace identities only"
+  end
 
   # Extracted from #apply to satisfy Metrics/MethodLength (DES-15 ratchet);
   # behavior is unchanged from the design spec's single-save/Result contract.

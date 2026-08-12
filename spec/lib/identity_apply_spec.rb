@@ -137,6 +137,12 @@ RSpec.describe "Identity#apply" do
         expect(user.avatar.blob.id).to eq(old_blob_id)
       end
     end
+
+    describe "name" do
+      it "raises for a user identity — name is workspace-only" do
+        expect { user.identity.apply(name: "x") }.to raise_error(ArgumentError, /name is not part of/)
+      end
+    end
   end
 
   describe WorkspaceIdentity do
