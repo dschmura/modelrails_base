@@ -13,8 +13,6 @@ Metrics/MethodLength:
     - 'app/components/ui/command_component.rb'
     - 'app/controllers/magic_link_callbacks_controller.rb'
     - 'app/controllers/omniauth_callbacks_controller.rb'
-    - 'app/controllers/settings/avatars_controller.rb'
     - 'app/controllers/settings/connected_accounts_controller.rb'
-    - 'app/controllers/workspaces_controller.rb'
     - 'app/lib/notification_broadcaster.rb'
     - 'app/models/invitation.rb'

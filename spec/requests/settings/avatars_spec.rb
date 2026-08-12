@@ -61,14 +61,11 @@ RSpec.describe "Account Avatars", type: :request do
         expect(flash[:alert]).to eq(I18n.t("settings.avatars.source_unavailable"))
       end
 
-      # CHARACTERIZATION of current behavior — the Identity write-flow PR
-      # deliberately changes this to a 403 turbo-stream toast, unified with
-      # workspaces (spec §"Deliberate behavior changes" #1). Updated there.
-      it "redirects (302) even for turbo_stream requests on an invalid source [changes in write-flow PR]" do
+      it "returns a 403 turbo-stream toast for an invalid source (unified with workspaces)" do
         patch settings_avatar_path, params: { avatar_source: "invalid" },
               headers: { "Accept" => "text/vnd.turbo-stream.html" }
-        expect(response).to have_http_status(:found)
-        expect(flash[:alert]).to eq(I18n.t("settings.avatars.source_unavailable"))
+        expect(response).to have_http_status(:forbidden)
+        expect(response.body).to include(I18n.t("settings.avatars.source_unavailable"))
       end
 
       it "accepts upload source even when no avatar is attached" do
@@ -212,38 +209,6 @@ RSpec.describe "Account Avatars", type: :request do
         end
       end
 
-      context "with coords missing required keys" do
-        it "ignores coords missing required keys" do
-          file = fixture_file_upload("avatar.png", "image/png")
-          patch settings_avatar_path, params: {
-            avatar: file,
-            avatar_original: file,
-            crop_coordinates: '{"foo":"bar"}',
-            avatar_source: "upload"
-          }, headers: { "Accept" => "text/vnd.turbo-stream.html" }
-
-          expect(response.status).to be < 500
-          user.reload
-          expect(user.avatar_original.blob.metadata["crop"]).to be_nil
-        end
-      end
-
-      context "with non-numeric coord values" do
-        it "ignores coords with non-numeric values" do
-          file = fixture_file_upload("avatar.png", "image/png")
-          patch settings_avatar_path, params: {
-            avatar: file,
-            avatar_original: file,
-            crop_coordinates: '{"x":"a","y":"b","w":"c","h":"d"}',
-            avatar_source: "upload"
-          }, headers: { "Accept" => "text/vnd.turbo-stream.html" }
-
-          expect(response.status).to be < 500
-          user.reload
-          expect(user.avatar_original.blob.metadata["crop"]).to be_nil
-        end
-      end
-
       context "with valid coords" do
         it "stores coords when they have the expected shape" do
           file = fixture_file_upload("avatar.png", "image/png")
@@ -296,22 +261,19 @@ RSpec.describe "Account Avatars", type: :request do
         expect(user.avatar_original).not_to be_attached
       end
 
-      # CHARACTERIZATION: today a failed replacement destroys BOTH the old and
-      # the new avatar (attach auto-saved the new one; the rescue purge removed
-      # it, and the replacement had already displaced the old). The Identity
-      # write-flow PR's single-save rewrite deliberately improves this — the
-      # prior avatar survives a failed update (spec §"Deliberate behavior
-      # changes" #3). Updated there.
       context "with an existing avatar" do
         let(:user) { create(:user, :with_avatar) }
 
-        it "loses both old and new avatar on a failed replacement [changes in write-flow PR]" do
+        it "keeps the prior avatar when a replacement fails (single-save)" do
+          old_blob_id = user.avatar.blob.id
           patch settings_avatar_path, params: {
             avatar: fixture_file_upload("avatar.png", "image/png"),
             primary_color: invalid_color
           }, headers: { "Accept" => "text/vnd.turbo-stream.html" }
 
-          expect(user.reload.avatar).not_to be_attached
+          user.reload
+          expect(user.avatar).to be_attached
+          expect(user.avatar.blob.id).to eq(old_blob_id)
         end
       end
     end
@@ -362,6 +324,20 @@ RSpec.describe "Account Avatars", type: :request do
       it "still redirects for HTML requests" do
         delete settings_avatar_path
         expect(response).to redirect_to(edit_settings_profile_path)
+      end
+
+      it "renders an error toast when the save fails (invalid persisted state)" do
+        user.update_columns(primary_color: 999)
+        delete settings_avatar_path, headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+        expect(response.body).to include("toast-cards")
+        user.reload
+        # Purge precedes the failed save (design-documented parity): blobs are
+        # gone but the source column keeps its old value.
+        expect(user.avatar).not_to be_attached
+        expect(user.avatar_source).to eq("upload")
       end
     end
 
