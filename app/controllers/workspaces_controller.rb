@@ -139,33 +139,14 @@ class WorkspacesController < ApplicationController
   # Lazy-loaded identity picker hub partial for the Profile page.
   def identity_picker_hub
     authorize @workspace, policy_class: Workspaces::ProfilePolicy
-
-    @source = if params[:source].present? && @workspace.available_logo_sources.include?(params[:source])
-                params[:source]
-    else
-                @workspace.logo_source
-    end
-
-    is_user = false
-    has_image = @workspace.logo.attached?
-    current_hue = @workspace.primary_color || 210
-    display_url = has_image ? url_for(@workspace.logo) : nil
+    identity = @workspace.identity
 
     render partial: "shared/identity_picker_hub",
       locals: {
-        model: @workspace,
+        identity: identity,
         form_url: workspace_path(@workspace),
         hub_url: identity_picker_hub_workspace_path(@workspace),
-        current_source: @source,
-        has_color_picker: true,
-        available_sources: @workspace.available_logo_sources,
-        is_user: is_user,
-        has_image: has_image,
-        current_hue: current_hue,
-        display_url: display_url,
-        gravatar_url: nil,
-        initials: @workspace.initials,
-        hub_title: t("identity_picker.choose_workspace_logo")
+        current_source: identity.resolve_source(params[:source])
       },
       layout: false
   end
