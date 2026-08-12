@@ -95,6 +95,7 @@ end
 | Notifier | Category | Severity | What it dispatches on |
 |---|---|---|---|
 | `PasswordChangedNotifier` | `security` | `danger` | `User#password_digest` change |
+| `PasskeyAddedNotifier` | `security` | `danger` | Passkey enrollment (`Passkeys::RegistrationsController#verify`) |
 | `SignInFromNewDeviceNotifier` | `security` | `danger` | Login from a previously-unseen browser fingerprint |
 | `WorkspaceInvitationReceivedNotifier` | `account_access` | `info` | `Invitation` created targeting this user |
 | `WorkspaceInvitationAcceptedNotifier` | `workspace_activity` | `success` | An invitee accepts the inviter's invitation |

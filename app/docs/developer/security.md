@@ -60,8 +60,11 @@ current user** — another account's passkey is rejected), or a one-time
 `ReauthenticationChallenge` code emailed and entered in-page (never a link, so
 it can't be replayed into a sign-in). All of it is tunable in
 `config/initializers/sessions.rb`; `reauth_enabled = false` makes the gate a
-no-op. Email changes are gated here rather than on a password, so passwordless
-users can change their email.
+no-op — except passkey enrollment, which stays gated regardless: enrollment
+mints a durable, phishing-resistant credential and revokes nothing, so it is
+hard-wired (`require_reauthentication!(force: true)`) and additionally fires
+`PasskeyAddedNotifier`. Email changes are gated here rather than on a
+password, so passwordless users can change their email.
 
 Sign-ins from an unrecognized browser/OS additionally trigger a security
 notification (`SignInFromNewDeviceNotifier`). The alert is gated by

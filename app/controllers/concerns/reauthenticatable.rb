@@ -10,8 +10,11 @@ module Reauthenticatable
   #
   # No-op when reauth is disabled (config/initializers/sessions.rb) so a fork
   # can turn the friction off without editing every gated controller.
-  def require_reauthentication!
-    return if !Rails.configuration.x.session.reauth_enabled
+  # `force:` opts a gate out of that switch: passkey enrollment stays gated
+  # even when the fork disables reauth, because enrollment mints a durable
+  # credential and revokes nothing (2026-08-12 reauth-defaults panel).
+  def require_reauthentication!(force: false)
+    return if !force && !Rails.configuration.x.session.reauth_enabled
     return if Current.session&.reauthenticated?
 
     store_reauthentication_return_to
