@@ -131,7 +131,9 @@ module Authenticatable
       ua = request.user_agent.to_s
       os = parse_os_from_user_agent(ua)
 
-      unless user.seen_browser?(ua, os)
+      # The flag gates the ALERT only; recording always runs so detection
+      # history survives a fork toggling notifications (sessions.rb).
+      if Rails.configuration.x.session.new_device_notification && !user.seen_browser?(ua, os)
         SignInFromNewDeviceNotifier.with(record: user, user_agent: ua, os: os).deliver(user)
       end
 
