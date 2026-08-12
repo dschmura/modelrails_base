@@ -68,7 +68,6 @@ RSpec.describe "Flash messages are asserted, not just redirects" do
     "settings.profiles.update.verification_sent",
     "settings.theme_preferences.update.invalid_theme",
     "settings.theme_preferences.update.success",
-    "workspaces.brandings.source_unavailable",
     "workspaces.create.success",
     "workspaces.destroy.success",
     "workspaces.invitations.create.magic_link_created",
