@@ -140,50 +140,9 @@ class User < ApplicationRecord
     factors
   end
 
-  # Authorization to change email is handled by re-authentication at the
-  # controller (require_reauthentication!), not a password here — otherwise
-  # passwordless users could never change their email.
-  def initiate_email_change!(new_email)
-    normalized = EmailNormalizer.normalize(new_email)
-    return false if EmailNormalizer.equivalent?(normalized, email_address)
-
-    self.pending_email = new_email
-    self.pending_email_token = SecureRandom.urlsafe_base64(32)
-    self.pending_email_sent_at = Time.current
-
-    save
-  end
-
-  def confirm_email_change!(token)
-    return false if token.blank?
-
-    transaction do
-      reload
-      return false if pending_email_token != token
-      return false unless pending_email_token_valid?
-
-      self.email_address = pending_email
-      clear_pending_email_fields
-      save!
-
-      authentications.email.update_all(uid: email_address)
-    end
-
-    true
-  rescue ActiveRecord::RecordInvalid
-    false
-  end
-
-  def cancel_email_change!
-    clear_pending_email_fields
-    save!
-  end
-
-  def pending_email_token_valid?
-    pending_email_token.present? &&
-      pending_email_sent_at.present? &&
-      pending_email_sent_at > 24.hours.ago
-  end
+  # The email-change state machine (initiate/confirm/cancel) lives in
+  # Users::EmailChange. The pending_email* columns and their validations stay
+  # here; the transitions moved out (DES-1).
 
   # Browser-fingerprint heuristic for the new-device sign-in detector.
   # Digest is intentionally coarse — `SHA256("#{user_agent} #{os}")` — so the
@@ -309,11 +268,5 @@ class User < ApplicationRecord
     if User.where.not(id: id).exists?(email_address: pending_email)
       errors.add(:pending_email, :taken)
     end
-  end
-
-  def clear_pending_email_fields
-    self.pending_email = nil
-    self.pending_email_token = nil
-    self.pending_email_sent_at = nil
   end
 end

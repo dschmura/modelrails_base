@@ -83,9 +83,9 @@ sign-in options and [Application Flows](/docs/developer/application-flows) for t
 ### Email Change
 
 1. User enters a new email in the profile form. Requesting the change requires recent **re-authentication** (a 15-minute window), not a password — so passwordless accounts can change their email too.
-2. `User#initiate_email_change!(new_email)` generates a `pending_email_token`.
+2. `Users::EmailChange#initiate!(new_email)` generates a `pending_email_token`.
 3. Verification sent to new email, notification sent to old email.
-4. User clicks verification link → `User#confirm_email_change!` atomically swaps the address.
+4. User clicks verification link → `Users::EmailChange#confirm!` atomically swaps the address.
 5. All linked OAuth authentication UIDs are updated to the new email.
 
 ### Invitation Acceptance
