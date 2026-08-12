@@ -171,6 +171,10 @@ class Workspace < ApplicationRecord
     %w[upload initials]
   end
 
+  def identity
+    WorkspaceIdentity.new(self)
+  end
+
   def effective_roles
     Role.where(workspace_id: [ nil, id ])
   end

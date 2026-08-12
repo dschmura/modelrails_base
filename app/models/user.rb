@@ -129,6 +129,10 @@ class User < ApplicationRecord
     sources
   end
 
+  def identity
+    UserIdentity.new(self)
+  end
+
   # Factors this user can prove for re-authentication. The interstitial view
   # and the reauthentication controller both read this so they can't diverge on
   # which factors are on offer. Email is always available as the fallback.

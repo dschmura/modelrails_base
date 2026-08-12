@@ -17,34 +17,14 @@ module Settings
     def hub
       @user = Current.user
       authorize @user, :update?, policy_class: Settings::AvatarPolicy
-
-      @source = if params[:source].present? && @user.available_avatar_sources.include?(params[:source])
-                  params[:source]
-      else
-                  @user.avatar_source
-      end
-
-      is_user = true
-      has_image = @user.avatar.attached?
-      current_hue = @user.primary_color || 210
-      display_url = has_image ? url_for(@user.avatar) : nil
-      gravatar_url = @user.gravatar_url(size: 256)
+      identity = @user.identity
 
       render partial: "shared/identity_picker_hub",
         locals: {
-          model: @user,
+          identity: identity,
           form_url: settings_avatar_path,
           hub_url: hub_settings_avatar_path,
-          current_source: @source,
-          has_color_picker: true,
-          available_sources: @user.available_avatar_sources,
-          is_user: is_user,
-          has_image: has_image,
-          current_hue: current_hue,
-          display_url: display_url,
-          gravatar_url: gravatar_url,
-          initials: @user.initials,
-          hub_title: t("identity_picker.choose_profile_picture")
+          current_source: identity.resolve_source(params[:source])
         },
         layout: false
     end
