@@ -325,6 +325,20 @@ RSpec.describe "Account Avatars", type: :request do
         delete settings_avatar_path
         expect(response).to redirect_to(edit_settings_profile_path)
       end
+
+      it "renders an error toast when the save fails (invalid persisted state)" do
+        user.update_columns(primary_color: 999)
+        delete settings_avatar_path, headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(response.media_type).to eq("text/vnd.turbo-stream.html")
+        expect(response.body).to include("toast-cards")
+        user.reload
+        # Purge precedes the failed save (design-documented parity): blobs are
+        # gone but the source column keeps its old value.
+        expect(user.avatar).not_to be_attached
+        expect(user.avatar_source).to eq("upload")
+      end
     end
 
     describe "authorization" do

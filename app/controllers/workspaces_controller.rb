@@ -143,7 +143,14 @@ class WorkspacesController < ApplicationController
       crop_coordinates: params[:crop_coordinates],
       source: params[:avatar_source],
       color: params[:primary_color],
-      name: params[:workspace].respond_to?(:key?) && params[:workspace].key?(:name) ? params[:workspace][:name] : nil
+      name: workspace_attrs.key?(:name) ? workspace_attrs[:name] : nil
     }
+  end
+
+  # Strong-params extraction for the workspace-only `name` field: a non-scalar
+  # value (e.g. workspace[name][foo]=bar) is dropped by permit, so it never
+  # reaches Identity#apply as anything but absent (nil).
+  def workspace_attrs
+    params.fetch(:workspace, {}).permit(:name)
   end
 end

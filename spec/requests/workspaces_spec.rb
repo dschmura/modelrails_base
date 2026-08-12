@@ -247,6 +247,12 @@ RSpec.describe "Workspaces", type: :request do
           expect(workspace.reload.logo).not_to be_attached
         end
       end
+
+      it "ignores a non-scalar name (strong params drop it)" do
+        original_name = workspace.name
+        patch workspace_path(workspace), params: { workspace: { name: { foo: "bar" } } }
+        expect(workspace.reload.name).to eq(original_name)
+      end
     end
 
     describe "GET /workspaces/:slug/identity_picker_hub" do

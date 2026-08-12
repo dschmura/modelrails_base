@@ -6,6 +6,11 @@
 class Identity
   DEFAULT_HUE = 210
 
+  Result = Struct.new(:success, :error, :error_message, keyword_init: true) do
+    def success? = success
+    def failure? = !success
+  end
+
   def initialize(model)
     @model = model
   end
@@ -32,11 +37,6 @@ class Identity
     available_sources.include?(requested) ? requested : source
   end
 
-  Result = Struct.new(:success, :error, :error_message, keyword_init: true) do
-    def success? = success
-    def failure? = !success
-  end
-
   # Applies an identity change and saves ONCE, atomically: attachments,
   # source, color (and name, workspace side) all land or none do — never
   # `attach` on the persisted model (that auto-saves midway; see design spec).
@@ -44,6 +44,9 @@ class Identity
   # "upload". Blank values are treated as absent, except `name` (nil-is-absent
   # — a submitted blank rename must fail validation, not be ignored).
   def apply(image: nil, image_original: nil, crop_coordinates: nil, source: nil, color: nil, name: nil)
+    # Kwargs shadow the same-named readers here — inside apply, bare
+    # image/image_original/source are the INCOMING values; use helpers for
+    # model state.
     image = image.presence
     image_original = image_original.presence
     crop_coordinates = crop_coordinates.presence
@@ -53,6 +56,10 @@ class Identity
     if (failure = source_guard(image, source))
       return failure
     end
+
+    # Ahead of any assignment/purge below: a misuse (e.g. User#identity.apply
+    # with a name:) must raise before side effects, not after purging blobs.
+    write_name(name) unless name.nil?
 
     if image
       assign_image(image)
@@ -67,7 +74,6 @@ class Identity
     end
 
     model.primary_color = color.to_i if color
-    write_name(name) unless name.nil?
 
     save_result
   end
