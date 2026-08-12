@@ -52,14 +52,18 @@ class User < ApplicationRecord
 
   MAX_FAILED_ATTEMPTS = 5
   LOCK_DURATION = 1.hour
+  MAX_KNOWN_BROWSERS = 20
 
   # Single source of truth for the (user_agent, os) -> digest formula used by
   # the new-device sign-in detector. Public so SignInFromNewDeviceNotifier's
   # `populate_idempotency_key` override can reuse the same formula — keeping
   # the User-side fingerprint and the Notifier-side dedup key in lockstep.
-  # Intentionally coarse (no salt, no normalization) — see #seen_browser?.
+  # Version segments are stripped before hashing so routine browser updates
+  # (Chrome/126 -> 127, iOS 17_5 -> 17_5_1) don't re-fire the detector — the
+  # goal is "alert on an unfamiliar device", and a device that auto-updated
+  # its browser is not unfamiliar. See #seen_browser?.
   def self.browser_digest(user_agent, os)
-    Digest::SHA256.hexdigest("#{user_agent} #{os}")
+    Digest::SHA256.hexdigest("#{user_agent.to_s.gsub(/[\d_.]+/, "")} #{os}")
   end
 
   def full_name
@@ -152,9 +156,9 @@ class User < ApplicationRecord
   # here; the transitions moved out (DES-1).
 
   # Browser-fingerprint heuristic for the new-device sign-in detector.
-  # Digest is intentionally coarse — `SHA256("#{user_agent} #{os}")` — so the
-  # same browser/OS combo across minor UA bumps still matches "seen". The goal
-  # is "alert on unfamiliar device", not forensic device tracking.
+  # Digest is intentionally coarse (version-stripped — see .browser_digest) so
+  # the same browser/OS combo across UA version bumps still matches "seen".
+  # The goal is "alert on unfamiliar device", not forensic device tracking.
   def seen_browser?(user_agent, os)
     digest = self.class.browser_digest(user_agent, os)
     last_known_browsers.any? { |entry| entry["digest"] == digest }
@@ -177,6 +181,11 @@ class User < ApplicationRecord
         "first_seen_at" => now.iso8601,
         "last_seen_at" => now.iso8601
       }
+      # Bounded: this JSON column is read and rewritten on the sign-in hot
+      # path (SQLite single writer), so it must not grow with UA churn.
+      if browsers.size > MAX_KNOWN_BROWSERS
+        browsers = browsers.sort_by { |e| e["last_seen_at"] }.last(MAX_KNOWN_BROWSERS)
+      end
     end
     update_column(:last_known_browsers, browsers)
   end

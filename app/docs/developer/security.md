@@ -66,6 +66,11 @@ hard-wired (`require_reauthentication!(force: true)`) and additionally fires
 `PasskeyAddedNotifier`. Email changes are gated here rather than on a
 password, so passwordless users can change their email.
 
+Sign-ins from an unrecognized browser/OS additionally trigger a security
+notification (`SignInFromNewDeviceNotifier`). The alert is gated by
+`new_device_notification` in the same initializer; device fingerprints are
+recorded regardless, so turning the alert back on later keeps full history.
+
 ### Magic-Link Tokens
 
 The bearer token is stored only as a SHA256 digest (`MagicLinkToken.token_digest`);
