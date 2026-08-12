@@ -32,7 +32,103 @@ class Identity
     available_sources.include?(requested) ? requested : source
   end
 
+  Result = Struct.new(:success, :error, :error_message, keyword_init: true) do
+    def success? = success
+    def failure? = !success
+  end
+
+  # Applies an identity change and saves ONCE, atomically: attachments,
+  # source, color (and name, workspace side) all land or none do — never
+  # `attach` on the persisted model (that auto-saves midway; see design spec).
+  # IRREVERSIBLY PURGES both attachments when the resulting source is not
+  # "upload". Blank values are treated as absent, except `name` (nil-is-absent
+  # — a submitted blank rename must fail validation, not be ignored).
+  def apply(image: nil, image_original: nil, crop_coordinates: nil, source: nil, color: nil, name: nil)
+    image = image.presence
+    image_original = image_original.presence
+    crop_coordinates = crop_coordinates.presence
+    source = source.presence
+    color = color.presence
+
+    if (failure = source_guard(image, source))
+      return failure
+    end
+
+    if image
+      assign_image(image)
+      write_source("upload")
+    end
+    assign_image_original(image_original) if image_original
+    apply_crop_metadata(crop_coordinates) if crop_coordinates
+
+    if source && image.nil?
+      write_source(source)
+      purge_images if source != "upload"
+    end
+
+    model.primary_color = color.to_i if color
+    model.name = name unless name.nil?
+
+    save_result
+  end
+
   private
 
   attr_reader :model
+
+  # Extracted from #apply to satisfy Metrics/MethodLength (DES-15 ratchet);
+  # behavior is unchanged from the design spec's single-save/Result contract.
+  def save_result
+    if model.save
+      Result.new(success: true)
+    else
+      Result.new(success: false, error: :invalid,
+                 error_message: model.errors.full_messages.to_sentence)
+    end
+  end
+
+  def source_guard(image, source)
+    unavailable =
+      if image
+        !available_sources.include?("upload")
+      else
+        source.present? && !available_sources.include?(source)
+      end
+    Result.new(success: false, error: :source_unavailable) if unavailable
+  end
+
+  def apply_crop_metadata(raw)
+    coords = safe_parse_coordinates(raw)
+    return unless coords
+    return unless image_original.attached?
+
+    blob = image_original.blob
+    if blob.persisted?
+      # Re-crop of an existing original: immediate metadata write. Can race a
+      # concurrent purge (0 rows, no error) — accepted; worst case is default
+      # framing on the next re-crop (design spec, write flow beat 3).
+      blob.update!(metadata: blob.metadata.merge("crop" => coords))
+    else
+      blob.metadata = blob.metadata.merge("crop" => coords)
+    end
+  end
+
+  # Purge keyed on the RESULTING source; prior source is irrelevant (a
+  # gravatar-sourced user with a stale blob switching to initials still purges).
+  def purge_images
+    image.purge if image.attached?
+    image_original.purge if image_original.attached?
+  end
+
+  def safe_parse_coordinates(raw)
+    return nil if raw.blank?
+
+    parsed = JSON.parse(raw)
+    return nil unless parsed.is_a?(Hash)
+    return nil unless %w[x y w h].all? { |k| parsed[k].is_a?(Numeric) }
+
+    parsed.slice("x", "y", "w", "h")
+  rescue JSON::ParserError
+    nil
+  end
 end
