@@ -37,6 +37,10 @@ FactoryBot.define do
       end
     end
 
+    trait :with_gravatar do
+      has_gravatar { true }
+    end
+
     # Persists the user with zero workspaces and no personal_workspace_id by
     # saving under the :none tenancy posture — the real production branch of
     # onboard_workspace, not a stubbed-out callback. Scoped to THIS create
