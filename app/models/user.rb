@@ -18,6 +18,9 @@ class User < ApplicationRecord
   after_create :onboard_workspace
   after_create :check_gravatar_later
   after_update_commit :check_gravatar_later, if: :saved_change_to_email_address?
+  # Model-level so every digest-touching path notifies (settings change, reset,
+  # removal) — the behavior app/docs/developer/notifications.md documents.
+  after_update_commit :notify_password_changed, if: :saved_change_to_password_digest?
 
   # Canonical email storage and lookup: NFC + downcase + strip via EmailNormalizer.
   # Rails 7.1+ also applies these normalizers to `find_by(email_address:)` and
@@ -230,6 +233,14 @@ class User < ApplicationRecord
 
   def check_gravatar_later
     CheckGravatarJob.perform_later(self)
+  end
+
+  # Best-effort: the security alert must never fail the credential write
+  # itself (same contract as the new-device hook in Authenticatable).
+  def notify_password_changed
+    PasswordChangedNotifier.with(record: self).deliver(self)
+  rescue ActiveRecord::ActiveRecordError => e
+    Rails.logger.warn("[password-changed] swallowed error for user=#{id}: #{e.class}: #{e.message}")
   end
 
   # Dispatches to the right onboarding strategy based on the tenancy preset.
