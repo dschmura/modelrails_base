@@ -58,7 +58,17 @@ RSpec.describe "Account Avatars", type: :request do
       it "rejects invalid avatar source" do
         patch settings_avatar_path, params: { avatar_source: "invalid" }
         expect(response).to redirect_to(edit_settings_profile_path)
-        expect(flash[:alert]).to be_present
+        expect(flash[:alert]).to eq(I18n.t("settings.avatars.source_unavailable"))
+      end
+
+      # CHARACTERIZATION of current behavior — the Identity write-flow PR
+      # deliberately changes this to a 403 turbo-stream toast, unified with
+      # workspaces (spec §"Deliberate behavior changes" #1). Updated there.
+      it "redirects (302) even for turbo_stream requests on an invalid source [changes in write-flow PR]" do
+        patch settings_avatar_path, params: { avatar_source: "invalid" },
+              headers: { "Accept" => "text/vnd.turbo-stream.html" }
+        expect(response).to have_http_status(:found)
+        expect(flash[:alert]).to eq(I18n.t("settings.avatars.source_unavailable"))
       end
 
       it "accepts upload source even when no avatar is attached" do
@@ -272,6 +282,37 @@ RSpec.describe "Account Avatars", type: :request do
         }
 
         expect(response).to have_http_status(:redirect)
+      end
+
+      it "purges the newly attached avatar and original when save fails" do
+        file = fixture_file_upload("avatar.png", "image/png")
+        patch settings_avatar_path, params: {
+          avatar: file, avatar_original: file, primary_color: invalid_color
+        }, headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+        expect(response).to have_http_status(:unprocessable_content)
+        user.reload
+        expect(user.avatar).not_to be_attached
+        expect(user.avatar_original).not_to be_attached
+      end
+
+      # CHARACTERIZATION: today a failed replacement destroys BOTH the old and
+      # the new avatar (attach auto-saved the new one; the rescue purge removed
+      # it, and the replacement had already displaced the old). The Identity
+      # write-flow PR's single-save rewrite deliberately improves this — the
+      # prior avatar survives a failed update (spec §"Deliberate behavior
+      # changes" #3). Updated there.
+      context "with an existing avatar" do
+        let(:user) { create(:user, :with_avatar) }
+
+        it "loses both old and new avatar on a failed replacement [changes in write-flow PR]" do
+          patch settings_avatar_path, params: {
+            avatar: fixture_file_upload("avatar.png", "image/png"),
+            primary_color: invalid_color
+          }, headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+          expect(user.reload.avatar).not_to be_attached
+        end
       end
     end
 
