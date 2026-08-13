@@ -6,7 +6,12 @@ pin "@hotwired/stimulus", to: "stimulus.min.js"
 pin "@hotwired/stimulus-loading", to: "stimulus-loading.js"
 pin_all_from "app/javascript/controllers", under: "controllers"
 pin "lexxy", to: "lexxy.js"
-pin "cropperjs", to: "https://cdn.jsdelivr.net/npm/cropperjs@2/dist/cropper.esm.js"
+# Vendored (SEC-6): the self-contained dist bundle, committed at an exact
+# version so production script-src carries no CDN host and the bytes can't
+# change under a floating tag. Upgrade = download the new
+# cropperjs@X.Y.Z/dist/cropper.esm.js into vendor/javascript/cropperjs.js
+# and commit the diff.
+pin "cropperjs" # @2.1.1
 
 # Chart.js is opt-in (the gem doesn't bundle it; chart_controller.js lazy-imports it).
 # Pinned in development only so the Lookbook catalog can render the chart component —
