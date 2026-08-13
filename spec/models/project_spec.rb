@@ -176,4 +176,27 @@ RSpec.describe Project, type: :model do
       expect(project.client_visible_resources).to eq([ visible ])
     end
   end
+
+  # SEC-8: logo was the one attachment among five without validations.
+  describe "logo attachment" do
+    let(:project) { create(:project) }
+
+    it "rejects non-image content types" do
+      project.logo.attach(io: StringIO.new("not an image"), filename: "doc.pdf", content_type: "application/pdf")
+      expect(project).not_to be_valid
+      expect(project.errors[:logo]).to be_present
+    end
+
+    it "rejects files over 5MB" do
+      project.logo.attach(io: StringIO.new("x" * 6.megabytes), filename: "big.png", content_type: "image/png")
+      expect(project).not_to be_valid
+      expect(project.errors[:logo]).to be_present
+    end
+
+    it "accepts a valid image" do
+      project.logo.attach(io: StringIO.new("fake"), filename: "logo.png", content_type: "image/png")
+      project.valid?
+      expect(project.errors[:logo]).to be_empty
+    end
+  end
 end
