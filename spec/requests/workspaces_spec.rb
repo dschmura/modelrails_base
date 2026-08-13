@@ -255,6 +255,34 @@ RSpec.describe "Workspaces", type: :request do
       end
     end
 
+    describe "PATCH /workspaces/:slug rate limiting" do
+      let(:workspace) { create(:workspace) }
+      let!(:membership) { create(:membership, :owner, user: user, workspace: workspace) }
+
+      before do
+        # rate_limit counts via Rails.cache.increment; return an over-limit
+        # count so the limiter fires without a persistent cache (house pattern,
+        # see passkeys/authentications_spec).
+        allow(Rails.cache).to receive(:increment).and_return(21)
+      end
+
+      it "returns a 429 turbo-stream toast once the limit is exceeded" do
+        patch workspace_path(workspace), params: { workspace: { name: "Renamed" } },
+              headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+        expect(response).to have_http_status(:too_many_requests)
+        expect(response.body).to include(I18n.t("workspaces.update.rate_limited"))
+        expect(workspace.reload.name).not_to eq("Renamed")
+      end
+
+      it "redirects with an alert for HTML requests" do
+        patch workspace_path(workspace), params: { workspace: { name: "Renamed" } }
+
+        expect(response).to redirect_to(workspaces_path)
+        expect(flash[:alert]).to eq(I18n.t("workspaces.update.rate_limited"))
+      end
+    end
+
     describe "GET /workspaces/:slug/identity_picker_hub" do
       let(:workspace) { create(:workspace) }
       let!(:membership) { create(:membership, :owner, user: user, workspace: workspace) }

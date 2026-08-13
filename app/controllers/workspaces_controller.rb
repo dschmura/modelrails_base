@@ -3,6 +3,20 @@ class WorkspacesController < ApplicationController
   skip_before_action :set_workspace, only: [ :index, :new, :create ]
   before_action :ensure_workspace_creation_enabled, only: [ :new, :create ]
 
+  # Mirrors settings/avatars_controller: #update purges attachments and writes
+  # blobs, so it gets the same per-user budget (2026-08-12 reauth panel fold-in).
+  rate_limit to: 20, within: 3.minutes, only: :update,
+    by: -> { Current.user&.id || request.remote_ip },
+    with: -> {
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: error_toast(t("workspaces.update.rate_limited")),
+                 status: :too_many_requests
+        end
+        format.html { redirect_to workspaces_path, alert: t("workspaces.update.rate_limited") }
+      end
+    }
+
   def index
     authorize Workspace
 

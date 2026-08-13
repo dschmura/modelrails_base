@@ -101,6 +101,7 @@ en:
       submit: "Save changes"
     update:
       success: "Workspace profile updated."
+      rate_limited: "Too many requests. Please try again later."
     destroy:
       success: "Workspace deleted."
       trigger: "Delete permanently"
