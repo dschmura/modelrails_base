@@ -20,7 +20,20 @@ Auth endpoints are rate-limited via Rails 8 `rate_limit` DSL:
 
 ### Account Locking
 
-After 5 failed login attempts, accounts are locked for 1 hour. Auto-unlock occurs after the lockout period. Admin rake tasks:
+After 5 failed login attempts, accounts are locked for 1 hour. Auto-unlock occurs after the lockout period.
+
+**Scope — password sign-in only, by design.** The failed-attempt counter and
+the `locked?` gate live in the password path (`sessions#create`). Passkey and
+magic-link sign-in do **not** check the lock: neither factor is brute-forceable
+the way a password is (a passkey is a cryptographic assertion; a magic link
+requires control of the inbox), so locking them out would punish exactly the
+factors a locked-out user needs to get back in. Consequence to be aware of:
+a locked account is locked out of *passwords*, not out of the account — the
+owner can still sign in with a passkey or magic link. If your fork wants a
+lock to mean "no sign-in at all", add the `locked?` check to
+`magic_link_callbacks#sign_in` and `Passkeys::AuthenticateCeremony` as well.
+
+Admin rake tasks:
 
 ```bash
 rails users:unlock[email@example.com]     # Unlock a locked account
