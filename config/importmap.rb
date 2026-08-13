@@ -18,3 +18,8 @@ pin "cropperjs" # @2.1.1
 # this app uses chart solely in the dev-only catalog, so production stays lean and
 # downstream apps still opt in themselves.
 pin "chart.js", to: "https://cdn.jsdelivr.net/npm/chart.js@4/+esm" if Rails.env.development?
+
+# Lexxy's uploader dynamic-imports @rails/activestorage; without this pin the
+# import fails to resolve and editor attachments silently never upload. Ships
+# from the activestorage gem's own asset path — local, never a CDN (SEC-7).
+pin "@rails/activestorage", to: "activestorage.esm.js"
