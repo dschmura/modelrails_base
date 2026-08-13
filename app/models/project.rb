@@ -19,6 +19,9 @@ class Project < ApplicationRecord
   before_create :default_enabled_tools
 
   validates :name, presence: true, length: { maximum: 255 }
+  validates :logo,
+    content_type: IMAGE_CONTENT_TYPES,
+    size: { less_than: 5.megabytes }
   validates :slug, presence: true, uniqueness: { scope: :workspace_id }
   validate :workspace_has_project_capacity, on: :create
 
