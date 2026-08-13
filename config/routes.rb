@@ -4,6 +4,11 @@ Rails.application.routes.draw do
   mount Lookbook::Engine, at: "/lookbook" if Rails.env.development?
   mount Biscuit::Engine, at: "/biscuit"
 
+  # Shadows the Active Storage engine's UNAUTHENTICATED direct-upload endpoint
+  # (SEC-7). Engine/railtie routes load after this file, so this declaration
+  # wins; the engine's rails_direct_uploads_url helper still points here.
+  post "/rails/active_storage/direct_uploads" => "direct_uploads#create"
+
   # Test-only harness exercising every form-draft field archetype (the real
   # adoption forms are text-only). Controller lives in spec/support/harness.
   resource :draft_harness, only: %i[show create], controller: "draft_harness" if Rails.env.test?

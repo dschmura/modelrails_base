@@ -85,7 +85,9 @@ class ApplicationController < ActionController::Base
     destination = if Current.workspace.present?
       workspace_path(Current.workspace)
     else
-      request.referer || root_path
+      # url_from filters cross-origin referers (SEC-10): a forged Referer must
+      # fall back to root, not make the error handler raise UnsafeRedirectError.
+      url_from(request.referer) || root_path
     end
     redirect_to(destination, alert: t("errors.not_authorized"))
   end
@@ -93,7 +95,7 @@ class ApplicationController < ActionController::Base
   def record_not_found
     respond_to do |format|
       format.turbo_stream { render turbo_stream: error_toast(t("errors.not_found")), status: :not_found }
-      format.html { redirect_to(request.referer || root_path, alert: t("errors.not_found")) }
+      format.html { redirect_to(url_from(request.referer) || root_path, alert: t("errors.not_found")) }
       format.json { render json: { error: t("errors.not_found") }, status: :not_found }
       format.any { head :not_found }
     end
