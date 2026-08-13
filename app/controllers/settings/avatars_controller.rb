@@ -1,6 +1,6 @@
 module Settings
   class AvatarsController < ApplicationController
-    rate_limit to: 20, within: 3.minutes, only: :update,
+    rate_limit to: 20, within: 3.minutes, only: [ :update, :destroy ],
       by: -> { Current.user&.id || request.remote_ip },
       with: -> {
         respond_to do |format|

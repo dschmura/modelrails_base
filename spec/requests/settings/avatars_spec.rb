@@ -278,6 +278,21 @@ RSpec.describe "Account Avatars", type: :request do
       end
     end
 
+    describe "DELETE /account/avatar rate limiting" do
+      it "returns 429 once the shared avatar limit is exceeded" do
+        # rate_limit counts via Rails.cache.increment; return an over-limit
+        # count so the limiter fires without a persistent cache (house pattern,
+        # see passkeys/authentications_spec).
+        allow(Rails.cache).to receive(:increment).and_return(21)
+
+        delete settings_avatar_path, headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+        expect(response).to have_http_status(:too_many_requests)
+        expect(response.body).to include(I18n.t("settings.avatars.update.rate_limited"))
+        expect(user.reload.avatar_source).not_to be_nil
+      end
+    end
+
     describe "DELETE /account/avatar" do
       it "removes the avatar and falls back to initials" do
         user.avatar.attach(
