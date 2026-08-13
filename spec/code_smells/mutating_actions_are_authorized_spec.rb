@@ -71,6 +71,7 @@ RSpec.describe "Mutating controller actions authorize or are allow-listed" do
   # Current.user's own resources (no cross-user/tenant surface). Adding to this
   # list is a deliberate, reviewed decision.
   ALLOW_LIST = %w[
+    direct_uploads#create
     email_verification_resends#create
     invitation_accepts#create
     invitation_declines#create
