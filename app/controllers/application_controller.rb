@@ -68,7 +68,28 @@ class ApplicationController < ActionController::Base
   # SEC-1: refuse to grant a role the actor doesn't outrank. The server is the
   # real gate; role selects render assignable_roles_for as defence + UX.
   def authorize_role_grant!(policy_record, role)
-    raise Pundit::NotAuthorizedError unless policy(policy_record).may_grant?(role)
+    return if policy(policy_record).may_grant?(role)
+
+    log_blocked_role_grant(policy_record, role)
+    raise Pundit::NotAuthorizedError
+  end
+
+  # G (SEC-1 follow-up): a blocked escalation attempt is itself a security
+  # event — log the SPECIFIC denial to the admin feed (not every 403; generic
+  # authorization failures stay unlogged). Best-effort, same contract as
+  # Trackable#create_activity: tracking must never fail the request.
+  def log_blocked_role_grant(policy_record, role)
+    ActivityLog.create!(
+      actor: Current.user,
+      action: "membership.role_grant_blocked",
+      trackable: policy_record.is_a?(ActiveRecord::Base) ? policy_record : nil,
+      workspace: Current.workspace,
+      visibility: "admin",
+      metadata: { "attempted_role" => role.slug }
+    )
+  rescue StandardError => e
+    Rails.logger.warn("Blocked-grant logging failed: #{e.class}: #{e.message}")
+    Rails.error.report(e, handled: true, context: { action: "membership.role_grant_blocked" })
   end
 
   def assignable_roles_for(policy_record)
@@ -85,7 +106,9 @@ class ApplicationController < ActionController::Base
     destination = if Current.workspace.present?
       workspace_path(Current.workspace)
     else
-      request.referer || root_path
+      # url_from filters cross-origin referers (SEC-10): a forged Referer must
+      # fall back to root, not make the error handler raise UnsafeRedirectError.
+      url_from(request.referer) || root_path
     end
     redirect_to(destination, alert: t("errors.not_authorized"))
   end
@@ -93,7 +116,7 @@ class ApplicationController < ActionController::Base
   def record_not_found
     respond_to do |format|
       format.turbo_stream { render turbo_stream: error_toast(t("errors.not_found")), status: :not_found }
-      format.html { redirect_to(request.referer || root_path, alert: t("errors.not_found")) }
+      format.html { redirect_to(url_from(request.referer) || root_path, alert: t("errors.not_found")) }
       format.json { render json: { error: t("errors.not_found") }, status: :not_found }
       format.any { head :not_found }
     end

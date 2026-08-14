@@ -20,7 +20,20 @@ Auth endpoints are rate-limited via Rails 8 `rate_limit` DSL:
 
 ### Account Locking
 
-After 5 failed login attempts, accounts are locked for 1 hour. Auto-unlock occurs after the lockout period. Admin rake tasks:
+After 5 failed login attempts, accounts are locked for 1 hour. Auto-unlock occurs after the lockout period.
+
+**Scope — password sign-in only, by design.** The failed-attempt counter and
+the `locked?` gate live in the password path (`sessions#create`). Passkey and
+magic-link sign-in do **not** check the lock: neither factor is brute-forceable
+the way a password is (a passkey is a cryptographic assertion; a magic link
+requires control of the inbox), so locking them out would punish exactly the
+factors a locked-out user needs to get back in. Consequence to be aware of:
+a locked account is locked out of *passwords*, not out of the account — the
+owner can still sign in with a passkey or magic link. If your fork wants a
+lock to mean "no sign-in at all", add the `locked?` check to
+`magic_link_callbacks#sign_in` and `Passkeys::AuthenticateCeremony` as well.
+
+Admin rake tasks:
 
 ```bash
 rails users:unlock[email@example.com]     # Unlock a locked account
@@ -120,7 +133,9 @@ Two consequences to know about:
 - **libvips 8.13+ and ruby-vips 2.2.1+ are required.** Below either, Active Storage raises at boot rather than run unsecured. The production image, the devcontainer and CI all satisfy this; check your own if you build a custom image.
 - **BMP, ICO and PSD variants raise `Vips::Error`.** `config/initializers/active_storage.rb` removes those three from `variable_content_types`, so attachments of those types render as a file chip. Without it they render an `<img>` whose representation URL 500s when the browser fetches it — processing is lazy, so the page still returns 200 and the failure shows up as a broken image plus a logged 500 on every view. PNG, JPEG, GIF, WebP, TIFF, AVIF, HEIC and HEIF are unaffected.
 
-Uploads backing user avatars and workspace logos are additionally restricted to `image/png`, `image/jpeg`, `image/gif` and `image/webp` by model validations. Action Text attachments are not restricted — if your fork needs an allowlist there, add one rather than relying on the variant layer to refuse the file.
+Uploads backing user avatars, workspace logos and project logos are restricted by model validations to `ApplicationRecord::IMAGE_CONTENT_TYPES` (PNG, JPEG, GIF, WebP, TIFF, AVIF, HEIC, HEIF) with size caps.
+
+Rich-text (Action Text) attachments upload through `DirectUploadsController`, which shadows the Active Storage engine's endpoint — the engine's own controller is **unauthenticated** and gates nothing. The shadow requires a signed-in session, rate-limits per user, and enforces an allowlist (`IMAGE_CONTENT_TYPES` + PDF) and a 10 MB cap; both knobs are constants on that controller. Two honesty notes: the declared byte size is a *hard* ceiling (it's baked into the signed token and the disk service re-verifies length + checksum on receipt), while the declared content type filters honest clients only — Active Storage re-identifies the real type from the stored bytes at attach time, where model validations judge it. And attachment happens by signed GID embedded in the submitted body, so any *new* blob-creation path a fork adds must carry its own gate — a blob's `attachable_sgid` is sufficient to attach it.
 
 The `>= x.y.z` floor on the `rails` gem in the Gemfile is a security floor: it stops a fresh `bundle install` in a fork from resolving back onto a version patched for a known CVE. Dependabot rewrites that line on every Rails bump and will drop the floor, so `spec/code_smells/template_invariants_spec.rb` fails if the requirement ever admits a vulnerable release again.
 

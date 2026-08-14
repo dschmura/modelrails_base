@@ -249,6 +249,19 @@ RSpec.describe "Workspace Members", type: :request do
         expect(response).to have_http_status(:redirect)
       end
 
+      # G (SEC-1 follow-up): a blocked escalation attempt is itself a security
+      # event. The refusal must reach the admin activity feed, not just 403.
+      it "logs the blocked escalation to the admin activity feed" do
+        expect {
+          patch workspace_member_path(workspace, admin_membership), params: { membership: { role_id: owner_role.id } }
+        }.to change { ActivityLog.where(action: "membership.role_grant_blocked").count }.by(1)
+
+        entry = ActivityLog.where(action: "membership.role_grant_blocked").last
+        expect(entry.visibility).to eq("admin")
+        expect(entry.actor).to eq(admin_user)
+        expect(entry.metadata["attempted_role"]).to eq("owner")
+      end
+
       it "refuses an admin editing an owner's membership at all" do
         patch workspace_member_path(workspace, membership), params: { membership: { role_id: admin_role.id } }
         expect(membership.reload.role).to eq(owner_role)
