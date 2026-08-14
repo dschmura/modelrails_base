@@ -418,11 +418,12 @@ RSpec.describe "Template invariants" do
     # by grepping source (#298). Vars the harness/tooling sets — not a human
     # editing .env — are excluded here with a reason.
     excluded_env_vars = {
-      "BUNDLE_GEMFILE"      => "set by Bundler, not an operator",
-      "CI"                  => "set by the CI runner",
-      "PIDFILE"             => "set by bin/dev / Foreman",
-      "SOLID_QUEUE_IN_PUMA" => "set in config/deploy.yml env.clear, not .env (documented in deployment.md)",
-      "TEST_ENV_NUMBER"     => "set by parallel_tests per worker (bin/parallel-rspec), never by a human"
+      "BUNDLE_GEMFILE"          => "set by Bundler, not an operator",
+      "CI"                      => "set by the CI runner",
+      "PIDFILE"                 => "set by bin/dev / Foreman",
+      "SECRET_KEY_BASE_DUMMY"   => "set by the Dockerfile's assets:precompile RUN (build-time boot marker), never by a human editing .env",
+      "SOLID_QUEUE_IN_PUMA"     => "set in config/deploy.yml env.clear, not .env (documented in deployment.md)",
+      "TEST_ENV_NUMBER"         => "set by parallel_tests per worker (bin/parallel-rspec), never by a human"
     }
 
     it "documents every operator-settable ENV var the code reads (no rediscovery-by-grep)" do
@@ -893,6 +894,27 @@ RSpec.describe "Template invariants" do
         "bin/fork looks for tokens that are gone: #{stale.join(', ')}. A missing token is " \
         "indistinguishable from an already-completed rename, so bin/fork would report success " \
         "while leaving template identity in every fork."
+    end
+  end
+
+  describe "fork placeholder hygiene (self-activating in forks via .fork.yml)" do
+    # In the template these placeholders are CORRECT — bin/fork substitutes
+    # them at fork time — so the check must be inert here. .fork.yml is
+    # committed provenance of a completed fork; its presence switches this on
+    # with zero configuration. It closes the gap bin/fork's TODO reminder
+    # leaves open: advisory output is read once, a failing spec persists until
+    # someone acts (#553). merge=ours means upstream fixes to fork-owned
+    # locale files never arrive on sync, so the fork's own suite is the only
+    # place this class of leftover can be caught.
+    it "ships no placeholder support address in fork-owned locale files" do
+      skip "template repo — placeholders are correct here" unless Rails.root.join(".fork.yml").exist?
+
+      content = Rails.root.join("config/locales/en/pages.en.yml").read
+      stale = content.scan(/[\w.+-]+@[\w.-]+\.example\b/) + content.scan(/[\w.+-]+@example\.com\b/)
+      expect(stale).to be_empty,
+        "placeholder support address still shipping: #{stale.uniq.join(', ')} — " \
+        "set a real address in config/locales/en/pages.en.yml (bin/fork listed this " \
+        "in its post-fork TODOs; this spec is the durable reminder)"
     end
   end
 
