@@ -897,6 +897,27 @@ RSpec.describe "Template invariants" do
     end
   end
 
+  describe "fork placeholder hygiene (self-activating in forks via .fork.yml)" do
+    # In the template these placeholders are CORRECT — bin/fork substitutes
+    # them at fork time — so the check must be inert here. .fork.yml is
+    # committed provenance of a completed fork; its presence switches this on
+    # with zero configuration. It closes the gap bin/fork's TODO reminder
+    # leaves open: advisory output is read once, a failing spec persists until
+    # someone acts (#553). merge=ours means upstream fixes to fork-owned
+    # locale files never arrive on sync, so the fork's own suite is the only
+    # place this class of leftover can be caught.
+    it "ships no placeholder support address in fork-owned locale files" do
+      skip "template repo — placeholders are correct here" unless Rails.root.join(".fork.yml").exist?
+
+      content = Rails.root.join("config/locales/en/pages.en.yml").read
+      stale = content.scan(/[\w.+-]+@[\w.-]+\.example\b/) + content.scan(/[\w.+-]+@example\.com\b/)
+      expect(stale).to be_empty,
+        "placeholder support address still shipping: #{stale.uniq.join(', ')} — " \
+        "set a real address in config/locales/en/pages.en.yml (bin/fork listed this " \
+        "in its post-fork TODOs; this spec is the durable reminder)"
+    end
+  end
+
   # bin scripts in this repo are spec'd by `load`ing them (see
   # spec/bin/parallel_rspec_spec.rb), which only works because the top-level
   # invocation is guarded. Without the guard, loading a script in a spec RUNS
