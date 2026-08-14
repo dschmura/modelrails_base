@@ -168,6 +168,18 @@ Before the first deploy:
 - [ ] Point your domain's DNS at the server first — kamal-proxy obtains the Let's Encrypt certificate on demand, which fails if the name doesn't resolve to the host yet
 - [ ] Leave `assume_ssl` / `force_ssl` / `ssl_options` in `config/environments/production.rb` as shipped — they are already enabled; there is nothing to uncomment
 
+## Production preflight
+
+`config/initializers/required_production_config.rb` refuses to boot a production process when `RAILS_HOST` is unset or still a placeholder (`example.com`, anything ending in `.example`). The reason it refuses rather than warns: every mailer link — magic links, password resets, invitations — is generated from `RAILS_HOST`, and DNS-rebinding protection (`config.hosts`) is derived from it. With a placeholder value the app boots, `/up` reports healthy, and nobody can sign in. A failed boot is the only version of this failure you can see.
+
+Rules the guard follows:
+
+- **Deterministic checks only** — unset, or a value that can never have been a working deployment. A configuration that served traffic yesterday can never fail a restart today.
+- **Build-time boots are exempt.** The Dockerfile's `assets:precompile` runs with `SECRET_KEY_BASE_DUMMY=1` and legitimately has no deployment ENV; the guard skips those boots.
+- **Set the value, never silence the check.** There is no bypass variable by design. To opt out permanently: `git rm config/initializers/required_production_config.rb` — the file is self-contained, so deleting it is one command and (since it is not on the `merge=ours` list) it stays deleted until upstream deliberately reintroduces it, which the changelog would note.
+
+Set `RAILS_HOST` under `env.clear` in `config/deploy.yml` (Kamal) or as a plain environment variable elsewhere.
+
 ## Health check
 
 Kamal hits `/up` on the container to determine if a new version is healthy enough to receive traffic. Rails 8 ships this endpoint by default (`Rails::HealthController#show`). The SSL exclusion above keeps it reachable over plain HTTP inside the container's network namespace.

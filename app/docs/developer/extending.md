@@ -101,6 +101,19 @@ Mix in the same concerns the built-in models use, only as needed:
 
 `Project` includes all three; `Resource` broadcasts to its `project`. Copy whichever match your model.
 
+### 6. Outside the request cycle (jobs, rake tasks, machine clients)
+
+Controllers establish `Current.workspace` for you (`WorkspaceScoped` resolves it from the URL slug); **nothing does that automatically anywhere else**. A job, rake task, or any future non-browser entry point doing tenant-scoped work must set it explicitly — and should read it back with `Current.workspace!` (note the bang), which raises `Current::NoWorkspaceError` when context was never established. The plain `Current.workspace` returns `nil` in that situation, and a `nil` inside a `where` clause silently widens the query across tenants — the exact failure the explicit-scoping design exists to prevent.
+
+```ruby
+class DigestJob < ApplicationJob
+  def perform(workspace_id)
+    Current.workspace = Workspace.find(workspace_id)  # establish explicitly
+    Current.workspace!.projects.find_each { |p| ... } # read with the bang
+  end
+end
+```
+
 ## Adding a New Resource Type
 
 The Resource registry uses a polymorphic pattern. To add a new type (e.g., `Slideshow`):
