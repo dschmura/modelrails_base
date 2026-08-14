@@ -134,6 +134,21 @@ RSpec.describe Invitation, type: :model do
       }.not_to raise_error
     end
 
+    # G (SEC-1 follow-up): the invitation flow — the most common grant path —
+    # logged membership.created with empty metadata and only the accepting
+    # invitee as actor. The granter and granted role now ride as metadata
+    # (the actor stays the invitee: they performed the accept).
+    it "audits the granted membership with role and granter" do
+      invitation = create(:invitation)
+      invitation.accept!(user)
+
+      membership = invitation.invitable.memberships.find_by(user: user)
+      entry = ActivityLog.where(action: "membership.created", trackable: membership).last
+      expect(entry).to be_present
+      expect(entry.metadata["role"]).to eq(invitation.role.slug)
+      expect(entry.metadata["granted_by"]).to eq(invitation.invited_by_id)
+    end
+
     it "raises Invitation::NotAcceptable when the target workspace is suspended (workspace invitation)" do
       workspace = create(:workspace)
       invitation = create(:invitation, invitable: workspace)
