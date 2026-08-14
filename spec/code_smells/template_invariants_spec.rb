@@ -986,43 +986,39 @@ RSpec.describe "Template invariants" do
     end
   end
 
-  describe ".graphifyignore carries only graph-scoping deltas" do
-    # graphify merges .gitignore and .graphifyignore (gitignore first, this file
-    # second), so any rule copied from .gitignore is dead weight that goes stale
-    # silently — the copy this replaced still described node_modules as the
-    # "Playwright browser driver" months after Playwright was removed in #497.
-    # The tracked file lists only paths git DOES track but that add noise rather
-    # than architecture to the graph.
-    let(:graphifyignore_path) { root.join(".graphifyignore") }
+  describe "the template ships no AI-agent configuration (forks start AI-agnostic)" do
+    # Policy (2026-08-14): AI tooling is a per-developer choice layered onto a
+    # fork, not something a fork inherits — a forker who wants agents brings
+    # their own setup, independent of the code they forked. The maintainer's
+    # own agent layer (CLAUDE.md, .claude/, agent-os/, .graphifyignore, …)
+    # lives untracked in this checkout via .git/info/exclude. This guard keeps
+    # the boundary from regressing: an agent-config file quietly committed
+    # here becomes unexplainable cruft — or worse, doctrine — in every fork,
+    # and the fork's own suite would then be enforcing another developer's
+    # tooling choices. (This replaced an invariant that did exactly that:
+    # it required .graphifyignore to stay tracked, so a fork deleting a file
+    # for a tool it never used went red.)
+    ai_config_patterns = %r{\A(?:
+      CLAUDE(?:\.local)?\.md |
+      AGENTS\.md |
+      GEMINI\.md |
+      \.claude(?:/|-on-rails/) |
+      \.cursor(?:rules|/) |
+      \.aider |
+      \.graphifyignore |
+      agent-os/ |
+      \.github/copilot-instructions\.md
+    )}x
 
-    # Mirrors graphify's own parser: full-line comments and blanks drop out,
-    # inline comments count only when preceded by whitespace (so a literal
-    # path#with#hash survives).
-    def substantive_rules(path)
-      File.readlines(path).filter_map do |raw|
-        line = raw.rstrip.lstrip
-        next if line.empty? || line.start_with?("#")
+    it "tracks no AI-agent configuration files" do
+      tracked = `git -C #{root} ls-files`.lines.map(&:strip)
+      offenders = tracked.grep(ai_config_patterns)
 
-        line.sub(/\s+#.*\z/, "").rstrip.presence
-      end
-    end
-
-    it "is tracked in git so forks inherit the graph-scoping rules" do
-      tracked = `git -C #{root} ls-files .graphifyignore`.strip
-      expect(tracked).to eq(".graphifyignore"),
-        "expected .graphifyignore tracked in git — the rules describe this repo's " \
-        "directory layout, so every fork should inherit them rather than rediscover " \
-        "which directories bloat the graph."
-    end
-
-    it "duplicates no rule already present in .gitignore" do
-      duplicated = substantive_rules(graphifyignore_path) &
-        substantive_rules(root.join(".gitignore"))
-
-      expect(duplicated).to be_empty,
-        "expected .graphifyignore to hold only rules .gitignore does NOT already " \
-        "cover, found duplicates: #{duplicated.join(', ')}. graphify reads .gitignore " \
-        "first, so copying it here adds nothing and rots out of sync."
+      expect(offenders).to be_empty,
+        "expected no AI-agent configuration tracked in git, found: " \
+        "#{offenders.join(', ')}. Forks start AI-agnostic — keep agent config " \
+        "local via .git/info/exclude (never committed), or extend the pattern " \
+        "here with a reason if a new tool's config genuinely must ship."
     end
   end
 
