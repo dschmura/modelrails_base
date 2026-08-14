@@ -73,4 +73,19 @@ RSpec.describe "Content Security Policy" do
       expect(nonce).to eq("abc123")
     end
   end
+
+  # SEC-6 invariant: outside development, script-src carries NO remote host.
+  # The test env evaluates the same non-development branch production does
+  # (the jsdelivr allowance is gated on Rails.env.development? — mirroring
+  # the dev-only chart.js importmap pin), so this assertion holds the
+  # production posture: a CDN script pin can't silently reopen the door.
+  describe "script-src (SEC-6)" do
+    it "contains no remote host outside development" do
+      script_src = policy.directives["script-src"] || []
+      remote = script_src.grep(%r{\Ahttps?://})
+      expect(remote).to be_empty,
+        "script-src must stay 'self' outside development; found: #{remote.inspect}. " \
+        "Vendor the package (see config/importmap.rb's cropperjs comment) instead of allowlisting a CDN."
+    end
+  end
 end
