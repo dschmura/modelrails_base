@@ -20,7 +20,7 @@ RSpec.describe "Flash messages are asserted, not just redirects" do
   # Every controller flash no spec asserts today. This is a burn-down list, not
   # configuration: delete an entry as its assertion lands (#526). New arrivals
   # fail the first example rather than being added here.
-  UNASSERTED_FLASHES = [
+  unasserted_flashes = [
     "clientside.area.resource_unavailable",
     "clientside.area.unavailable",
     "clientside.invitations.disabled",
@@ -167,7 +167,7 @@ RSpec.describe "Flash messages are asserted, not just redirects" do
 
   it "asserts every flash a controller sets, or tracks it on the burn-down list" do
     unasserted = controller_flash_keys.reject { |key| asserted?(key, values, specs) }
-    new_arrivals = unasserted - UNASSERTED_FLASHES
+    new_arrivals = unasserted - unasserted_flashes
 
     expect(new_arrivals).to be_empty,
       "these controller flashes are asserted by no spec:\n  #{new_arrivals.join("\n  ")}\n\n" \
@@ -177,10 +177,10 @@ RSpec.describe "Flash messages are asserted, not just redirects" do
   end
 
   it "keeps the burn-down list honest — no entry that is now asserted" do
-    stale = UNASSERTED_FLASHES.select { |key| asserted?(key, values, specs) }
+    stale = unasserted_flashes.select { |key| asserted?(key, values, specs) }
 
     expect(stale).to be_empty,
-      "these are asserted now — delete them from UNASSERTED_FLASHES so the list keeps " \
+      "these are asserted now — delete them from unasserted_flashes so the list keeps " \
       "meaning something:\n  #{stale.join("\n  ")}"
   end
 end

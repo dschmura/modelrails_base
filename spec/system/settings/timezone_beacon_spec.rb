@@ -50,9 +50,12 @@ RSpec.describe "Timezone beacon (Stimulus + layout connect)", type: :system, js:
 
       sign_in_via_form(user)
 
-      # Give the beacon a chance to (incorrectly) fire and clobber. If the
-      # contract holds, the explicit value remains.
-      sleep 1.0
+      # Negative assertion (#453): anchor on the beacon controller actually
+      # being connected — its fire/skip decision is made at connect — then
+      # allow a short named window for a wrongful async PATCH to round-trip.
+      # The old bare `sleep 1.0` was all margin and no anchor.
+      wait_for_stimulus_controllers
+      sleep 0.3 # post-connect round-trip margin for a wrongful clobber
       expect(user.preferences.reload.timezone).to eq("Europe/London")
     end
   end

@@ -7,17 +7,17 @@ RSpec.describe "Content Security Policy" do
   # When you add a new OAuth provider to OauthHelper::PROVIDER_CONFIG,
   # add the provider's consent-screen host to the hash below AND to
   # config/initializers/content_security_policy.rb's form_action directive.
-  EXPECTED_OAUTH_HOSTS_BY_PROVIDER = {
+  expected_oauth_hosts_by_provider = {
     google_oauth2: "https://accounts.google.com",
     github:        "https://github.com"
   }.freeze
 
   it "allows form-action to every configured OAuth provider host" do
     OauthHelper::PROVIDER_CONFIG.each_key do |provider|
-      expected_host = EXPECTED_OAUTH_HOSTS_BY_PROVIDER.fetch(provider) do
+      expected_host = expected_oauth_hosts_by_provider.fetch(provider) do
         raise <<~MSG.strip
           Missing CSP form-action host for OAuth provider :#{provider}.
-          Add it to EXPECTED_OAUTH_HOSTS_BY_PROVIDER in this spec file:
+          Add it to expected_oauth_hosts_by_provider in this spec file:
             #{__FILE__}
           AND to config/initializers/content_security_policy.rb's
           policy.form_action call.

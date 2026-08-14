@@ -54,6 +54,22 @@ RSpec.describe "Form draft round trip", type: :system do
   it "flushes immediately on navigation (no 300ms data-loss window)" do
     visit "/draft_harness"
     fill_in "Title", with: "Typed then navigated"
+    # Defeat the debounce (#481): without this, any fill_in->visit gap over
+    # 300ms lets the ordinary debounced save satisfy the assertion while a
+    # broken turbo:before-visit flush ships. One synchronous script wipes
+    # anything already persisted, re-dirties the form, and parks the pending
+    # save far out of reach — flush() requires a pending save, so at
+    # navigation time ONLY the before-visit flush can persist the draft.
+    page.execute_script(<<~JS)
+      (() => {
+        const el = document.querySelector("#harness-main");
+        const c = window.Stimulus.getControllerForElementAndIdentifier(el, "form-draft");
+        Object.keys(localStorage).filter(k => k.startsWith("draft:")).forEach(k => localStorage.removeItem(k));
+        el.querySelector("[name='draft[title]']").dispatchEvent(new Event("input", { bubbles: true }));
+        clearTimeout(c.pendingSave);
+        c.pendingSave = setTimeout(() => c.persist(), 60000);
+      })()
+    JS
     visit "/draft_harness" # turbo:before-visit must flush the pending save
     within("#harness-main") { expect(page).to have_text(I18n.t("form_draft.notice")) }
   end
