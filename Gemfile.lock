@@ -315,12 +315,13 @@ GEM
       rails-html-sanitizer (~> 1.6)
       rouge (~> 4.0)
     matrix (0.4.3)
-    mdl (0.17.0)
+    mdl (0.18.1)
       kramdown (~> 2.5)
       kramdown-parser-gfm (~> 1.1)
       mixlib-cli
       mixlib-config
       mixlib-shellout
+      uri
     mini_mime (1.1.5)
     minitest (6.0.6)
       drb (~> 2.0)
@@ -833,7 +834,7 @@ CHECKSUMS
   marcel (1.2.1) sha256=1678e9360e32f9eafa917c80029e2f6d10b2715c66a4b87b6d0da9b9cd1f859f
   markdowndocs (0.11.2) sha256=bc9ed1801743d9b0a5153093b3259b5af935b01a3f6cc9ed297dd2493ef9ad52
   matrix (0.4.3) sha256=a0d5ab7ddcc1973ff690ab361b67f359acbb16958d1dc072b8b956a286564c5b
-  mdl (0.17.0) sha256=bb0a0813db04d3a41c991bdae8acc70912f153fc4fb88a3e0f126711da12c335
+  mdl (0.18.1) sha256=14c7ab8264bbeac4010bd54adb5d125cf1d29b3848c3b6bfacb239b8bc70037a
   mini_mime (1.1.5) sha256=8681b7e2e4215f2a159f9400b5816d85e9d8c6c6b491e96a12797e798f8bccef
   minitest (6.0.6) sha256=153ea36d1d987a62942382b61075745042a2b3123b1cd48f4c3675af9cc7d6f1
   mixlib-cli (2.1.8) sha256=e6f27be34d580f6ed71731ca46b967e57793a627131c1f6e1ed2dad39ea3bdf9
