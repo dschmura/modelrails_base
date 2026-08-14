@@ -40,6 +40,14 @@ production:
     # mailer work is observable separately from DB sweeps on `default`.
     schedule: every 15 minutes
 
+  unattached_blobs_sweep:
+    class: UnattachedBlobsSweepJob
+    queue: default
+    # Direct-upload blobs that never got attached are permanent files on the
+    # same volume as the SQLite databases; nothing else purges them. Daily
+    # sweep, 2-day grace, purge_later fan-out (see the job's comment).
+    schedule: every day at 5am
+
   expired_sessions_sweep:
     class: ExpiredSessionsSweepJob
     queue: default

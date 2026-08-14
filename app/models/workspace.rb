@@ -207,7 +207,9 @@ class Workspace < ApplicationRecord
   # capacity check, discarded-reactivation, and :shared-posture role
   # reconciliation in one place. Wrapped in a transaction so direct callers
   # are safe; nested calls join the surrounding transaction.
-  def admit(user, role:)
+  # granted_by: audit provenance only (G) — the inviter, when an invitation
+  # acceptance is what created the membership. Never affects admission logic.
+  def admit(user, role:, granted_by: nil)
     transaction do
       lock!
       raise NotAdmittableError unless admittable?
@@ -226,7 +228,7 @@ class Workspace < ApplicationRecord
         end
       else
         raise AtCapacity if memberships.kept.count >= max_members
-        memberships.create!(user: user, role: role)
+        memberships.create!(user: user, role: role, granted_by: granted_by)
       end
     end
   end

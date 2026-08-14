@@ -261,7 +261,7 @@ class Invitation < ApplicationRecord
     # discarded-reactivation, and :shared-posture role reconciliation all live
     # in Workspace#admit so the open-link self-join flow (Reshape 2) shares
     # identical semantics.
-    invitable.admit(user, role: role)
+    invitable.admit(user, role: role, granted_by: invited_by)
   end
 
   def accept_project_invitation!(user)

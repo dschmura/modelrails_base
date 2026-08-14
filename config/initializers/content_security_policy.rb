@@ -10,7 +10,16 @@ Rails.application.configure do
     policy.font_src    :self, :data
     policy.img_src     :self, :data, :blob, "https://www.gravatar.com"
     policy.object_src  :none
-    policy.script_src  :self, "https://cdn.jsdelivr.net"
+    # cdn.jsdelivr.net is allowed in DEVELOPMENT ONLY, mirroring the dev-only
+    # chart.js pin in config/importmap.rb (the Lookbook catalog) — the two
+    # lines must move together. Production and test run script-src 'self':
+    # a CDN-pinned module in production fails as a silent module-load error
+    # (the lazy import() rejects, the feature does nothing) — and because
+    # test enforces CSP (PR #120) and carries no dev allowance, a production
+    # CDN pin fails the suite before it ships. This env conditional gates
+    # DIRECTIVE CONTENTS, not enforcement mode — see the warning at the
+    # bottom of this file, which is about the latter.
+    policy.script_src(*[ :self, ("https://cdn.jsdelivr.net" if Rails.env.development?) ].compact)
     policy.style_src   :self, :unsafe_inline
     policy.connect_src :self
     policy.frame_src   :none
