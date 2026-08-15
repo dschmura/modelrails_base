@@ -65,9 +65,6 @@ RSpec.describe "Account Notifications", type: :request do
       recipient.notifications.reload.last
     end
 
-    # Matches the dom_id pattern used by the placeholder index view (Task 12
-    # will swap to a per-row partial that may use a different identifier
-    # shape; if so, update this helper).
     def dom_id_fragment(notification)
       "id=\"#{ActionView::RecordIdentifier.dom_id(notification)}\""
     end
