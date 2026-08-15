@@ -18,7 +18,6 @@ en:
       show:
         members: "Members"
         edit: "Edit"
-        invite: "Invite"
       edit:
         title: "Edit project"
         name_label: "Project name"

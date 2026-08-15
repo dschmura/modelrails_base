@@ -12,9 +12,15 @@
       title: t("pages.contact.methods.title"),
       bg: "bg-surface" do %>
   <div class="grid sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
+    <%# The address key is also bin/fork's support-email substitution target
+        (#549) — rendering it here means a fork's swapped-in address is
+        actually VISIBLE on the contact page (it previously existed only as
+        fork machinery and never displayed, which is how #522's unused scan
+        almost deleted it). %>
     <%= render "shared/feature_card",
           title: t("pages.contact.methods.email.title"),
-          description: t("pages.contact.methods.email.description") %>
+          description: t("pages.contact.methods.email.description",
+                         address: t("pages.contact.methods.email.address")) %>
     <%= render "shared/feature_card",
           title: t("pages.contact.methods.bugs.title"),
           description: t("pages.contact.methods.bugs.description") %>
