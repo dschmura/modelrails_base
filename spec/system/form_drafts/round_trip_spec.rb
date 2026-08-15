@@ -74,6 +74,32 @@ RSpec.describe "Form draft round trip", type: :system do
     within("#harness-main") { expect(page).to have_text(I18n.t("form_draft.notice")) }
   end
 
+  it "announces honestly when hidden-backed (rich text) content cannot be restored" do
+    # #479: simulate a Lexxy-style editor — content lives in a hidden input
+    # with no visible sibling. The draft captures it (hidden values are
+    # serialized by design), but recover() can never write it back, and the
+    # announcement must say so instead of reporting a clean restore while the
+    # longest content on the page silently stays empty.
+    visit "/draft_harness"
+    page.execute_script(<<~JS)
+      document.querySelector("#harness-main").insertAdjacentHTML("beforeend",
+        '<input type="hidden" name="draft[rich_body]" value="the whole document">')
+    JS
+    fill_in "Title", with: "honest announcements"
+    wait_for_draft("harness-main")
+
+    visit "/draft_harness"
+    page.execute_script(<<~JS)
+      document.querySelector("#harness-main").insertAdjacentHTML("beforeend",
+        '<input type="hidden" name="draft[rich_body]" value="">')
+    JS
+    within("#harness-main") { click_button I18n.t("form_draft.recover") }
+
+    status = find('#harness-main [data-form-draft-target="status"]', visible: :all)
+    expect(status).to have_text("Rich text content was not restored", wait: 3)
+    expect(status).to have_text("Draft restored")
+  end
+
   it "dispatches input/change on recovered fields (sibling resync contract)" do
     visit "/draft_harness"
     fill_in "Title", with: "Events"

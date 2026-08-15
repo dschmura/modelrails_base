@@ -132,7 +132,7 @@ running app. Your fork inherits it.
 
 ### UI
 - All text via I18n locale files (no hardcoded strings)
-- WCAG 2.2 AAA contrast ratios
+- WCAG 2.2 AAA, enforced by an automated axe-core gate in both themes (scope honestly documented in [/docs/developer/accessibility](https://github.com/dschmura/modelrails_base/blob/main/app/docs/developer/accessibility.md))
 - Skip-to-content link, semantic HTML landmarks
 - 44px minimum touch targets on interactive elements
 - Dark mode support throughout
