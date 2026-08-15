@@ -1,8 +1,8 @@
 module OauthHelper
-  PROVIDER_CONFIG = {
-    google_oauth2: { name: "Google", icon: "google" },
-    github: { name: "GitHub", icon: "github" }
-  }.freeze
+  # Reads the one provider registry (config/initializers/
+  # 0_oauth_provider_registry.rb) so buttons, OmniAuth wiring, and the CSP
+  # form_action can never drift apart (#312).
+  PROVIDER_CONFIG = Rails.application.config.x.oauth_providers
 
   def enabled_oauth_providers
     PROVIDER_CONFIG.select do |provider_key, _config|
