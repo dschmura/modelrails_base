@@ -70,7 +70,7 @@ RSpec.describe "Mutating controller actions authorize or are allow-listed" do
   # auth-entry flow (no signed-in user to authorize) or scoped entirely to
   # Current.user's own resources (no cross-user/tenant surface). Adding to this
   # list is a deliberate, reviewed decision.
-  ALLOW_LIST = %w[
+  allow_list = %w[
     direct_uploads#create
     email_verification_resends#create
     invitation_accepts#create
@@ -115,7 +115,7 @@ RSpec.describe "Mutating controller actions authorize or are allow-listed" do
     unauthorized = AuthorizationAudit.mutating_actions.reject do |key|
       controller, action = key.split("#")
       source = File.read(AuthorizationAudit.controller_path(controller))
-      AuthorizationAudit.action_authorized?(source, action) || ALLOW_LIST.include?(key)
+      AuthorizationAudit.action_authorized?(source, action) || allow_list.include?(key)
     end
 
     expect(unauthorized).to be_empty, <<~MSG
@@ -125,7 +125,7 @@ RSpec.describe "Mutating controller actions authorize or are allow-listed" do
 
       A state-changing action on a tenant/other-user resource must call Pundit's
       `authorize`. If the action is genuinely public or acts only on the current
-      user's own resources, add it to ALLOW_LIST in this spec with that rationale.
+      user's own resources, add it to allow_list in this spec with that rationale.
     MSG
   end
 
