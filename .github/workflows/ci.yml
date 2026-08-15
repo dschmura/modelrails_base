@@ -224,10 +224,14 @@ jobs:
           retention-days: 7
 
       - name: Package shard results for the merge job
+        # The resultset is RENAMED on the way out: upload-artifact excludes
+        # hidden files by default, so `.resultset.json` silently vanished
+        # from the artifact on this PR's first run while its visible
+        # siblings uploaded fine (coverage_merge caught it: found 0/2).
         if: always()
         run: |
           mkdir -p tmp/shard_out
-          cp coverage/.resultset.json tmp/shard_out/ 2>/dev/null || true
+          cp coverage/.resultset.json tmp/shard_out/resultset.json 2>/dev/null || true
           cp tmp/shard_files.txt tmp/shard_out/ 2>/dev/null || true
           cp tmp/parallel_runtime_rspec.log tmp/shard_out/ 2>/dev/null || true
 
