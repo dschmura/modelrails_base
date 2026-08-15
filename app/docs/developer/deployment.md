@@ -8,7 +8,7 @@ keywords: kamal deploy production sqlite solid queue max-replicas stop_wait_time
 
 This template ships with **Kamal** for zero-downtime container deploys to your own server(s). Most of the configuration follows standard Kamal + Rails 8 conventions; this page covers the non-obvious parts that exist *because* this template defaults to SQLite + Solid Queue in-process.
 
-> **Design rationale:** the topology decisions on this page came out of an Ops panel review (Rosa Gutiérrez, Donal McBreen, Aaron Patterson, Nick Janetakis). Full design record at [docs/superpowers/specs/2026-05-18-devcontainer-dockerfile-cleanup-design.md](https://github.com/dschmura/modelrails_base/blob/main/docs/superpowers/specs/2026-05-18-devcontainer-dockerfile-cleanup-design.md).
+> **Design rationale:** the topology decisions on this page came out of an Ops panel review (Rosa Gutiérrez, Donal McBreen, Aaron Patterson, Nick Janetakis).
 
 ## The SQLite-on-Rails constraint
 

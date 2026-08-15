@@ -6,8 +6,7 @@ require "yaml"
 # default the template ships propagates into every downstream fork.
 #
 # This spec asserts the structural invariants that came out of the 8-reviewer
-# panel review on 2026-05-18 (see docs/superpowers/specs/2026-05-18-devcontainer-
-# dockerfile-cleanup-design.md). Each invariant catches a class of subtle
+# panel review on 2026-05-18. Each invariant catches a class of subtle
 # misconfiguration that would otherwise propagate silently to downstream apps:
 #
 #   - Ruby version drift between .tool-versions, Gemfile, Gemfile.lock, and
@@ -1183,7 +1182,7 @@ RSpec.describe "Template invariants" do
       expect(brand_at).not_to be_nil,
         "application.css must @import ./tokens/_brand.css so a fork's color overrides take effect"
       expect(brand_at).to be > primitives_at,
-        "_brand.css must be imported AFTER _primitives.css so a fork's overrides win the cascade (see docs/theming.md)"
+        "_brand.css must be imported AFTER _primitives.css so a fork's overrides win the cascade"
     end
   end
 

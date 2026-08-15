@@ -234,7 +234,7 @@ ModelRails targets **WCAG 2.2 Level AAA**:
 
 | Pattern | Implementation |
 |---------|---------------|
-| Touch targets | `--form-input-height` token (default 44px) drives `TailwindFormBuilder` inputs and the `.btn-touch-target` utility. Many existing partials still use the literal `min-h-[44px]` and migrate as touched — see `docs/design-system.md`. |
+| Touch targets | `--form-input-height` token (default 44px) drives `TailwindFormBuilder` inputs and the `.btn-touch-target` utility. Many existing partials still use the literal `min-h-[44px]` and migrate as touched. |
 | Focus indicators | The `focus-ring` utility (2px offset outline) consistently — never `focus:ring-*` box-shadows, which vanish in forced-colors mode |
 | Color contrast | Default interactive token is primary-800 (7.56:1 AAA on white). On workspace-branded routes, contrast varies by hue — see Workspace Branding caveat below. |
 | Skip navigation | `sr-only` link to `#main-content` at top of every page |
@@ -298,17 +298,3 @@ Dispatching a synthetic click to the gem's (hidden) button decouples the footer 
 - Two named `<nav>` landmarks allow screen readers to announce and skip clusters
 - Vertical and horizontal dividers are decorative (`aria-hidden` where needed)
 - All footer links and the Cookie settings button use `inline-flex items-center min-h-[44px] px-2` — meets WCAG 2.5.5 AAA (44×44 target size)
-
-## For contributors
-
-Deeper implementation guides for developers (not rendered to end users, live under `docs/` in the repo):
-
-- **Design system primitives:** `docs/design-system.md` — spacing tokens, component utilities (`.btn-touch-target`, `.btn-text*`, `.action-group`, `.page-container`), class ordering convention, migration recipe
-- **Design tokens & theming:** `docs/theming.md` — three-layer token architecture, OKLCH color mapping, workspace branding overrides
-- **Modal system:** `docs/modals.md` — native `<dialog>` integration, Stimulus controller internals, animation timing
-- **Toast system:** `docs/toasts.md` — pill vs. card routing, flash mapping, duration formula
-
-Additional contributor docs:
-
-- `docs/deployment.md` — Kamal + SSL configuration
-- `docs/superpowers/specs/` and `docs/superpowers/plans/` — feature design docs and implementation plans

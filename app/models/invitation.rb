@@ -280,8 +280,8 @@ class Invitation < ApplicationRecord
 
   def accept_project_invitation!(user)
     # A discarded project is unacceptable — the same generic NotAcceptable the
-    # workspace and client paths raise (was ActiveRecord::RecordInvalid). Checked
-    # first so a dead project never grants a workspace membership as a side effect.
+    # workspace and client paths raise. Checked first so a dead project never
+    # grants a workspace membership as a side effect.
     raise NotAcceptable, "Invitation no longer acceptable" unless invitable.kept?
 
     workspace = invitable.workspace
