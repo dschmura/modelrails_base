@@ -101,8 +101,12 @@ jobs:
       - name: Check ERB templates
         run: bundle exec rake erb:check
 
-  # Two-shard test matrix (#495): the Run tests step alone was ~11:40 of a
-  # ~13 min job, and standard runners are free on a public repo. Each shard
+  # Eight-shard test matrix (#495): the Run tests step alone was ~11:40 of a
+  # ~13 min job, and standard runners are free on a public repo (8 shards +
+  # 6 other jobs = 14 of the 20-concurrent allowance). Wall-clock model:
+  # ~95s fixed per shard + ~660s of spec work / N + ~70s merge tail — N=2
+  # measured 6:53/shard; N=8 targets ~4 min total, near the ~3 min floor set
+  # by fixed overhead, so more shards buy little beyond this. Each shard
   # takes a runtime-balanced half of the spec files (split computed by
   # bin/parallel-rspec from the split_seed snapshot, so every shard sees
   # IDENTICAL input — a live log diverges), keeps 4 in-job workers, and runs
@@ -145,14 +149,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [0, 1]
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
     env:
       RAILS_ENV: test
       CI: true
       # Pin workers to the runner's 4 vCPUs (deterministic split + DB count).
       PARALLEL_TEST_PROCESSORS: "4"
       CI_SHARD_INDEX: ${{ matrix.shard }}
-      CI_SHARD_TOTAL: "2"
+      CI_SHARD_TOTAL: "8"
       SHARD_RUNTIME_SOURCE: tmp/runtime_seed.log
 
     steps:
@@ -209,7 +213,7 @@ jobs:
           restore-keys: |
             parallel-runtime-
 
-      - name: Run tests (shard ${{ matrix.shard }} of 2)
+      - name: Run tests (shard ${{ matrix.shard }} of 8)
         # Shard slice + in-shard parallel suite + per-shard example-count
         # parity. The merged 90% coverage floor is enforced once, across all
         # shards, in coverage_merge — see bin/parallel-rspec.
@@ -265,7 +269,9 @@ jobs:
           path: tmp/shards/
 
       - name: Merge shards — union parity, 90% coverage floor, runtime log
-        run: bin/ci-coverage-merge tmp/shards
+        # bundle exec: CI's gems live in vendor/bundle (bundler-cache), so a
+        # bare ruby script can't require simplecov (run 2's LoadError).
+        run: bundle exec bin/ci-coverage-merge tmp/shards
 
       - name: Upload merged coverage report
         uses: actions/upload-artifact@v7
