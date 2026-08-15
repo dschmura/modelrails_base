@@ -1,7 +1,6 @@
 en:
   pages:
     home:
-      title: "Welcome to ModelRails"
       hero:
         title: "Build your SaaS faster"
         subtitle: "A production-ready Rails 8.1 starter kit with authentication, workspaces, projects, and real-time collaboration built in."
@@ -33,7 +32,6 @@ en:
         subtitle: "Get started in minutes with a foundation that scales."
         button: "Create your account"
     about:
-      title: "About ModelRails"
       hero:
         title: "About ModelRails"
         subtitle: "A multi-tenant SaaS starter kit that lets you focus on what makes your app unique."
@@ -109,12 +107,11 @@ en:
         title: "Contact methods"
         email:
           title: "Email"
-          description: "For general inquiries and support."
+          description: "For general inquiries and support, write to %{address}."
           address: "support@example.com"
         bugs:
           title: "Bug reports"
           description: "Found a bug? Report it on GitHub."
-          link_text: "Open an issue"
       community:
         title: "Community"
         github:
