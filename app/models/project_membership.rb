@@ -9,12 +9,8 @@ class ProjectMembership < ApplicationRecord
   validates :user_id, uniqueness: { scope: :project_id }
   validate :user_is_workspace_member, on: :create
 
-  # Notify the affected user when they're added to a project or when their
-  # role on an existing project membership changes. We register these as two
-  # separate after_*_commit callbacks; using symbol form for both
-  # (e.g. `after_create_commit :notify_x` + `after_update_commit :notify_x,
-  # if: ...`) trips ActiveSupport's callback de-duplication and silently
-  # collapses them. Lambda form keeps each registration unique.
+  # Lambda form (not symbols) — symbol form trips ActiveSupport's callback
+  # de-duplication; see Broadcastable's note on this.
   after_create_commit -> { notify_project_membership_changed }
   after_update_commit -> { notify_project_membership_changed }, if: :saved_change_to_role?
 

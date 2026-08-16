@@ -1,7 +1,7 @@
 ---
 title: Architecture
 description: Data model, authorization, and real-time patterns in ModelRails
-keywords: models workspace project resource membership pundit authorization turbo streams multi-tenancy client clientside project-tools
+keywords: models workspace project resource membership pundit authorization turbo streams multi-tenancy client clientside project-tools sqlite wal single-writer concurrency race capacity owner invariant sweep retention activity log audit postgres
 ---
 
 # Architecture
@@ -50,9 +50,37 @@ Authorization is opt-in per action (there is no global `verify_authorized`), but
 
 The `Clientside::` controller namespace is a distinct, authenticated access axis that never sets `Current.workspace` and is never covered by workspace Pundit policies. Project resolution in that namespace is gated on a kept `ClientAccess` record — slug knowledge alone grants nothing. See the [Security](/docs/developer/security) page for the full threat model.
 
+## Concurrency: SQLite's Single Writer as a Race-Safety Net
+
+The template runs on single-host SQLite in WAL mode. WAL admits many concurrent readers but still exactly **one writer at a time** — every write transaction is serialized by a database-level writer lock. Two consequences shape how multi-row invariants are enforced:
+
+- **Lock-then-guard is atomic.** Rails 8.1's SQLite adapter opens write transactions with `BEGIN IMMEDIATE`, taking the writer lock *before* the first read. So a `transaction { lock!; guard; mutate }` block is genuine check-then-act, not a TOCTOU window. (One adapter quirk: `lock!` raises on records with unsaved changes, so these guarded mutators require clean records.)
+- **Row-level `lock!` is not a cross-connection lock.** SQLite locks are per-connection, so `workspace.lock!` in a pre-flight validation is silently a no-op against a racing connection. Pre-flight checks therefore exist for their *user-facing error message*, not for safety. The safety comes from re-checking the invariant **after** the write, inside the same transaction: by that point the database's writer lock has already serialized the transaction against any racer, so a `COUNT`/`EXISTS` there reflects committed state — including a racer that slipped in first. If the invariant is broken, the check raises and the whole transaction rolls back.
+
+Three kinds of sites lean on this property:
+
+- **Capacity checks** — `Membership`'s pre-flight validator produces the friendly error; an `after_create` invariant check inside the create transaction is the net that actually prevents over-capacity under concurrency.
+- **Last-owner / owner-floor checks** — deactivating, demoting, or transferring away a workspace's owner re-counts remaining kept owners *after* the mutation and rolls back if none remain. Ownership transfer additionally uses an atomic conditional `UPDATE` (demote only if still owner; zero affected rows → abort before promoting the target), so a racing transfer can never leave a workspace with two owners.
+- **Sweep jobs** — `ExpiredSessionsSweepJob`, `WebauthnChallengesSweepJob`, `NotificationCleanupJob`, and `ActivityLogRetentionSweepJob` all `delete_all` in batches of ~100. A large one-shot delete would hold the single writer lock for seconds and block interactive writes (sign-ins, incoming notifications); per-batch transactions release the lock between rounds, capping any single stall. The swept tables have no destroy callbacks or `dependent:` cascades, so `delete_all` is behavior-identical to `destroy_all` and instantiates nothing.
+
+**A fork moving to Postgres must revisit all of this.** The assumptions invert: `SELECT … FOR UPDATE` (`lock!`) becomes a real cross-connection lock — so the pre-flight lock-then-check patterns become load-bearing — while the after-write re-checks *lose* their guarantee, because under `READ COMMITTED` concurrent transactions don't see each other's uncommitted rows and two racers can both pass an in-transaction `COUNT`. Carry each invariant with an explicit mechanism instead: row locks on the parent workspace, database constraints, or advisory locks. The batched sweeps remain harmless on Postgres, just no longer necessary for writer-lock latency.
+
 ## Activity Tracking
 
 The `Trackable` concern auto-creates `ActivityLog` records via `after_commit` callbacks. Models opt in with `include Trackable`. Sensitive attributes (tokens, passwords) are stripped from metadata.
+
+**The trail is best-effort by design.** Activity writes rescue and log rather than ever failing the business operation they describe, so the log is an operational/product feature — not compliance-grade evidence. Rows are read-only once persisted (#604), and relation-level writes are fenced by `spec/code_smells/activity_log_immutability_spec.rb`.
+
+**Retention is bounded at 12 months** by `ActivityLogRetentionSweepJob` (#438). Bounded retention is the honest guarantee: keeping a best-effort trail forever would make the system's behavior contradict its own contract — exactly what a fork owner would misread as compliance evidence. An unbounded high-write table on single-host SQLite is also a backup/`VACUUM` problem discovered at the worst possible time. The sweep is the one documented door through the immutability guarantee — it is registered, with its reason, in the immutability spec's `allowed_bypasses`. A regulated fork that needs longer retention changes one line (`RETENTION_WINDOW`); a fork promoting the trail to compliance-grade must also move the activity write *inside* the business transaction so it can no longer be silently dropped.
+
+## Owner Lookup
+
+`Workspace#owner` returns a single owning user and deliberately uses `detect` over `memberships` (not `joins` + `find_by`) so it works from preloaded associations without a per-row query in list views.
+
+`Workspace#owners` returns **all** users currently holding a kept owner-role membership — used by the capacity-approaching sweep to alert every owner, and by any ownership-management UI that needs the full roster. It has a two-path implementation to avoid an N+1 without introducing staleness:
+
+- **Association already loaded** (the workspaces index preloads `memberships: [:role, { user: … }]`): filter the in-memory array — zero extra queries per row. This is the hot path: `MembershipPolicy#destroy?` calls `.owners.size` on every Leave-button render.
+- **Association not loaded** (notifier recipient resolution after a membership mutation): issue a fresh narrow query. Those notifiers run right after mutations that change the owner roster, so a cached array can't be trusted — the query guarantees the latest committed state.
 
 ## Real-Time
 

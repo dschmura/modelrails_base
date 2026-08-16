@@ -334,6 +334,14 @@ Key extension points:
 
 See [Clientside](/docs/user/clientside) for the full configuration and usage guide.
 
+## AI tooling: bring your own
+
+The template ships **no AI-agent configuration** — no `CLAUDE.md`, no `.cursorrules`, no `agent-os/`, nothing. This is a policy, not an omission: AI tooling is a per-developer choice layered onto a fork, not something a fork inherits. An agent-config file committed to the template becomes unexplainable cruft — or worse, doctrine — in every downstream fork, whose own test suite would then be enforcing another developer's tooling choices.
+
+The boundary is enforced by a template invariant in `spec/code_smells/template_invariants_spec.rb`: the suite fails if any AI-agent configuration file (`CLAUDE.md`, `AGENTS.md`, `.claude/`, `.cursorrules`, `.aider`, and similar) becomes tracked in git. If you use AI assistance, keep your agent's configuration local via `.git/info/exclude`, which ignores files without touching the tracked `.gitignore`.
+
+In your own fork you set the policy. If you want agent configuration to ship with your app, extend (or delete) the pattern in that invariant — with a comment saying why — and commit your setup like any other file.
+
 ## Next steps
 
 - **[Architecture](/docs/developer/architecture)** — the request flow, tenancy model, and key directories your new code plugs into.
