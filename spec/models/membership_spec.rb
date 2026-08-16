@@ -175,9 +175,7 @@ RSpec.describe Membership, type: :model do
 
   describe "max_members enforcement" do
     it "prevents exceeding max_members" do
-      # Create a workspace with max_members: 2
-      # The workspace factory does not auto-create memberships,
-      # so we manually create 2 memberships then try a third.
+      # The workspace factory does not auto-create memberships.
       workspace = create(:workspace, max_members: 2)
       create(:membership, :owner, workspace: workspace)
       create(:membership, workspace: workspace)

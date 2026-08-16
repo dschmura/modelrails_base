@@ -823,8 +823,6 @@ RSpec.describe Invitation, type: :model do
     end
 
     it "accept! raises NotAcceptable when Clientside is disabled (undiscard bypass)" do
-      # Arrange: an existing discarded ClientAccess for the user on the project,
-      # then Clientside is toggled off. The undiscard path must not succeed.
       inv = Invitation.invite_client!(project: project, email: "dana@bigco.com",
                                       company_name: "BigCo", invited_by: inviter)
       client = create(:user, :with_zero_workspaces, email_address: "dana@bigco.com")

@@ -151,10 +151,6 @@ class User < ApplicationRecord
     factors
   end
 
-  # The email-change state machine (initiate/confirm/cancel) lives in
-  # Users::EmailChange. The pending_email* columns and their validations stay
-  # here; the transitions moved out (DES-1).
-
   # Browser-fingerprint heuristic for the new-device sign-in detector.
   # Digest is intentionally coarse (version-stripped — see .browser_digest) so
   # the same browser/OS combo across UA version bumps still matches "seen".

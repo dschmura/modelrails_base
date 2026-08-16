@@ -395,8 +395,6 @@ RSpec.describe ApplicationNotifier, type: :notifier do
   end
 
   describe ".notification_types_for" do
-    # Reference both stubs explicitly so autoload runs and they appear in
-    # ApplicationNotifier.descendants.
     before do
       _ = StubAccountAccessNotifier
       _ = StubSecurityNotifier

@@ -74,8 +74,6 @@ export default class extends Controller {
     }
   }
 
-  // Private
-
   handleCancel(event) {
     event.preventDefault()
     try {

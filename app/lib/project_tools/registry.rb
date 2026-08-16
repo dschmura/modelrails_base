@@ -37,7 +37,6 @@ module ProjectTools
       implemented
     end
 
-    # String keys (JSON-friendly) of the tools enabled by default on a new project.
     def default_keys
       implemented.select(&:default_enabled?).map { |t| t.key.to_s }
     end

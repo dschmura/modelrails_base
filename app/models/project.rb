@@ -109,7 +109,6 @@ class Project < ApplicationRecord
     workspace
   end
 
-  # Slugs are unique within a workspace, not globally
   def slug_taken?(candidate)
     return false unless workspace
     workspace.projects.where.not(id: id).exists?(slug: candidate)
