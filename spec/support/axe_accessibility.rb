@@ -2,10 +2,8 @@
 
 # Accessibility testing helper using axe-core. Injects axe-core JavaScript and
 # runs accessibility audits. Drives Chrome through the Ferrum/CDP helpers
-# (CdpHelpers, `page.driver.browser`) — the pure-Ruby CDP path — rather than
-# Playwright. The module name is kept as PlaywrightAccessibility for now to
-# avoid churn across the many specs that include it.
-module PlaywrightAccessibility
+# (CdpHelpers, `page.driver.browser`) — the pure-Ruby CDP path.
+module AxeAccessibility
   AXE_SOURCE = Axe::Configuration.instance.jslib.freeze
 
   # Selectors excluded from axe checks by default. These mark UI surfaces with
@@ -492,7 +490,7 @@ module PlaywrightAccessibility
 end
 
 RSpec.configure do |config|
-  config.include PlaywrightAccessibility, type: :system
+  config.include AxeAccessibility, type: :system
 
   # Automatically audit every system spec, everywhere — not just CI.
   #
@@ -570,7 +568,7 @@ RSpec.configure do |config|
       # dark-only contrast bug sat on main under a green CI.
       violations = %w[light dark].flat_map do |theme|
         set_theme(theme)
-        results = run_axe_audit(PlaywrightAccessibility::DEFAULT_AXE_OPTIONS.dup)
+        results = run_axe_audit(AxeAccessibility::DEFAULT_AXE_OPTIONS.dup)
         (results["violations"] || []).map { |v| v.merge("themeContext" => theme) }
       end
 
