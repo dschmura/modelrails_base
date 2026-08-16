@@ -162,7 +162,7 @@ group :development do
   # (.modelrails_ui/ + a CLAUDE.md import — kept local, like CLAUDE.md itself).
   # v0.7.1 content pinned by SHA (release commit ef1170c; the v0.7.1 tag isn't
   # pushed yet) — swap `ref:` for `tag: "v0.7.1"` once the tag exists.
-  gem "modelrails_ui", git: "https://github.com/dschmura/modelrails_ui.git", ref: "ef1170c"
+  gem "modelrails_ui", git: "https://github.com/dschmura/modelrails_ui.git", ref: "d9d9885"
 
   # Living documentation / component explorer for the vendored UI::* components
   # (scaffolded by `rails g modelrails_ui:lookbook`). Mounted at /lookbook in
