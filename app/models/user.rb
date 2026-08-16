@@ -196,7 +196,7 @@ class User < ApplicationRecord
   end
 
   # Returns { notifier_class_name => unread_count, ... } for the user.
-  # Used by NotificationBellHelper to compute count and severity in one DB hit.
+  # Used by UnreadNotificationSummary to compute count and severity in one DB hit.
   def unread_notification_breakdown
     notifications
       .where(read_at: nil)

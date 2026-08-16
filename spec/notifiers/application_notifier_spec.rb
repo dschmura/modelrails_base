@@ -239,6 +239,40 @@ RSpec.describe ApplicationNotifier, type: :notifier do
     end
   end
 
+  describe "#deliver_email_now?" do
+    # The single email gate used by every `deliver_by :email` before_enqueue
+    # hook. Encapsulates the tri-state contract of recipient_pref(:email):
+    # only a literal `true` means "send the instant email now" — both `false`
+    # (opted out / DND) and the `:digest` sentinel (queued for the digest
+    # pipeline) must abort the immediate send.
+    let(:user) { create(:user) }
+    let!(:prefs) { create(:user_preferences, user: user) }
+
+    it "is true when the recipient's email preference resolves to instant delivery" do
+      StubAccountAccessNotifier.with(record: user).deliver(user)
+      notification = user.notifications.last
+      expect(notification.deliver_email_now?).to be true
+    end
+
+    it "is false when the email preference denies (DND on for non-security)" do
+      prefs.update!(notification_preferences:
+        prefs.notification_preferences.merge("quiet_hours" => { "enabled" => true, "start" => "00:00", "end" => "23:59", "allow_urgent" => true }))
+      StubAccountAccessNotifier.with(record: user).deliver(user)
+      notification = user.notifications.last
+      expect(notification.deliver_email_now?).to be false
+    end
+
+    it "is false when the preference resolves to the :digest sentinel (non-instant frequency)" do
+      np = prefs.notification_preferences.deep_dup
+      np["delivery_methods"]["email"]["frequency"] = "daily"
+      prefs.update!(notification_preferences: np)
+      StubAccountAccessNotifier.with(record: user).deliver(user)
+      notification = user.notifications.last
+      expect(notification.recipient_pref(:email)).to eq(:digest)
+      expect(notification.deliver_email_now?).to be false
+    end
+  end
+
   describe "#preferences_for (missing-prefs fallback)" do
     # Regression spec for the centralized fallback: a user without a
     # UserPreferences row must wrap the schema-default JSONB blob, not a
