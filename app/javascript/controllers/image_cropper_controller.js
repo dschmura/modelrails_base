@@ -179,13 +179,23 @@ export default class extends Controller {
     }
     this._initialized = false
     this._baseTransform = null
-    // Clear the test-facing ready signal so a subsequent re-init has to
-    // re-publish it. Without this, a wait_for_crop_view assertion right
-    // after _destroy would pass spuriously against the previous run's
-    // attribute. Published on the controller's own element so the test
-    // selector `[data-controller~='image-cropper'][data-image-cropper-ready='true']`
-    // matches a single element.
-    this.element.removeAttribute("data-image-cropper-ready")
+    this._publishReady(false)
+  }
+
+  // Test-facing ready signal — wait_for_crop_view asserts on this so the test
+  // budget is decoupled from the bare cropper-canvas DOM element (which
+  // appears earlier, before listeners + base transform are set up). Published
+  // on the controller's own element so the test selector
+  // `[data-controller~='image-cropper'][data-image-cropper-ready='true']`
+  // matches a single element. _destroy clears it so a subsequent re-init has
+  // to re-publish — otherwise a wait_for_crop_view assertion right after
+  // _destroy would pass spuriously against the previous run's attribute.
+  _publishReady(ready) {
+    if (ready) {
+      this.element.setAttribute("data-image-cropper-ready", "true")
+    } else {
+      this.element.removeAttribute("data-image-cropper-ready")
+    }
   }
 
   async _initCropper() {
@@ -233,14 +243,7 @@ export default class extends Controller {
     }
 
     this._initialized = true
-
-    // Test-facing ready signal — wait_for_crop_view asserts on this so the
-    // test budget is decoupled from the bare cropper-canvas DOM element
-    // (which appears earlier, before listeners + base transform are set
-    // up). Set on the controller's own element so the test selector
-    // `[data-controller~='image-cropper'][data-image-cropper-ready='true']`
-    // matches one element. Cleared in _destroy().
-    this.element.setAttribute("data-image-cropper-ready", "true")
+    this._publishReady(true)
 
     if (this.hasSliderTarget) {
       this.sliderTarget.value = 0
