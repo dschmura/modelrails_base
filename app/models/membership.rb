@@ -79,6 +79,14 @@ class Membership < ApplicationRecord
       .sorted_by(sort, direction)
   }
 
+  # Kept owner-role memberships in the workspace, excluding the given
+  # membership id — "are there OTHER owners besides this one?".
+  def self.other_kept_owners(workspace_id, excluding:)
+    kept.joins(:role)
+        .where(workspace_id: workspace_id, roles: { slug: "owner" })
+        .where.not(id: excluding)
+  end
+
   def change_role!(new_role)
     demoting_owner = role.slug == "owner" && new_role.slug != "owner"
     transaction do
@@ -251,21 +259,10 @@ class Membership < ApplicationRecord
     WorkspaceMemberAddedNotifier.with(record: self).deliver(nil)
   end
 
-  # True when at least one OTHER kept owner-role membership exists in the
-  # workspace at the moment of after_create_commit. The `where.not(id: id)`
-  # self-exclusion is load-bearing: it ensures the very first owner being
-  # seeded (User#create_personal_workspace, bootstrap) is not treated as
-  # having a pre-existing owner. The method name surfaces this — "OTHER
-  # owners" — so a future reader of the `if:` callback option immediately
-  # understands that self-exclusion is the contract, not an accident.
-  # Owners-from-other-workspaces are correctly excluded by the workspace_id scope.
+  # Self-exclusion is the contract: the very first owner being seeded
+  # (User#create_personal_workspace, bootstrap) must not count as a pre-existing owner.
   def workspace_has_other_owners?
     return false if workspace_id.blank?
-    Membership.kept
-      .joins(:role)
-      .where(workspace_id: workspace_id)
-      .where(roles: { slug: "owner" })
-      .where.not(id: id)
-      .exists?
+    Membership.other_kept_owners(workspace_id, excluding: id).exists?
   end
 end
