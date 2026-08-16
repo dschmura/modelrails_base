@@ -1,7 +1,7 @@
 ---
 title: Application Flows
 description: A builder's guide to the app's core journeys for developers and designers extending the template — clean wireframes paired with full-size prose explaining the why (the framework decision, seam, or guarantee) behind each screen, on a domain-model primer.
-keywords: wireframes flows builder guide developers designers why rationale model workspace membership role project tools clientside onboarding seam readable
+keywords: wireframes flows builder guide developers designers why rationale model workspace membership role project tools clientside onboarding seam readable signup invitation join-link exception contract email-mismatch capacity oauth verification new-device best-effort
 ---
 
 # Application Flows
@@ -252,6 +252,57 @@ Five concepts the flows plug into — knowing these is usually enough to avoid f
 - **Invite a client** — Reuses the hardened invitation path (`accept!` / `consume!` with the `EmailMismatch` guard) but creates a `ClientAccess`, not a `Membership`.
 - **Client area** — `ClientAccess` is a separate axis: clients consume no seat, never enter Pundit workspace policies, and the area never sets `Current.workspace`. They see only shared-and-published items.
 </details>
+
+## The signup & join contract, precisely
+
+Flows 1 and 4 above show the screens; this section is the behavioral contract behind them — what commits together, which failures are silent, and which exceptions mean what. The code lives in `Signupable` (`app/controllers/concerns/signupable.rb`), `Authenticatable`, and `Authentication`.
+
+### One transaction, typed outcomes
+
+`Signupable#commit_signup_atomically` runs user creation, invitation acceptance, and open-link join in a **single transaction**. The caller's block receives the saved user and performs any in-transaction work (creating authentications, generating verification tokens). The method returns `true` on commit and `false` on every handled failure — so a failed signup never leaves an orphaned user, a half-claimed invitation, or a membership without its user.
+
+The exception matrix:
+
+| Exception | Meaning | Handling |
+| --- | --- | --- |
+| `Invitation::NotAcceptable` | Invitation raced to consumed/expired | Roll back; clear the parked session token; `flash.now[:alert]`; return `false` |
+| `ActiveRecord::RecordInvalid` | Model validation failure | Roll back; return `false` — caller reads `@user.errors` |
+| `Workspace::NotAdmittableError` | Workspace went archived/suspended/deleted mid-flight | Roll back; return `false` |
+| `Workspace::AlreadyMember` / `Workspace::AtCapacity` | Typed outcomes of `Workspace#admit` | Roll back; return `false` |
+| Anything else | A real bug | **Propagates** — never masked |
+
+Two details are load-bearing:
+
+- **`flash.now[:alert]` is set only on `Invitation::NotAcceptable`**, so callers can rely on `@user.errors` for model-validation failures without a competing generic alert.
+- **`NotAdmittableError` is the TOCTOU backstop** for a parked open-link join whose workspace goes non-admittable between the pre-check and `admit`'s locked re-check. Rescuing it the same as `RecordInvalid` means the whole signup rolls back cleanly instead of a raw exception aborting registration. Normal stale-workspace parked joins never reach it — the pre-check drops them first.
+
+On `NotAcceptable`, the parked token is cleared **outside** the rollback on purpose: session writes aren't transactional, so the delete persists even though the database rolls back. Without it, a retry would hit the same non-admittable state and reject forever. The invitation itself stays pending (`accept!` guards before marking it consumed), so it remains reclaimable via the emailed link.
+
+### Invitation claims and `EmailMismatch`
+
+`accept_pending_invitation!` consumes the session's parked invitation token; it's idempotent when no token is present. If the invitation was addressed to a **different email** than the one being registered (`Invitation::EmailMismatch`), the signup is *not* aborted — the claim is skipped, the token is dropped so it can't loop on retry, and a persistent flash (`flash[:alert]`, not `flash.now` — these callers redirect) tells the user why they weren't added to the invited workspace.
+
+### Join-link claims and the consent guard
+
+`accept_pending_join_link!` consumes the session's parked open-link token for a freshly signed-up, email-verified user. Its failure semantics are asymmetric by design:
+
+- **Stale-link conditions are silent no-ops** — revoked link, join policy reverted, workspace archived/suspended/deleted. A visitor who was never a member must not learn that a workspace is locked.
+- **`Workspace::AlreadyMember` is swallowed** as benign.
+- **`Workspace::AtCapacity` propagates** to `commit_signup_atomically`, which rolls the whole signup back — consistent with the invitation path.
+
+The **consent guard**: a brand-new account's signup is its own consent to join the link it followed. A *pre-existing* user, though, may be authenticating for an unrelated reason (e.g. linking a new verified OAuth provider) with a lured-in token riding their session — they are never silently force-joined. A still-valid token is left parked so the pending-join banner can offer an explicit Join / Dismiss; stale or consumed tokens are cleared.
+
+### Deferred claims on the unverified-OAuth path
+
+When an OAuth provider reports the email as unverified, the app refuses to auto-link or auto-verify; it creates a fresh user and parks both pending claims (invitation token, join-link digest) on the pending `Authentication` row, to be claimed when the user proves email ownership via the verification link. `Authentication#claim_pending_join_link!` then applies join-link semantics matching the signup path: stale-link conditions are silent no-ops (clear the digest and continue, so email verification is never blocked by a workspace whose join policy changed mid-flight, and a non-member learns nothing about its state), while capacity and already-member errors propagate for the caller to surface.
+
+The token is a **one-shot claim**: verification never retries, so once admission is attempted the digest is spent regardless of outcome. Clearing it lives in an `ensure` — deliberately *not* inside `admit`'s transaction — so a terminal failure like capacity rolls back the membership but does **not** resurrect the token.
+
+Note the guard this path deliberately *lacks*: unlike `Signupable#accept_pending_join_link!`, there is no newly-registered check. None is needed — the digest is parked only by the unverified-email OAuth handler, which always creates a fresh user and refuses to link an existing one (an account-takeover refusal). The claimer here is therefore never a pre-existing account at risk of a drive-by join.
+
+### Best-effort side work at sign-in
+
+New-device detection (`Authenticatable#detect_and_record_new_device`) runs once per `Session.create!` — exactly the moment recognized as "successful sign-in" — not on every authenticated request. It is best-effort: a database or queue hiccup must never break sign-in. Both writes it makes (the notifier's bulk insert, the browser-fingerprint `update_column`) go through ActiveRecord, and on this SQLite + Solid Queue stack even a "queue down" condition surfaces as an ActiveRecord error — so `ActiveRecord::ActiveRecordError` is the **only** class swallowed (and logged). A non-AR failure such as a `NoMethodError` is a real bug and propagates rather than being silently masked (#305). The config flag gates the *alert* only; fingerprint recording always runs, so detection history survives a fork toggling notifications off and on.
 
 ## Extending these flows
 
