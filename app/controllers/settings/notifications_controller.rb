@@ -43,7 +43,6 @@ module Settings
       redirect_to settings_notifications_path, notice: t("notifications.destroy.success")
     end
 
-    # GET /account/notifications/:id/open
     # Bell-dropdown click handler: marks the notification as read (idempotent)
     # and redirects to the notifier's `#url`. Each notifier subclass owns its
     # destination via `notification_methods do; def url; ...; end; end`.

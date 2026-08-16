@@ -1,7 +1,6 @@
 class OnboardingsController < ApplicationController
   skip_onboarding_requirement
 
-  # Single entry point: redirect to the user's derived step.
   def show
     return redirect_to(root_path) if Current.user.onboarded?
 
@@ -12,7 +11,6 @@ class OnboardingsController < ApplicationController
     end
   end
 
-  # "Skip for now" / finish: mark complete and land in the workspace.
   def update
     Current.user.update!(onboarded_at: Time.current) unless Current.user.onboarded?
 

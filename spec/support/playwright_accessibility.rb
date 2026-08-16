@@ -39,7 +39,6 @@ module PlaywrightAccessibility
     rules: AXE_RULE_OVERRIDES
   }.freeze
 
-  # Run axe accessibility audit on the current page.
   # `exclude` defaults to DEFERRED_AAA_EXCLUDES so tests don't fail on tracked
   # debt. Pass an explicit array (or `[]`) to override.
   #
@@ -355,22 +354,20 @@ module PlaywrightAccessibility
     result
   end
 
-  # Check if page has any accessibility violations
   def axe_clean?(options = {}, exclude: DEFERRED_AAA_EXCLUDES, include: nil)
     results = run_axe_audit(options, exclude: exclude, include: include)
     results["violations"].empty?
   end
 
-  # Get formatted violation messages. Color-contrast violations include the
-  # ancestor-chain / theme / animation debug payload captured by `run_axe_audit`.
+  # Color-contrast violations include the ancestor-chain / theme / animation
+  # debug payload captured by `run_axe_audit`.
   def axe_violations(options = {}, exclude: DEFERRED_AAA_EXCLUDES, include: nil)
     results = run_axe_audit(options, exclude: exclude, include: include)
     Array(results["violations"]).map { |v| format_violation(v) }
   end
 
-  # Render a single violation as a multi-line string. Color-contrast violations
-  # surface the diagnostic payload (`_debug` on each node) so the cascade and
-  # theme state at scan time are visible in CI logs.
+  # Color-contrast violations surface the diagnostic payload (`_debug` on each
+  # node) so the cascade and theme state at scan time are visible in CI logs.
   def format_violation(violation)
     id     = violation["id"].to_s
     help   = violation["help"]
@@ -419,8 +416,6 @@ module PlaywrightAccessibility
     lines.join("\n")
   end
 
-  # Run axe in both light and dark mode and AND the results.
-  # Returns true only when both passes have zero violations.
   def axe_clean_in_both_themes?(options = {}, exclude: DEFERRED_AAA_EXCLUDES, include: nil)
     ensure_light_mode
     light_clean = axe_clean?(options, exclude: exclude, include: include)
@@ -447,7 +442,6 @@ module PlaywrightAccessibility
     set_theme("light")
   end
 
-  # Force the document into dark mode.
   def ensure_dark_mode
     set_theme("dark")
   end

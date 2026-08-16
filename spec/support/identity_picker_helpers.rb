@@ -26,7 +26,6 @@ module IdentityPickerHelpers
   def open_identity_picker
     find("[data-controller='modal'] button[data-action*='modal#open']", match: :first).click
     expect(page).to have_css("dialog[open]", wait: 10)
-    # Wait for the hub turbo frame to load its content
     expect(page).to have_css("#identity-picker-hub [role='radiogroup']", wait: 10)
   end
 
@@ -38,9 +37,7 @@ module IdentityPickerHelpers
     within("#identity-picker-hub") do
       click_link title
     end
-    # Wait for the turbo frame to finish loading (Turbo removes [busy] when done)
     expect(page).to have_no_css("#identity-picker-hub[busy]", wait: 10)
-    # Wait for the selected source to be active
     expect(page).to have_css(
       "#identity-picker-hub a[aria-checked='true']", text: title, wait: 10
     )
