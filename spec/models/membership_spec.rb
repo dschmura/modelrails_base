@@ -433,6 +433,27 @@ RSpec.describe Membership, type: :model do
     end
   end
 
+  describe ".other_kept_owners" do
+    let(:workspace) { create(:workspace) }
+
+    it "returns kept owner-role memberships in the workspace excluding the given membership id" do
+      first_owner = create(:membership, :owner, workspace: workspace)
+      second_owner = create(:membership, :owner, workspace: workspace)
+
+      expect(Membership.other_kept_owners(workspace.id, excluding: first_owner.id))
+        .to contain_exactly(second_owner)
+    end
+
+    it "excludes discarded owners, non-owner roles, and owners of other workspaces" do
+      owner = create(:membership, :owner, workspace: workspace)
+      create(:membership, :owner, workspace: workspace).discard!
+      create(:membership, :admin, workspace: workspace)
+      create(:membership, :owner, workspace: create(:workspace))
+
+      expect(Membership.other_kept_owners(workspace.id, excluding: owner.id)).to be_empty
+    end
+  end
+
   # Wiring coverage: drive the model state change and assert the notifier
   # actually fires. The notifiers themselves are specced in spec/notifiers/;
   # without these, the after_*_commit registrations could be deleted and the

@@ -245,8 +245,11 @@ class User < ApplicationRecord
     case TenancyConfig.onboarding
     when :personal then create_personal_workspace
     when :shared   then join_shared_workspace
-    when :none     then nil # explicit: :none creates no workspace; the user's home is workspace-agnostic (see config/initializers/tenancy.rb)
+    when :none     then skip_workspace_creation
     end
+  end
+
+  def skip_workspace_creation
   end
 
   def create_personal_workspace

@@ -164,21 +164,7 @@ class Invitation < ApplicationRecord
   def accept!(user)
     transaction do
       lock!
-      raise NotAcceptable, "Invitation no longer acceptable" unless pending?
-      raise NotAcceptable, "Invitation no longer acceptable" if expired?
-      # Single choke point for the non-active-workspace gate: every
-      # acceptance path (direct accept controller, magic-link registration,
-      # OAuth signup, email-verification claim) funnels through accept!, so
-      # guarding here — rather than in any one controller — closes all of
-      # them at once. admittable? covers every non-active state (archived,
-      # deleted, suspended) and fails closed when resolved_workspace is nil.
-      # Reuses NotAcceptable's existing invalid/expired rejection copy
-      # rather than the locked_notice copy: an invitee must not learn the
-      # workspace is locked. This also makes Workspace#admit's own
-      # NotAdmittableError raise unreachable from invitation flows; that
-      # guard remains as a backstop for other admit callers (e.g. open-link
-      # self-join).
-      raise NotAcceptable, "Invitation no longer acceptable" unless resolved_workspace&.admittable?
+      guard_acceptable!
       if client_invite?
         accept_client_invitation!(user)
       elsif invitable_type == "Project"
@@ -246,6 +232,15 @@ class Invitation < ApplicationRecord
   end
 
   private
+
+  # Single choke point: every acceptance path funnels through accept!, so the
+  # workspace-admittability gate here closes them all at once — with the same
+  # generic copy as invalid/expired, so an invitee never learns a workspace is locked.
+  def guard_acceptable!
+    raise NotAcceptable, "Invitation no longer acceptable" unless pending?
+    raise NotAcceptable, "Invitation no longer acceptable" if expired?
+    raise NotAcceptable, "Invitation no longer acceptable" unless resolved_workspace&.admittable?
+  end
 
   def broadcast_target
     invitable_type == "Project" ? invitable.workspace : invitable
