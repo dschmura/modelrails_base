@@ -24,7 +24,6 @@ RSpec.describe "Client invite flow", type: :system do
     fill_in I18n.t("clientside.invitations.new.email_label"), with: "dana@bigco.com"
     fill_in I18n.t("clientside.invitations.new.company_label"), with: "BigCo"
     click_button I18n.t("clientside.invitations.new.submit")
-    # Wait for the redirect to the clientside edit page (Turbo navigates after redirect).
     expect(page).to have_text(I18n.t("clientside.invitations.sent"))
 
     invitation = Invitation.where(invitable: project).where.not(company_name: nil).last

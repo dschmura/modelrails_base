@@ -120,10 +120,8 @@ class NotificationPreferences
 
     cur = zone.now.strftime("%H:%M")
     if s <= e
-      # Same-day window: 09:00..17:00 → in-window if s <= cur < e
       cur >= s && cur < e
     else
-      # Overnight wrap: 22:00..07:00 → in-window if cur >= s OR cur < e
       cur >= s || cur < e
     end
   end

@@ -4,12 +4,6 @@
 # routes + views). `path_helper` is a project-scoped route helper the project
 # tab bar calls as `helper(workspace, project)`.
 #
-#   ProjectTools::Registry.register(
-#     key: :messages,
-#     path_helper: :workspace_project_messages_path,
-#     default_enabled: true
-#   )
-#
 # See app/docs/user/project-tools.md. The base template ships only :docs.
 Rails.application.config.to_prepare do
   ProjectTools::Registry.reset!

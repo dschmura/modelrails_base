@@ -94,7 +94,6 @@ class Invitation < ApplicationRecord
     sent = 0
     skipped = 0
 
-    # Preload existing members and pending invitations to avoid N+1 queries
     existing_members = workspace.memberships.kept.joins(:user)
       .pluck("LOWER(users.email_address)").to_set
     existing_invites = workspace.invitations.acceptable
@@ -323,7 +322,7 @@ class Invitation < ApplicationRecord
 
   def notify_accepted
     return if invited_by.blank?
-    return if invited_by == accepted_by  # don't ping the inviter for their own acceptance
+    return if invited_by == accepted_by
     WorkspaceInvitationAcceptedNotifier.with(record: self).deliver(invited_by)
   end
 

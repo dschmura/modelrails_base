@@ -111,7 +111,6 @@ export default class extends Controller {
     })
   }
 
-  // Zoom slider handler
   handleSlider() {
     if (!this._cropper || !this._baseTransform) return
 
@@ -133,7 +132,6 @@ export default class extends Controller {
     this._updateZoomPercent(value)
   }
 
-  // Keyboard shortcuts
   handleKeydown(event) {
     if (!this._cropper) return
 
@@ -226,7 +224,6 @@ export default class extends Controller {
       }, 500)
     }
 
-    // Enforce selection bounds
     const selection = this._cropper.getCropperSelection()
     if (selection) {
       selection.addEventListener("change", (event) => {
@@ -245,7 +242,6 @@ export default class extends Controller {
     // matches one element. Cleared in _destroy().
     this.element.setAttribute("data-image-cropper-ready", "true")
 
-    // Reset zoom slider
     if (this.hasSliderTarget) {
       this.sliderTarget.value = 0
     }
