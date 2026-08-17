@@ -243,7 +243,7 @@ class Invitation < ApplicationRecord
   end
 
   def broadcast_target
-    invitable_type == "Project" ? invitable.workspace : invitable
+    resolved_workspace
   end
 
   def accept_client_invitation!(user)
@@ -291,6 +291,13 @@ class Invitation < ApplicationRecord
 
   def generate_token
     self.token = SecureRandom.urlsafe_base64(32)
+  end
+
+  # Attribute activity to the invitation's own workspace context, never the
+  # ambient Current.workspace (an invitation can be created/accepted from a
+  # different workspace's page).
+  def activity_workspace
+    resolved_workspace
   end
 
   def just_accepted?

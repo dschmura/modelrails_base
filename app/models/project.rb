@@ -109,6 +109,10 @@ class Project < ApplicationRecord
     workspace
   end
 
+  def activity_workspace
+    workspace
+  end
+
   def slug_taken?(candidate)
     return false unless workspace
     workspace.projects.where.not(id: id).exists?(slug: candidate)

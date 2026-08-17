@@ -11,6 +11,9 @@ class ProjectPolicy < ApplicationPolicy
     membership.present?
   end
 
+  # Intentionally narrower than the lifecycle actions: renaming is the
+  # creator's call (identity), while archive/unarchive/destroy are governance
+  # (workspace managers too) — see lifecycle_manageable?.
   def update?
     project_membership&.creator?
   end
