@@ -172,6 +172,12 @@ ignore_unused:
   - modals.confirm
   - modals.delete
   - modals.save
+  # Rendered by Settings::ConnectedAccountsController#verify through the
+  # PendingClaims problems map (symbol -> key string in a constant hash),
+  # a call form the static scanner cannot resolve. Both keys are exercised
+  # by the connected_accounts verify request specs.
+  - settings.connected_accounts.verify.email_mismatch
+  - settings.connected_accounts.verify.join_link_at_capacity
   # Read at broadcast/announce time by ApplicationNotifier and the
   # notifications controller in call forms the static scanner misses;
   # deleting them turns the aria-live announcements into
