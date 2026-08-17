@@ -21,6 +21,15 @@ RSpec.describe ApplicationNotifier, type: :notifier do
     end
   end unless defined?(StubSecurityNotifier)
 
+  class StubBillingNotifier < ApplicationNotifier
+    category :billing
+
+    notification_methods do
+      def message = "stub-billing"
+      def url     = "/stub"
+    end
+  end unless defined?(StubBillingNotifier)
+
   class StubNoRecordNotifier < ApplicationNotifier
     category :account_access
 
@@ -270,6 +279,49 @@ RSpec.describe ApplicationNotifier, type: :notifier do
       notification = user.notifications.last
       expect(notification.recipient_pref(:email)).to eq(:digest)
       expect(notification.deliver_email_now?).to be false
+    end
+  end
+
+  describe "#permitted_in_app" do
+    # The shared recipient gate used by every `recipients do ... end` block:
+    # preload :preferences for the whole candidate set in one query, then keep
+    # only users whose preferences allow the class's DECLARED category in-app.
+    let(:resource) { create(:user) }
+    let(:allowing_user) { create(:user) }
+    let(:denying_user) { create(:user) }
+
+    before do
+      prefs = create(:user_preferences, user: denying_user)
+      np = prefs.notification_preferences.deep_dup
+      np["notification_types"]["account_access"] = false
+      prefs.update!(notification_preferences: np)
+    end
+
+    it "keeps users whose preferences allow the category in_app and filters out those who deny" do
+      event = StubAccountAccessNotifier.with(record: resource)
+      expect(event.permitted_in_app([ allowing_user, denying_user ])).to eq [ allowing_user ]
+    end
+
+    it "gates on the class's declared category_name, not a hardcoded literal" do
+      # denying_user disabled ONLY account_access; billing stays on. The same
+      # candidate passes StubBillingNotifier's gate and fails
+      # StubAccountAccessNotifier's — provable only if the category comes from
+      # each class's `category` declaration rather than a re-typed string.
+      expect(StubBillingNotifier.with(record: resource).permitted_in_app([ denying_user ]))
+        .to eq [ denying_user ]
+      expect(StubAccountAccessNotifier.with(record: resource).permitted_in_app([ denying_user ]))
+        .to eq []
+    end
+
+    it "preloads :preferences once for the whole candidate set (no per-user N+1)" do
+      candidates = [ allowing_user, denying_user, create(:user) ]
+      event = StubAccountAccessNotifier.with(record: resource)
+
+      query_count = count_queries_touching("user_preferences") do
+        event.permitted_in_app(candidates)
+      end
+
+      expect(query_count).to eq 1
     end
   end
 
