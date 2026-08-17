@@ -6,6 +6,9 @@ module Workspaces
       include EnforcesProjectTool
       enforces_tool :docs
       before_action :set_resource, only: [ :show, :edit, :update, :destroy, :reposition ]
+      # The allowlist check is what makes the later constantize safe — declared
+      # as a filter so an action can't forget it; it halts by redirecting.
+      before_action :validate_resource_type, only: [ :new, :create ]
 
       def index
         authorize Resource
@@ -14,16 +17,12 @@ module Workspaces
 
       def new
         authorize Resource
-        @type = validated_resource_type
-        return unless @type
         @resource = @project.resources.build
         @resourceable = @type.constantize.new
       end
 
       def create
         authorize Resource
-        @type = validated_resource_type
-        return unless @type
 
         ActiveRecord::Base.transaction do
           @resourceable = @type.constantize.create!(resourceable_params)
@@ -78,13 +77,13 @@ module Workspaces
         @resource = @project.resources.kept.find(params[:id])
       end
 
-      def validated_resource_type
+      def validate_resource_type
         type = params.dig(:resource, :type) || params[:type] || "Document"
         unless Resource::ALLOWED_RESOURCEABLE_TYPES.include?(type)
-          redirect_to workspace_project_resources_path(@workspace, @project), alert: t("workspaces.projects.resources.invalid_type")
-          return nil
+          return redirect_to workspace_project_resources_path(@workspace, @project),
+            alert: t("workspaces.projects.resources.invalid_type")
         end
-        type
+        @type = type
       end
 
       def resource_params
