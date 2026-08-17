@@ -12,7 +12,7 @@ module Onboarding
     def create
       authorize Invitation
 
-      emails = invitation_params[:emails].to_s.split(/[\n,]/).map(&:strip).reject(&:blank?)
+      emails = Invitation.parse_email_list(invitation_params[:emails])
 
       if emails.empty?
         flash.now[:alert] = t(".no_emails")
