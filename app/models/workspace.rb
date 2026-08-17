@@ -194,23 +194,29 @@ class Workspace < ApplicationRecord
   # are safe; nested calls join the surrounding transaction.
   # granted_by: audit provenance only (G) — the inviter, when an invitation
   # acceptance is what created the membership. Never affects admission logic.
-  def admit(user, role:, granted_by: nil)
+  # on_existing: policy for a kept member showing up again. :raise preserves
+  # the duplicate-accept error (reconciling the role first under :shared);
+  # :adopt returns the membership untouched — for callers like project-invite
+  # acceptance whose real work lies past workspace admission. Returns the
+  # membership on every non-raising path.
+  def admit(user, role:, granted_by: nil, on_existing: :raise)
     transaction do
       lock!
       raise NotAdmittableError unless admittable?
       existing = memberships.find_by(user: user)
       if existing&.discarded?
         existing.undiscard!
-      elsif existing && !existing.discarded?
-        if TenancyConfig.shared?
+        existing
+      elsif existing
+        raise AlreadyMember unless on_existing == :adopt || TenancyConfig.shared?
+        if on_existing != :adopt && existing.role_id != role.id
           # Under :shared, the User#onboard_workspace callback pre-creates a
           # placeholder Member membership. Reconcile: adopt the new role
           # rather than treating it as duplicate-accept. Solo-default
           # (:personal) semantics are preserved exactly.
-          existing.update!(role: role) unless existing.role_id == role.id
-        else
-          raise AlreadyMember
+          existing.update!(role: role)
         end
+        existing
       else
         raise AtCapacity if memberships.kept.count >= max_members
         memberships.create!(user: user, role: role, granted_by: granted_by)

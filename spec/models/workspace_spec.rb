@@ -412,6 +412,24 @@ RSpec.describe Workspace, type: :model do
       expect(discarded.reload).not_to be_discarded
     end
 
+    it "reactivates a discarded membership with on_existing: :adopt (no granted_by rewrite, same as :raise)" do
+      other_owner = create(:user)
+      workspace.memberships.create!(user: other_owner, role: owner_role)
+      discarded = workspace.memberships.create!(user: user, role: member_role)
+      discarded.deactivate!
+
+      result = nil
+      expect {
+        result = workspace.admit(user, role: member_role, granted_by: other_owner, on_existing: :adopt)
+      }.not_to change(workspace.memberships, :count)
+
+      expect(result).to eq(discarded)
+      expect(discarded.reload).not_to be_discarded
+      # Reactivation preserves the original grant's provenance — granted_by is
+      # only written when a membership row is created, identical to :raise.
+      expect(discarded.granted_by).to be_nil
+    end
+
     it "raises AtCapacity when the workspace is at capacity" do
       # Fill the workspace to max_members.
       workspace.update!(max_members: 1)
@@ -429,6 +447,20 @@ RSpec.describe Workspace, type: :model do
         expect {
           workspace.admit(user, role: owner_role)
         }.to raise_error(Workspace::AlreadyMember)
+      end
+
+      it "adopts the existing membership untouched with on_existing: :adopt" do
+        existing = workspace.memberships.find_by!(user: user)
+
+        result = nil
+        expect {
+          result = workspace.admit(user, role: owner_role, on_existing: :adopt)
+        }.not_to change(workspace.memberships, :count)
+
+        expect(result).to eq(existing)
+        # Adopt tolerates the member as-is: no role overwrite, even though the
+        # admit call asked for a different role.
+        expect(existing.reload.role).to eq(member_role)
       end
 
       context "under :shared posture" do
