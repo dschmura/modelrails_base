@@ -2,7 +2,7 @@ module Workspaces
   module Projects
     class ResourcesController < ApplicationController
       include WorkspaceScoped
-      before_action :set_project
+      include ProjectScoped
       include EnforcesProjectTool
       enforces_tool :docs
       before_action :set_resource, only: [ :show, :edit, :update, :destroy, :reposition ]
@@ -73,11 +73,6 @@ module Workspaces
       end
 
       private
-
-      def set_project
-        @project = @workspace.projects.kept.find_by!(slug: params[:project_slug])
-        Current.project = @project
-      end
 
       def set_resource
         @resource = @project.resources.kept.find(params[:id])

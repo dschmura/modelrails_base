@@ -27,4 +27,8 @@ class Resource < ApplicationRecord
   def broadcast_target
     project
   end
+
+  def activity_workspace
+    project&.workspace
+  end
 end
