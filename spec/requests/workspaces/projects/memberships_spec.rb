@@ -90,6 +90,18 @@ RSpec.describe "Project Memberships", type: :request do
           project_membership: { role: "superadmin" }
         }
         expect(response).to redirect_to(workspace_project_memberships_path(workspace, project))
+        expect(flash[:alert]).to eq(I18n.t("workspaces.projects.memberships.update.invalid_role"))
+      end
+
+      # C7: the invalid-role flash is reserved for an actually-invalid role
+      # value; an ArgumentError from anywhere else must surface as itself.
+      it "does not mask an unrelated ArgumentError as an invalid role" do
+        allow_any_instance_of(ProjectMembership).to receive(:update!).and_raise(ArgumentError, "boom")
+        expect {
+          patch workspace_project_membership_path(workspace, project, member_pm), params: {
+            project_membership: { role: "editor" }
+          }
+        }.to raise_error(ArgumentError, "boom")
       end
     end
 

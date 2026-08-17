@@ -35,6 +35,14 @@ RSpec.describe "Project Resources", type: :request do
         get new_workspace_project_resource_path(workspace, project)
         expect(response).to have_http_status(:ok)
       end
+
+      # C9: the type allowlist (it makes the later constantize safe) halts the
+      # request as a before_action on every action that consumes the type.
+      it "rejects an invalid resource type before the action body" do
+        get new_workspace_project_resource_path(workspace, project, type: "User")
+        expect(response).to redirect_to(workspace_project_resources_path(workspace, project))
+        expect(flash[:alert]).to eq(I18n.t("workspaces.projects.resources.invalid_type"))
+      end
     end
 
     describe "POST create" do
@@ -66,12 +74,15 @@ RSpec.describe "Project Resources", type: :request do
         expect(resource).to be_draft
       end
 
-      it "rejects invalid resource type" do
-        post workspace_project_resources_path(workspace, project), params: {
-          resource: { title: "Bad Type", type: "User" },
-          document: { body: "Content" }
-        }
+      it "rejects invalid resource type without creating anything" do
+        expect {
+          post workspace_project_resources_path(workspace, project), params: {
+            resource: { title: "Bad Type", type: "User" },
+            document: { body: "Content" }
+          }
+        }.not_to change(Resource, :count)
         expect(response).to redirect_to(workspace_project_resources_path(workspace, project))
+        expect(flash[:alert]).to eq(I18n.t("workspaces.projects.resources.invalid_type"))
       end
     end
 

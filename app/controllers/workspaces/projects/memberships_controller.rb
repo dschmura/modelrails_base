@@ -31,10 +31,16 @@ module Workspaces
       def update
         @pm = @project.project_memberships.find(params[:id])
         authorize @pm
-        @pm.update!(role: params[:project_membership][:role])
+        role = params[:project_membership][:role]
+        # Guard the enum value up front — the enum setter raises a bare
+        # ArgumentError, which is too broad a thing to rescue honestly.
+        unless ProjectMembership.roles.key?(role)
+          return redirect_to workspace_project_memberships_path(@workspace, @project),
+            alert: t("workspaces.projects.memberships.update.invalid_role")
+        end
+
+        @pm.update!(role: role)
         redirect_to workspace_project_memberships_path(@workspace, @project), notice: t(".role_updated")
-      rescue ArgumentError
-        redirect_to workspace_project_memberships_path(@workspace, @project), alert: t("workspaces.projects.memberships.update.invalid_role")
       end
 
       def destroy
