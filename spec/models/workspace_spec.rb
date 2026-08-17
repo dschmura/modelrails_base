@@ -132,6 +132,15 @@ RSpec.describe Workspace, type: :model do
       create(:membership, user: member, workspace: workspace, role: member_role)
       expect(workspace.owners).to be_empty
     end
+
+    it "returns fresh data even when a stale association is loaded" do
+      first = create(:membership, user: create(:user), workspace: workspace, role: owner_role)
+      second = create(:membership, user: create(:user), workspace: workspace, role: owner_role)
+      workspace.memberships.load
+      Membership.find(second.id).discard!
+
+      expect(workspace.owners).to contain_exactly(first.user)
+    end
   end
 
   describe "logo" do
@@ -481,6 +490,29 @@ RSpec.describe Workspace, type: :model do
           expect { workspace.admit(user, role: member_role) }.not_to raise_error
         end
       end
+    end
+  end
+
+  describe "#at_capacity?" do
+    it "is true when kept memberships have reached max_members" do
+      workspace = create(:workspace, max_members: 1)
+      create(:membership, workspace: workspace)
+
+      expect(workspace.at_capacity?).to be true
+    end
+
+    it "is false below the limit" do
+      workspace = create(:workspace, max_members: 2)
+      create(:membership, workspace: workspace)
+
+      expect(workspace.at_capacity?).to be false
+    end
+
+    it "does not count discarded memberships" do
+      workspace = create(:workspace, max_members: 1)
+      create(:membership, workspace: workspace).discard!
+
+      expect(workspace.at_capacity?).to be false
     end
   end
 end

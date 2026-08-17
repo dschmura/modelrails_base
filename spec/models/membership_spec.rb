@@ -1,6 +1,23 @@
 require "rails_helper"
 
 RSpec.describe Membership, type: :model do
+  describe "#owner?" do
+    it "is true when the role is the owner role" do
+      expect(build(:membership, :owner).owner?).to be true
+    end
+
+    it "is false for non-owner roles" do
+      expect(build(:membership).owner?).to be false
+    end
+
+    it "answers role identity only — a discarded owner membership is still owner?" do
+      membership = create(:membership, :owner)
+      membership.discard!
+
+      expect(membership.owner?).to be true
+    end
+  end
+
   # SEC-1: a role change is a privilege event — audit it readably (role slugs,
   # not the mutable role_id FK) and in the admin-only feed.
   describe "role-change audit trail" do
