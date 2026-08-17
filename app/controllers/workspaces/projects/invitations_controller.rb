@@ -2,7 +2,7 @@ module Workspaces
   module Projects
     class InvitationsController < ApplicationController
       include WorkspaceScoped
-      before_action :set_project
+      include ProjectScoped
 
       def new
         authorize @project, :update?
@@ -30,10 +30,6 @@ module Workspaces
       end
 
       private
-
-      def set_project
-        @project = @workspace.projects.kept.find_by!(slug: params[:project_slug])
-      end
 
       def invitation_params
         params.require(:invitation).permit(:email, :project_role)
