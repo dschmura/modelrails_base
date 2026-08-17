@@ -278,26 +278,12 @@ class Invitation < ApplicationRecord
     # grants a workspace membership as a side effect.
     raise NotAcceptable, "Invitation no longer acceptable" unless invitable.kept?
 
-    workspace = invitable.workspace
-    workspace.lock!
-    # Re-verify admittability now that we hold the row lock — defends the window
-    # between accept!'s (un-locked) admittable? read and this grant. SQLite's
-    # BEGIN IMMEDIATE already serializes writers; this also holds on a
-    # row-locking database. Not routed through Workspace#admit: admit's
-    # grant-a-new-member contract errors/reconciles on an existing member, but a
-    # project invite must TOLERATE an existing workspace member (just add them to
-    # the project) — see the "already a project member" spec.
-    raise NotAcceptable, "Invitation no longer acceptable" unless workspace.admittable?
-
-    existing_membership = workspace.memberships.find_by(user: user)
-    if existing_membership&.discarded?
-      existing_membership.undiscard!
-    elsif existing_membership.nil?
-      if workspace.memberships.kept.count >= workspace.max_members
-        raise ActiveRecord::RecordInvalid.new(self), "Workspace is at capacity"
-      end
-      workspace.memberships.create!(user: user, role: role)
-    end
+    # Same single membership-grant entry point as the workspace path — lock,
+    # locked admittability re-check, capacity, discarded-reactivation, and
+    # granted_by provenance all live in Workspace#admit. :adopt because a
+    # project invite must TOLERATE an existing workspace member (just add them
+    # to the project) — see the "already a project member" spec.
+    invitable.workspace.admit(user, role: role, granted_by: invited_by, on_existing: :adopt)
 
     raise ActiveRecord::RecordInvalid.new(self), "User is already a project member" if invitable.project_memberships.exists?(user: user)
     invitable.project_memberships.create!(user: user, role: project_role || "editor")
