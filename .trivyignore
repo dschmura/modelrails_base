@@ -19,15 +19,22 @@ CVE-2026-42246
 
 # Go stdlib v1.26.5 baked into thruster's precompiled binary (0.1.23 in the
 # lock; 0.1.25, the newest release, verified built on the SAME go1.26.5).
-# Four DoS-class stdlib CVEs fixed in Go 1.26.6+: encoding/xml recursion
-# (56859), net/url quadratic parse (56860), crypto/tls indefinite KeyUpdate
-# (56862), plus 33818. Reachable in principle — thruster fronts production
-# HTTP — but all are resource-exhaustion, and the fix needs thruster to
-# rebuild on Go >= 1.26.6. No action available to us. (The 0.1.22-era
-# CVE-2026-39822 entry that previously lived here was cleared by the 0.1.23
-# rebuild on go1.26.5 — its Revisit trigger — and removed.)
+# One batch of stdlib CVEs, all fixed only in Go 1.26.6+: mostly
+# resource-exhaustion (encoding/xml recursion 56859, net/url quadratic parse
+# 56860, crypto/tls indefinite KeyUpdate 56862, h2c DoS 56853, dnsmessage
+# 46600, 33818) plus html/template XSS (56858) and x/net/idna punycode
+# handling (39821) — the latter two live in packages a static-asset proxy
+# does not exercise for rendering, but reachability is not load-bearing
+# here: no thruster release built on Go >= 1.26.6 exists, so there is no
+# action available to us regardless. (The 0.1.22-era CVE-2026-39822 entry
+# that previously lived here was cleared by the 0.1.23 rebuild on go1.26.5
+# — its Revisit trigger — and removed.)
 # Revisit: on the next thruster release (> 0.1.25), or 2026-09-15.
 CVE-2026-33818
+CVE-2026-39821
+CVE-2026-46600
+CVE-2026-56853
+CVE-2026-56858
 CVE-2026-56859
 CVE-2026-56860
 CVE-2026-56862
