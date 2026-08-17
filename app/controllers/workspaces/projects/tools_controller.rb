@@ -2,7 +2,7 @@ module Workspaces
   module Projects
     class ToolsController < ApplicationController
       include WorkspaceScoped
-      before_action :set_project
+      include ProjectScoped
 
       def edit
         authorize @project, :update?
@@ -18,13 +18,6 @@ module Workspaces
 
         redirect_to edit_workspace_project_tools_path(@workspace, @project),
           notice: t("project_tools.settings.saved")
-      end
-
-      private
-
-      def set_project
-        @project = @workspace.projects.kept.find_by!(slug: params[:project_slug])
-        Current.project = @project
       end
     end
   end

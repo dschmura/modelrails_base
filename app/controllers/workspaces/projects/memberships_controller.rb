@@ -2,7 +2,7 @@ module Workspaces
   module Projects
     class MembershipsController < ApplicationController
       include WorkspaceScoped
-      before_action :set_project
+      include ProjectScoped
 
       def index
         authorize ProjectMembership
@@ -53,11 +53,6 @@ module Workspaces
       end
 
       private
-
-      def set_project
-        @project = @workspace.projects.kept.find_by!(slug: params[:project_slug])
-        Current.project = @project
-      end
 
       def membership_params
         params.require(:project_membership).permit(:user_id, :role)
