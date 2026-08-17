@@ -135,19 +135,20 @@ class Workspace < ApplicationRecord
   def owner
     # Uses detect (not joins + find_by) so it works from preloaded
     # memberships without firing a per-row query in list views.
-    memberships.detect { |m| m.role.slug == "owner" }&.user
+    memberships.detect(&:owner?)&.user
   end
 
-  # All Users holding an owner-role kept membership. Two-path on purpose:
-  # loaded `memberships` filter in-memory (hot path — the Leave button calls
-  # `.owners.size` per render); unloaded issues a fresh query so notifier
-  # recipient resolution never reads a stale roster.
+  # All Users holding an owner-role kept membership — ALWAYS a fresh query,
+  # even when `memberships` is already loaded, so notifier recipient
+  # resolution never reads a stale roster. Render paths that only need an
+  # existence check use Membership.other_kept_owners instead (one indexed
+  # EXISTS — see MembershipPolicy#destroy?).
   # See /docs/developer/architecture (Owner Lookup).
   def owners
-    relation = memberships.loaded? ? memberships : memberships.kept.includes(:role, :user)
-    relation
-      .reject(&:discarded?)
-      .select { |m| m.role.slug == "owner" }
+    memberships.kept
+      .joins(:role)
+      .where(roles: { slug: "owner" })
+      .includes(:user)
       .map(&:user)
       .compact
   end
@@ -178,6 +179,14 @@ class Workspace < ApplicationRecord
   # open_join? — admittable? is re-checked here at claim time.)
   def accepting_open_joins?
     open_join? && admittable?
+  end
+
+  # The seat-capacity rule, in one place: full when kept memberships have
+  # reached max_members. Always a fresh COUNT — callers that need locked
+  # semantics (Workspace#admit) take the row lock first and rely on this
+  # querying, never caching.
+  def at_capacity?
+    memberships.kept.count >= max_members
   end
 
   # Role granted to users self-joining via an open-link. Pinned to the
@@ -218,7 +227,7 @@ class Workspace < ApplicationRecord
         end
         existing
       else
-        raise AtCapacity if memberships.kept.count >= max_members
+        raise AtCapacity if at_capacity?
         memberships.create!(user: user, role: role, granted_by: granted_by)
       end
     end

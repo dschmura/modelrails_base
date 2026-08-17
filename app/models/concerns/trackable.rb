@@ -52,7 +52,7 @@ module Trackable
       actor: Current.user,
       action: action,
       trackable: self,
-      workspace: resolve_workspace_for_activity,
+      workspace: activity_workspace,
       visibility: activity_visibility(action),
       metadata: metadata
     )
@@ -61,13 +61,11 @@ module Trackable
     Rails.error.report(e, handled: true, context: { trackable: "#{self.class.name}##{id}", action: action })
   end
 
-  def resolve_workspace_for_activity
-    if respond_to?(:workspace)
-      workspace
-    elsif respond_to?(:project) && project&.respond_to?(:workspace)
-      project.workspace
-    else
-      Current.workspace
-    end
+  # The workspace an activity row is attributed to. Each includer answers for
+  # itself (Membership/Project return their workspace, Resource its project's,
+  # Invitation its resolved_workspace); the default is the ambient request
+  # workspace for models with no workspace of their own.
+  def activity_workspace
+    Current.workspace
   end
 end

@@ -87,8 +87,14 @@ class Membership < ApplicationRecord
         .where.not(id: excluding)
   end
 
+  # Role identity only — deliberately silent on kept/discarded state; the
+  # owner-floor queries carry their own kept filtering.
+  def owner?
+    role.present? && role.owner?
+  end
+
   def change_role!(new_role)
-    demoting_owner = role.slug == "owner" && new_role.slug != "owner"
+    demoting_owner = owner? && !new_role.owner?
     transaction do
       workspace.lock!
       update!(role: new_role)
@@ -152,10 +158,14 @@ class Membership < ApplicationRecord
     workspace
   end
 
+  def activity_workspace
+    workspace
+  end
+
   def workspace_has_member_capacity
     return unless workspace
     workspace.lock!
-    if workspace.memberships.kept.count >= workspace.max_members
+    if workspace.at_capacity?
       errors.add(:base, :workspace_member_limit)
     end
   end
@@ -170,7 +180,7 @@ class Membership < ApplicationRecord
   end
 
   def validate_not_last_owner!
-    if role.slug == "owner" && workspace.memberships.kept.joins(:role).where(roles: { slug: "owner" }).count <= 1
+    if owner? && !Membership.other_kept_owners(workspace_id, excluding: id).exists?
       errors.add(:base, :last_owner)
       raise ActiveRecord::RecordInvalid, self
     end
@@ -180,13 +190,10 @@ class Membership < ApplicationRecord
   # transaction; zero kept owners → raise to roll back. Non-owner discards skip.
   # See /docs/developer/architecture (Concurrency).
   def enforce_owner_invariant!
-    return unless role&.slug == "owner"
-    remaining = Membership.kept
-                          .joins(:role)
-                          .where(workspace_id: workspace_id)
-                          .where(roles: { slug: "owner" })
-                          .count
-    return if remaining > 0
+    return unless owner?
+    # Self is already discarded here, so "any kept owner" == "any OTHER kept
+    # owner" — the shared query reads identically either way.
+    return if Membership.other_kept_owners(workspace_id, excluding: id).exists?
     errors.add(:base, :last_owner)
     raise ActiveRecord::RecordInvalid, self
   end
@@ -195,11 +202,9 @@ class Membership < ApplicationRecord
   # the OTHER owners (self is already demoted); zero left → roll back.
   # See /docs/developer/architecture (Concurrency).
   def enforce_owner_floor!
-    return if Membership.kept
-                        .joins(:role)
-                        .where(workspace_id: workspace_id)
-                        .where(roles: { slug: "owner" })
-                        .exists?
+    # Self is already demoted here, so counting all kept owners == counting
+    # the OTHER kept owners — the shared query reads identically either way.
+    return if Membership.other_kept_owners(workspace_id, excluding: id).exists?
     errors.add(:base, :last_owner)
     raise ActiveRecord::RecordInvalid, self
   end
