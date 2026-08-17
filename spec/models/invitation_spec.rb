@@ -273,8 +273,10 @@ RSpec.describe Invitation, type: :model do
       invitation = create(:invitation, invitable: project, project_role: "editor")
       user = create(:user)
 
+      # Same typed error as the workspace path: capacity is enforced inside
+      # Workspace#admit for every admission flow.
       expect { invitation.accept!(user) }
-        .to raise_error(ActiveRecord::RecordInvalid)
+        .to raise_error(Workspace::AtCapacity)
 
       expect(workspace.memberships.kept.count).to eq(2)
       expect(invitation.reload).to be_pending
@@ -379,6 +381,21 @@ RSpec.describe Invitation, type: :model do
       invitation.accept!(invitee)
       expect(workspace.memberships.kept.exists?(user: invitee)).to be true
       expect(project.project_memberships.exists?(user: invitee)).to be true
+    end
+
+    # Regression: this path once hand-rolled the membership grant and dropped
+    # granted_by, so the most common project-invite grant audited no granter
+    # (granted_by is non-persisted by design — the audit row is where the
+    # provenance lives, so it is also where the regression is pinned).
+    it "audits the granted workspace membership with role and granter" do
+      invitee = create(:user, email_address: "project-invitee@example.com")
+      invitation.accept!(invitee)
+
+      membership = workspace.memberships.find_by!(user: invitee)
+      entry = ActivityLog.where(action: "membership.created", trackable: membership).last
+      expect(entry).to be_present
+      expect(entry.metadata["role"]).to eq(invitation.role.slug)
+      expect(entry.metadata["granted_by"]).to eq(owner.id)
     end
 
     it "assigns the correct project role" do
