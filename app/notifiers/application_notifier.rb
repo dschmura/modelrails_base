@@ -129,6 +129,20 @@ class ApplicationNotifier < Noticed::Event
     self.class.preferences_for(user)
   end
 
+  # Shared recipient gate for `recipients do ... end` blocks: preloads
+  # :preferences for the whole candidate set in ONE query (`preferences_for`
+  # reads `user.preferences` per-user — an N+1 without the preload; Bullet
+  # caught the original in the Reshape 2a open-link self-join request specs),
+  # then keeps only users whose preferences allow this class's declared
+  # category on the in_app channel. Uses `category_name` from the `category`
+  # DSL so subclasses never restate their category as a string literal.
+  def permitted_in_app(candidates)
+    ActiveRecord::Associations::Preloader.new(records: candidates, associations: :preferences).call
+    candidates.select do |user|
+      preferences_for(user).allow?(category: self.class.category_name, channel: "in_app")
+    end
+  end
+
   # Returns the per-notification STI `type` strings for every Notifier
   # subclass in the given category — i.e. the values stored in
   # `noticed_notifications.type` (e.g. "PasswordChangedNotifier::Notification").
