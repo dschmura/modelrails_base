@@ -2,7 +2,7 @@ module Workspaces
   module Projects
     class ClientsidesController < ApplicationController
       include WorkspaceScoped
-      before_action :set_project
+      include ProjectScoped
 
       def edit
         authorize @project, :update?
@@ -20,11 +20,6 @@ module Workspaces
       end
 
       private
-
-      def set_project
-        @project = @workspace.projects.kept.find_by!(slug: params[:project_slug])
-        Current.project = @project
-      end
 
       def clientside_params
         params.require(:project).permit(:clientside_enabled)

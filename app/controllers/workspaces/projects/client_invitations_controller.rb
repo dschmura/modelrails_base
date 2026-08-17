@@ -2,7 +2,7 @@ module Workspaces
   module Projects
     class ClientInvitationsController < ApplicationController
       include WorkspaceScoped
-      before_action :set_project
+      include ProjectScoped
       before_action :ensure_clientside_enabled
 
       def new
@@ -31,11 +31,6 @@ module Workspaces
       end
 
       private
-
-      def set_project
-        @project = @workspace.projects.kept.find_by!(slug: params[:project_slug])
-        Current.project = @project
-      end
 
       def ensure_clientside_enabled
         return if @project.clientside_enabled?

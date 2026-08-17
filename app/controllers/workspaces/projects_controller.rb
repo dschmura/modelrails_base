@@ -1,7 +1,9 @@
 module Workspaces
   class ProjectsController < ApplicationController
     include WorkspaceScoped
-    before_action :set_project, only: [ :show, :edit, :update, :destroy, :archive, :unarchive ]
+    include ProjectScoped
+    # Collection actions carry no project slug to resolve.
+    skip_before_action :set_project, only: [ :index, :new, :create ]
 
     def index
       authorize Project
@@ -63,12 +65,6 @@ module Workspaces
     end
 
     private
-
-    def set_project
-      @project = @workspace.projects.kept.find_by!(slug: params[:slug])
-    rescue ActiveRecord::RecordNotFound
-      redirect_to workspace_projects_path(@workspace), alert: t("workspaces.projects.not_found")
-    end
 
     def project_params
       params.require(:project).permit(:name, :description)
