@@ -37,6 +37,10 @@ on:
       - ".github/workflows/devcontainer.yml"
   workflow_dispatch:
 
+# Least-privilege default: build-only gate, no writes.
+permissions:
+  contents: read
+
 concurrency:
   group: devcontainer-${{ github.head_ref || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}

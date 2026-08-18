@@ -31,6 +31,11 @@ on:
       - ".github/workflows/image_scan.yml"
   workflow_dispatch:
 
+# Least-privilege default: the scan builds locally (push: false) and reports
+# via job status only — no SARIF upload, no writes.
+permissions:
+  contents: read
+
 jobs:
   scan_image:
     runs-on: ubuntu-latest
