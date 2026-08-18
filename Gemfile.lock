@@ -96,10 +96,10 @@ GEM
     ast (2.4.3)
     auth-sanitizer (0.2.1)
       version_gem (~> 1.1, >= 1.1.10)
-    axe-core-api (4.12.0)
+    axe-core-api (4.13.0)
       dumb_delegator
-    axe-core-rspec (4.12.0)
-      axe-core-api (= 4.12.0)
+    axe-core-rspec (4.13.0)
+      axe-core-api (= 4.13.0)
     base64 (0.3.0)
     bcrypt (3.1.22)
     bcrypt_pbkdf (1.1.2)
@@ -667,7 +667,7 @@ PLATFORMS
 DEPENDENCIES
   active_storage_validations
   addressable (~> 2.8)
-  axe-core-api (~> 4.11)
+  axe-core-api (~> 4.13)
   axe-core-rspec (~> 4.12)
   bcrypt (~> 3.1.7)
   biscuit-rails (~> 0.3.0)
@@ -744,8 +744,8 @@ CHECKSUMS
   android_key_attestation (0.3.0) sha256=467eb01a99d2bb48ef9cf24cc13712669d7056cba5a52d009554ff037560570b
   ast (2.4.3) sha256=954615157c1d6a382bc27d690d973195e79db7f55e9765ac7c481c60bdb4d383
   auth-sanitizer (0.2.1) sha256=917dcf01f7589b06c26726afe90568cf2fb29d37a1f94facfc664f11967cc577
-  axe-core-api (4.12.0) sha256=9d0284681faacfc0d8609f13da389483814e9ab545b01e99909a6d8fdc312d72
-  axe-core-rspec (4.12.0) sha256=0ddd7af16b2959bfa24562bc8ebdcbbe4d7aa2e3b495591f3cd9969033f01021
+  axe-core-api (4.13.0) sha256=6556c36d541090993b0efffd2659e13c289c109a0a6bf65d28271e363fc7ffa3
+  axe-core-rspec (4.13.0) sha256=fc5d5a3911255bb7fd2298890983664ee6419f0d580222c8c5b945287e40a9e8
   base64 (0.3.0) sha256=27337aeabad6ffae05c265c450490628ef3ebd4b67be58257393227588f5a97b
   bcrypt (3.1.22) sha256=1f0072e88c2d705d94aff7f2c5cb02eb3f1ec4b8368671e19112527489f29032
   bcrypt_pbkdf (1.1.2) sha256=c2414c23ce66869b3eb9f643d6a3374d8322dfb5078125c82792304c10b94cf6
