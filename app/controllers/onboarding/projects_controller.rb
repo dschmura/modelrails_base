@@ -9,12 +9,9 @@ module Onboarding
 
     def create
       authorize Project
-      raise Suspendable::SuspendedError if Current.workspace.suspended?
-      @project = Current.workspace.projects.build(project_params)
-      @project.created_by = Current.user
+      @project = Current.workspace.create_project(project_params, creator: Current.user)
 
-      if @project.save
-        @project.project_memberships.create!(user: Current.user, role: "creator")
+      if @project.persisted?
         redirect_to onboarding_after_project_path, notice: t(".success")
       else
         render :new, status: :unprocessable_entity
