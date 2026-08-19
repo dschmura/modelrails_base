@@ -121,6 +121,15 @@ RSpec.describe "Combobox component accessibility", type: :system do
       expect(active_option_text).to eq("United States")
     end
 
+    it "reopens a closed listbox on ArrowUp, activating the LAST option (#661)" do
+      input.click
+      cdp_press(:escape)
+      cdp_press(:up)
+
+      expect(input["aria-expanded"]).to eq("true")
+      expect(active_option_text).to eq("Argentina")
+    end
+
     it "filters to matching options and re-activates the first visible match" do
       input.click
       cdp_browser.keyboard.type("br")

@@ -62,7 +62,9 @@ export default class extends Controller {
         break
       case "ArrowUp":
         if (this.panelTarget.hidden) this.open()
-        next = visible[(current - 1 + visible.length) % visible.length]
+        // No active option (current === -1): APG says ArrowUp enters at the
+        // LAST option — the modulo alone lands one short of it (#661).
+        next = current === -1 ? visible[visible.length - 1] : visible[(current - 1 + visible.length) % visible.length]
         break
       case "Home":
         next = visible[0]
