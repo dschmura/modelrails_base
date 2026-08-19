@@ -76,7 +76,11 @@ export default class extends Controller {
         next = visible[(current + 1) % visible.length]
         break
       case "ArrowUp":
-        next = visible[(current - 1 + visible.length) % visible.length]
+        // Same #661 correction as combobox_controller (the duplicated pair
+        // #659 tracks): with no active option, enter at the LAST item. Not
+        // keyboard-reachable here today (filter() re-seeds the active option
+        // on every open and input), so this is parity, not a live bug.
+        next = current === -1 ? visible[visible.length - 1] : visible[(current - 1 + visible.length) % visible.length]
         break
       case "Home":
         next = visible[0]
