@@ -66,4 +66,39 @@ RSpec.describe "Overlay stacking context", type: :system do
       expect(width).to be_between(128, 400) # min-w-[8rem], shrink-wrapped to its items
     end
   end
+
+  # Browsers that support the Popover API but NOT anchor positioning (Firefox, Safari at
+  # time of writing) fall back to `absolute` + `top-full` offsets. Promoting THAT lands the
+  # panel against the viewport instead of its trigger — measured at 1320px adrift. So the
+  # guard is the invariant itself, not a feature name: promote only what is already
+  # `position: fixed`, where the containing-block change is a no-op.
+  describe "a panel on the pre-Baseline absolute fallback" do
+    let(:panel) { "[data-menu-target=menu]" }
+    let(:trigger) { "[data-menu-target=trigger]" }
+
+    before do
+      visit "/rails/view_components/ui/dropdown_menu_component/inside_stacking_context"
+      # Emulate a browser without anchor positioning: the panel resolves to `absolute`.
+      page.execute_script(<<~JS)
+        const css = document.createElement("style");
+        css.textContent = "[data-menu-target=menu] { position: absolute !important; top: 100% !important; left: 0 !important; }";
+        document.head.appendChild(css);
+      JS
+      find(trigger).click
+      expect(page).to have_css(panel)
+    end
+
+    it "is not promoted to the top layer" do
+      promoted = page.evaluate_script(<<~JS)
+        (() => { const el = document.querySelector("#{panel}");
+                 try { return el.matches(":popover-open") } catch (e) { return false } })()
+      JS
+
+      expect(promoted).to be(false)
+    end
+
+    it "stays anchored to its trigger" do
+      expect(gap_below_trigger(panel, trigger)).to be_between(0, 12)
+    end
+  end
 end

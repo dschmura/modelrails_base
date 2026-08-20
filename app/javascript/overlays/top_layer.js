@@ -21,9 +21,18 @@ export const SUPPORTED =
 // still correct in the common case, just vulnerable to a stacking context above it.
 const usable = (element) => SUPPORTED && !!element
 
+// The top layer re-parents an element's containing block to the viewport, so anything
+// placed relative to a DOM ancestor (`position: absolute` + `top-full`) is torn off its
+// trigger — measured 1320px adrift on the pre-Baseline `absolute` fallback that Firefox
+// and Safari still take. `position: fixed` is already viewport-relative, so for those the
+// change is a no-op. Gate on that invariant rather than on a feature name: it stays
+// correct whatever a browser supports, and the ungated case simply keeps today's
+// behaviour (correctly placed, still buriable) instead of flying off-screen.
+const viewportPositioned = (element) => getComputedStyle(element).position === "fixed"
+
 // data-top-layer is the hook for the UA-default reset in application.css.
 export function enable(element) {
-  if (!usable(element)) return false
+  if (!usable(element) || !viewportPositioned(element)) return false
 
   element.popover = "manual"
   element.dataset.topLayer = ""
