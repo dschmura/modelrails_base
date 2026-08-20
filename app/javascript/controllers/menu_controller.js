@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import * as topLayer from "overlays/top_layer"
 
 // Behavior for the menu-pattern band. dropdown_menu is the exemplar/home; context_menu
 // and menubar reuse this via EXTRA_STIMULUS. CSS owns positioning (anchor positioning);
@@ -41,6 +42,10 @@ export default class extends Controller {
     if (this.openValue) return
     this.openValue = true
     this.menuTarget.hidden = false
+    // Safe here because placement is CSS anchor positioning (already `position: fixed`
+    // against the viewport), so the top layer changes paint order only.
+    topLayer.enable(this.menuTarget)
+    topLayer.show(this.menuTarget)
     this.triggerTarget.setAttribute("aria-expanded", "true")
     focus === "last" ? this.focusLast() : this.focusFirst()
   }
@@ -48,6 +53,8 @@ export default class extends Controller {
   close({ restoreFocus = true } = {}) {
     if (!this.openValue) return
     this.openValue = false
+    topLayer.hide(this.menuTarget)
+    topLayer.disable(this.menuTarget)
     this.menuTarget.hidden = true
     this.triggerTarget.setAttribute("aria-expanded", "false")
     if (restoreFocus) this.triggerTarget.focus()
