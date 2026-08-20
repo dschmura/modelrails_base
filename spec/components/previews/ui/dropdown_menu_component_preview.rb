@@ -30,6 +30,11 @@ module UI
     def positioned
     end
 
+    # A trigger inside a `sticky z-40` header — a stacking context the panel's own
+    # `z-50` cannot escape. The panel must reach the top layer to stay clickable.
+    def inside_stacking_context
+    end
+
     # @!endgroup
 
     # @!group Reference

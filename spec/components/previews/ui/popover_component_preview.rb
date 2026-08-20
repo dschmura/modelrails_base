@@ -46,6 +46,14 @@ module UI
       end
     end
 
+    # Known limitation. Popover places its panel with `absolute` + `top-full` offsets, so
+    # a stacking context above it (here a `sticky z-40` header) buries the panel and no
+    # z-index helps. `dropdown_menu` does not have this problem: it places via CSS anchor
+    # positioning, which lets it be promoted to the top layer. Until popover moves to
+    # anchor positioning, put it outside sticky/blurred chrome — or use `dropdown_menu`.
+    def dont_use_inside_stacking_context
+    end
+
     # @!endgroup
   end
 end
