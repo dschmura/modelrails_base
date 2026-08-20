@@ -126,4 +126,36 @@ RSpec.describe "Overlay stacking context", type: :system do
       expect(gap_below_trigger(panel, trigger)).to be_between(0, 12)
     end
   end
+
+  # The rest of the anchor-positioning migration. Same contract for each: the panel escapes
+  # the stacking context AND stays tethered to its trigger. The second half is the one that
+  # fails loudly if a component is promoted while still on `absolute` offsets.
+  # `anchor` is the element carrying `anchor-name`, which is what the panel is tethered to.
+  # For the pickers that is the whole field wrapper (caption + input + hint) — the same box
+  # `top-full` resolved against before the migration, so placement is unchanged.
+  {
+    "date_picker" => { open: "[data-date-picker-target=trigger]", panel: "[data-date-picker-target=popover]",
+                       anchor: "[data-controller=date-picker]", gap: 4 },
+    "timepicker" => { open: "[data-timepicker-target=trigger]", panel: "[data-timepicker-target=popover]",
+                      anchor: "[data-controller=timepicker]", gap: 4 },
+    "navigation_menu" => { open: "[data-navigation-menu-target=trigger]", panel: "[data-navigation-menu-target=content]",
+                           anchor: "[data-controller=navigation-menu]", gap: 6 }
+  }.each do |component, sel|
+    describe "#{component} inside a stacking context" do
+      before do
+        visit "/rails/view_components/ui/#{component}_component/inside_stacking_context"
+        find(sel[:open]).hover
+        find(sel[:open]).click
+        expect(page).to have_css(sel[:panel], visible: :visible)
+      end
+
+      it "keeps the panel above page content that outranks its stacking context" do
+        expect(occluded?(sel[:panel])).to be(false)
+      end
+
+      it "still hangs the panel off its anchor by the gap margin" do
+        expect(gap_below_trigger(sel[:panel], sel[:anchor])).to be_between(sel[:gap] - 2, sel[:gap] + 2)
+      end
+    end
+  end
 end

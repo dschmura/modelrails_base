@@ -44,7 +44,6 @@ module UI
     # top_layer.js). For bottom/top, `align` edge-aligns horizontally via span-right /
     # span-left; for left/right it edge-aligns vertically via span-bottom / span-top.
     # Written out one line per placement because Tailwind only sees literal class strings.
-    # rubocop:disable Layout/LineLength
     PLACEMENTS = {
       bottom_start: "mt-2 supports-[position-area:bottom]:fixed supports-[position-area:bottom]:[position-area:bottom_span-right] supports-[position-area:bottom]:[position-try-fallbacks:flip-block] not-supports-[position-area:bottom]:absolute not-supports-[position-area:bottom]:top-full not-supports-[position-area:bottom]:left-0",
       bottom_center: "mt-2 supports-[position-area:bottom]:fixed supports-[position-area:bottom]:[position-area:bottom] supports-[position-area:bottom]:[position-try-fallbacks:flip-block] not-supports-[position-area:bottom]:absolute not-supports-[position-area:bottom]:top-full not-supports-[position-area:bottom]:left-1/2 not-supports-[position-area:bottom]:-translate-x-1/2",
@@ -59,7 +58,6 @@ module UI
       right_center: "ml-2 supports-[position-area:bottom]:fixed supports-[position-area:bottom]:[position-area:right] supports-[position-area:bottom]:[position-try-fallbacks:flip-inline] not-supports-[position-area:bottom]:absolute not-supports-[position-area:bottom]:left-full not-supports-[position-area:bottom]:top-1/2 not-supports-[position-area:bottom]:-translate-y-1/2",
       right_end: "ml-2 supports-[position-area:bottom]:fixed supports-[position-area:bottom]:[position-area:right_span-top] supports-[position-area:bottom]:[position-try-fallbacks:flip-inline] not-supports-[position-area:bottom]:absolute not-supports-[position-area:bottom]:left-full not-supports-[position-area:bottom]:bottom-0"
     }.freeze
-    # rubocop:enable Layout/LineLength
 
     # label:         the panel's accessible name (required → aria-label on role=dialog)
     # id:            panel id (auto-generated if omitted; wired to aria-controls)
