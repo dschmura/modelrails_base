@@ -67,6 +67,31 @@ RSpec.describe "Overlay stacking context", type: :system do
     end
   end
 
+  describe "a popover placed by CSS anchor positioning" do
+    let(:panel) { "[data-floating-target=panel]" }
+    let(:trigger) { "[data-floating-target=trigger]" }
+
+    before do
+      visit "/rails/view_components/ui/popover_component/inside_stacking_context"
+      find(trigger).click
+      expect(page).to have_css(panel)
+    end
+
+    it "keeps the panel above page content that outranks its stacking context" do
+      expect(occluded?(panel)).to be(false)
+    end
+
+    it "still anchors the panel to its trigger" do
+      expect(gap_below_trigger(panel, trigger)).to be_between(4, 12) # mt-2 == 8px
+    end
+
+    it "still sizes the panel from its own classes, not the UA popover box" do
+      width = page.evaluate_script(%{Math.round(document.querySelector("#{panel}").getBoundingClientRect().width)})
+
+      expect(width).to eq(288) # w-72
+    end
+  end
+
   # Browsers that support the Popover API but NOT anchor positioning (Firefox, Safari at
   # time of writing) fall back to `absolute` + `top-full` offsets. Promoting THAT lands the
   # panel against the viewport instead of its trigger — measured at 1320px adrift. So the
@@ -100,5 +125,96 @@ RSpec.describe "Overlay stacking context", type: :system do
     it "stays anchored to its trigger" do
       expect(gap_below_trigger(panel, trigger)).to be_between(0, 12)
     end
+  end
+
+  # The rest of the anchor-positioning migration. Same contract for each: the panel escapes
+  # the stacking context AND stays tethered to its trigger. The second half is the one that
+  # fails loudly if a component is promoted while still on `absolute` offsets.
+  # `anchor` is the element carrying `anchor-name`, which is what the panel is tethered to.
+  # For the pickers that is the whole field wrapper (caption + input + hint) — the same box
+  # `top-full` resolved against before the migration, so placement is unchanged.
+  {
+    "date_picker" => { open: "[data-date-picker-target=trigger]", panel: "[data-date-picker-target=popover]",
+                       anchor: "[data-controller=date-picker]", gap: 4 },
+    "timepicker" => { open: "[data-timepicker-target=trigger]", panel: "[data-timepicker-target=popover]",
+                      anchor: "[data-controller=timepicker]", gap: 4 },
+    "navigation_menu" => { open: "[data-navigation-menu-target=trigger]", panel: "[data-navigation-menu-target=content]",
+                           anchor: "[data-controller=navigation-menu]", gap: 6 }
+  }.each do |component, sel|
+    describe "#{component} inside a stacking context" do
+      before do
+        visit "/rails/view_components/ui/#{component}_component/inside_stacking_context"
+        find(sel[:open]).hover
+        find(sel[:open]).click
+        expect(page).to have_css(sel[:panel], visible: :visible)
+      end
+
+      it "keeps the panel above page content that outranks its stacking context" do
+        expect(occluded?(sel[:panel])).to be(false)
+      end
+
+      it "still hangs the panel off its anchor by the gap margin" do
+        expect(gap_below_trigger(sel[:panel], sel[:anchor])).to be_between(sel[:gap] - 2, sel[:gap] + 2)
+      end
+    end
+  end
+
+  # combobox is the one panel whose width is tied to its trigger. `w-full` cannot survive
+  # `position: fixed` — against the viewport it would mean the whole screen — so the modern
+  # path takes its width from `anchor-size(width)`. That is the half a plain position-area
+  # migration would silently get wrong.
+  describe "combobox inside a stacking context" do
+    let(:panel) { "[data-combobox-target=panel]" }
+    let(:field) { "[data-controller~=combobox]" }
+
+    before do
+      visit "/rails/view_components/ui/combobox_component/inside_stacking_context"
+      find("[data-combobox-target=input]").click
+      expect(page).to have_css(panel)
+    end
+
+    it "keeps the panel above page content that outranks its stacking context" do
+      expect(occluded?(panel)).to be(false)
+    end
+
+    it "still matches the width of its field" do
+      widths = page.evaluate_script(<<~JS)
+        (() => {
+          const f = document.querySelector("#{field}").getBoundingClientRect();
+          const p = document.querySelector("#{panel}").getBoundingClientRect();
+          return JSON.stringify([Math.round(f.width), Math.round(p.width)]);
+        })()
+      JS
+      field_width, panel_width = JSON.parse(widths)
+
+      expect(panel_width).to be_within(2).of(field_width)
+    end
+  end
+
+  # Two comboboxes on one page used to emit the same hardcoded listbox id.
+  it "gives each combobox a unique listbox id" do
+    visit "/rails/view_components/ui/combobox_component/default"
+    ids = page.evaluate_script(%{JSON.stringify([...document.querySelectorAll("[role=listbox]")].map(e => e.id))})
+
+    expect(JSON.parse(ids).uniq.length).to eq(JSON.parse(ids).length)
+  end
+
+  # mega_menu's panel spans its bar, so it carries the same anchor-size() risk as combobox:
+  # `w-full` against the viewport would be the whole screen.
+  it "keeps the mega menu panel the width of its bar" do
+    visit "/rails/view_components/ui/mega_menu_component/default"
+    find("[data-mega-menu-target=trigger]").click
+    expect(page).to have_css("[data-mega-menu-target=panel]")
+
+    widths = page.evaluate_script(<<~JS)
+      (() => {
+        const bar = document.querySelector("[data-controller~=mega-menu]").getBoundingClientRect();
+        const panel = document.querySelector("[data-mega-menu-target=panel]").getBoundingClientRect();
+        return JSON.stringify([Math.round(bar.width), Math.round(panel.width)]);
+      })()
+    JS
+    bar_width, panel_width = JSON.parse(widths)
+
+    expect(panel_width).to be_within(2).of(bar_width)
   end
 end
