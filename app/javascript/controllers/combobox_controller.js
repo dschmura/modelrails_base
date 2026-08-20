@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import * as topLayer from "overlays/top_layer"
 
 // Autocomplete-select behavior. Owns the WAI-ARIA APG combobox + listbox
 // contract: the text input is the combobox (keeps DOM focus) and the popup is the
@@ -17,11 +18,17 @@ export default class extends Controller {
 
   open() {
     this.panelTarget.hidden = false
+    // No-op unless anchor-positioned (`position: fixed`); top_layer.js refuses the
+    // pre-Baseline `absolute` fallback, where promotion would tear the panel off-screen.
+    topLayer.enable(this.panelTarget)
+    topLayer.show(this.panelTarget)
     this.inputTarget.setAttribute("aria-expanded", "true")
     this.filter()
   }
 
   close() {
+    topLayer.hide(this.panelTarget)
+    topLayer.disable(this.panelTarget)
     this.panelTarget.hidden = true
     this.inputTarget.setAttribute("aria-expanded", "false")
     this._setActive(null)

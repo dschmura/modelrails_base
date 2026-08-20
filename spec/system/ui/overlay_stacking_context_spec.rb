@@ -158,4 +158,63 @@ RSpec.describe "Overlay stacking context", type: :system do
       end
     end
   end
+
+  # combobox is the one panel whose width is tied to its trigger. `w-full` cannot survive
+  # `position: fixed` — against the viewport it would mean the whole screen — so the modern
+  # path takes its width from `anchor-size(width)`. That is the half a plain position-area
+  # migration would silently get wrong.
+  describe "combobox inside a stacking context" do
+    let(:panel) { "[data-combobox-target=panel]" }
+    let(:field) { "[data-controller~=combobox]" }
+
+    before do
+      visit "/rails/view_components/ui/combobox_component/inside_stacking_context"
+      find("[data-combobox-target=input]").click
+      expect(page).to have_css(panel)
+    end
+
+    it "keeps the panel above page content that outranks its stacking context" do
+      expect(occluded?(panel)).to be(false)
+    end
+
+    it "still matches the width of its field" do
+      widths = page.evaluate_script(<<~JS)
+        (() => {
+          const f = document.querySelector("#{field}").getBoundingClientRect();
+          const p = document.querySelector("#{panel}").getBoundingClientRect();
+          return JSON.stringify([Math.round(f.width), Math.round(p.width)]);
+        })()
+      JS
+      field_width, panel_width = JSON.parse(widths)
+
+      expect(panel_width).to be_within(2).of(field_width)
+    end
+  end
+
+  # Two comboboxes on one page used to emit the same hardcoded listbox id.
+  it "gives each combobox a unique listbox id" do
+    visit "/rails/view_components/ui/combobox_component/default"
+    ids = page.evaluate_script(%{JSON.stringify([...document.querySelectorAll("[role=listbox]")].map(e => e.id))})
+
+    expect(JSON.parse(ids).uniq.length).to eq(JSON.parse(ids).length)
+  end
+
+  # mega_menu's panel spans its bar, so it carries the same anchor-size() risk as combobox:
+  # `w-full` against the viewport would be the whole screen.
+  it "keeps the mega menu panel the width of its bar" do
+    visit "/rails/view_components/ui/mega_menu_component/default"
+    find("[data-mega-menu-target=trigger]").click
+    expect(page).to have_css("[data-mega-menu-target=panel]")
+
+    widths = page.evaluate_script(<<~JS)
+      (() => {
+        const bar = document.querySelector("[data-controller~=mega-menu]").getBoundingClientRect();
+        const panel = document.querySelector("[data-mega-menu-target=panel]").getBoundingClientRect();
+        return JSON.stringify([Math.round(bar.width), Math.round(panel.width)]);
+      })()
+    JS
+    bar_width, panel_width = JSON.parse(widths)
+
+    expect(panel_width).to be_within(2).of(bar_width)
+  end
 end
