@@ -67,6 +67,31 @@ RSpec.describe "Overlay stacking context", type: :system do
     end
   end
 
+  describe "a popover placed by CSS anchor positioning" do
+    let(:panel) { "[data-floating-target=panel]" }
+    let(:trigger) { "[data-floating-target=trigger]" }
+
+    before do
+      visit "/rails/view_components/ui/popover_component/inside_stacking_context"
+      find(trigger).click
+      expect(page).to have_css(panel)
+    end
+
+    it "keeps the panel above page content that outranks its stacking context" do
+      expect(occluded?(panel)).to be(false)
+    end
+
+    it "still anchors the panel to its trigger" do
+      expect(gap_below_trigger(panel, trigger)).to be_between(4, 12) # mt-2 == 8px
+    end
+
+    it "still sizes the panel from its own classes, not the UA popover box" do
+      width = page.evaluate_script(%{Math.round(document.querySelector("#{panel}").getBoundingClientRect().width)})
+
+      expect(width).to eq(288) # w-72
+    end
+  end
+
   # Browsers that support the Popover API but NOT anchor positioning (Firefox, Safari at
   # time of writing) fall back to `absolute` + `top-full` offsets. Promoting THAT lands the
   # panel against the viewport instead of its trigger — measured at 1320px adrift. So the
