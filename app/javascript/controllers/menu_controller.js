@@ -142,10 +142,27 @@ export default class extends Controller {
   }
 
   activate(event) {
-    if (event.currentTarget.getAttribute("aria-disabled") === "true") {
+    const item = event.currentTarget
+    if (item.getAttribute("aria-disabled") === "true") {
       event.preventDefault()
       return
     }
+
+    // Checkable items change state and leave the menu open (APG menu pattern), so a
+    // multi-select view menu is usable in one pass. Plain items still close.
+    switch (item.getAttribute("role")) {
+      case "menuitemcheckbox":
+        item.setAttribute("aria-checked", String(item.getAttribute("aria-checked") !== "true"))
+        return
+      case "menuitemradio": {
+        const group = item.dataset.menuRadioGroup
+        this.itemTargets
+          .filter((el) => el.dataset.menuRadioGroup === group)
+          .forEach((el) => el.setAttribute("aria-checked", String(el === item)))
+        return
+      }
+    }
+
     this.close()
   }
 
