@@ -35,6 +35,11 @@ module UI
     def inside_stacking_context
     end
 
+    # Checkable items (`menuitemcheckbox` / `menuitemradio`) toggle in place and keep the
+    # menu open; `tone: :danger` marks a destructive action.
+    def checkable_items
+    end
+
     # @!endgroup
 
     # @!group Reference

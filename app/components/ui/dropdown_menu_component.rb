@@ -34,17 +34,32 @@ module UI
     # `disabled:` marks it `aria-disabled` (skipped by keyboard nav; activation
     # rejected). `separator: true` renders a non-interactive divider in source order
     # instead of an item. Pass-through `class:`/attrs land on the element.
-    renders_many :items, ->(separator: false, disabled: false, href: nil, **attrs, &block) do
+    renders_many :items, ->(separator: false, disabled: false, href: nil, checkbox: false,
+      radio: nil, value: nil, checked: false, tone: nil, **attrs, &block) do
       next content_tag(:div, "", role: "separator", class: SEPARATOR) if separator
 
+      tone = validate_tone(tone)
       tag_name = href ? :a : :button
       caller_data = attrs.delete(:data) || {}
+      # menuitemcheckbox / menuitemradio per the APG menu pattern. `aria-checked` is
+      # rendered from server state so the menu reads correctly before any JS runs;
+      # `menu#activate` then toggles it in place rather than closing the menu.
+      role = if radio
+        "menuitemradio"
+      else
+        (checkbox ? "menuitemcheckbox" : "menuitem")
+      end
+      wiring = { menu_target: "item", action: "click->menu#activate" }
+      wiring[:menu_radio_group] = radio if radio
+      wiring[:menu_value] = value if value
+      wiring[:tone] = tone if tone
       el = {
-        role: "menuitem",
+        role: role,
         tabindex: "-1",
-        class: cn(ITEM, attrs.delete(:class)),
-        data: { menu_target: "item", action: "click->menu#activate" }.merge(caller_data)
+        class: cn(ITEM, (ITEM_TONES.fetch(tone) if tone), attrs.delete(:class)),
+        data: wiring.merge(caller_data)
       }
+      el[:"aria-checked"] = checked.to_s if role != "menuitem"
       el[:href] = href if href
       el[:type] = "button" unless href
       el[:"aria-disabled"] = "true" if disabled
@@ -68,6 +83,22 @@ module UI
            "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 " \
            "[&_svg:not([class*='text-'])]:text-text-muted"
     SEPARATOR = "-mx-1 my-1 h-px bg-border"
+
+    # Signal tones are TEXT colours, never a fill — a menu item keeps the surface
+    # highlight it shares with every other item and only its label changes colour.
+    ITEM_TONES = {
+      danger: "text-danger hover:text-danger focus-visible:text-danger"
+    }.freeze
+
+    def validate_tone(tone)
+      return nil if tone.nil?
+
+      key = tone.to_sym
+      return key if ITEM_TONES.key?(key)
+
+      raise ArgumentError,
+        "UI::DropdownMenu unknown item tone: #{tone.inspect} (allowed: #{ITEM_TONES.keys.join(", ")})"
+    end
 
     SIDES = %i[bottom top].freeze
     ALIGNS = %i[start end].freeze
