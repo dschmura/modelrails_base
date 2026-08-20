@@ -6,6 +6,10 @@ pin "@hotwired/turbo-rails", to: "turbo.min.js"
 pin "@hotwired/stimulus", to: "stimulus.min.js"
 pin "@hotwired/stimulus-loading", to: "stimulus-loading.js"
 pin_all_from "app/javascript/controllers", under: "controllers"
+# Shared overlay primitives (top layer, dismissal stack) — plain ES modules rather
+# than controllers, because the dismissal stack must be a single instance shared by
+# every overlay controller.
+pin_all_from "app/javascript/overlays", under: "overlays"
 pin "lexxy", to: "lexxy.js"
 # Vendored (SEC-6): the self-contained dist bundle, committed at an exact
 # version so production script-src carries no CDN host and the bytes can't
