@@ -13,7 +13,9 @@ module UI
       xl: { css: "w-32 h-32", text: "text-3xl" }
     }.freeze
 
-    # src:        image URL (renders <img>); falls back to initials when nil
+    # src:        image URL (renders <img>); falls back to initials when nil. When a
+    #             `fallback:` is also given, a controller swaps the initials in if the
+    #             image FAILS to load — `fallback:` alone only covers a nil src.
     # alt:        image alt text
     # fallback:   initials string (rendered as-is — caller supplies them)
     # size:       xs | sm | md | lg | xl
@@ -31,7 +33,10 @@ module UI
     end
 
     def call
-      @src ? image_avatar : initials_avatar
+      return initials_avatar unless @src
+      return image_avatar unless @fallback
+
+      recoverable_image
     end
 
     private
@@ -55,6 +60,24 @@ module UI
       end
 
       :md
+    end
+
+    # Both nodes ship together so the swap needs no network round trip. Only the <img>
+    # is named; the standby initials stay unnamed so the avatar is announced once.
+    def recoverable_image
+      content_tag(:span, class: "contents", data: { controller: "avatar" }) do
+        concat content_tag(:img, nil,
+          src: @src, alt: (@aria_label.presence || @alt),
+          class: cn(config[:css], "rounded-full object-cover", @extra_class),
+          data: { avatar_target: "image", action: "error->avatar#showFallback" },
+          **aria_attrs, **@html_attrs)
+        concat content_tag(:span, @fallback,
+          class: cn(config[:css], config[:text],
+            "rounded-full flex items-center justify-center font-semibold", color_classes, @extra_class),
+          hidden: true,
+          "aria-hidden": "true",
+          data: { avatar_target: "fallback" })
+      end
     end
 
     def image_avatar
