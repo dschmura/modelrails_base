@@ -50,5 +50,9 @@ module UI
     # cannot escape. Anchor positioning lets it be promoted to the top layer instead.
     def inside_stacking_context
     end
+
+    # Two instances on one page — the case shared element ids collide in.
+    def two_on_a_page
+    end
   end
 end
