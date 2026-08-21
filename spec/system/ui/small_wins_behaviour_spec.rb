@@ -38,6 +38,10 @@ RSpec.describe "Small-wins behaviour", type: :system do
       expect(page).to have_css("[data-avatar-target=fallback]", text: "DC")
     end
 
+    # NOTE: the `error`-fires-before-connect race is NOT provable here. This page's
+    # timing lets the event win every time, so any assertion written for it would pass
+    # without the recovery code and prove nothing. It is proven in the gem's browser lane,
+    # whose faster harness reproduces the failure naturally (modelrails_ui test/system).
     # A hidden-but-present <img> would keep announcing a picture that never arrived.
     it "removes the failed image entirely" do
       expect(page).to have_css("[data-avatar-target=fallback]", text: "DC")
