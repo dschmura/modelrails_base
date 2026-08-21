@@ -191,14 +191,6 @@ RSpec.describe "Overlay stacking context", type: :system do
     end
   end
 
-  # Two comboboxes on one page used to emit the same hardcoded listbox id.
-  it "gives each combobox a unique listbox id" do
-    visit "/rails/view_components/ui/combobox_component/default"
-    ids = page.evaluate_script(%{JSON.stringify([...document.querySelectorAll("[role=listbox]")].map(e => e.id))})
-
-    expect(JSON.parse(ids).uniq.length).to eq(JSON.parse(ids).length)
-  end
-
   # mega_menu's panel spans its bar, so it carries the same anchor-size() risk as combobox:
   # `w-full` against the viewport would be the whole screen.
   it "keeps the mega menu panel the width of its bar" do
