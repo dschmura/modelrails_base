@@ -40,6 +40,11 @@ module UI
     def checkable_items
     end
 
+    # A nested menu. The sub-trigger stays part of the parent's arrow-key rotation;
+    # ArrowRight/Enter opens the submenu, ArrowLeft/Escape closes it.
+    def submenus
+    end
+
     # @!endgroup
 
     # @!group Reference
