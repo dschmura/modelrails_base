@@ -121,7 +121,10 @@ module UI
       id = "submenu-#{SecureRandom.hex(4)}"
 
       content_tag(:div,
-        data: { controller: "submenu", action: "mouseleave->submenu#scheduleClose" },
+        data: {
+          controller: "submenu",
+          action: "mouseleave->submenu#scheduleClose menu:close->submenu#forceClose"
+        },
         style: "anchor-name: --#{id}") do
         safe_join([ submenu_trigger(label, id, disabled, **attrs), submenu_panel(id, builder.items) ])
       end
