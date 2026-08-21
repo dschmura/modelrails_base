@@ -30,7 +30,9 @@ module UI
   # - **You supply:** an optional `with_trigger` slot and the grouped item markup
   #   (use the exposed `GROUP_WRAPPER` / `GROUP` / `ITEM` / `SHORTCUT` /
   #   `SEPARATOR` constants). Each actionable item must carry a
-  #   `data-command-value` (the text the filter matches on).
+  #   `data-command-value` (the text the filter scores against). Optional
+  #   `data-command-keywords` adds synonyms an item can be found by without
+  #   showing them in its label ("configuration" finding Settings).
   #
   # ## Sizes
   # `sm` · `md` · `lg` — the centered panel's max width.
