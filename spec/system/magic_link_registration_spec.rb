@@ -67,7 +67,10 @@ RSpec.describe "Magic link registration", type: :system do
       expect(page).to have_text(I18n.t("magic_link_callbacks.new_registration.title"))
       expect(User.find_by(email_address: "noname@example.com")).to be_nil
 
-      expect(page).to have_selector("[role='alert']", text: I18n.t("errors.form_errors", count: 2))
+      # role='alert' now uniquely matches the error summary — field-level errors are
+      # plain paragraphs (see app/components/ui/form_field_component.rb), not
+      # individually live-announced.
+      expect(page).to have_selector("[role='alert']", text: I18n.t("modelrails_ui.error_summary.heading", count: 2))
       expect(page).to have_text("#{User.human_attribute_name(:first_name)} #{I18n.t('errors.messages.blank')}")
       expect(page).to have_text("#{User.human_attribute_name(:last_name)} #{I18n.t('errors.messages.blank')}")
     end
