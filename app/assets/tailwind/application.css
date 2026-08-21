@@ -272,10 +272,11 @@
   }
 
   /* Button layout: selected text at the start, picker-icon pinned to the
-     inline-end on the SAME row. `.form-field` applies `display: block`, which
-     overrides base-select's default flex button and drops the picker-icon onto
-     its own line — so we must restore `display: flex` here (this @supports block
-     wins by source order over `.form-field`), then align + pin the icon. */
+     inline-end on the SAME row. UI::SelectComponent's BASE class already puts
+     `flex` inline (see select_component.rb), but a raw `<select class="ui-select">`
+     without that component chrome has no such utility — base-select's default
+     button layout would drop the picker-icon onto its own line for it, so we
+     restate `display: flex` here for that case, then align + pin the icon. */
   .ui-select {
     display: flex;
     align-items: center;
