@@ -49,6 +49,12 @@ export default class extends Controller {
     if (restoreFocus) this.triggerTarget.focus()
   }
 
+  // The parent menu closing is not a dismissal the user aimed at this layer, so focus
+  // stays wherever the parent puts it.
+  forceClose() {
+    this.close({ restoreFocus: false })
+  }
+
   // Hovering away closes after a beat so the pointer can cross the gap between the
   // sub-trigger and its panel without the submenu vanishing.
   scheduleClose() {
