@@ -92,7 +92,14 @@ module UI
         role: "dialog",
         "aria-modal": "true",
         "aria-labelledby": "#{@id}-title",
-        data: { modal_target: "dialog" },
+        data: {
+          modal_target: "dialog",
+          controller: "drawer-drag",
+          action: "drawer-drag:dismiss->modal#close " \
+                  "pointermove@document->drawer-drag#move " \
+                  "pointerup@document->drawer-drag#end " \
+                  "pointercancel@document->drawer-drag#end"
+        },
         class: "bg-transparent backdrop:bg-transparent m-0 mt-auto w-full max-w-full p-0"
       }
       attrs["aria-describedby"] = "#{@id}-description" if @description
@@ -101,14 +108,18 @@ module UI
 
     def panel
       content_tag(:div, safe_join([ drag_handle, header, body, footer_area ].compact),
-        data: { modal_target: "panel" },
+        data: { modal_target: "panel", drawer_drag_target: "panel" },
         class: PANEL)
     end
 
+    # aria-hidden and not focusable: dragging is pointer-only, so announcing a control
+    # that keyboard and switch users cannot operate would promise something untrue. They
+    # dismiss with Escape or the close button, which drag never replaces.
     def drag_handle
       content_tag(:div, content_tag(:div, nil, class: "h-1.5 w-12 rounded-full bg-surface-sunken"),
-        class: "flex justify-center pt-3 pb-1",
-        "aria-hidden": "true")
+        class: "flex justify-center pt-3 pb-1 cursor-grab touch-none active:cursor-grabbing",
+        "aria-hidden": "true",
+        data: { action: "pointerdown->drawer-drag#start" })
     end
 
     def header

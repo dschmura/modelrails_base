@@ -57,6 +57,11 @@ module UI
     # only the topmost (the menu); the dialog stays open.
     def nested_menu; end
 
+    # Two modals at once — a confirm opened from inside a form dialog. Native <dialog>
+    # stacks them: the second takes the top layer, the focus trap, and Escape.
+    def stacked
+    end
+
     # @!endgroup
 
     # @!group Reference
