@@ -53,11 +53,20 @@ export default class extends Controller {
   close({ restoreFocus = true } = {}) {
     if (!this.openValue) return
     this.openValue = false
+    // A submenu is its own controller, so it does not close just because this one did.
+    // Left alone it stays popover-open with aria-expanded="true" and reappears already
+    // expanded the next time this menu opens.
+    this.#closeSubmenus()
     topLayer.hide(this.menuTarget)
     topLayer.disable(this.menuTarget)
     this.menuTarget.hidden = true
     this.triggerTarget.setAttribute("aria-expanded", "false")
     if (restoreFocus) this.triggerTarget.focus()
+  }
+
+  #closeSubmenus() {
+    this.element.querySelectorAll("[data-controller~='submenu']")
+      .forEach((el) => el.dispatchEvent(new CustomEvent("menu:close")))
   }
 
   closeOnClickOutside(event) {
