@@ -2,6 +2,7 @@
     Native <dialog> supports this: showModal() on a second dialog puts it above the first
     in the top layer, moves the focus trap, and Escape closes only the topmost. %>
 <%= render "shared/modal",
+      id: "preview-dialog-outer",
       title: "Edit project",
       description: "Change the project name.",
       trigger: "Open form",
@@ -10,6 +11,7 @@
 
   <div class="mt-4">
     <%= render "shared/modal",
+          id: "preview-dialog-inner",
           title: "Discard changes?",
           description: "This cannot be undone.",
           trigger: "Discard",
