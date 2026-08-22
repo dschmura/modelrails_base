@@ -178,7 +178,7 @@ module UI
       # Caller class: REPLACES the default (never merges): "btn-primary
       # btn-secondary" would leave stylesheet order to pick the winner.
       options[:class] = options[:class].presence || "btn-primary"
-      super(value, options)
+      super
     end
 
     # One-line shim over UI::ErrorSummaryComponent — the component is the real
@@ -187,8 +187,16 @@ module UI
     def error_summary(options = {})
       return if object.nil? || object.errors.empty?
 
+      options = options.dup
+      # Anchors are DERIVED default ids (Rails' field_id) — the summary renders
+      # before the fields, so a call-site custom `id:` is unknowable here. The
+      # call site opts such attributes out with `unlinked:` and their items
+      # render as plain text, like :base errors (#121).
+      unlinked = Array(options.delete(:unlinked)).map(&:to_sym)
+
       items = object.errors.map do |error|
-        href = (error.attribute == :base) ? nil : "##{field_id(error.attribute)}"
+        skip = error.attribute == :base || unlinked.include?(error.attribute.to_sym)
+        href = skip ? nil : "##{field_id(error.attribute)}"
         { message: error.full_message, href: href }
       end
       @template.render(UI::ErrorSummaryComponent.new(items: items, **options))

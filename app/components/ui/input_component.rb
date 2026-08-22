@@ -5,9 +5,9 @@ module UI
     # Styling matches the form builder's (`UI::FormBuilder`) field rendering exactly,
     # so `f.text_field`/`f.email_field`/etc. and this component render identically.
     BASE   = "block w-full rounded-md border px-3 py-2 placeholder:text-text-muted " \
+             "disabled:cursor-not-allowed disabled:opacity-50 " \
              "focus-ring min-h-[var(--form-input-height)]"
-    NORMAL = "border-border-strong bg-surface-raised text-text-heading " \
-             "disabled:cursor-not-allowed disabled:opacity-50"
+    NORMAL = "border-border-strong bg-surface-raised text-text-heading"
     ERROR  = "border-danger ring-2 ring-danger bg-danger-surface text-danger"
 
     # First-class accessibility/form params so the component is usable standalone

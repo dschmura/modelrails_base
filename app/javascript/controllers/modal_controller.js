@@ -44,8 +44,7 @@ export default class extends Controller {
 
   // Stacking is supported and needs no help: a second showModal() puts that dialog above
   // this one in the top layer, moves the focus trap, and gives it Escape. This used to
-  // warn that stacked modals were unsupported and then stack them anyway — proven
-  // otherwise by spec/system/ui/dialog_stacking_spec.rb.
+  // warn that stacked modals were unsupported and then stack them anyway.
   open() {
     if (this.dialogTarget.open) return
 
@@ -72,6 +71,8 @@ export default class extends Controller {
       window.history.back()
     }
   }
+
+  // Private
 
   handleCancel(event) {
     event.preventDefault()

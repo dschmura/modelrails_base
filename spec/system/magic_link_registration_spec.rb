@@ -83,7 +83,9 @@ RSpec.describe "Magic link registration", type: :system do
     # custom JS to test. Proven end-to-end in Cuprite, not asserted from
     # markup alone, because a `role="alert"`/`tabindex="-1"`/`autofocus`
     # triple that never actually receives focus would pass every markup-only
-    # check while leaving assistive tech and keyboard users stranded.
+    # check while leaving assistive tech and keyboard users stranded. Assert
+    # by element identity, not role attribute, so this stays strong even if
+    # a second role=alert element ever appears on the page.
     it "moves focus to the error summary after a failed submit (422 re-render)" do
       token = MagicLinkToken.create_for_email("focus-noname@example.com")
       visit magic_link_callback_path(token: token)
@@ -91,7 +93,9 @@ RSpec.describe "Magic link registration", type: :system do
       click_button I18n.t("magic_link_callbacks.new_registration.submit")
 
       expect(page).to have_css("[role='alert'][tabindex='-1']")
-      expect(page.evaluate_script("document.activeElement.getAttribute('role')")).to eq("alert")
+      expect(page.evaluate_script(
+        "document.activeElement === document.querySelector('[role=\"alert\"]')"
+      )).to be(true)
     end
 
     it "links each error summary item to its field, and the field exists on the page" do

@@ -8,6 +8,13 @@
 # convention and stay put; a separate issue tracks migrating them onto it.
 en:
   modelrails_ui:
+    modal:
+      close: "Close dialog"
+    resizable:
+      handle: "Resize panels"
+    toaster:
+      label: "Notifications"
+      dismiss: "Dismiss"
     bottom_nav:
       nav_label: "Bottom navigation"
     calendar:

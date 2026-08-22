@@ -10,7 +10,7 @@ module UI
            "file:bg-interactive file:text-text-on-interactive hover:file:bg-interactive-hover " \
            "file:cursor-pointer file:min-h-[var(--form-input-height)] " \
            "disabled:cursor-not-allowed disabled:opacity-50 " \
-           "aria-invalid:border-danger-border aria-invalid:ring-danger"
+           "aria-invalid:border-danger-border aria-invalid:ring-2 aria-invalid:ring-danger"
 
     # Per-file pill for the show_selection list: the badge chip shape plus the
     # proven [:soft, :primary] color cell (bg-interactive-subtle + text-interactive
