@@ -136,7 +136,7 @@ module UI
     end
 
     def close_label
-      I18n.t("modals.close", default: "Close")
+      I18n.t("modelrails_ui.modal.close", default: [ :"modals.close", "Close" ])
     end
 
     def close_icon
