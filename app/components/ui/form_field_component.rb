@@ -16,17 +16,24 @@ module UI
   #
   # ## Use when
   # - You're composing a single labelled field by hand (a one-off form, or a control
-  #   the `TailwindFormBuilder` doesn't cover). For model-backed forms, prefer the
-  #   builder — it already does this wiring.
+  #   the form builder (`UI::FormBuilder`) doesn't cover). For model-backed forms,
+  #   prefer the builder — it already does this wiring.
   #
   # ## Accessibility contract
   # - **Guarantees:** a `<label for=id>` bound to the control; hint/error rendered with
   #   ids `#{id}-hint`/`#{id}-error`; and `input_attrs` carrying `id` +
-  #   `describedby` (the hint/error ids → the control's `aria-describedby`) +
-  #   `invalid` (on error) + `required`. The required marker is a decorative
-  #   aria-hidden `*` on the Label — the caption never carries the requirement.
+  #   `describedby` (**error-first**, then hint — `[error, hint]` — front-loading the
+  #   correction for AT users now that the hint sits below the control) + `invalid`
+  #   (on error) + `required`. The required marker is a decorative aria-hidden `*` on
+  #   the Label — the caption never carries the requirement.
+  # - **No live region:** the error `<p>` is plain markup, not `role="alert"`. A
+  #   field-level live region never fires on a server-rendered response — the region
+  #   has to exist before its content changes to announce anything. The focused
+  #   `ErrorSummary` component is the actual announcement mechanism.
   # - **You supply:** the control inside the block, spread with `**f.input_attrs` so it
-  #   adopts the field's id and aria wiring.
+  #   adopts the field's id and aria wiring. Rendering a native (non-ViewComponent)
+  #   control instead? Use `html_input_attrs`, which translates the same wiring into
+  #   real `aria-*` attributes.
   class FormFieldComponent < ApplicationComponent
     # data-slot adjacency rhythm (the Catalyst model): label→control 12px,
     # control→description 8px, description→description 4px. Self-contained Tailwind
@@ -35,22 +42,39 @@ module UI
               "[&>[data-slot=control]+[data-slot=description]]:mt-2 " \
               "[&>[data-slot=description]+[data-slot=description]]:mt-1"
 
+    # Shared with the form builder's checkbox/collection paths — the id + hint/error
+    # paragraph convention is one decision written once, even where markup differs.
+    HINT_CLASSES = "text-sm text-text-muted"
+    ERROR_CLASSES = "text-sm text-danger"
+
     def initialize(label: nil, hint: nil, error: nil, required: false, **html_attrs)
       @label = label
       @hint = hint
       @error = error
       @required = required
-      @id = html_attrs.delete(:id) || "form_field_#{object_id}"
-      @describedby = [ ("#{@id}-hint" if @hint.present?), ("#{@id}-error" if @error.present?) ].compact.join(" ").presence
+      @id = html_attrs.key?(:id) ? html_attrs.delete(:id) : "form_field_#{object_id}"
+      @describedby = [ ("#{@id}-error" if @error.present?), ("#{@id}-hint" if @hint.present?) ].compact.join(" ").presence
       @extra_class = html_attrs.delete(:class)
       @html_attrs = html_attrs
     end
 
     # The wiring the slotted control must spread (`**f.input_attrs`): id +
     # aria-describedby (hint/error ids) + invalid + required. Mirrors exactly what
-    # TailwindFormBuilder injects into the controls it renders itself.
+    # the form builder (`UI::FormBuilder`) injects into the controls it renders itself.
     def input_attrs
       { id: @id, describedby: @describedby, invalid: @error.present?, required: @required }
+    end
+
+    # input_attrs translated to real HTML attributes, for native (non-ViewComponent)
+    # controls — the builder's `select` path, and any future raw control. Component
+    # kwargs (describedby:/invalid:/required:) are meaningless to Rails tag helpers;
+    # spreading input_attrs into one emits literal `describedby=` garbage.
+    def html_input_attrs
+      attrs = { id: @id }
+      attrs["aria-describedby"] = @describedby if @describedby
+      attrs["aria-invalid"] = "true" if @error.present?
+      attrs["aria-required"] = "true" if @required
+      attrs
     end
 
     def call
@@ -77,13 +101,13 @@ module UI
     def hint_tag
       return unless @hint.present?
 
-      content_tag(:p, @hint, id: "#{@id}-hint", class: "text-sm text-text-muted", data: { slot: "description" })
+      content_tag(:p, @hint, id: "#{@id}-hint", class: HINT_CLASSES, data: { slot: "description" })
     end
 
     def error_tag
       return unless @error.present?
 
-      content_tag(:p, @error, id: "#{@id}-error", role: "alert", class: "text-sm text-danger", data: { slot: "description" })
+      content_tag(:p, @error, id: "#{@id}-error", class: ERROR_CLASSES, data: { slot: "description" })
     end
   end
 end
