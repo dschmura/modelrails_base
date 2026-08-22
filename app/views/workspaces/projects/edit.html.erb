@@ -28,7 +28,7 @@
           label: t("workspaces.projects.edit.description_label"),
           rows: 3 %>
 
-    <%= form.submit t("workspaces.projects.edit.submit"), class: "w-full" %>
+    <%= form.submit t("workspaces.projects.edit.submit"), class: "btn-primary w-full" %>
   <% end %>
 
   <% if policy(@project).destroy? %>

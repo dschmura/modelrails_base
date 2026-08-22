@@ -20,7 +20,7 @@
           { label: t("onboarding.teams.new.role_label") },
           {} %>
 
-    <%= form.submit t("onboarding.teams.new.submit"), class: "w-full" %>
+    <%= form.submit t("onboarding.teams.new.submit"), class: "btn-primary w-full" %>
   <% end %>
 
   <%= button_to t("onboarding.teams.new.skip"), onboarding_path, method: :patch,
