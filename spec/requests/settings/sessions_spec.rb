@@ -30,6 +30,15 @@ RSpec.describe "Settings::Sessions", type: :request do
       get settings_sessions_path
       expect(response.body).not_to include("10.9.9.9")
     end
+
+    it "renders inside the settings shell with the identity sidebar" do
+      get settings_sessions_path
+      aside = Nokogiri::HTML(response.body).at_css(
+        %(aside[aria-label="#{I18n.t("settings.sidebar.aria_label")}"])
+      )
+      expect(aside).not_to be_nil
+      expect(aside.at_css(%(a[href="#{settings_sessions_path}"]))).not_to be_nil
+    end
   end
 
   describe "DELETE /settings/sessions/:id" do
