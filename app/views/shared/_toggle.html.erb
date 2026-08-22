@@ -1,4 +1,4 @@
-<%# locals: (name:, label:, checked: false, disabled: false, value: "true", help: nil, hidden_value: nil) -%>
+<%# locals: (name:, label:, checked: false, disabled: false, value: "true", help: nil, hidden_value: nil, visible_label: true) -%>
 <%# Switch-style toggle. Wraps a hidden checkbox inside a styled label so
     screen readers get the proper input semantics + the visual is a sliding
     pill. The pill's visual state is driven entirely by CSS via Tailwind's
@@ -37,7 +37,7 @@
                  translate-x-0 group-has-[:checked]:translate-x-5"></span>
   </span>
   <span class="flex flex-col">
-    <span class="text-sm text-text-body group-has-[:disabled]:text-text-muted">
+    <span class="text-sm text-text-body group-has-[:disabled]:text-text-muted<%= " sr-only" unless visible_label %>">
       <%= label %>
     </span>
     <% if help.present? %>
