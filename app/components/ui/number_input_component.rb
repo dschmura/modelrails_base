@@ -6,10 +6,10 @@ module UI
   # A native `<input type="number">` with AAA field styling and the shared
   # form-control ARIA wiring (`invalid:` / `describedby:` / `required:`).
   #
-  # **Normally reached via `f.number_field`.** The `TailwindFormBuilder` renders this
-  # control together with its label, help text, error message, and full ARIA wiring.
-  # Use `ui :number_input` directly only when you need a bare control outside a managed
-  # form.
+  # **Not what `f.number_field` renders.** `UI::FormBuilder#number_field` renders
+  # `UI::InputComponent` with `type: "number"`, not this component. Reach for
+  # `ui :number_input` when composing a field by hand outside a `form_with`, or as
+  # the control a host form builder's own `number_field` override chooses to wrap.
   #
   # ## Use when
   # - You need a numeric entry (quantity, price, age) with `min` / `max` / `step`
