@@ -50,4 +50,26 @@ RSpec.describe UI::DialogComponent, type: :component do
     expect(page).to have_css("dialog[data-modal-target='dialog']")
     expect(page).to have_css("#modal-body")
   end
+
+  describe "role: :alertdialog" do
+    it "renders role='alertdialog' with the max-w-md panel cap" do
+      render_inline(described_class.new(title: "Delete?", id: "confirm-delete", role: :alertdialog)) { "body" }
+
+      expect(page).to have_css("dialog[role='alertdialog']")
+      expect(page).to have_css("dialog [data-modal-target='panel'][class*='max-w-md']")
+    end
+
+    it "defaults to role='dialog' and fails loud on unknown roles" do
+      render_inline(described_class.new(title: "T", id: "plain-dialog")) { "body" }
+
+      expect(page).to have_css("dialog[role='dialog']")
+      expect { described_class.new(title: "T", id: "x", role: :banana) }
+        .to raise_error(ArgumentError, /alertdialog/)
+    end
+
+    it "fails loud in test when wrapper: true has no explicit id or body_id" do
+      expect { described_class.new(title: "T") }
+        .to raise_error(ArgumentError, /wrapper: true/)
+    end
+  end
 end

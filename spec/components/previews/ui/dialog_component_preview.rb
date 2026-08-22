@@ -62,6 +62,11 @@ module UI
     def stacked
     end
 
+    # A destructive confirm: role: :alertdialog announces as an alert dialog
+    # and caps the panel at max-w-md regardless of size:.
+    def alertdialog
+    end
+
     # @!endgroup
 
     # @!group Reference
