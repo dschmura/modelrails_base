@@ -44,7 +44,7 @@ module UI
            "border border-transparent px-2 py-0.5 text-xs font-medium whitespace-nowrap " \
            "transition-[color,box-shadow] " \
            "focus-ring " \
-           "aria-invalid:border-danger-border aria-invalid:ring-danger  " \
+           "aria-invalid:border-danger-border aria-invalid:ring-2 aria-invalid:ring-danger  " \
            "[&>svg]:pointer-events-none [&>svg]:size-3"
 
     # The 9 AAA-proven cells, keyed `[variant, tone]`. Signal tones use the TINTED

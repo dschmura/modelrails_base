@@ -160,9 +160,7 @@ group :development do
   # moment the branch moves). Dev-only, so no production/runtime impact.
   # Setup: run `rails g modelrails_ui:agent_rules` to scaffold your local agent rules
   # (.modelrails_ui/ + a CLAUDE.md import — kept local, like CLAUDE.md itself).
-  # Pinned by ref: the B1 FormBuilder templates (gem PRs #115 + #118) are not yet
-  # in a release tag; swap to the next version tag when it is cut.
-  gem "modelrails_ui", git: "https://github.com/dschmura/modelrails_ui.git", ref: "eb5903d3ee1bf4d942b5505be6958700315d47b7"
+  gem "modelrails_ui", git: "https://github.com/dschmura/modelrails_ui.git", tag: "v0.10.1"
 
   # Living documentation / component explorer for the vendored UI::* components
   # (scaffolded by `rails g modelrails_ui:lookbook`). Mounted at /lookbook in
