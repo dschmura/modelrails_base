@@ -8,7 +8,7 @@ require "rails_helper"
 # tests the `modal` controller); this spec locks the markup/ARIA contract.
 RSpec.describe UI::DialogComponent, type: :component do
   def render_dialog
-    render_inline(described_class.new(title: "Edit profile", description: "Update your details", size: :lg)) do |d|
+    render_inline(described_class.new(id: "spec-dialog", title: "Edit profile", description: "Update your details", size: :lg)) do |d|
       d.with_trigger { '<button type="button">Open</button>'.html_safe }
       "Body content".html_safe
     end

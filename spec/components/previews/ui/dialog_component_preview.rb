@@ -34,7 +34,7 @@ module UI
   #   a parent element and wire your own trigger.
   #
   # ## Related
-  # `alert_dialog` · `drawer` · `sheet`
+  # `drawer` · `sheet`
   # @logical_path Overlays
   class DialogComponentPreview < ViewComponent::Preview
     include UIHelper
