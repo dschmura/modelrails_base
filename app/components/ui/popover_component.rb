@@ -16,7 +16,7 @@ module UI
   #   tied to a trigger that does NOT need to block the page.
   #
   # ## Don't use when
-  # - The content must block interaction until dismissed — use `dialog`/`alert_dialog`.
+  # - The content must block interaction until dismissed — use `dialog` (`role: :alertdialog` for a confirm gate).
   # - You only need a hint describing a control — use `tooltip`.
   #
   # ## Accessibility contract
