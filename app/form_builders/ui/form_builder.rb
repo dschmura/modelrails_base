@@ -101,6 +101,11 @@ module UI
       field_opts = {}
       field_opts[:label] = options.delete(:label) if options.key?(:label)
       field_opts[:help] = options.delete(:help) if options.key?(:help)
+      # required in EITHER hash converts to aria-only — html_options is the
+      # documented Rails signature, and passing it through to super would emit
+      # native required, defeating the class-header contract. options wins
+      # when both are given.
+      field_opts[:required] = html_options.delete(:required) if html_options.key?(:required)
       field_opts[:required] = options.delete(:required) if options.key?(:required)
       field_opts[:id] = html_options.delete(:id) if html_options.key?(:id)
 
@@ -214,7 +219,10 @@ module UI
       html_options = html_options.dup
       legend_text = options.key?(:label) ? options.delete(:label) : default_label(method)
       hint = options.delete(:help)
-      required = !!options.delete(:required)
+      # Strip required from BOTH hashes: left in html_options it would emit
+      # native required on every input in the group (same contract hole as
+      # select's html_options path).
+      required = !!options.delete(:required) | !!html_options.delete(:required)
       error = error_for(method)
       base_id = field_id(method)
 
