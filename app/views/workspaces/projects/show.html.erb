@@ -24,7 +24,7 @@
 
   <%= render "workspaces/projects/tool_tabs", project: @project, workspace: @workspace %>
 
-  <nav class="mt-8 flex gap-4" aria-label="Project navigation">
+  <nav class="mt-8 flex flex-wrap gap-4" aria-label="<%= t(".nav_label") %>">
     <%= link_to t("workspaces.projects.show.members"), workspace_project_memberships_path(@workspace, @project),
           class: "min-h-[var(--form-input-height)] flex items-center px-4 py-2 rounded-md border border-border
                   text-text-body hover:border-interactive

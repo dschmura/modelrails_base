@@ -18,6 +18,7 @@ en:
       show:
         members: "Members"
         edit: "Edit"
+        nav_label: "Project settings"
       edit:
         title: "Edit project"
         name_label: "Project name"
