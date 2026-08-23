@@ -70,5 +70,5 @@ en:
           invalid_role: "Invalid role."
         destroy:
           removed: "Member removed."
-        toggle_pin:
-          toggled: "Pin updated."
+      pins:
+        toggled: "Pin updated."

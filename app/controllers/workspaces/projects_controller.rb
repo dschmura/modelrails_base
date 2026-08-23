@@ -11,8 +11,8 @@ module Workspaces
       # (variant_records, preview_image_attachment), and project logos render
       # the original blob without variants (#691) — Bullet flags the unused
       # includes. Switch back to with_attached_logo when #691 adds variants.
-      @projects = @workspace.projects.kept.not_archived.includes(logo_attachment: :blob)
-      @archived_projects = @workspace.projects.kept.archived.order(:name)
+      @projects = policy_scope(@workspace.projects).kept.not_archived.includes(logo_attachment: :blob)
+      @archived_projects = policy_scope(@workspace.projects).kept.archived.order(:name)
     end
 
     def new
@@ -33,6 +33,7 @@ module Workspaces
 
     def show
       authorize @project
+      @activities = ActivityLog.for_project(@project).recent.includes(:actor)
     end
 
     def edit

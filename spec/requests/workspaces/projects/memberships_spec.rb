@@ -187,15 +187,26 @@ RSpec.describe "Project Memberships", type: :request do
       end
     end
 
-    describe "PATCH toggle_pin" do
-      it "pins own membership" do
-        patch toggle_pin_workspace_project_membership_path(workspace, project, creator_pm)
+    # #686: pinning is a singular end-state resource — the old PATCH
+    # :toggle_pin flipped (update!(pinned: !pinned)), so a retried or
+    # double-submitted request silently UN-pinned.
+    describe "pin resource" do
+      it "POST pins own membership, idempotently (two POSTs = pinned once)" do
+        post workspace_project_pin_path(workspace, project)
+        expect(creator_pm.reload).to be_pinned
+        expect(flash[:notice]).to eq(I18n.t("workspaces.projects.pins.toggled"))
+
+        post workspace_project_pin_path(workspace, project)
         expect(creator_pm.reload).to be_pinned
       end
 
-      it "unpins a pinned membership" do
+      it "DELETE unpins, idempotently" do
         creator_pm.update!(pinned: true)
-        patch toggle_pin_workspace_project_membership_path(workspace, project, creator_pm)
+
+        delete workspace_project_pin_path(workspace, project)
+        expect(creator_pm.reload).not_to be_pinned
+
+        delete workspace_project_pin_path(workspace, project)
         expect(creator_pm.reload).not_to be_pinned
       end
     end

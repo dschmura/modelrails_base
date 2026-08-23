@@ -38,13 +38,13 @@ RSpec.describe ProjectMembershipPolicy do
       expect(described_class.new(editor_user, editor_pm).create?).to be false
     end
 
-    it "allows toggle_pin on own membership" do
-      expect(described_class.new(editor_user, editor_pm).toggle_pin?).to be true
+    it "allows pin on own membership" do
+      expect(described_class.new(editor_user, editor_pm).pin?).to be true
     end
 
-    it "denies toggle_pin on others' membership" do
+    it "denies pin on others' membership" do
       creator_pm = project.project_memberships.find_by(user: creator_user)
-      expect(described_class.new(editor_user, creator_pm).toggle_pin?).to be false
+      expect(described_class.new(editor_user, creator_pm).pin?).to be false
     end
   end
 

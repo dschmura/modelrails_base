@@ -50,14 +50,6 @@ module Workspaces
         redirect_to workspace_project_memberships_path(@workspace, @project), notice: t(".removed")
       end
 
-      def toggle_pin
-        # Security: find by Current.user, not URL param, to prevent IDOR
-        @pm = @project.project_memberships.find_by!(user: Current.user)
-        authorize @pm
-        @pm.update!(pinned: !@pm.pinned)
-        redirect_back fallback_location: workspace_projects_path(@workspace), notice: t(".toggled")
-      end
-
       private
 
       def membership_params

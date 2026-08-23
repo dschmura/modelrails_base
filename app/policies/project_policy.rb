@@ -30,6 +30,29 @@ class ProjectPolicy < ApplicationPolicy
     lifecycle_manageable?
   end
 
+  # #687: any member could LIST every kept project while show? requires
+  # project membership — rows most members could only bounce off. Members see
+  # the projects they belong to; workspace managers (who already hold the
+  # lifecycle powers above) see all. Reads Current.workspace the same way
+  # ApplicationPolicy#membership does — the scope has no record to derive a
+  # workspace from.
+  class Scope < ApplicationPolicy::Scope
+    def resolve
+      if manager?
+        scope.all
+      else
+        scope.joins(:project_memberships).where(project_memberships: { user_id: user.id })
+      end
+    end
+
+    private
+
+    def manager?
+      Current.workspace&.memberships&.kept&.find_by(user: user)
+        &.role&.permissions&.dig("manage_workspace") == true
+    end
+  end
+
   private
 
   def lifecycle_manageable?

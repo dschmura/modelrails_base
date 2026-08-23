@@ -15,7 +15,8 @@ class ProjectMembershipPolicy < ApplicationPolicy
     project_membership&.creator? && !record_is_creator?
   end
 
-  def toggle_pin?
+  # One rule for both pin create and destroy — your own membership only.
+  def pin?
     project_member? && record.user == user
   end
 

@@ -26,6 +26,40 @@ RSpec.describe "Workspace Projects", type: :request do
         expect(response.body).to include(CGI.escapeHTML(project.name))
       end
 
+      # #687: the index listed every kept project to any workspace member,
+      # while ProjectPolicy#show? requires project membership — rows most
+      # members could only bounce off. The scope: members see their projects;
+      # workspace managers (who already hold lifecycle powers) see all.
+      describe "index visibility (ProjectPolicy::Scope)" do
+        let(:plain_member) { create(:user) }
+        let!(:plain_membership) { create(:membership, user: plain_member, workspace: workspace) }
+        let!(:mine) { create(:project, workspace: workspace, created_by: plain_member, name: "Mine Alone") }
+        let!(:not_mine) { create(:project, workspace: workspace, created_by: user, name: "Somebody Elses") }
+
+        it "shows a plain member only the projects they belong to" do
+          sign_in(plain_member)
+          get workspace_projects_path(workspace)
+
+          expect(response.body).to include("Mine Alone")
+          expect(response.body).not_to include(CGI.escapeHTML("Somebody Elses"))
+        end
+
+        it "shows a workspace manager every project" do
+          get workspace_projects_path(workspace) # `user` is the owner
+
+          expect(response.body).to include("Mine Alone")
+          expect(response.body).to include(CGI.escapeHTML("Somebody Elses"))
+        end
+
+        it "scopes the archived section the same way" do
+          not_mine.archive!
+          sign_in(plain_member)
+          get workspace_projects_path(workspace)
+
+          expect(response.body).not_to include(CGI.escapeHTML("Somebody Elses"))
+        end
+      end
+
       it "renders the project initials through the avatar component" do
         project = create(:project, workspace: workspace, created_by: user)
         get workspace_projects_path(workspace)
