@@ -9,9 +9,13 @@ RSpec.describe "Docs breadcrumb", type: :request do
     expect(response).to have_http_status(:ok)
 
     nav = Capybara.string(response.body).find("nav[aria-label='Breadcrumb']")
-    expect(nav).to have_css("ol a.focus-ring", minimum: 2)
-    expect(nav).to have_css("[aria-current='page']")
-    expect(nav).to have_css("span[aria-hidden='true']", text: "/", minimum: 2)
+    expect(nav).to have_css("ol a.focus-ring", count: 2)
+    expect(nav).to have_link("Docs", href: "/docs/")
+    expect(nav).to have_link("Presets (Tenancy)", href: "/docs/#presets-tenancy")
+    # The current item is a bare span carrying aria-current, never a link.
+    expect(nav).to have_css("span[aria-current='page']", text: "App Presets")
+    expect(nav).to have_no_css("a[aria-current]")
+    expect(nav).to have_css("span[aria-hidden='true']", text: "/", count: 2)
     expect(nav).to have_no_css("svg")
   end
 end
