@@ -40,9 +40,9 @@ RSpec.describe "Project Resources", type: :request do
           exact_text: I18n.t("workspaces.projects.resources.index.published"))
         # Guard (green before and after): draft has no proven COMBOS cell — it stays
         # the hand-rolled muted chip until modelrails_ui#146 ships. `text:` (not
-        # `exact_text:`) because the untouched hand-rolled span's multi-line
-        # `class="..."` attribute puts literal newlines in its .text, and
-        # Capybara.default_normalize_ws is false in this suite.
+        # `exact_text:`) because the hand-rolled span's ERB puts its label on its
+        # own line, so the element's .text carries literal newlines/indentation,
+        # and Capybara.default_normalize_ws is false in this suite.
         expect(html).to have_css("span.bg-surface.text-text-muted",
           text: I18n.t("workspaces.projects.resources.index.draft"))
         expect(html).to have_no_css("span.border-success-border",
