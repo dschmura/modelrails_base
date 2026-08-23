@@ -28,7 +28,15 @@ RSpec.describe WorkspaceHelper, type: :helper do
       result = helper.workspace_icon_for(workspace, size: :md)
 
       expect(result).to have_css("[data-controller='avatar'] img.w-10.h-10[data-avatar-target='image'][aria-hidden='true']")
-      expect(result).to have_css("[data-controller='avatar'] span[data-avatar-target='fallback']", visible: :all)
+      # The action wiring is what makes the pair recoverable; a target without it
+      # never swaps. The standby span must be hidden (visible: :all would pass with
+      # both nodes exposed) and must carry the workspace's hue so the recovered
+      # initials keep the brand color.
+      expect(result).to have_css("[data-controller='avatar'] img[data-action='error->avatar#showFallback']")
+      expect(result).to have_css(
+        "[data-controller='avatar'] span[data-avatar-target='fallback'][style='--hue: #{workspace.identity.hue}']",
+        visible: :hidden
+      )
     end
 
     it "renders hue-tinted initials through the component when no image exists" do
@@ -37,7 +45,16 @@ RSpec.describe WorkspaceHelper, type: :helper do
       result = helper.workspace_icon_for(workspace, size: :sm)
 
       expect(result).to have_css("span.w-8.h-8.bg-hue-initials[aria-hidden='true']", text: workspace.identity.initials)
-      expect(result).to match(/--hue:\s*#{workspace.identity.hue}/)
+      expect(result).to have_css("span[style='--hue: #{workspace.identity.hue}']")
+    end
+
+    it "renders :lg initials at the component's text-lg (licensed delta from the old text-xl)" do
+      workspace = create(:workspace, name: "Acme Co")
+
+      result = helper.workspace_icon_for(workspace, size: :lg)
+
+      expect(result).to have_css("span.w-16.h-16.text-lg", text: workspace.identity.initials)
+      expect(result).to have_no_css("span.text-xl")
     end
   end
 
