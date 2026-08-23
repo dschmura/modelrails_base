@@ -58,6 +58,9 @@ module Workspaces
         end
         redirect_to workspace_project_resource_path(@workspace, @project, @resource), notice: t(".success")
       rescue ActiveRecord::RecordInvalid
+        # The edit re-render's document partial binds @resourceable; without this
+        # it rendered a blank editor on a failed update.
+        @resourceable = @resource.resourceable
         render :edit, status: :unprocessable_entity
       end
 

@@ -37,4 +37,21 @@ RSpec.describe "Resource forms", type: :system do
     expect(page).to have_text(I18n.t("workspaces.projects.resources.create.success"))
     expect(page).to have_text("Kickoff notes")
   end
+
+  describe "editing" do
+    let!(:resource) do
+      create(:resource, project: project, created_by: user, title: "Original title")
+    end
+
+    it "renders the error summary when the title is cleared" do
+      visit edit_workspace_project_resource_path(workspace, project, resource)
+
+      fill_in I18n.t("workspaces.projects.resources.edit.title_label"), with: ""
+      click_button I18n.t("workspaces.projects.resources.edit.submit")
+
+      within("[role='alert']") do
+        expect(page).to have_link("Title can't be blank", href: "#resource_title")
+      end
+    end
+  end
 end
