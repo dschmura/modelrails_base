@@ -143,8 +143,8 @@ class Invitation < ApplicationRecord
   end
 
   # Shared consumption core for both signup acceptance paths: the session-based
-  # one (Signupable#accept_pending_invitation!) and the column-based one
-  # (Authentication#claim_pending_invitation!). Centralizing it keeps both flows
+  # one (PendingClaims#claim!, signup-time) and the column-based one
+  # (Authentication#claim_pending!, verification-time). Centralizing it keeps both flows
   # on identical acceptance semantics. Returns the invitation on success, or nil
   # when the token is blank or matches nothing. Propagates Invitation::NotAcceptable
   # when the invitation exists but is no longer acceptable, so callers can surface
