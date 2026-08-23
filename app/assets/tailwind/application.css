@@ -212,6 +212,16 @@
     min-height: var(--form-input-height);
   }
 
+  /* Brand-outline sibling of the filled family: the outlined CTA look
+     (hero secondary, invitation register). Text/border use the interactive
+     token; hover fills with the subtle brand tint. */
+  .btn-outline {
+    @apply inline-flex items-center justify-center px-4 rounded-md font-medium cursor-pointer;
+    @apply focus-ring;
+    @apply border border-interactive text-interactive hover:bg-interactive-subtle;
+    min-height: var(--form-input-height);
+  }
+
   /* .form-input: flat field for inline/chrome controls. */
   .form-input {
     @apply px-3 py-2 rounded-md cursor-pointer;
