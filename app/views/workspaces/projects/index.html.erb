@@ -16,13 +16,10 @@
                       hover:border-interactive
                       focus-ring" do %>
           <div class="flex items-center gap-3">
-            <% if project.logo.attached? %>
-              <%= image_tag project.logo, class: "w-10 h-10 rounded-full object-cover", alt: "" %>
-            <% else %>
-              <div class="w-10 h-10 rounded-full bg-info-surface flex items-center justify-center text-interactive font-semibold text-sm">
-                <%= project.initials %>
-              </div>
-            <% end %>
+            <%= ui :avatar,
+                  src: (main_app.url_for(project.logo) if project.logo.attached?),
+                  fallback: project.initials,
+                  size: :md %>
             <div>
               <p class="font-medium text-text-heading"><%= project.name %></p>
               <p class="text-sm text-text-muted"><%= project.description&.truncate(80) %></p>

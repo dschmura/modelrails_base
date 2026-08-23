@@ -15,6 +15,30 @@ RSpec.describe WorkspaceHelper, type: :helper do
 
       expect(result).to have_css("img.w-8.h-8")
     end
+
+    it "renders an uploaded logo with broken-image recovery wiring (component path)" do
+      workspace = create(:workspace, name: "Acme Co")
+      workspace.identity  # ensure identity exists per the model's accessor
+      workspace.logo.attach(
+        io: File.open(Rails.root.join("spec/fixtures/files/avatar.png")),
+        filename: "logo.png",
+        content_type: "image/png"
+      )
+
+      result = helper.workspace_icon_for(workspace, size: :md)
+
+      expect(result).to have_css("[data-controller='avatar'] img.w-10.h-10[data-avatar-target='image'][aria-hidden='true']")
+      expect(result).to have_css("[data-controller='avatar'] span[data-avatar-target='fallback']", visible: :all)
+    end
+
+    it "renders hue-tinted initials through the component when no image exists" do
+      workspace = create(:workspace, name: "Acme Co")
+
+      result = helper.workspace_icon_for(workspace, size: :sm)
+
+      expect(result).to have_css("span.w-8.h-8.bg-hue-initials[aria-hidden='true']", text: workspace.identity.initials)
+      expect(result).to match(/--hue:\s*#{workspace.identity.hue}/)
+    end
   end
 
   describe "#current_workspace_section" do
