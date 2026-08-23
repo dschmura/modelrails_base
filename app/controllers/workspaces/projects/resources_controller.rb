@@ -35,8 +35,17 @@ module Workspaces
         # Keep the INVALID record so the re-render shows its errors — the old
         # re-build produced an unvalidated copy with an empty errors set, so the
         # 422 rendered no message at all (the request spec asserted only status).
-        @resource = e.record if e.record.is_a?(Resource)
-        @resource ||= @project.resources.build(resource_params)
+        if e.record.is_a?(Resource)
+          @resource = e.record
+        else
+          # A failing RESOURCEABLE surfaces too (#747): keep it (the editor
+          # retains what was typed) and merge its messages into the summary as
+          # :base items — the old branch dropped them, so a validating
+          # resourceable type re-rendered a 422 with an empty summary.
+          @resourceable = e.record
+          @resource = @project.resources.build(resource_params)
+          e.record.errors.full_messages.each { |message| @resource.errors.add(:base, message) }
+        end
         @resourceable ||= @type.constantize.new(resourceable_params)
         render :new, status: :unprocessable_entity
       end
@@ -57,10 +66,14 @@ module Workspaces
           @resource.update!(resource_params)
         end
         redirect_to workspace_project_resource_path(@workspace, @project, @resource), notice: t(".success")
-      rescue ActiveRecord::RecordInvalid
+      rescue ActiveRecord::RecordInvalid => e
         # The edit re-render's document partial binds @resourceable; without this
-        # it rendered a blank editor on a failed update.
+        # it rendered a blank editor on a failed update. Same resourceable-error
+        # merge as create (#747).
         @resourceable = @resource.resourceable
+        unless e.record.is_a?(Resource)
+          e.record.errors.full_messages.each { |message| @resource.errors.add(:base, message) }
+        end
         render :edit, status: :unprocessable_entity
       end
 
