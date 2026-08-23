@@ -183,6 +183,11 @@ ignore_unused:
   # scanner couldn't resolve even if the path weren't excluded. Deleting a
   # key here only degrades that component to its shipped English default.
   - modelrails_ui.*
+  # Off-namespace legacy key (predates the modelrails_ui.* convention)
+  # consumed by UI::BreadcrumbComponent under the scanner-excluded
+  # app/components/ui — same reasoning as modals.* above. Defined so the
+  # breadcrumb nav landmark name is translatable (W1 CP3).
+  - ui.breadcrumb.label
   # Rendered by Settings::ConnectedAccountsController#verify through the
   # PendingClaims problems map (symbol -> key string in a constant hash),
   # a call form the static scanner cannot resolve. Both keys are exercised
