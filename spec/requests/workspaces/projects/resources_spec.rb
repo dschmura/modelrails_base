@@ -93,6 +93,11 @@ RSpec.describe "Project Resources", type: :request do
           document: { body: "Content" }
         }
         expect(response).to have_http_status(:unprocessable_entity)
+        # The invalid record's errors actually render (regression: the old rescue
+        # re-built an unvalidated record, so the 422 page showed no errors)...
+        expect(response.body).to include(CGI.escapeHTML("Title can't be blank"))
+        # ...and the submitted body survives the re-render (bound fields_for).
+        expect(response.body).to include("Content")
       end
     end
 
@@ -142,10 +147,13 @@ RSpec.describe "Project Resources", type: :request do
 
         expect(response).to have_http_status(:unprocessable_entity)
 
+        # W1-6 (#729, PR-B): the edit form now goes through UI::FormBuilder's
+        # error_summary (UI::ErrorSummaryComponent), which carries neither the
+        # old hand-rolled `aria-live` attribute nor `data-slot="alert-description"`
+        # — adapted per the task-2 brief's clause to assert the message text
+        # inside the role="alert" region rather than that markup.
         html = Capybara.string(response.body)
-        expect(html).to have_css("[role='alert'][aria-live='assertive']")
-        expect(html).to have_css("[role='alert'] [data-slot='alert-description'] li",
-                                 text: "Title can't be blank")
+        expect(html.find("[role='alert']")).to have_text("Title can't be blank")
       end
     end
 
