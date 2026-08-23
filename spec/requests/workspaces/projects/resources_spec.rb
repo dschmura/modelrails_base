@@ -93,6 +93,11 @@ RSpec.describe "Project Resources", type: :request do
           document: { body: "Content" }
         }
         expect(response).to have_http_status(:unprocessable_entity)
+        # The invalid record's errors actually render (regression: the old rescue
+        # re-built an unvalidated record, so the 422 page showed no errors)...
+        expect(response.body).to include(CGI.escapeHTML("Title can't be blank"))
+        # ...and the submitted body survives the re-render (bound fields_for).
+        expect(response.body).to include("Content")
       end
     end
 

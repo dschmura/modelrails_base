@@ -31,7 +31,11 @@ module Workspaces
           )
         end
         redirect_to workspace_project_resource_path(@workspace, @project, @resource), notice: t(".success")
-      rescue ActiveRecord::RecordInvalid
+      rescue ActiveRecord::RecordInvalid => e
+        # Keep the INVALID record so the re-render shows its errors — the old
+        # re-build produced an unvalidated copy with an empty errors set, so the
+        # 422 rendered no message at all (the request spec asserted only status).
+        @resource = e.record if e.record.is_a?(Resource)
         @resource ||= @project.resources.build(resource_params)
         @resourceable ||= @type.constantize.new(resourceable_params)
         render :new, status: :unprocessable_entity
