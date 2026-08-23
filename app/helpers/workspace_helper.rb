@@ -104,6 +104,10 @@ module WorkspaceHelper
     avatar_for(workspace.owner, size: size)
   end
 
+  # hue: is always explicit here (Identity#hue defaults to DEFAULT_HUE), unlike
+  # avatar_helper, which passes nil at the default so the component's
+  # bg-interactive branch applies. Parity with the pre-component workspace
+  # markup; picking one behavior for both helpers is a tracked follow-up.
   def render_workspace_initials(identity, size)
     render UI::AvatarComponent.new(fallback: identity.initials, hue: identity.hue, size: size)
   end

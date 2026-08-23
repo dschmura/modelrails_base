@@ -7,7 +7,11 @@ module Workspaces
 
     def index
       authorize Project
-      @projects = @workspace.projects.kept.not_archived
+      # Not with_attached_logo: that scope eager-loads the variant tree
+      # (variant_records, preview_image_attachment), and project logos render
+      # the original blob without variants (#691) — Bullet flags the unused
+      # includes. Switch back to with_attached_logo when #691 adds variants.
+      @projects = @workspace.projects.kept.not_archived.includes(logo_attachment: :blob)
       @archived_projects = @workspace.projects.kept.archived.order(:name)
     end
 
