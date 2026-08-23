@@ -33,7 +33,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
         get settings_connected_accounts_path
 
         html = Capybara.string(response.body)
-        expect(html).to have_css("span.rounded-full.border-success-border.px-2",
+        expect(html).to have_css("span[data-variant='soft'][data-tone='success']",
           exact_text: I18n.t("settings.connected_accounts.index.verified"))
       end
     end
