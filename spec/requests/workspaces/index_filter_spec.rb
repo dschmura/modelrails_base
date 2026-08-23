@@ -36,7 +36,7 @@ RSpec.describe "Workspaces index filter", type: :request do
     get workspaces_path
 
     html = Capybara.string(response.body)
-    expect(html).to have_css("span.rounded-full.font-medium.bg-interactive.text-text-on-interactive",
+    expect(html).to have_css("span[data-variant='solid'][data-tone='primary']",
       exact_text: I18n.t("workspaces.index.current_badge"))
     expect(html).to have_no_css("span.uppercase", text: I18n.t("workspaces.index.current_badge"))
   end
