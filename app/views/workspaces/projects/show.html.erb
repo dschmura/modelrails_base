@@ -7,13 +7,10 @@
   <% end %>
   <%= turbo_stream_from @project %>
   <div class="flex items-center gap-4">
-    <% if @project.logo.attached? %>
-      <%= image_tag @project.logo, class: "w-16 h-16 rounded-full object-cover", alt: "" %>
-    <% else %>
-      <div class="w-16 h-16 rounded-full bg-info-surface flex items-center justify-center text-interactive font-bold text-xl">
-        <%= @project.initials %>
-      </div>
-    <% end %>
+    <%= ui :avatar,
+          src: (main_app.url_for(@project.logo) if @project.logo.attached?),
+          fallback: @project.initials,
+          size: :lg %>
     <div>
       <h1 class="text-3xl font-bold text-text-heading"><%= @project.name %></h1>
       <% if @project.description.present? %>
