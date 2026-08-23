@@ -86,6 +86,11 @@
   /* Modal */
   --modal-backdrop: var(--modal-backdrop);
   --modal-animation-duration: var(--modal-animation-duration);
+
+  /* Sizing — registers `min-h-input`: the named 44px form-control floor
+     (WCAG 2.2 AAA target size). Prefer it over `min-h-11` or
+     `min-h-[var(--form-input-height)]` so the invariant has ONE spelling. */
+  --min-height-input: var(--form-input-height);
 }
 
 /* AAA focus indicator (converged-conventions B5): an OFFSET OUTLINE, not a ring.
