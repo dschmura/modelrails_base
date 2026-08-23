@@ -368,20 +368,37 @@ RSpec.describe "Account Notifications", type: :request do
         post mark_all_read_settings_notifications_path
       end
 
-      it "broadcasts the v2 refresh trio on GET /:id/open (notification-open from triage)" do
+      # #686: open-and-mark-read is a POST-only resource (reading) — the old
+      # GET :open mutated, so link prefetchers and mail scanners marked
+      # notifications read.
+      it "broadcasts the v2 refresh trio on POST reading (notification-open from triage)" do
         notification
         expect_v2_refresh_broadcasts
 
-        get open_settings_notification_path(notification)
+        post settings_notification_reading_path(notification)
       end
 
-      it "does NOT broadcast on GET /:id/open when notification is already read (idempotent no-op)" do
+      it "does NOT broadcast on POST reading when notification is already read (idempotent no-op)" do
         notification.update!(read_at: 1.hour.ago)
 
         expect(Turbo::StreamsChannel).not_to receive(:broadcast_replace_to)
         expect(Turbo::StreamsChannel).not_to receive(:broadcast_update_to)
 
-        get open_settings_notification_path(notification)
+        post settings_notification_reading_path(notification)
+      end
+
+      it "marks read and forwards to the notifier's URL" do
+        post settings_notification_reading_path(notification)
+
+        expect(notification.reload.read_at).to be_present
+        expect(response).to have_http_status(:redirect)
+      end
+
+      it "no longer routes the mutating GET /:id/open" do
+        get "/settings/notifications/#{notification.id}/open"
+
+        expect(response).to have_http_status(:not_found)
+        expect(notification.reload.read_at).to be_nil
       end
 
       # v2 (2026-05-23): the menu-count broadcast was restored. The user-menu
