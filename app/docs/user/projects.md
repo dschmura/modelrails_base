@@ -62,9 +62,9 @@ Destroy the `ProjectMembership` record. The user remains a workspace member.
 
 Users can pin their favorite projects for quick access:
 
-**Route:** `PATCH /workspaces/:slug/projects/:slug/memberships/:id/toggle_pin`
+**Routes:** `POST /workspaces/:slug/projects/:slug/pin` (pin) and `DELETE` on the same path (unpin) — a singular end-state resource, so retried requests are idempotent rather than toggling.
 
-The toggle finds the membership via `Current.user` (not the URL param) to prevent IDOR attacks. Pinned projects appear first in the project list.
+The controller finds your membership via `Current.user` (never a URL param) to prevent IDOR attacks. Pinned projects appear first in the project list.
 
 ## Resources
 

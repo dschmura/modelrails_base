@@ -72,8 +72,11 @@ Rails.application.routes.draw do
     end
     resource :email_confirmation, only: [ :show, :destroy ]
     resources :notifications, only: [ :index, :update, :destroy ] do
-      member do
-        get :open
+      # POST-only open-and-mark-read (#686): a GET here MUTATED (read_at), so
+      # link prefetchers and mail scanners marked notifications read — the
+      # same class of route the magic-link comment below refuses.
+      scope module: :notifications do
+        resource :reading, only: :create
       end
       collection do
         post :mark_all_read
@@ -113,11 +116,13 @@ Rails.application.routes.draw do
           patch :unarchive
         end
         scope module: :projects do
-          resources :memberships, only: [ :index, :new, :create, :update, :destroy ] do
-            member do
-              patch :toggle_pin
-            end
-          end
+          # Singular end-state resource for MY pin on this project (#686):
+          # create/destroy are idempotent where the old PATCH :toggle_pin
+          # flipped state on every retry. Hangs off the project (not a
+          # membership id) because the controller resolves Current.user's own
+          # membership regardless of any param.
+          resource :pin, only: [ :create, :destroy ]
+          resources :memberships, only: [ :index, :new, :create, :update, :destroy ]
           resources :invitations, only: [ :new, :create ]
           resources :resources, only: [ :index, :new, :create, :show, :edit, :update, :destroy ] do
             member do
