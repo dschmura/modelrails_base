@@ -2,7 +2,12 @@
   <label for="document_body" class="block text-sm font-medium text-text-body">
     <%= t("workspaces.projects.resources.new.body_label") %>
   </label>
-  <%= fields_for :document do |document_form| %>
+  <%# Bound to @resourceable (top-level :document scope keeps the
+      document[body] param name) so a failed submit re-renders the body the
+      user typed instead of a blank editor. rich_text_area is Action Text /
+      Lexxy — deliberately NOT a UI::FormBuilder surface, so its label is
+      hand-wired here. %>
+  <%= fields_for :document, @resourceable do |document_form| %>
     <%= document_form.rich_text_area :body,
           id: "document_body",
           class: "mt-1 block w-full rounded-md border border-border-strong
