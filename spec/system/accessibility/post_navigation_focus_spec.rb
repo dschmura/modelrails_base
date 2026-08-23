@@ -14,8 +14,11 @@ RSpec.describe "Post-navigation focus management", type: :system do
     visit "/"
     click_link I18n.t("footer.about") # destination has no autofocused field
 
-    expect(page).to have_css("#main-content")
-    expect(page.evaluate_script("document.activeElement && document.activeElement.id")).to eq("main-content")
+    # :focus predicate (Capybara-retried), not element presence + an
+    # activeElement sample: every layout renders #main-content, so presence
+    # matches the PRE-navigation DOM and the sample races the turbo:load
+    # focus handler.
+    expect(page).to have_css("#main-content:focus")
   end
 
   it "leaves the browser's default focus alone on initial page load" do
@@ -31,14 +34,11 @@ RSpec.describe "Post-navigation focus management", type: :system do
     visit "/"
     click_link I18n.t("navigation.sign_in")
 
-    # Synchronize on the destination render before sampling focus — the sibling
-    # examples wait on #main-content, but this one sampled immediately and
-    # raced the Turbo visit on loaded CI shards, reading the still-focused
-    # trigger link instead (flaked on #761's shard 5).
-    expect(page).to have_css("input[autofocus]")
-
-    focused_tag = page.evaluate_script("document.activeElement && document.activeElement.tagName")
-    expect(%w[INPUT MAIN]).to include(focused_tag),
-      "expected focus on the landmark or an autofocused field, got #{focused_tag.inspect}"
+    # :focus predicate (Capybara-retried) — synchronizing on element presence
+    # and then sampling activeElement raced the turbo:load focus handler on
+    # loaded CI shards (flaked on #761's shard 5). Either the autofocused
+    # field holds focus or the handler landed on the landmark; both satisfy
+    # 2.4.3, the handler must just never yank focus elsewhere.
+    expect(page).to have_css("input[autofocus]:focus, #main-content:focus")
   end
 end
