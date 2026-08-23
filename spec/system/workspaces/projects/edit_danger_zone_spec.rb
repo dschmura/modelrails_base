@@ -5,7 +5,6 @@ RSpec.describe "Project edit danger zone", type: :system do
   let(:project) { create(:project, created_by: creator, name: "Launch Plan") }
   let(:axe_options) { { runOnly: { type: "tag", values: [ "wcag2aaa" ] } } }
 
-  before { create(:project_membership, :creator, project: project, user: creator) }
 
   context "as the project creator" do
     before { sign_in_via_form(creator) }

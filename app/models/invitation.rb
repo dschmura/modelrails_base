@@ -190,21 +190,37 @@ class Invitation < ApplicationRecord
     end
   end
 
+  # decline!/revoke!/resend! share accept!'s transaction + lock! shape (#675):
+  # lock! reloads the row inside BEGIN IMMEDIATE (the FOR UPDATE clause is a
+  # SQLite no-op, but the immediate transaction serializes writers and the
+  # reload is the real re-check), so a stale in-memory pending? can never
+  # overwrite a committed acceptance — and resend! can no longer rotate the
+  # token on an accepted/revoked row, which would destroy audit correlation.
   def decline!
-    raise ActiveRecord::RecordInvalid.new(self), "Invitation already processed" unless pending?
-    update!(status: "declined", declined_at: Time.current)
+    transaction do
+      lock!
+      raise ActiveRecord::RecordInvalid.new(self), "Invitation already processed" unless pending?
+      update!(status: "declined", declined_at: Time.current)
+    end
   end
 
   def revoke!
-    raise ActiveRecord::RecordInvalid.new(self), "Invitation already processed" unless pending?
-    update!(status: "revoked", revoked_at: Time.current)
+    transaction do
+      lock!
+      raise ActiveRecord::RecordInvalid.new(self), "Invitation already processed" unless pending?
+      update!(status: "revoked", revoked_at: Time.current)
+    end
   end
 
   def resend!
-    update!(
-      token: SecureRandom.urlsafe_base64(32),
-      expires_at: 7.days.from_now
-    )
+    transaction do
+      lock!
+      raise ActiveRecord::RecordInvalid.new(self), "Invitation already processed" unless pending?
+      update!(
+        token: SecureRandom.urlsafe_base64(32),
+        expires_at: 7.days.from_now
+      )
+    end
   end
 
   def acceptable?

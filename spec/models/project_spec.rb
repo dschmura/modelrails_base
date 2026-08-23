@@ -154,16 +154,27 @@ RSpec.describe Project, type: :model do
   end
 
   describe "factory" do
-    it "does not auto-create a workspace membership for created_by" do
-      workspace = create(:workspace)
-      expect { create(:project, workspace: workspace) }
-        .not_to change(workspace.memberships, :count)
+    # #688: the factory mirrors Workspace#create_project's invariant — a
+    # project always carries its creator's project_membership.
+    it "creates the creator's project membership (the post-#660 production invariant)" do
+      project = create(:project)
+      expect(project.project_memberships.sole.user).to eq(project.created_by)
+      expect(project.project_memberships.sole.role).to eq("creator")
     end
 
-    it "with :with_membership trait, creates a membership for created_by" do
+    it "ensures created_by is a workspace member (creators are members in production)" do
       workspace = create(:workspace)
-      expect { create(:project, :with_membership, workspace: workspace) }
-        .to change(workspace.memberships, :count).by(1)
+      project = create(:project, workspace: workspace)
+      expect(workspace.memberships.kept.exists?(user: project.created_by)).to be(true)
+    end
+
+    it "does not duplicate memberships when created_by is already a member" do
+      workspace = create(:workspace)
+      member = create(:user)
+      create(:membership, user: member, workspace: workspace)
+
+      expect { create(:project, workspace: workspace, created_by: member) }
+        .not_to change(workspace.memberships, :count)
     end
   end
 
