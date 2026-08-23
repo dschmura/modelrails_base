@@ -6,6 +6,10 @@ require "rails_helper"
 # resolve to a real rule selector in the compiled build. .btn-secondary is the
 # positive control on both sides — if the extractor or the CSS parser stops
 # finding IT, the probe is broken, not the code.
+# CI is authoritative: builds/ is gitignored, so a stale local build can pass
+# this vacuously — only CI's fresh assets:precompile proves a negative. Scope
+# is the btn-* family only; other utility families (e.g. signal borders) are
+# not covered here.
 RSpec.describe "button utilities in compiled Tailwind" do
   before do
     skip "run bin/rails tailwind:build first" unless build_css_path.exist?
