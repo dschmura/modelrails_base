@@ -7,14 +7,16 @@ require "rails_helper"
 # positive control on both sides — if the extractor or the CSS parser stops
 # finding IT, the probe is broken, not the code.
 RSpec.describe "button utilities in compiled Tailwind" do
-  BUILD_CSS = Rails.root.join("app/assets/builds/tailwind.css")
-
   before do
-    skip "run bin/rails tailwind:build first" unless BUILD_CSS.exist?
+    skip "run bin/rails tailwind:build first" unless build_css_path.exist?
+  end
+
+  def build_css_path
+    Rails.root.join("app/assets/builds/tailwind.css")
   end
 
   def css
-    @css ||= BUILD_CSS.read
+    @css ||= build_css_path.read
   end
 
   # Every btn-* class token referenced by app markup. The lookbehind keeps
