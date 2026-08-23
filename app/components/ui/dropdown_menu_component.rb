@@ -208,14 +208,12 @@ module UI
     # `position-area` cell + `position-try-fallbacks: flip-block` to stay on-screen) and
     # the pre-Baseline `absolute` fallback offsets. `span-right`/`span-left` edge-align the
     # menu to the trigger (unlike a tooltip, which centres). One line per placement.
-    # rubocop:disable Layout/LineLength
     PLACEMENTS = {
       bottom_start: "mt-1 supports-[position-area:bottom]:fixed supports-[position-area:bottom]:[position-area:bottom_span-right] supports-[position-area:bottom]:[position-try-fallbacks:flip-block] not-supports-[position-area:bottom]:absolute not-supports-[position-area:bottom]:top-full not-supports-[position-area:bottom]:left-0",
       bottom_end: "mt-1 supports-[position-area:bottom]:fixed supports-[position-area:bottom]:[position-area:bottom_span-left] supports-[position-area:bottom]:[position-try-fallbacks:flip-block] not-supports-[position-area:bottom]:absolute not-supports-[position-area:bottom]:top-full not-supports-[position-area:bottom]:right-0",
       top_start: "mb-1 supports-[position-area:bottom]:fixed supports-[position-area:bottom]:[position-area:top_span-right] supports-[position-area:bottom]:[position-try-fallbacks:flip-block] not-supports-[position-area:bottom]:absolute not-supports-[position-area:bottom]:bottom-full not-supports-[position-area:bottom]:left-0",
       top_end: "mb-1 supports-[position-area:bottom]:fixed supports-[position-area:bottom]:[position-area:top_span-left] supports-[position-area:bottom]:[position-try-fallbacks:flip-block] not-supports-[position-area:bottom]:absolute not-supports-[position-area:bottom]:bottom-full not-supports-[position-area:bottom]:right-0"
     }.freeze
-    # rubocop:enable Layout/LineLength
 
     # side:          :bottom | :top
     # align:         :start | :end (edge-aligned to the trigger)

@@ -135,6 +135,21 @@ RSpec.describe TailwindFormBuilder, type: :component do
       result = parse(builder.select(:first_name, %w[a b], {}, { "data-controller" => "auto-submit" }))
       expect(result).to have_css("select[data-controller='auto-submit']")
     end
+
+    # v0.13.0 contract fix (gem #145): required in the DOCUMENTED Rails position
+    # (html_options) must convert to aria-only too — passed through to super it
+    # would emit native required, defeating the class-header contract.
+    it "converts required in html_options (the documented Rails signature) to aria-only" do
+      result = parse(builder.select(:first_name, %w[a b], {}, { required: true }))
+      expect(result).to have_css("select[aria-required='true']")
+      expect(result).not_to have_css("select[required]")
+    end
+
+    it "lets options win over html_options when both carry required" do
+      result = parse(builder.select(:first_name, %w[a b], { required: false }, { required: true }))
+      expect(result).not_to have_css("select[aria-required]")
+      expect(result).not_to have_css("select[required]")
+    end
   end
 
   describe "#checkbox (canonical) and #check_box (alias)" do
@@ -184,6 +199,14 @@ RSpec.describe TailwindFormBuilder, type: :component do
       result = parse(builder.collection_radio_buttons(:first_name, roles, :first, :last))
       expect(result).to have_css("fieldset[aria-describedby='user_first_name-error']")
       expect(result.all("fieldset label.min-h-11 input[type='radio'][aria-invalid='true']").size).to eq(2)
+    end
+
+    # v0.13.0 contract fix (gem #145): required left in html_options would emit
+    # native required on EVERY input in the group — strip it from both hashes.
+    it "strips required from html_options so no group input gets native required" do
+      result = parse(builder.collection_checkboxes(:first_name, roles, :first, :last, {}, { required: true }))
+      expect(result).not_to have_css("input[required]")
+      expect(result).to have_css("fieldset legend .text-danger", text: "*")
     end
   end
 
