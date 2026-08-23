@@ -31,6 +31,12 @@ RSpec.describe "Post-navigation focus management", type: :system do
     visit "/"
     click_link I18n.t("navigation.sign_in")
 
+    # Synchronize on the destination render before sampling focus — the sibling
+    # examples wait on #main-content, but this one sampled immediately and
+    # raced the Turbo visit on loaded CI shards, reading the still-focused
+    # trigger link instead (flaked on #761's shard 5).
+    expect(page).to have_css("input[autofocus]")
+
     focused_tag = page.evaluate_script("document.activeElement && document.activeElement.tagName")
     expect(%w[INPUT MAIN]).to include(focused_tag),
       "expected focus on the landmark or an autofocused field, got #{focused_tag.inspect}"
