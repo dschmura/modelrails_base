@@ -1,10 +1,8 @@
 <%# Host override of markdowndocs gem's docs/_breadcrumb — renders through
     UI::Breadcrumb (W1 PR-F); last item (no href) is auto aria-current. %>
 <%# locals: (category:, title:) %>
-<div class="mb-6">
-  <%= ui :breadcrumb, items: [
-        { label: "Docs", href: markdowndocs.root_path },
-        { label: category, href: "#{markdowndocs.root_path}##{category.parameterize}" },
-        { label: title }
-      ] %>
-</div>
+<%= ui :breadcrumb, class: "mb-6", items: [
+      { label: "Docs", href: markdowndocs.root_path },
+      { label: category, href: "#{markdowndocs.root_path}##{category.parameterize}" },
+      { label: title }
+    ] %>
