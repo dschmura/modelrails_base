@@ -117,6 +117,8 @@ RSpec.describe ProjectMembershipChangedNotifier, type: :notifier do
     it "fires on after_create_commit when a user is added to a project" do
       another_user = create(:user)
       create(:membership, user: another_user, workspace: workspace)
+      project # materialize outside the measured window — the factory's own
+      # creator membership fires this notifier too (#688)
       expect {
         ProjectMembership.create!(project: project, user: another_user, role: "viewer")
       }.to change { Noticed::Event.where(type: described_class.name).count }.by(1)

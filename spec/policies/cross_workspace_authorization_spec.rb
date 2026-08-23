@@ -54,7 +54,6 @@ RSpec.describe "Cross-workspace authorization guard" do
       create(:project, workspace: home_workspace, created_by: user)
     end
 
-    before { create(:project_membership, :creator, project: home_project, user: user) }
 
     it "still allows a manage_workspace-gated action" do
       expect(ProjectPolicy.new(user, home_project).archive?).to be true

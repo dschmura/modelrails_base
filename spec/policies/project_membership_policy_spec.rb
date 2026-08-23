@@ -10,7 +10,6 @@ RSpec.describe ProjectMembershipPolicy do
     Current.workspace = workspace
     create(:membership, :owner, user: creator_user, workspace: workspace)
     create(:membership, user: editor_user, workspace: workspace)
-    create(:project_membership, :creator, project: project, user: creator_user)
   end
 
   let!(:editor_pm) { create(:project_membership, project: project, user: editor_user) }

@@ -79,6 +79,28 @@ RSpec.describe "Account Passwords", type: :request do
         patch settings_password_path, params: { user: { password: "brand-new-passw0rd", password_confirmation: "brand-new-passw0rd" } }
         expect(user.reload.authenticate("brand-new-passw0rd")).to be_truthy
       end
+
+      # #674: the HIBP range check is network I/O. Run from the validation it
+      # sits inside BEGIN IMMEDIATE — SQLite's database-wide write lock — so a
+      # slow third party stalls every write in the app. The controller must
+      # precheck before save; depth is measured against the transactional-
+      # fixture baseline (one transaction is always open in specs).
+      it "runs the HIBP range check outside the write transaction, exactly once" do
+        baseline = ActiveRecord::Base.connection.open_transactions
+        depth_at_check = nil
+        pwned = instance_double(Pwned::Password)
+        allow(pwned).to receive(:pwned?) do
+          depth_at_check = ActiveRecord::Base.connection.open_transactions
+          false
+        end
+        allow(Pwned::Password).to receive(:new).and_return(pwned)
+
+        patch settings_password_path, params: { user: { password: "brand-new-passw0rd", password_confirmation: "brand-new-passw0rd" } }
+
+        expect(response).to redirect_to(settings_connected_accounts_path)
+        expect(pwned).to have_received(:pwned?).once
+        expect(depth_at_check).to eq(baseline)
+      end
     end
 
     describe "DELETE /settings/password (remove)" do

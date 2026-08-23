@@ -25,7 +25,7 @@ User
 
 **Workspace** — organizational boundary. Billing, roles, member management. Every user has a personal workspace created on sign-up.
 
-**Project** — collaboration boundary. Lightweight, purpose-driven. Who works together on what.
+**Project** — collaboration boundary. Lightweight, purpose-driven. Who works together on what. Created only through `Workspace#create_project` (atomic with the creator's project membership). Lifecycle asymmetry is deliberate: an **archived** workspace still accepts new projects — archive means "no new people, existing work continues" — while a **suspended** (locked) workspace refuses them; suspension raises a disclosing `SuspendedError` to members where `Workspace#admit` raises the non-disclosing `NotAdmittableError` to outsiders.
 
 **Resource** — content within a project. Polymorphic registry pattern: `Resource` holds title, status, position; type-specific content lives in the resourceable (e.g., `Document`). Resources with `shared_with_client: true` and `status: published` are visible in the client area.
 
