@@ -28,6 +28,12 @@ RSpec.describe "Pages", type: :request do
         # The bottom-CTA button ("Create your account") is only rendered when signups_open?.
         expect(response.body).to include(I18n.t("pages.home.cta.button"))
       end
+
+      it "renders the secondary hero CTA as a brand-outline button" do
+        get root_path
+        expect(Capybara.string(response.body)).to have_css("a.btn-outline",
+          text: I18n.t("pages.home.hero.cta_secondary"))
+      end
     end
 
     context "when SIGNUP_MODE is :invite_only without a token" do

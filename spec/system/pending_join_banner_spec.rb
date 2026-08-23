@@ -48,6 +48,13 @@ RSpec.describe "Pending join banner (drive-by re-consent)", type: :system do
     expect(existing_user.memberships.kept.where(workspace: join_workspace)).not_to exist
   end
 
+  it "renders join as a secondary button and dismiss as a text button" do
+    within "#pending-join-banner" do
+      expect(page).to have_css("button.btn-secondary[type='submit']")
+      expect(page).to have_css("button.btn-text[type='submit']")
+    end
+  end
+
   it "banner is axe-clean at AAA (both themes)" do
     expect(page).to have_css("#pending-join-banner")
     expect(axe_clean_in_both_themes?(axe_options)).to be(true),
