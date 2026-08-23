@@ -28,6 +28,26 @@ RSpec.describe "Project Resources", type: :request do
         expect(response).to have_http_status(:ok)
         expect(response.body).to include(CGI.escapeHTML(resource.title))
       end
+
+      it "renders the published pill through UI::Badge and keeps draft hand-rolled (gem #146)" do
+        create(:resource, project: project, created_by: user, status: "published")
+        create(:resource, project: project, created_by: user, status: "draft")
+
+        get workspace_project_resources_path(workspace, project)
+
+        html = Capybara.string(response.body)
+        expect(html).to have_css("span.rounded-full.border-success-border",
+          exact_text: I18n.t("workspaces.projects.resources.index.published"))
+        # Guard (green before and after): draft has no proven COMBOS cell — it stays
+        # the hand-rolled muted chip until modelrails_ui#146 ships. `text:` (not
+        # `exact_text:`) because the untouched hand-rolled span's multi-line
+        # `class="..."` attribute puts literal newlines in its .text, and
+        # Capybara.default_normalize_ws is false in this suite.
+        expect(html).to have_css("span.bg-surface.text-text-muted",
+          text: I18n.t("workspaces.projects.resources.index.draft"))
+        expect(html).to have_no_css("span.border-success-border",
+          text: I18n.t("workspaces.projects.resources.index.draft"))
+      end
     end
 
     describe "GET new" do
