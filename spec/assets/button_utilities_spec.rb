@@ -1,14 +1,61 @@
 require "rails_helper"
 
-# Compiled-CSS probe (declaration-level, not selector-grep): proves the utility
-# family actually compiles. .btn-secondary is the positive control — if IT is
-# missing, the probe file/technique is wrong, not the code.
+# Suite-wide phantom-class guard for the btn-* utility family (#682): Tailwind
+# emits only classes it knows, so a typo'd or renamed btn-* utility ships as
+# silently unstyled markup. Every btn-* token used in views/components must
+# resolve to a real rule selector in the compiled build. .btn-secondary is the
+# positive control on both sides — if the extractor or the CSS parser stops
+# finding IT, the probe is broken, not the code.
 RSpec.describe "button utilities in compiled Tailwind" do
-  let(:css) { Rails.root.join("app/assets/builds/tailwind.css").read }
+  BUILD_CSS = Rails.root.join("app/assets/builds/tailwind.css")
 
-  it "compiles .btn-secondary (positive control) and .btn-outline" do
-    expect(css).to include(".btn-secondary")
-    expect(css).to include(".btn-outline")
-    expect(css.split(".btn-outline", 2).last[0, 600]).to include("--color-interactive")
+  before do
+    skip "run bin/rails tailwind:build first" unless BUILD_CSS.exist?
+  end
+
+  def css
+    @css ||= BUILD_CSS.read
+  end
+
+  # Every btn-* class token referenced by app markup. The lookbehind keeps
+  # foreign namespaces (e.g. biscuit-btn--*) out of the btn-* family.
+  def used_tokens
+    files = Dir[Rails.root.join("app/views/**/*.erb")] +
+      Dir[Rails.root.join("app/components/**/*.{rb,erb}")]
+    files.flat_map { |f| File.read(f).scan(/(?<![\w-])btn-[a-z][a-z-]*[a-z]/) }.uniq.sort
+  end
+
+  # Class names that appear in actual rule selectors (escape-aware): take the
+  # selector text preceding each `{`, drop at-rules, unescape `\x` sequences.
+  def compiled_selector_classes
+    @compiled_selector_classes ||= css
+      .scan(/([^{};]+)\{/)
+      .flatten
+      .reject { |selector| selector.lstrip.start_with?("@") }
+      .flat_map { |selector| selector.scan(/\.((?:[\w-]|\\.)+)/) }
+      .flatten
+      .map { |name| name.gsub(/\\(.)/, '\1') }
+      .to_set
+  end
+
+  # Union of the declaration bodies of every rule whose selector list mentions
+  # `.<class_name>` (the minified build splits one utility across several
+  # blocks: base, :focus-visible, color layer, sizing layer).
+  def declarations_for(class_name)
+    css.scan(/[^{};]*\.#{Regexp.escape(class_name)}(?![\w-])[^{};]*\{([^{}]*)\}/)
+      .flatten.join(";")
+  end
+
+  it "finds no phantom btn-* tokens in views or components" do
+    expect(used_tokens).to include("btn-secondary") # positive control: extractor
+    expect(compiled_selector_classes).to include("btn-secondary") # positive control: parser
+
+    phantoms = used_tokens.reject { |token| compiled_selector_classes.include?(token) }
+    expect(phantoms).to be_empty,
+      "btn-* classes used in markup but absent from the compiled build: #{phantoms.join(', ')}"
+  end
+
+  it "compiles .btn-outline with the interactive token" do
+    expect(declarations_for("btn-outline")).to include("--color-interactive")
   end
 end
