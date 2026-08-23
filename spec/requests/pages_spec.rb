@@ -31,7 +31,7 @@ RSpec.describe "Pages", type: :request do
 
       it "renders the secondary hero CTA as a brand-outline button" do
         get root_path
-        expect(Capybara.string(response.body)).to have_css("a.btn-outline",
+        expect(Capybara.string(response.body)).to have_css("a.btn-outline-primary",
           text: I18n.t("pages.home.hero.cta_secondary"))
       end
     end

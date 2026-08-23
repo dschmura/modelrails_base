@@ -43,8 +43,9 @@
               <% end %>
             </p>
             <% if authentication.verified? %>
+              <%# aria-hidden: the sr-only verified_state_sr above already announces it. %>
               <%= ui :badge, t("settings.connected_accounts.index.verified"),
-                    variant: :soft, tone: :success %>
+                    variant: :soft, tone: :success, "aria-hidden": "true" %>
             <% end %>
           <% end %>
         </div>

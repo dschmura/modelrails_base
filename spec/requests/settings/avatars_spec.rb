@@ -381,6 +381,7 @@ RSpec.describe "Account Avatars", type: :request do
         expect(html).to have_css("button.btn-primary", text: I18n.t("identity_picker.save_crop"), visible: :all)
         # Guards (green before and after): the two icon+label text buttons stay hand-rolled (#760).
         expect(html).to have_no_css("button.btn-text", text: I18n.t("identity_picker.upload_new"), visible: :all)
+        expect(html).to have_no_css("button.btn-text", text: I18n.t("identity_picker.remove_photo"), visible: :all)
       end
     end
 

@@ -1,0 +1,6 @@
+# Off-namespace `ui.*` component keys (predate the `modelrails_ui.*`
+# convention — see config/locales/modelrails_ui.en.yml's header).
+en:
+  ui:
+    breadcrumb:
+      label: "Breadcrumb"

@@ -43,7 +43,7 @@ RSpec.describe "Project Resources", type: :request do
         # `exact_text:`) because the hand-rolled span's ERB puts its label on its
         # own line, so the element's .text carries literal newlines/indentation,
         # and Capybara.default_normalize_ws is false in this suite.
-        expect(html).to have_css("span.bg-surface.text-text-muted",
+        expect(html).to have_css("span.rounded-full.border-transparent.bg-surface.text-text-muted",
           text: I18n.t("workspaces.projects.resources.index.draft"))
         expect(html).to have_no_css("span.border-success-border",
           text: I18n.t("workspaces.projects.resources.index.draft"))

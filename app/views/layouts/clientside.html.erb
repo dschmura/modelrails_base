@@ -13,7 +13,7 @@
           <%= content_for?(:client_area_title) ? yield(:client_area_title) : t("clientside.area.title") %>
         </span>
         <%= button_to t("clientside.area.sign_out"), session_path, method: :delete,
-              class: "btn-text btn-neutral" %>
+              class: "btn-text" %>
       </div>
     </header>
 
