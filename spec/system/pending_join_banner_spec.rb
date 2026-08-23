@@ -48,10 +48,16 @@ RSpec.describe "Pending join banner (drive-by re-consent)", type: :system do
     expect(existing_user.memberships.kept.where(workspace: join_workspace)).not_to exist
   end
 
-  it "renders join as a secondary button and dismiss as a text button" do
+  it "renders join as an info-paired secondary button and dismiss as a text button" do
     within "#pending-join-banner" do
-      expect(page).to have_css("button.btn-secondary[type='submit']")
-      expect(page).to have_css("button.btn-text[type='submit']")
+      # Class pinned to label — "some secondary and some text button exist"
+      # stayed green with the two swapped. Join carries the info signal
+      # pairing (text-info/border-info-border) over btn-secondary's default
+      # text-text-body, unproven on bg-info-surface (panel CP3).
+      expect(page).to have_css("button.btn-secondary.text-info.border-info-border[type='submit']",
+        text: I18n.t("workspaces.pending_join_banner.join", workspace: join_workspace.name))
+      expect(page).to have_css("button.btn-text[type='submit']",
+        text: I18n.t("workspaces.pending_join_banner.dismiss"))
     end
   end
 
