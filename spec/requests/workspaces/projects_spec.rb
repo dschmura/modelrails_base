@@ -32,7 +32,55 @@ RSpec.describe "Workspace Projects", type: :request do
         create(:project_membership, :creator, project: project, user: user)
         get workspace_projects_path(workspace)
         html = Capybara.string(response.body)
-        expect(html).to have_css("span.w-10.h-10[aria-hidden='true']", text: project.initials)
+        # Scoped to the project card: the layout's workspace switcher renders the
+        # same avatar markup (same size, substring-matchable initials), so an
+        # unscoped, non-exact assertion can pass with the card's avatar deleted.
+        card = html.find("a[href='#{workspace_project_path(workspace, project)}']")
+        expect(card).to have_css("span.w-10.h-10[aria-hidden='true']", exact_text: project.initials)
+        # The initials are aria-hidden, so the adjacent name is the card's whole
+        # accessible name — assert it directly.
+        expect(card).to have_text(project.name)
+      end
+
+      it "renders an attached logo through the component's recovery pair" do
+        project = create(:project, workspace: workspace, created_by: user)
+        create(:project_membership, :creator, project: project, user: user)
+        project.logo.attach(
+          io: File.open(Rails.root.join("spec/fixtures/files/avatar.png")),
+          filename: "logo.png",
+          content_type: "image/png"
+        )
+
+        get workspace_projects_path(workspace)
+
+        html = Capybara.string(response.body)
+        card = html.find("a[href='#{workspace_project_path(workspace, project)}']")
+        expect(card).to have_css(
+          "[data-controller='avatar'] img[aria-hidden='true'][src*='/rails/active_storage/']"
+        )
+        expect(card).to have_css("span[data-avatar-target='fallback']", visible: :hidden)
+      end
+
+      # Regression guard: the avatar consolidation (PR-C) checks
+      # project.logo.attached? per row, which loads logo_attachment per
+      # project unless the index query eager-loads it. Bullet.raise fails
+      # this example mid-request on any eager-load shape regression; the
+      # single-row examples above can't trip Bullet's threshold-based
+      # detector, so the multi-row fixture is what gives the guard teeth
+      # (same mechanism as the workspaces#index guard).
+      it "renders without N+1 queries (regression guard)" do
+        projects = (1..3).map do |i|
+          project = create(:project, workspace: workspace, created_by: user, name: "Project #{i}")
+          create(:project_membership, :creator, project: project, user: user)
+          project
+        end
+
+        get workspace_projects_path(workspace)
+
+        expect(response).to have_http_status(:ok)
+        projects.each do |project|
+          expect(response.body).to include(CGI.escapeHTML(project.name))
+        end
       end
     end
 
@@ -74,7 +122,9 @@ RSpec.describe "Workspace Projects", type: :request do
       it "renders the header initials through the avatar component" do
         get workspace_project_path(workspace, project)
         html = Capybara.string(response.body)
-        expect(html).to have_css("span.w-16.h-16[aria-hidden='true']", text: project.initials)
+        expect(html).to have_css("span.w-16.h-16[aria-hidden='true']", exact_text: project.initials)
+        # The initials are aria-hidden; the h1 carries the accessible name.
+        expect(html).to have_css("h1", text: project.name)
       end
 
       it "denies non-project-members" do
