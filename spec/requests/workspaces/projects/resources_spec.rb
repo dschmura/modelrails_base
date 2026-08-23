@@ -29,7 +29,7 @@ RSpec.describe "Project Resources", type: :request do
         expect(response.body).to include(CGI.escapeHTML(resource.title))
       end
 
-      it "renders the published pill through UI::Badge and keeps draft hand-rolled (gem #146)" do
+      it "renders both the published and draft pills through UI::Badge" do
         create(:resource, project: project, created_by: user, status: "published")
         create(:resource, project: project, created_by: user, status: "draft")
 
@@ -38,15 +38,8 @@ RSpec.describe "Project Resources", type: :request do
         html = Capybara.string(response.body)
         expect(html).to have_css("span.rounded-full.border-success-border",
           exact_text: I18n.t("workspaces.projects.resources.index.published"))
-        # Guard (green before and after): draft has no proven COMBOS cell — it stays
-        # the hand-rolled muted chip until modelrails_ui#146 ships. `text:` (not
-        # `exact_text:`) because the hand-rolled span's ERB puts its label on its
-        # own line, so the element's .text carries literal newlines/indentation,
-        # and Capybara.default_normalize_ws is false in this suite.
-        expect(html).to have_css("span.rounded-full.border-transparent.bg-surface.text-text-muted",
-          text: I18n.t("workspaces.projects.resources.index.draft"))
-        expect(html).to have_no_css("span.border-success-border",
-          text: I18n.t("workspaces.projects.resources.index.draft"))
+        expect(html).to have_css("span[data-variant='soft'][data-tone='neutral']",
+          exact_text: I18n.t("workspaces.projects.resources.index.draft"))
       end
     end
 
@@ -128,6 +121,14 @@ RSpec.describe "Project Resources", type: :request do
         get workspace_project_resource_path(workspace, project, resource)
         expect(response).to have_http_status(:ok)
         expect(response.body).to include(CGI.escapeHTML(resource.title))
+      end
+
+      it "renders the draft pill through UI::Badge" do
+        get workspace_project_resource_path(workspace, project, resource)
+
+        html = Capybara.string(response.body)
+        expect(html).to have_css("span[data-variant='soft'][data-tone='neutral']",
+          exact_text: I18n.t("workspaces.projects.resources.index.draft"))
       end
 
       it "denies non-project-members" do
