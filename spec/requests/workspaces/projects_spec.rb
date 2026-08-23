@@ -21,7 +21,6 @@ RSpec.describe "Workspace Projects", type: :request do
     describe "GET /workspaces/:workspace_slug/projects" do
       it "lists projects" do
         project = create(:project, workspace: workspace, created_by: user)
-        create(:project_membership, :creator, project: project, user: user)
         get workspace_projects_path(workspace)
         expect(response).to have_http_status(:ok)
         expect(response.body).to include(CGI.escapeHTML(project.name))
@@ -29,7 +28,6 @@ RSpec.describe "Workspace Projects", type: :request do
 
       it "renders the project initials through the avatar component" do
         project = create(:project, workspace: workspace, created_by: user)
-        create(:project_membership, :creator, project: project, user: user)
         get workspace_projects_path(workspace)
         html = Capybara.string(response.body)
         # Scoped to the project card: the layout's workspace switcher renders the
@@ -44,7 +42,6 @@ RSpec.describe "Workspace Projects", type: :request do
 
       it "renders an attached logo through the component's recovery pair" do
         project = create(:project, workspace: workspace, created_by: user)
-        create(:project_membership, :creator, project: project, user: user)
         project.logo.attach(
           io: File.open(Rails.root.join("spec/fixtures/files/avatar.png")),
           filename: "logo.png",
@@ -71,7 +68,6 @@ RSpec.describe "Workspace Projects", type: :request do
       it "renders without N+1 queries (regression guard)" do
         projects = (1..3).map do |i|
           project = create(:project, workspace: workspace, created_by: user, name: "Project #{i}")
-          create(:project_membership, :creator, project: project, user: user)
           project
         end
 
@@ -112,7 +108,6 @@ RSpec.describe "Workspace Projects", type: :request do
 
     describe "GET /workspaces/:workspace_slug/projects/:slug" do
       let(:project) { create(:project, workspace: workspace, created_by: user) }
-      before { create(:project_membership, :creator, project: project, user: user) }
 
       it "shows the project" do
         get workspace_project_path(workspace, project)
@@ -138,7 +133,6 @@ RSpec.describe "Workspace Projects", type: :request do
 
     describe "PATCH /workspaces/:workspace_slug/projects/:slug" do
       let(:project) { create(:project, workspace: workspace, created_by: user) }
-      before { create(:project_membership, :creator, project: project, user: user) }
 
       it "updates the project" do
         patch workspace_project_path(workspace, project), params: { project: { name: "Updated" } }
@@ -148,7 +142,6 @@ RSpec.describe "Workspace Projects", type: :request do
 
     describe "DELETE /workspaces/:workspace_slug/projects/:slug" do
       let(:project) { create(:project, workspace: workspace, created_by: user) }
-      before { create(:project_membership, :creator, project: project, user: user) }
 
       it "soft deletes the project" do
         delete workspace_project_path(workspace, project)
@@ -157,11 +150,7 @@ RSpec.describe "Workspace Projects", type: :request do
     end
 
     describe "PATCH archive/unarchive" do
-      let(:project) do
-        create(:project, workspace: workspace, created_by: user).tap do |p|
-          create(:project_membership, :creator, project: p, user: user)
-        end
-      end
+      let(:project) { create(:project, workspace: workspace, created_by: user) }
 
       it "archives the project and redirects to the projects index" do
         patch archive_workspace_project_path(workspace, project)
@@ -179,7 +168,6 @@ RSpec.describe "Workspace Projects", type: :request do
 
     describe "GET /workspaces/:workspace_slug/projects/:slug/edit" do
       let(:project) { create(:project, workspace: workspace, created_by: user) }
-      before { create(:project_membership, :creator, project: project, user: user) }
 
       it "renders the edit form" do
         get edit_workspace_project_path(workspace, project)
@@ -196,7 +184,6 @@ RSpec.describe "Workspace Projects", type: :request do
 
     describe "PATCH /workspaces/:workspace_slug/projects/:slug with invalid params" do
       let(:project) { create(:project, workspace: workspace, created_by: user) }
-      before { create(:project_membership, :creator, project: project, user: user) }
 
       it "returns unprocessable entity for blank name" do
         patch workspace_project_path(workspace, project), params: { project: { name: "" } }
@@ -214,7 +201,6 @@ RSpec.describe "Workspace Projects", type: :request do
     describe "discarded projects" do
       let(:project) { create(:project, workspace: workspace, created_by: user) }
       before do
-        create(:project_membership, :creator, project: project, user: user)
         project.discard!
       end
 

@@ -7,9 +7,7 @@ RSpec.describe "Client invite flow", type: :system do
   let(:owner) { create(:user) }
   let(:workspace) { owner.workspaces.sole }
   let(:project) do
-    create(:project, workspace: workspace, created_by: owner, clientside_enabled: true).tap do |p|
-      p.project_memberships.create!(user: owner, role: "creator")
-    end
+    create(:project, workspace: workspace, created_by: owner, clientside_enabled: true)
   end
 
   # Confirms the team-owner path: the invite form renders AAA-clean and

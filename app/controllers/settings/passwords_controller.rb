@@ -12,7 +12,7 @@ module Settings
         return
       end
 
-      if Current.user.update(password_params)
+      if update_password_with_precheck
         Current.user.authentications.create!(
           provider: "email",
           uid: Current.user.email_address,
@@ -34,7 +34,7 @@ module Settings
         return
       end
 
-      if Current.user.update(password_params)
+      if update_password_with_precheck
         revoke_other_sessions
         redirect_to settings_connected_accounts_path, notice: t(".success")
       else
@@ -59,6 +59,14 @@ module Settings
 
     def password_params
       params.require(:user).permit(:password, :password_confirmation)
+    end
+
+    # Assign → precheck → save, so the HIBP range check (network I/O) runs
+    # OUTSIDE the write transaction and the validation consumes the memo (#674).
+    def update_password_with_precheck
+      Current.user.assign_attributes(password_params)
+      Current.user.precheck_password_pwned!
+      Current.user.save
     end
   end
 end

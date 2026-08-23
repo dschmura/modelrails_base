@@ -15,7 +15,6 @@ RSpec.describe "Project nav at narrow viewports", type: :system, skip_axe_hook: 
   let(:project) { create(:project, workspace: workspace, created_by: user) }
 
   before do
-    create(:project_membership, :creator, project: project, user: user)
     sign_in_via_form(user)
   end
 

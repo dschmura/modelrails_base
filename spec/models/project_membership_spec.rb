@@ -28,10 +28,12 @@ RSpec.describe ProjectMembership, type: :model do
 
     it "allows workspace members" do
       workspace = create(:workspace)
-      user = create(:user)
-      create(:membership, user: user, workspace: workspace)
-      project = create(:project, workspace: workspace, created_by: user)
-      pm = build(:project_membership, project: project, user: user)
+      member = create(:user)
+      create(:membership, user: member, workspace: workspace)
+      # created_by is someone else — the factory already gives created_by a
+      # membership row (#688), and building a second one would collide.
+      project = create(:project, workspace: workspace)
+      pm = build(:project_membership, project: project, user: member)
       expect(pm).to be_valid
     end
   end
@@ -69,7 +71,6 @@ RSpec.describe ProjectMembership, type: :model do
       create(:membership, :owner, user: user, workspace: workspace)
       create(:membership, :owner, user: other_owner, workspace: workspace)
       project = create(:project, workspace: workspace, created_by: user)
-      create(:project_membership, :creator, project: project, user: user)
 
       workspace_membership = workspace.memberships.find_by(user: user)
       workspace_membership.deactivate!
@@ -90,23 +91,28 @@ RSpec.describe ProjectMembership, type: :model do
       create(:membership, user: user, workspace: workspace)
       create(:project, workspace: workspace, created_by: user)
     end
+    # A second member: the factory already gives created_by its creator
+    # membership (#688), so the observed create must be someone else's.
+    let(:other_member) do
+      create(:user).tap { |u| create(:membership, user: u, workspace: workspace) }
+    end
     let(:stream_name) { project.to_gid_param }
 
     it "broadcasts a refresh to the project on create" do
       expect {
-        project.project_memberships.create!(user: user, role: "creator")
+        project.project_memberships.create!(user: other_member, role: "editor")
       }.to have_broadcasted_to(stream_name)
     end
 
     it "broadcasts a refresh on update (e.g., role change, pin)" do
-      pm = project.project_memberships.create!(user: user, role: "editor")
+      pm = project.project_memberships.create!(user: other_member, role: "editor")
       expect {
         pm.update!(pinned: true)
       }.to have_broadcasted_to(stream_name)
     end
 
     it "broadcasts a refresh on destroy" do
-      pm = project.project_memberships.create!(user: user, role: "editor")
+      pm = project.project_memberships.create!(user: other_member, role: "editor")
       expect {
         pm.destroy!
       }.to have_broadcasted_to(stream_name)
@@ -121,9 +127,13 @@ RSpec.describe ProjectMembership, type: :model do
     let(:workspace) { create(:workspace) }
     let(:member) { create(:user) }
     let!(:membership) { create(:membership, user: member, workspace: workspace) }
-    let(:project) { create(:project, workspace: workspace, created_by: member) }
+    # created_by is someone else — the factory gives created_by its creator
+    # membership (#688), and these examples must observe MEMBER's create.
+    let(:project) { create(:project, workspace: workspace) }
 
     it "notifies the user when added to a project (after_create_commit)" do
+      project # materialize outside the measured window — the factory's own
+      # creator membership fires this notifier too (#688)
       expect {
         project.project_memberships.create!(user: member, role: "editor")
       }.to change { Noticed::Event.where(type: "ProjectMembershipChangedNotifier").count }.by(1)
