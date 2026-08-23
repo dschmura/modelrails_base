@@ -14,9 +14,12 @@ require "rails_helper"
 # use _preferences_row (custom layout — see its own file comment) and its
 # toggle label ("Enable quiet hours") doesn't duplicate the card heading
 # ("Quiet hours"), so it's untouched — no collision exists there.
-RSpec.describe "Preferences toggle label at narrow viewports", type: :system do
-  let(:password) { "TogglePrefs#42!" }
-  let(:user)     { create(:user, password: password) }
+#
+# skip_axe_hook: axe runs INSIDE the viewport block instead — the suite-wide
+# hook fires after the viewport restore and would audit the desktop layout
+# (see spec/support/responsive_viewport.rb).
+RSpec.describe "Preferences toggle label at narrow viewports", type: :system, skip_axe_hook: true do
+  let(:user) { create(:user) }
 
   before do
     user.create_preferences!(timezone: "America/New_York")
@@ -24,52 +27,63 @@ RSpec.describe "Preferences toggle label at narrow viewports", type: :system do
   end
 
   # Cuprite's visible-text/visible? checks only look at
-  # display/visibility/opacity, not clip-path — confirmed via a throwaway
-  # probe spec — so they don't recognize Tailwind's clip-path-based
-  # `sr-only` trick as hidden, and `have_text(count:)` can't tell the
-  # genuinely-visible row title apart from the visually-suppressed toggle
-  # label by text content alone. Assert on the DOM directly instead (the
-  # same class the fix applies), the way T1 asserts computed style rather
-  # than trusting a high-level matcher.
+  # display/visibility/opacity; Tailwind's `sr-only` hides via clip-path plus
+  # a 1px box, so Cuprite reads it as visible and `have_text(count:)` can't
+  # tell the genuinely-visible row title apart from the visually-suppressed
+  # toggle label. Assert on the DOM directly instead — the same tactic as
+  # spec/system/responsive/tables_overflow_spec.rb's sanctioned
+  # computed-style case.
   #
-  # Target each element by its structural selector rather than a generic
-  # text-equality scan: a wildcard "*" scan over exact-text matches false-
-  # positives on every wrapper element between the toggle's label span and
-  # its <label> ancestor when the row has no help text (form/label/span.flex-col
-  # all reduce to the same single text node) — caught rewriting this for the
-  # delivery-methods sibling card, which has no help text (unlike security).
+  # data-* hooks, not Tailwind-utility selectors: styling classes carry no
+  # semantics and are the first thing a fork restyles.
   def assert_title_rendered_once_visually(title)
-    row_title = find("p.text-sm.font-semibold.text-text-heading", text: title, visible: :all)
-    toggle_label = find("label span.text-sm.text-text-body", text: title, visible: :all)
+    row_title = find("[data-preferences-row-title]", text: title, visible: :all)
+    toggle_label = find("[data-toggle-label]", text: title, visible: :all)
 
-    expect(row_title[:class]).not_to include("sr-only")
-    expect(toggle_label[:class]).to include("sr-only"),
+    # Token match, not substring: String#include? would pass on `not-sr-only`
+    # or a breakpoint-scoped `sm:sr-only`.
+    expect(row_title[:class].split).not_to include("sr-only")
+    expect(toggle_label[:class].split).to include("sr-only"),
       "expected the toggle's label span to carry sr-only, got class=#{toggle_label[:class].inspect}"
+
+    # Behavioral prong: any correct visually-hidden technique collapses the
+    # box to ~1px, whatever class produces it.
+    label_width = page.evaluate_script("arguments[0].getBoundingClientRect().width", toggle_label)
+    expect(label_width).to be <= 1
+  end
+
+  # Unparenthesized reverse-axis predicate = NEAREST ancestor section (the
+  # card). The parenthesized form `(…/ancestor::section)[1]` is document
+  # order — it selected the OUTERMOST section, the page wrapper, leaving
+  # these examples effectively unscoped (panel checkpoint 1).
+  def within_card(heading_key)
+    card_title_id = "preferences-card-#{I18n.t(heading_key).parameterize}-title"
+    within(:xpath, "//*[@id='#{card_title_id}']/ancestor::section[1]") { yield }
   end
 
   it "shows each preference title exactly once at 375px" do
-    with_viewport(375) do
+    with_viewport(ResponsiveViewport::PHONE) do
       visit edit_settings_notification_preferences_path
 
       title = I18n.t("notifications.preferences.notification_types.items.security.title")
-      card_title_id = "preferences-card-#{I18n.t("notifications.preferences.notification_types.heading").parameterize}-title"
-
-      within(:xpath, "(//*[@id='#{card_title_id}']/ancestor::section)[1]") do
+      within_card("notifications.preferences.notification_types.heading") do
         assert_title_rendered_once_visually(title)
       end
+
+      expect(axe_violations_in_both_themes).to be_empty
     end
   end
 
   it "shows the delivery-methods sibling card's preference title exactly once at 375px" do
-    with_viewport(375) do
+    with_viewport(ResponsiveViewport::PHONE) do
       visit edit_settings_notification_preferences_path
 
       title = I18n.t("notifications.preferences.delivery_methods.items.in_app.title")
-      card_title_id = "preferences-card-#{I18n.t("notifications.preferences.delivery_methods.heading").parameterize}-title"
-
-      within(:xpath, "(//*[@id='#{card_title_id}']/ancestor::section)[1]") do
+      within_card("notifications.preferences.delivery_methods.heading") do
         assert_title_rendered_once_visually(title)
       end
+      # Same page and viewport as the sibling example, which already runs the
+      # axe audit — auditing twice would only slow the lane.
     end
   end
 end
