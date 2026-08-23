@@ -196,6 +196,7 @@
     @apply focus-ring;
     @apply bg-interactive hover:bg-interactive-hover text-text-on-interactive;
     min-height: var(--form-input-height);
+    min-width: var(--form-input-height);
   }
 
   .btn-secondary {
@@ -203,6 +204,7 @@
     @apply focus-ring;
     @apply border border-border text-text-body hover:bg-surface-sunken;
     min-height: var(--form-input-height);
+    min-width: var(--form-input-height);
   }
 
   .btn-danger {
@@ -210,16 +212,18 @@
     @apply focus-ring;
     @apply bg-danger hover:bg-danger/90 text-text-on-interactive;
     min-height: var(--form-input-height);
+    min-width: var(--form-input-height);
   }
 
   /* Brand-outline sibling of the filled family: the outlined CTA look
      (hero secondary, invitation register). Text/border use the interactive
      token; hover fills with the subtle brand tint. */
-  .btn-outline {
+  .btn-outline-primary {
     @apply inline-flex items-center justify-center px-4 rounded-md font-medium cursor-pointer;
     @apply focus-ring;
     @apply border border-interactive text-interactive hover:bg-interactive-subtle;
     min-height: var(--form-input-height);
+    min-width: var(--form-input-height);
   }
 
   /* .form-input: flat field for inline/chrome controls. */

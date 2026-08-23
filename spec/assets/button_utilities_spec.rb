@@ -55,7 +55,16 @@ RSpec.describe "button utilities in compiled Tailwind" do
       "btn-* classes used in markup but absent from the compiled build: #{phantoms.join(', ')}"
   end
 
-  it "compiles .btn-outline with the interactive token" do
-    expect(declarations_for("btn-outline")).to include("--color-interactive")
+  it "compiles .btn-outline-primary with the interactive token" do
+    expect(declarations_for("btn-outline-primary")).to include("--color-interactive")
+  end
+
+  it "keeps the 44px AAA min-width floor on the filled family and outline sibling" do
+    expect(declarations_for("btn-touch-target")).to include("min-width:var(--form-input-height)") # positive control
+
+    %w[btn-primary btn-secondary btn-danger btn-outline-primary].each do |name|
+      expect(declarations_for(name)).to include("min-width:var(--form-input-height)"),
+        ".#{name} lost the min-width target floor"
+    end
   end
 end
