@@ -26,6 +26,14 @@ RSpec.describe "Workspace Projects", type: :request do
         expect(response).to have_http_status(:ok)
         expect(response.body).to include(CGI.escapeHTML(project.name))
       end
+
+      it "renders the project initials through the avatar component" do
+        project = create(:project, workspace: workspace, created_by: user)
+        create(:project_membership, :creator, project: project, user: user)
+        get workspace_projects_path(workspace)
+        html = Capybara.string(response.body)
+        expect(html).to have_css("span.w-10.h-10[aria-hidden='true']", text: project.initials)
+      end
     end
 
     describe "GET /workspaces/:workspace_slug/projects/new" do
@@ -61,6 +69,12 @@ RSpec.describe "Workspace Projects", type: :request do
       it "shows the project" do
         get workspace_project_path(workspace, project)
         expect(response).to have_http_status(:ok)
+      end
+
+      it "renders the header initials through the avatar component" do
+        get workspace_project_path(workspace, project)
+        html = Capybara.string(response.body)
+        expect(html).to have_css("span.w-16.h-16[aria-hidden='true']", text: project.initials)
       end
 
       it "denies non-project-members" do
