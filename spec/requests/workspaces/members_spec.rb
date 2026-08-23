@@ -45,11 +45,11 @@ RSpec.describe "Workspace Members", type: :request do
         get workspace_members_path(workspace)
 
         html = Capybara.string(response.body)
-        expect(html).to have_css("span.rounded-full.border-success-border",
+        expect(html).to have_css("span[data-variant='soft'][data-tone='success']",
           exact_text: I18n.t("workspaces.members.index.active"))
-        expect(html).to have_css("span.rounded-full.border-danger-border",
+        expect(html).to have_css("span[data-variant='soft'][data-tone='danger']",
           exact_text: I18n.t("workspaces.members.index.deactivated"))
-        expect(html).to have_css("span.rounded-full.border-warning-border",
+        expect(html).to have_css("span[data-variant='soft'][data-tone='warning']",
           exact_text: I18n.t("workspaces.members.index.pending_invitations.pending"))
       end
 

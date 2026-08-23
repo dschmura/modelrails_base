@@ -44,7 +44,7 @@ RSpec.describe "Settings::Sessions", type: :request do
       get settings_sessions_path
 
       html = Capybara.string(response.body)
-      expect(html).to have_css("span.rounded-full.border-success-border[aria-hidden='true']",
+      expect(html).to have_css("span[data-variant='soft'][data-tone='success'][aria-hidden='true']",
         exact_text: I18n.t("settings.sessions.index.current_device"))
       # Guard (green before and after): the visible pill is decorative; the sr-only
       # sibling carries the announcement.
