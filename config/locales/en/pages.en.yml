@@ -5,6 +5,7 @@ en:
         title: "Build your SaaS faster"
         subtitle: "A production-ready Rails 8.1 starter kit with authentication, workspaces, projects, and real-time collaboration built in."
         cta_primary: "Get started"
+        cta_signed_in: "Go to your workspaces"
         cta_secondary: "View documentation"
       features:
         title: "Everything you need"
@@ -31,6 +32,10 @@ en:
         title: "Ready to build?"
         subtitle: "Get started in minutes with a foundation that scales."
         button: "Create your account"
+        signed_in:
+          title: "Welcome back"
+          subtitle: "Pick up where you left off — your workspaces and projects are waiting."
+          button: "Go to your workspaces"
     about:
       hero:
         title: "About ModelRails"

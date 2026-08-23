@@ -1,10 +1,20 @@
 <% content_for(:title) { t("pages.home.hero.title") } %>
 
+<%# The marketing root doubles as the signed-in landing (authenticated_home_path),
+    so both CTAs branch on authentication: signed-in visitors get a working
+    "go to your workspaces" link instead of a sign-up CTA that sessions#new's
+    require_unauthenticated_access would bounce straight back here. %>
+<% hero_cta, hero_cta_path =
+     if authenticated?
+       [ t("pages.home.hero.cta_signed_in"), workspaces_path ]
+     elsif signups_open?
+       [ t("pages.home.hero.cta_primary"), new_session_path ]
+     end %>
 <%= render "shared/hero",
       title: t("pages.home.hero.title"),
       subtitle: t("pages.home.hero.subtitle"),
-      cta_primary: signups_open? ? t("pages.home.hero.cta_primary") : nil,
-      cta_primary_path: signups_open? ? new_session_path : nil,
+      cta_primary: hero_cta,
+      cta_primary_path: hero_cta_path,
       cta_secondary: t("pages.home.hero.cta_secondary"),
       cta_secondary_path: "/docs" %>
 
@@ -24,12 +34,17 @@
 <%= render "shared/section", bg: "bg-surface-raised" do %>
   <div class="text-center">
     <h2 class="text-3xl font-bold text-text-heading">
-      <%= t("pages.home.cta.title") %>
+      <%= authenticated? ? t("pages.home.cta.signed_in.title") : t("pages.home.cta.title") %>
     </h2>
     <p class="mt-4 text-lg text-text-muted">
-      <%= t("pages.home.cta.subtitle") %>
+      <%= authenticated? ? t("pages.home.cta.signed_in.subtitle") : t("pages.home.cta.subtitle") %>
     </p>
-    <% if signups_open? %>
+    <% if authenticated? %>
+      <div class="mt-8">
+        <%= link_to t("pages.home.cta.signed_in.button"), workspaces_path,
+              class: "btn-primary px-6 py-3 text-lg" %>
+      </div>
+    <% elsif signups_open? %>
       <div class="mt-8">
         <%= link_to t("pages.home.cta.button"), new_session_path,
               class: "btn-primary px-6 py-3 text-lg" %>
