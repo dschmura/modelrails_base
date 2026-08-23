@@ -9,8 +9,6 @@ RSpec.describe "Projects index archived section", type: :system do
 
   before do
     create(:membership, :owner, user: creator, workspace: workspace)
-    create(:project_membership, :creator, project: active_project, user: creator)
-    create(:project_membership, :creator, project: archived_project, user: creator)
     archived_project.archive!
     sign_in_via_form(creator)
   end

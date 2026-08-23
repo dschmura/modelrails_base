@@ -7,11 +7,9 @@ module Onboarding
 
     def create
       authorize Workspace
-      @workspace = Workspace.new(workspace_params)
+      @workspace = Workspace.create_owned(workspace_params, owner: Current.user)
 
-      if @workspace.save
-        owner_role = Role.find_by!(slug: "owner", workspace_id: nil)
-        @workspace.memberships.create!(user: Current.user, role: owner_role)
+      if @workspace.persisted?
         redirect_to new_onboarding_project_path, notice: t(".success")
       else
         render :new, status: :unprocessable_entity

@@ -245,6 +245,35 @@ class Workspace < ApplicationRecord
   # guarded here (not per-controller) in the guarded-lifecycle-mutator shape
   # above. Returns the possibly-invalid project — form callers render its
   # errors; there is deliberately no bang twin until a non-form caller exists.
+  #
+  # Lifecycle semantics, decided and pinned (#688):
+  # - ARCHIVED workspaces ACCEPT new projects — archive means "no new people,
+  #   existing work continues" (docs/user/workspaces.md), so only suspended?
+  #   is guarded here.
+  # - DISCARDED parent: this model path still creates (HTTP is guarded by
+  #   workspaces.kept scoping); jobs/console callers own that check.
+  # - Disclosure: SuspendedError here (members already inside the workspace
+  #   may know it is locked) vs admit's non-disclosing NotAdmittableError
+  #   (outsiders must not learn which lifecycle state blocked them) —
+  #   the distinctness is the contract, not an inconsistency.
+  # Atomic workspace + owner-membership creation (#676) — the class-level twin
+  # of #create_project below, closing the same bug class one level up: the
+  # two-write controller shape committed the workspace, then resolved the
+  # owner role outside any transaction, so an unseeded fork stranded a
+  # committed, OWNERLESS workspace (no membership → unreachable and
+  # undeletable through the UI). Role resolution is the self-healing
+  # Role.system_default!, and the two writes commit or roll back together.
+  # Returns the possibly-invalid workspace — form callers render its errors.
+  def self.create_owned(attrs, owner:)
+    workspace = new(attrs)
+    transaction do
+      if workspace.save
+        workspace.memberships.create!(user: owner, role: Role.system_default!("owner"))
+      end
+    end
+    workspace
+  end
+
   def create_project(attrs, creator:)
     transaction do
       lock!

@@ -434,6 +434,71 @@ RSpec.describe Workspace, type: :model do
         }.to raise_error(Suspendable::SuspendedError)
       }.not_to change(workspace.projects, :count)
     end
+
+    # #688 decision pins — the lifecycle semantics are deliberate, not gaps.
+
+    it "accepts new projects in an ARCHIVED workspace (archive stops new PEOPLE; existing work continues)" do
+      workspace.archive!
+
+      project = workspace.create_project({ name: "Atlas" }, creator: creator)
+
+      expect(project).to be_persisted
+    end
+
+    it "still creates model-level under a DISCARDED workspace (HTTP is guarded by workspaces.kept; the model deliberately is not)" do
+      workspace.discard!
+
+      project = workspace.create_project({ name: "Atlas" }, creator: creator)
+
+      expect(project).to be_persisted
+      expect(project.discarded_at).to be_nil
+    end
+
+    it "discloses suspension (SuspendedError) where #admit deliberately does not (NotAdmittableError)" do
+      workspace.suspend!
+
+      expect { workspace.create_project({ name: "Atlas" }, creator: creator) }
+        .to raise_error(Suspendable::SuspendedError)
+      expect { workspace.admit(create(:user), role: member_role) }
+        .to raise_error(Workspace::NotAdmittableError)
+    end
+
+    it "works in a personal workspace" do
+      personal = create(:workspace, personal: true)
+      personal.memberships.create!(user: creator, role: member_role)
+
+      project = personal.create_project({ name: "Atlas" }, creator: creator)
+
+      expect(project).to be_persisted
+    end
+
+    it "returns the unpersisted project with errors when creator is nil (no half-written state)" do
+      project = nil
+      expect {
+        project = workspace.create_project({ name: "Atlas" }, creator: nil)
+      }.not_to change(workspace.projects, :count)
+
+      expect(project).not_to be_persisted
+      expect(project.errors[:created_by]).to be_present
+    end
+
+    describe "capacity boundary" do
+      let(:workspace) { create(:workspace, personal: false, max_projects: 2) }
+
+      it "creates at one below max, refuses AT max, and a discard frees the slot" do
+        workspace.create_project({ name: "One" }, creator: creator)
+        at_one_below = workspace.create_project({ name: "Two" }, creator: creator)
+        expect(at_one_below).to be_persisted
+
+        at_max = workspace.create_project({ name: "Three" }, creator: creator)
+        expect(at_max).not_to be_persisted
+        expect(at_max.errors[:base]).to be_present
+
+        at_one_below.discard!
+        freed = workspace.create_project({ name: "Four" }, creator: creator)
+        expect(freed).to be_persisted
+      end
+    end
   end
 
   describe "#admit" do
@@ -568,6 +633,47 @@ RSpec.describe Workspace, type: :model do
       create(:membership, workspace: workspace).discard!
 
       expect(workspace.at_capacity?).to be false
+    end
+  end
+
+  # #676: workspace INSERT + owner membership commit or roll back TOGETHER —
+  # the two-write controller shape could strand a committed, ownerless
+  # workspace (no membership → unreachable and undeletable through the UI)
+  # when the owner-role lookup raised after the commit.
+  describe ".create_owned" do
+    let(:user) { create(:user) }
+
+    it "creates the workspace with its owner membership" do
+      workspace = Workspace.create_owned({ name: "Acme" }, owner: user)
+
+      expect(workspace).to be_persisted
+      membership = workspace.memberships.sole
+      expect(membership.user).to eq(user)
+      expect(membership.role.slug).to eq("owner")
+    end
+
+    it "resolves the owner role through the self-healing Role.system_default!, not find_by!" do
+      allow(Role).to receive(:system_default!).and_call_original
+
+      Workspace.create_owned({ name: "Acme" }, owner: user)
+
+      expect(Role).to have_received(:system_default!).with("owner").at_least(:once)
+    end
+
+    it "rolls back the workspace INSERT when the owner membership cannot be created" do
+      allow(Role).to receive(:system_default!).and_raise(ActiveRecord::RecordNotFound)
+
+      expect {
+        expect { Workspace.create_owned({ name: "Acme" }, owner: user) }
+          .to raise_error(ActiveRecord::RecordNotFound)
+      }.not_to change(Workspace, :count)
+    end
+
+    it "returns the unsaved workspace with errors on validation failure (form re-render contract)" do
+      workspace = Workspace.create_owned({ name: nil }, owner: user)
+
+      expect(workspace).not_to be_persisted
+      expect(workspace.errors[:name]).to be_present
     end
   end
 end

@@ -12,7 +12,7 @@ RSpec.describe "Document with a blocked-loader attachment", type: :request do
   let(:user) { create(:user) }
   let!(:ws_membership) { create(:membership, :owner, user: user, workspace: workspace) }
   let(:project) { create(:project, workspace: workspace, created_by: user) }
-  let!(:creator_pm) { create(:project_membership, :creator, project: project, user: user) }
+  let!(:creator_pm) { project.project_memberships.find_by!(user: user) }
   let(:document) { create(:document) }
   let!(:resource) { create(:resource, project: project, created_by: user, resourceable: document) }
 

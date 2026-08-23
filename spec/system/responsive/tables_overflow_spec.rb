@@ -83,7 +83,6 @@ RSpec.describe "Tables at narrow viewports", type: :system, skip_axe_hook: true 
     let(:project)   { create(:project, workspace: workspace, created_by: user) }
 
     before do
-      create(:project_membership, :creator, project: project, user: user)
       # A long member name forces the table past 375px so the overflow
       # precondition is deterministic rather than font-metrics luck.
       long_named = create(:user, first_name: "Bartholomew-Alexander",

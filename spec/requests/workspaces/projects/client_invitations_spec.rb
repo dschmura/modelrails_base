@@ -4,9 +4,7 @@ RSpec.describe "Client invitations (team side)", type: :request do
   let(:user) { create(:user) }
   let(:workspace) { user.workspaces.sole }
   let(:project) do
-    create(:project, workspace: workspace, created_by: user, clientside_enabled: true).tap do |p|
-      p.project_memberships.create!(user: user, role: "creator")
-    end
+    create(:project, workspace: workspace, created_by: user, clientside_enabled: true)
   end
 
   before { sign_in(user) }

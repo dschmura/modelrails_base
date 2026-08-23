@@ -108,7 +108,6 @@ RSpec.describe "Form draft isolation", type: :system do
   it "keeps a projects/new draft from surfacing on projects/edit for an existing project" do
     workspace = user.personal_workspace
     existing_project = create(:project, workspace: workspace, created_by: user, name: "Existing Project")
-    create(:project_membership, :creator, project: existing_project, user: user)
 
     sign_in_via_form(user)
     visit new_workspace_project_path(workspace)

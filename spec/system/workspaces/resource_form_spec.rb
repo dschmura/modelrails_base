@@ -14,7 +14,6 @@ RSpec.describe "Resource forms", type: :system do
   let(:project) { create(:project, workspace: workspace, created_by: user) }
 
   before do
-    create(:project_membership, :creator, project: project, user: user)
     sign_in_via_form(user)
   end
 

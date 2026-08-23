@@ -15,7 +15,6 @@ RSpec.describe ResourcePolicy do
     create(:membership, user: editor_user, workspace: workspace)
     create(:membership, user: viewer_user, workspace: workspace)
     create(:membership, user: non_member, workspace: workspace)
-    create(:project_membership, :creator, project: project, user: creator_user)
     create(:project_membership, project: project, user: editor_user)
     create(:project_membership, :viewer, project: project, user: viewer_user)
   end
