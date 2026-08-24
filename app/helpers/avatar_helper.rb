@@ -23,8 +23,13 @@ module AvatarHelper
 
       # main_app.url_for keeps the URL engine-context-safe (the shared header also
       # renders inside the markdowndocs engine layout, where AS routes aren't mounted).
+      # fallback: arms the component's broken-image recovery (#756) — a 404ing
+      # variant swaps to initials instead of the browser glyph.
       src = main_app.url_for(identity.image.variant(resize_to_fill: [ px, px ]))
-      render UI::AvatarComponent.new(src: src, size: size, aria_label: aria_label)
+      render UI::AvatarComponent.new(
+        src: src, fallback: identity.initials, hue: initials_hue(identity),
+        size: size, aria_label: aria_label
+      )
     when "gravatar"
       # Identity#gravatar_url is consistency-gated: nil when "gravatar" left
       # available_sources (CheckGravatarJob flipped it off), so a stale source
@@ -32,7 +37,10 @@ module AvatarHelper
       url = identity.gravatar_url(size: px)
       return render_initials_avatar(identity, size, aria_label) if url.nil?
 
-      render UI::AvatarComponent.new(src: url, size: size, aria_label: aria_label, loading: "lazy")
+      render UI::AvatarComponent.new(
+        src: url, fallback: identity.initials, hue: initials_hue(identity),
+        size: size, aria_label: aria_label, loading: "lazy"
+      )
     else
       render_initials_avatar(identity, size, aria_label)
     end
@@ -40,12 +48,18 @@ module AvatarHelper
 
   private
 
+  # Hue for initials rendering: the custom hue, or nil at the default so the
+  # component's bg-interactive branch applies. One rule for user avatars AND
+  # workspace icons (#755) — workspace_helper calls this too.
+  def initials_hue(identity)
+    identity.primary_color if identity.primary_color.present? && identity.primary_color != Identity::DEFAULT_HUE
+  end
+
   def render_initials_avatar(identity, size, aria_label)
-    custom_color = identity.primary_color.present? && identity.primary_color != Identity::DEFAULT_HUE
     render UI::AvatarComponent.new(
       fallback: identity.initials,
       size: size,
-      hue: (custom_color ? identity.primary_color : nil),
+      hue: initials_hue(identity),
       aria_label: aria_label
     )
   end

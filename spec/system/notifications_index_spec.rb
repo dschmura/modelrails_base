@@ -116,16 +116,17 @@ RSpec.describe "Notifications index page", type: :system do
     end
 
     describe "button styling (btn utilities)" do
-      it "renders bulk and per-item actions as secondary buttons (danger tones retained)" do
+      it "renders neutral actions as secondary and destructive ones as outline-danger (#766)" do
         notification = deliver_security_notification
 
         visit settings_notifications_path
 
         expect(page).to have_css("button.btn-secondary", text: I18n.t("notifications.index.mark_all_read.action"))
-        expect(page).to have_css("button.btn-secondary.text-danger", text: I18n.t("notifications.index.destroy_all_read.action"))
-        # One unread row -> mark_read + delete = 2 per-item action buttons.
+        expect(page).to have_css("button.btn-outline-danger", text: I18n.t("notifications.index.destroy_all_read.action"))
+        # One unread row -> mark_read (secondary) + delete (outline-danger).
         within "##{ActionView::RecordIdentifier.dom_id(notification)}" do
-          expect(page).to have_css("button.btn-secondary[type='submit']", count: 2)
+          expect(page).to have_css("button.btn-secondary[type='submit']", count: 1)
+          expect(page).to have_css("button.btn-outline-danger[type='submit']", count: 1)
         end
       end
     end
