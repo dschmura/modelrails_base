@@ -1,6 +1,11 @@
 # frozen_string_literal: true
 
 module Settings
+  # Deliberately NOT `layout "settings"` (#722 ruling): the inbox is a
+  # full-width triage surface reached from the user-menu bell, not a sidebar
+  # destination — the sidebar's "Notifications" item points at notification
+  # PREFERENCES, which does carry the shell. Recorded in the
+  # settings_layout_opt_in code-smell spec's rulings.
   class NotificationsController < ApplicationController
     before_action :set_notification, only: [ :update, :destroy ]
     before_action :authorize_notification, only: [ :update, :destroy ]
