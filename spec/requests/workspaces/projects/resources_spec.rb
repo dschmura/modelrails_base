@@ -100,17 +100,116 @@ RSpec.describe "Project Resources", type: :request do
     end
 
     describe "POST create with blank title" do
-      it "returns unprocessable entity" do
+      it "returns unprocessable entity with the error bound to the field (#753)" do
         post workspace_project_resources_path(workspace, project), params: {
           resource: { title: "", type: "Document" },
-          document: { body: "Content" }
+          document: { body: "RetainedBody" }
         }
         expect(response).to have_http_status(:unprocessable_entity)
-        # The invalid record's errors actually render (regression: the old rescue
-        # re-built an unvalidated record, so the 422 page showed no errors)...
-        expect(response.body).to include(CGI.escapeHTML("Title can't be blank"))
-        # ...and the submitted body survives the re-render (bound fields_for).
-        expect(response.body).to include("Content")
+        page = Capybara.string(response.body)
+        # The invalid record's errors actually render, inside the alert region
+        # and linked to the field — a raw-body include would pass with the
+        # message anywhere (regression: the old rescue re-built an unvalidated
+        # record, so the 422 page showed no errors).
+        expect(page.find("[role='alert']")).to have_link("Title can't be blank", href: "#resource_title")
+        # Field-level association contract (#753): aria-invalid + describedby
+        # pointing at the rendered error paragraph.
+        expect(page).to have_css("input#resource_title[aria-invalid='true']")
+        describedby = page.find("input#resource_title")["aria-describedby"]
+        expect(describedby).to include("resource_title-error")
+        expect(page).to have_css("p#resource_title-error", text: "can't be blank")
+        # ...and the submitted body survives the re-render, bound to the
+        # document form — not just the string appearing anywhere in the body.
+        expect(page).to have_css("form [name='document[body]']", visible: :all)
+        expect(page.find("[name='document[body]']", visible: :all).value).to include("RetainedBody")
+      end
+
+      # #753: the root-cause contract — no native required anywhere on the
+      # form, or the browser bubble blocks the submit and this whole
+      # server-rendered error path becomes unreachable again.
+      it "renders the form without native required (aria-only contract)" do
+        get new_workspace_project_resource_path(workspace, project, type: "Document")
+        page = Capybara.string(response.body)
+        expect(page).to have_css("input#resource_title[aria-required='true']")
+        expect(page).to have_no_css("input#resource_title[required]")
+      end
+    end
+
+    # #752: Resource validates resourceable_type and position, but neither
+    # renders a control on this form — a summary link to a missing anchor is
+    # announced as a link and silently moves focus nowhere. unlinked: renders
+    # them as plain text, like :base errors.
+    describe "POST create with a position error (no rendered control)" do
+      it "shows the message as text, not a dead anchor" do
+        allow_any_instance_of(Workspaces::Projects::ResourcesController)
+          .to receive(:resource_params).and_return({ title: "Valid", position: -1 })
+
+        post workspace_project_resources_path(workspace, project), params: {
+          resource: { title: "Valid", type: "Document" }, document: { body: "" }
+        }
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        summary = Capybara.string(response.body).find("[role='alert']")
+        expect(summary).to have_text("Position must be greater than or equal to 0")
+        expect(summary).to have_no_css("a[href='#resource_position']")
+      end
+    end
+
+    # #747: the resourceable's own validation failure must surface — the old
+    # rescue kept errors only when e.record was the Resource, so a failing
+    # resourceable re-rendered a 422 with an EMPTY summary. Document has no
+    # validations today; the stub exercises the real rescue/render path a
+    # second validating resourceable type will take.
+    describe "POST create when the resourceable is invalid" do
+      it "renders the resourceable's errors in the summary" do
+        allow(Document).to receive(:create!) do
+          doc = Document.new
+          doc.errors.add(:body, "is too plain")
+          raise ActiveRecord::RecordInvalid.new(doc)
+        end
+
+        post workspace_project_resources_path(workspace, project), params: {
+          resource: { title: "Valid title", type: "Document" }, document: { body: "x" }
+        }
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(Capybara.string(response.body).find("[role='alert']")).to have_text("Body is too plain")
+      end
+    end
+
+    # #754: the document body field joins the builder rhythm — label and
+    # editor ride the data-slot adjacency, and the aria contract reaches the
+    # editor host (Lexxy forwards aria-* onto the contenteditable).
+    describe "document body field structure" do
+      it "renders label and editor in data-slot rhythm on new and edit, with the shared label key" do
+        get new_workspace_project_resource_path(workspace, project, type: "Document")
+        page = Capybara.string(response.body)
+        expect(page).to have_css(
+          "[data-slot='label'][for='document_body']",
+          text: I18n.t("workspaces.projects.resources.form.body_label")
+        )
+        expect(page).to have_css("[data-slot='control'] #document_body", visible: :all)
+
+        resource = create(:resource, project: project, created_by: user)
+        get edit_workspace_project_resource_path(workspace, project, resource)
+        page = Capybara.string(response.body)
+        expect(page).to have_css("[data-slot='label'][for='document_body']")
+        expect(page).to have_css("[data-slot='control'] #document_body", visible: :all)
+      end
+    end
+
+    # #757: SR users re-orient by document title after Turbo's 422 re-render;
+    # the count mirrors the summary the page focuses.
+    describe "error count in the page title" do
+      it "prefixes the title on a 422 and leaves a clean render unchanged" do
+        post workspace_project_resources_path(workspace, project), params: {
+          resource: { title: "", type: "Document" }, document: { body: "" }
+        }
+        expect(Capybara.string(response.body).find("title", visible: :all).text).to include("1 error")
+
+        get new_workspace_project_resource_path(workspace, project, type: "Document")
+        title = Capybara.string(response.body).find("title", visible: :all).text
+        expect(title).not_to include("error")
       end
     end
 

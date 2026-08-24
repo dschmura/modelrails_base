@@ -1,16 +1,21 @@
-<div>
-  <label for="document_body" class="block text-sm font-medium text-text-body">
-    <%= t("workspaces.projects.resources.new.body_label") %>
-  </label>
-  <%# Bound to @resourceable (top-level :document scope keeps the
-      document[body] param name) so a failed submit re-renders the body the
-      user typed instead of a blank editor. rich_text_area is Action Text /
-      Lexxy — deliberately NOT a UI::FormBuilder surface, so its label is
-      hand-wired here. %>
+<%# Bound to @resourceable (top-level :document scope keeps the document[body]
+    param name) so a failed submit re-renders the body the user typed instead
+    of a blank editor. rich_text_area is Action Text / Lexxy — not a
+    UI::FormBuilder surface — so the field chrome comes from
+    UI::FormFieldComponent directly (#754): the same data-slot label→control
+    rhythm as the builder fields, a shared error paragraph, and aria wiring
+    via html_input_attrs. Lexxy forwards aria-* attributes from the host
+    element onto its contenteditable, so aria-describedby/aria-invalid set
+    here reach the editor. %>
+<%= render UI::FormFieldComponent.new(
+      label: t("workspaces.projects.resources.form.body_label"),
+      error: @resourceable.errors.full_messages_for(:body).first,
+      id: "document_body"
+    ) do |field| %>
   <%= fields_for :document, @resourceable do |document_form| %>
     <%= document_form.rich_text_area :body,
-          id: "document_body",
-          class: "mt-1 block w-full rounded-md border border-border-strong
+          **field.html_input_attrs,
+          class: "block w-full rounded-md border border-border-strong
                   focus-ring focus:border-interactive-focus" %>
   <% end %>
-</div>
+<% end %>
