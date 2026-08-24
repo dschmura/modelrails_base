@@ -1,6 +1,7 @@
 en:
   workspaces:
     context_banner:
+      label: "Workspace context"
       in_workspace_html: "You're in <strong>%{name}</strong>"
     not_found: "Workspace not found."
     locked_notice: "This workspace is locked."
@@ -11,6 +12,7 @@ en:
     creation_disabled: "Workspace creation is disabled on this instance."
     archived_banner: "This workspace is archived."
     pending_join_banner:
+      label: "Pending workspace join"
       message: "You followed a link to join %{workspace}."
       join: "Join %{workspace}"
       dismiss: "Dismiss"
