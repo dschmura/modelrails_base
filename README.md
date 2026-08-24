@@ -8,7 +8,7 @@ A multi-tenant SaaS starter kit built on Rails 8.1.
 - **Database:** SQLite (Solid Queue/Cache/Cable in-process)
 - **Frontend:** TailwindCSS 4, Turbo, Stimulus
 - **Assets:** Propshaft, Importmaps
-- **Auth:** Rails 8 authentication generator, magic links, OmniAuth (Google, GitHub), Pundit
+- **Auth:** Rails 8 authentication generator; passwordless-first magic links, passkeys (WebAuthn), OmniAuth (Google, GitHub), Pundit
 - **Real-Time:** Turbo Stream broadcasts (morph-based refresh)
 - **Content:** Action Text with [Lexxy](https://github.com/basecamp/lexxy) (Lexical-based rich text editor)
 - **Docs:** Markdowndocs engine at `/docs` (deployment, background jobs, getting started, architecture, security, …)
@@ -23,7 +23,7 @@ A multi-tenant SaaS starter kit built on Rails 8.1.
 ### Prerequisites
 
 - [mise](https://mise.jdx.dev/) (or asdf) for runtime version management
-- Chromium (managed automatically by Cuprite/Ferrum for system tests)
+- Chrome or Chromium installed (Cuprite/Ferrum auto-detects an installed browser for system tests — it does not download one)
 
 ### Getting started
 
@@ -101,7 +101,25 @@ file contract, and the upstream-update workflow — lives in
 [app/docs/developer/forking.md](app/docs/developer/forking.md), rendered at `/docs/developer/forking` in the
 running app. Your fork inherits it.
 
-## What's included (Phase 1)
+## What's included
+
+A multi-tenant SaaS kit, not an auth starter: workspaces with roles and
+invitations, projects with per-project collaboration, a polymorphic resource
+registry with rich-text documents, device/session management, and a
+workspace-visible activity trail — on top of the authentication below.
+
+### Workspaces & tenancy
+- Multi-tenant workspaces with four system roles (Owner, Admin, Member, Viewer), role permissions, member management, invitations (email + magic-link), open join links, and workspace branding (logo, primary color)
+- Tenancy presets (personal / shared / none) selected by env, with onboarding to match
+- Suspension/archive/soft-delete lifecycle with guarded transitions
+
+### Projects & resources
+- Projects as collaboration spaces with creator/editor/viewer memberships, pinning, capacity limits, and per-project tool toggles
+- Polymorphic resource registry (documents via Action Text + Lexxy) with client-visible sharing and an external client area
+
+### Sessions & activity
+- Device/session management (list, revoke others, revoke on credential change), passkey (WebAuthn) sign-in and management
+- Best-effort activity log with workspace-visible feed and 12-month retention sweep
 
 ### Authentication
 - Smart sign-in: single email field routes users to the right auth method
@@ -137,7 +155,7 @@ running app. Your fork inherits it.
 - 44px minimum touch targets on interactive elements
 - Dark mode support throughout
 - Accessible forms with labels, ARIA attributes, and focus rings
-- Design system primitives — see [design-system.md](https://github.com/dschmura/modelrails_base_docs/blob/main/design-system.md) for spacing tokens, component utilities, and naming conventions.
+- Design system primitives via the vendored [modelrails_ui](https://github.com/dschmura/modelrails_ui) component library (`UI::*` ViewComponents, OKLCH semantic tokens); Lookbook previews at `/lookbook` in development
 
 ### Static pages
 - Home, About, Privacy, Contact

@@ -280,11 +280,11 @@ On `NotAcceptable`, the parked token is cleared **outside** the rollback on purp
 
 ### Invitation claims and `EmailMismatch`
 
-`accept_pending_invitation!` consumes the session's parked invitation token; it's idempotent when no token is present. If the invitation was addressed to a **different email** than the one being registered (`Invitation::EmailMismatch`), the signup is *not* aborted — the claim is skipped, the token is dropped so it can't loop on retry, and a persistent flash (`flash[:alert]`, not `flash.now` — these callers redirect) tells the user why they weren't added to the invited workspace.
+The invitation claim inside `PendingClaims#claim!` (run by `Signupable#commit_signup_atomically`) consumes the session's parked invitation token; it's idempotent when no token is present. If the invitation was addressed to a **different email** than the one being registered (`Invitation::EmailMismatch`), the signup is *not* aborted — the claim is skipped, the token is dropped so it can't loop on retry, and a persistent flash (`flash[:alert]`, not `flash.now` — these callers redirect) tells the user why they weren't added to the invited workspace.
 
 ### Join-link claims and the consent guard
 
-`accept_pending_join_link!` consumes the session's parked open-link token for a freshly signed-up, email-verified user. Its failure semantics are asymmetric by design:
+The join-link claim inside `PendingClaims#claim!` consumes the session's parked open-link token for a freshly signed-up, email-verified user. Its failure semantics are asymmetric by design:
 
 - **Stale-link conditions are silent no-ops** — revoked link, join policy reverted, workspace archived/suspended/deleted. A visitor who was never a member must not learn that a workspace is locked.
 - **`Workspace::AlreadyMember` is swallowed** as benign.
@@ -294,11 +294,11 @@ The **consent guard**: a brand-new account's signup is its own consent to join t
 
 ### Deferred claims on the unverified-OAuth path
 
-When an OAuth provider reports the email as unverified, the app refuses to auto-link or auto-verify; it creates a fresh user and parks both pending claims (invitation token, join-link digest) on the pending `Authentication` row, to be claimed when the user proves email ownership via the verification link. `Authentication#claim_pending_join_link!` then applies join-link semantics matching the signup path: stale-link conditions are silent no-ops (clear the digest and continue, so email verification is never blocked by a workspace whose join policy changed mid-flight, and a non-member learns nothing about its state), while capacity and already-member errors propagate for the caller to surface.
+When an OAuth provider reports the email as unverified, the app refuses to auto-link or auto-verify; it creates a fresh user and parks both pending claims (invitation token, join-link digest) on the pending `Authentication` row, to be claimed when the user proves email ownership via the verification link. `Authentication#claim_pending!` then applies join-link semantics matching the signup path: stale-link conditions are silent no-ops (clear the digest and continue, so email verification is never blocked by a workspace whose join policy changed mid-flight, and a non-member learns nothing about its state), while capacity and already-member errors propagate for the caller to surface.
 
 The token is a **one-shot claim**: verification never retries, so once admission is attempted the digest is spent regardless of outcome. Clearing it lives in an `ensure` — deliberately *not* inside `admit`'s transaction — so a terminal failure like capacity rolls back the membership but does **not** resurrect the token.
 
-Note the guard this path deliberately *lacks*: unlike `Signupable#accept_pending_join_link!`, there is no newly-registered check. None is needed — the digest is parked only by the unverified-email OAuth handler, which always creates a fresh user and refuses to link an existing one (an account-takeover refusal). The claimer here is therefore never a pre-existing account at risk of a drive-by join.
+Note the guard this path deliberately *lacks*: unlike the signup-time claim (`PendingClaims#claim!` with `newly_registered: true`), there is no newly-registered check. None is needed — the digest is parked only by the unverified-email OAuth handler, which always creates a fresh user and refuses to link an existing one (an account-takeover refusal). The claimer here is therefore never a pre-existing account at risk of a drive-by join.
 
 ### Best-effort side work at sign-in
 

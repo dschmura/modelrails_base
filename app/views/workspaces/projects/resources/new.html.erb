@@ -1,4 +1,4 @@
-<% content_for(:title) { t("workspaces.projects.resources.new.title") } %>
+<% content_for(:title) { title_with_error_count(t("workspaces.projects.resources.new.title"), @resource) } %>
 <div class="max-w-2xl mx-auto px-4 py-16">
   <h1 class="text-3xl font-bold text-text-heading">
     <%= t("workspaces.projects.resources.new.title") %>
@@ -7,7 +7,9 @@
   <%= form_with model: @resource, url: workspace_project_resources_path(@workspace, @project), class: "mt-8 space-y-6" do |form| %>
     <%= hidden_field_tag "resource[type]", @type %>
 
-    <%= form.error_summary %>
+    <%# resourceable_type/position validate but render no control here — their
+        errors go unlinked (plain text) or the summary anchors to nothing (#752). %>
+    <%= form.error_summary unlinked: [ :resourceable_type, :position ] %>
 
     <%= form.text_field :title,
           label: t("workspaces.projects.resources.new.title_label"),
