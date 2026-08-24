@@ -15,6 +15,20 @@ RSpec.describe "Project tools settings", type: :request do
     expect(response.body).to include("Docs &amp; Files")
   end
 
+  # #737: tool rows render through the FormBuilder's checkbox — one ≥44px
+  # label-wrapped target per row (2.5.5; the raw markup had none) with the
+  # tool description as describedby-wired help, not a bare styled span.
+  it "renders each tool as a builder checkbox row with a 44px target and wired description" do
+    get edit_workspace_project_tools_path(workspace, project)
+    page = Capybara.string(response.body)
+
+    expect(page).to have_css("label.min-h-11 input[type='checkbox'][name='project[enabled_tools][]']", minimum: 1)
+    docs_input = page.find("input[type='checkbox'][value='docs']")
+    describedby = docs_input["aria-describedby"]
+    expect(describedby).to be_present
+    expect(page.find("##{describedby.split.first}").text).to be_present
+  end
+
   it "updates enabled_tools, intersected with toggleable keys" do
     patch workspace_project_tools_path(workspace, project),
       params: { project: { enabled_tools: [ "docs", "bogus" ] } }

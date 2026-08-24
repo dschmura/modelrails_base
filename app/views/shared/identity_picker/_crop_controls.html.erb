@@ -12,20 +12,21 @@
         100% <%# erblint:disable HardCodedString - presentational glyph, not language (#498) %>
       </span>
     </div>
-    <input type="range" min="0" max="100" value="0"
-           autocomplete="off"
-           data-image-cropper-target="slider"
-           data-action="input->image-cropper#handleSlider"
-           aria-label="<%= t('identity_picker.zoom_aria_label') %>"
-           aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"
-           class="w-full h-2 rounded-full appearance-none cursor-pointer
-                  bg-border
-                  [&::-webkit-slider-thumb]:appearance-none
-                  [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
-                  [&::-webkit-slider-thumb]:rounded-full
-                  [&::-webkit-slider-thumb]:bg-white
-                  [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-border-strong
-                  [&::-webkit-slider-thumb]:shadow">
+    <%# UI::Range (#733): the component owns the cross-browser track/thumb
+        chrome (including the ::-moz-range-thumb the hand-rolled version
+        lacked); the image-cropper wiring and JS-maintained aria-valuenow
+        ride **html_attrs. %>
+    <%= render UI::RangeComponent.new(
+          min: 0, max: 100, value: 0,
+          class: "w-full",
+          autocomplete: "off",
+          "aria-label": t("identity_picker.zoom_aria_label"),
+          "aria-valuemin": "0", "aria-valuemax": "100", "aria-valuenow": "0",
+          data: {
+            "image-cropper-target": "slider",
+            action: "input->image-cropper#handleSlider"
+          }
+        ) %>
   </div>
 
   <button type="button"
