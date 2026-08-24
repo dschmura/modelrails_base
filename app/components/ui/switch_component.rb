@@ -38,6 +38,11 @@ module UI
     # inside it so the input is the `peer` and TRACK/THUMB are its LATER SIBLINGS —
     # the only DOM order in which Tailwind peer-* (`.peer:checked ~ .x`) matches.
     WRAPPER = "relative inline-flex h-[1.15rem] w-8 shrink-0"
+    # Focus is the peer-projected EXCEPTION to the `focus-ring` utility: the real input is
+    # `sr-only`, so the AAA outline must render on the TRACK when the peer is focus-visible.
+    # `focus-ring` bakes `:focus-visible` into its own selector and can't be peer-projected,
+    # so we emit the same `outline: 2px solid var(--color-interactive-focus)` via an arbitrary
+    # property under `peer-focus-visible:` (a utility class here would be a phantom — no CSS).
     # Off-state presence: bg-surface-sunken barely separates from a raised
     # card in either theme, so the unchecked track carries a real border
     # (transparent again once checked — the interactive fill needs no edge).
