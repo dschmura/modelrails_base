@@ -14,7 +14,8 @@
       <%= ui :badge, t("workspaces.members.index.active"), variant: :soft, tone: :success %>
     <% end %>
   </td>
-  <td class="py-3 px-2 space-x-2">
+  <td class="py-3 px-2">
+    <div class="action-group">
     <% if policy(membership).update? %>
       <%= link_to t("workspaces.members.index.edit_role"),
             edit_workspace_member_path(workspace, membership),
@@ -50,5 +51,6 @@
             class: "text-sm text-text-muted hover:text-interactive-hover bg-transparent border-0 cursor-pointer
                     inline-flex min-h-11 items-center focus-ring rounded" %>
     <% end %>
+  </div>
   </td>
 </tr>

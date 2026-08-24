@@ -30,7 +30,8 @@
           <tr class="border-b border-border hover:bg-surface-sunken transition-colors">
             <td class="py-3 px-2 text-text-heading"><%= pm.user.full_name %></td>
             <td class="py-3 px-2 text-text-muted"><%= pm.role.titleize %></td>
-            <td class="py-3 px-2 flex gap-2">
+            <td class="py-3 px-2">
+              <div class="action-group">
               <% if policy(pm).destroy? %>
                 <%= button_to t("workspaces.projects.memberships.index.remove"),
                       workspace_project_membership_path(@workspace, @project, pm),
@@ -38,6 +39,7 @@
                       class: "text-sm text-danger underline hover:no-underline cursor-pointer
                               inline-flex min-h-11 items-center focus-ring rounded" %>
               <% end %>
+            </div>
             </td>
           </tr>
         <% end %>
