@@ -1,11 +1,12 @@
-<% content_for(:title) { t("workspaces.projects.resources.edit.title") } %>
+<% content_for(:title) { title_with_error_count(t("workspaces.projects.resources.edit.title"), @resource) } %>
 <div class="max-w-2xl mx-auto px-4 py-16">
   <h1 class="text-3xl font-bold text-text-heading">
     <%= t("workspaces.projects.resources.edit.title") %>
   </h1>
 
   <%= form_with model: @resource, url: workspace_project_resource_path(@workspace, @project, @resource), method: :patch, class: "mt-8 space-y-6" do |form| %>
-    <%= form.error_summary %>
+    <%# Same unlinked pair as the new form (#752). %>
+    <%= form.error_summary unlinked: [ :resourceable_type, :position ] %>
 
     <%= form.text_field :title,
           label: t("workspaces.projects.resources.edit.title_label"),

@@ -9,10 +9,11 @@ en:
           empty: "No resources yet."
           draft: "Draft"
           published: "Published"
+        form:
+          body_label: "Content"
         new:
           title: "New document"
           title_label: "Title"
-          body_label: "Content"
           submit: "Create"
         create:
           success: "Resource created."
