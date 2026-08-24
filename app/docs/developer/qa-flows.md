@@ -86,7 +86,7 @@ Or run `bin/rails db:seed` if you configured the shared-preset seed variables.
 4. From the same browser, navigate to `/session/new` and enter the invited email address.
    **Expect:** The `check_email` page renders (the session token satisfies `signups_open?`). Click the registration link in `/letter_opener`.
 5. Fill in first and last name and submit the `:new_registration` form (the email is pre-filled and already matches the invitation address).
-   **Expect:** You are signed in immediately. The email is verified inside the registration transaction. `auth.claim_pending_invitation!` calls `Invitation.consume!` with an email-match guard — because your proven email matches the invitation address, the invitation is accepted and you are added to the workspace. You are redirected to `root_path` with a success notice.
+   **Expect:** You are signed in immediately. The email is verified inside the registration transaction. `auth.claim_pending!` claims the parked invitation (email-match guarded) — because your proven email matches the invitation address, the invitation is accepted and you are added to the workspace. You are redirected to `root_path` with a success notice.
 
 **Signed-in accept (POST path).** If the recipient is already signed in when they click the accept link:
 `POST /invitations/:token/accept` calls `Invitation.consume!` immediately (no deferred email-match check needed — the signed-in user's proven email is used). If the signed-in email does not match the invitation email, `Invitation::EmailMismatch` is rescued and a mismatch alert is shown; you are redirected to `root_path`.
@@ -233,7 +233,7 @@ Navigate to `settings/connected_accounts`. Next to a verified provider, click **
    `stash_for_signup` stores the link token in `session[:pending_join_token]` and redirects to `new_session_path`.
    **Expect (open signup):** Navigate to `/session/new`, enter your email, click the registration magic link, and fill in name — the pending join-link token satisfies `signups_open?` even under `invite_only`.
    **Expect (invite-only):** Same — the pending join token opens the gate regardless of `SIGNUP_MODE`.
-3. On this magic-link registration path the join token is claimed **synchronously inside the registration transaction**: `Signupable#accept_pending_join_link!` reads `session[:pending_join_token]` and calls `workspace.admit` before the user lands. (The digest-parked-on-`Authentication` mechanism — `pending_join_link_digest` + `Authentication#claim_pending_join_link!` — is the *OAuth unverified-email* path only; see the OAuth section.)
+3. On this magic-link registration path the join token is claimed **synchronously inside the registration transaction**: `Signupable#commit_signup_atomically` claims it via `PendingClaims` before the user lands. (The digest-parked-on-`Authentication` mechanism — `pending_join_link_digest` + `Authentication#claim_pending!` — is the *OAuth unverified-email* path only; see the OAuth section.)
    **Expect:** You are signed in and, if the link was still valid, now a member. Because you are a **brand-new** account, the join is applied automatically (your signup is your consent). Stale conditions (revoked link, policy changed back to invite, instance allowlist tightened) are silently no-op'd — sign-in proceeds and you land without workspace membership.
 
 ### Edge cases — Workspace join
@@ -373,7 +373,7 @@ This step only appears when the registry has more than one toggleable tool.
 1. In a private window with no session, open the invitation email and click **Accept invitation**.
    **Expect:** `InvitationAcceptsController#show` renders. The token is stashed in `session[:pending_invitation_token]`. A prompt to register or sign in is shown.
 2. Navigate to `/session/new`, enter the invited email address, click the registration magic link in `/letter_opener`, fill in your name, and submit (the session token satisfies `signups_open?` even under `invite_only`).
-3. **Expect:** You are signed in. The email is verified inside the registration transaction. `auth.claim_pending_invitation!` calls `Invitation.consume!`, a `ClientAccess` is created, and you are redirected to the client area.
+3. **Expect:** You are signed in. The email is verified inside the registration transaction. `auth.claim_pending!` claims the parked invitation and a `ClientAccess` is created, and you are redirected to the client area.
 
 ### Client area — what the client sees
 
