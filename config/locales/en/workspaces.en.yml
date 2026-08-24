@@ -112,7 +112,8 @@ en:
     members:
       index:
         title: "Members"
-        search_placeholder: "Search members..."
+        search_label: "Search members"
+        search_placeholder: "Name or email"
         filter_by_role: "All roles"
         filter_by_status: "All statuses"
         status_active: "Active"

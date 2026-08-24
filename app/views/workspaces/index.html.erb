@@ -6,13 +6,15 @@
     <%= avatar_for(Current.user, size: :md) %>
     <span class="text-sm font-medium text-text-body truncate"><%= Current.user.full_name %></span>
   </div>
-  <div class="flex items-center justify-between">
+  <%# #769: header stacks at mobile so the action label never wraps inside
+      its own button. %>
+  <div class="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
     <h1 class="text-3xl font-bold text-text-heading">
       <%= t("workspaces.index.title") %>
     </h1>
     <% if TenancyConfig.workspace_creation_enabled? %>
       <%= link_to t("workspaces.index.new_workspace"), new_workspace_path,
-            class: "btn-primary" %>
+            class: "btn-primary whitespace-nowrap" %>
     <% end %>
   </div>
 
