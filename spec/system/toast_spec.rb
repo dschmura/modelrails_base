@@ -3,17 +3,6 @@ require "rails_helper"
 RSpec.describe "Toast notification system", type: :system do
   let(:user) { create(:user) }
 
-  def sign_in_via_form
-    visit new_session_path
-    fill_in I18n.t("sessions.new.email_label"), with: user.email_address
-    click_button I18n.t("sessions.new.continue")
-    expect(page).to have_text(I18n.t("sessions.check_email.title"))
-    token = MagicLinkToken.create_for_email(user.email_address)
-    visit magic_link_callback_path(token: token)
-    click_button I18n.t("magic_link_callbacks.confirm.sign_in_button")
-    expect(page).to have_text(I18n.t("magic_link_callbacks.show.signed_in"))
-  end
-
   def trigger_login_failure
     # The lookup action now sends a magic link; reach the password form directly.
     visit session_password_form_path(email_address: user.email_address)
@@ -29,31 +18,31 @@ RSpec.describe "Toast notification system", type: :system do
 
   describe "pill toasts (success/info)" do
     it "appears as a pill in the top-center container" do
-      sign_in_via_form
+      sign_in_via_form(user)
       expect(page).to have_css("#toast-pills [data-controller='toast-pill']")
     end
 
     it "has role=status and aria-live=polite" do
-      sign_in_via_form
+      sign_in_via_form(user)
       pill = find("[data-controller='toast-pill']")
       expect(pill["role"]).to eq("status")
       expect(pill["aria-live"]).to eq("polite")
     end
 
     it "includes a progress bar" do
-      sign_in_via_form
+      sign_in_via_form(user)
       expect(page).to have_css("[data-toast-pill-target='progress']")
     end
 
     it "auto-dismisses after timeout" do
-      sign_in_via_form
+      sign_in_via_form(user)
       expect(page).to have_css("[data-controller='toast-pill']")
       # Default minimum timeout is 5 seconds; wait up to 18 to account for max
       expect(page).to have_no_css("[data-controller='toast-pill']", wait: 18)
     end
 
     it "does not overlap the user menu dropdown" do
-      sign_in_via_form
+      sign_in_via_form(user)
       expect(page).to have_css("[data-controller='toast-pill']")
 
       # Open user menu
