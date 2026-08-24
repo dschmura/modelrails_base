@@ -135,9 +135,13 @@ class Workspace < ApplicationRecord
   def owner
     # Uses detect (not joins + find_by) so it works from preloaded
     # memberships without firing a per-row query in list views. When nothing
-    # is preloaded, load roles alongside so the detect doesn't N+1 the role
-    # lookup (Bullet, first seen via the personal-workspace icon fallback).
-    ms = memberships.loaded? ? memberships : memberships.includes(:role)
+    # is preloaded, load roles and users alongside so neither the detect nor
+    # the `.user` read N+1s (Bullet — :role first seen via the personal-
+    # workspace icon fallback, :user via the workspace identity bar once the
+    # global Membership safelist entry was retired for the record_preloads
+    # pipeline). The unused-:user legs on non-owner rows are covered by the
+    # intentionally-pessimistic safelist in lib/bullet_safelists.rb.
+    ms = memberships.loaded? ? memberships : memberships.includes(:role, :user)
     ms.detect(&:owner?)&.user
   end
 
