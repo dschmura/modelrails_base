@@ -17,7 +17,7 @@ en:
         success: "Project created."
       show:
         members: "Members"
-        edit: "Edit"
+        edit: "Edit project"
         nav_label: "Project settings"
       edit:
         title: "Edit project"
