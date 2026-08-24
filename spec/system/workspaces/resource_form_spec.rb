@@ -27,6 +27,20 @@ RSpec.describe "Resource forms", type: :system do
     end
   end
 
+  # #753: the 422 error state is where AT users get stuck, and it was the one
+  # new surface never contrast-checked — axe both themes on the live render.
+  it "passes axe in both themes on the 422 error render" do
+    visit new_workspace_project_resource_path(workspace, project)
+    click_button I18n.t("workspaces.projects.resources.new.submit")
+    expect(page).to have_css("[role='alert']")
+
+    scope = [ "#main-content" ]
+    expect(axe_clean_in_both_themes?(include: scope)).to(
+      be(true),
+      axe_violations_in_both_themes(include: scope).join("\n")
+    )
+  end
+
   it "creates a document from a valid title-only submit" do
     visit new_workspace_project_resource_path(workspace, project)
 
