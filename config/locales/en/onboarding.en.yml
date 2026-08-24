@@ -43,6 +43,7 @@ en:
       complete: "You're all set."
   email_verifications:
     banner:
+      label: "Email verification"
       message: "Please confirm your email address."
       action: "Resend link"
     new:
