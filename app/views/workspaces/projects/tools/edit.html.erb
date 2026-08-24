@@ -5,16 +5,23 @@
 
   <%= form_with url: workspace_project_tools_path(@workspace, @project), method: :patch,
         class: "mt-8 space-y-4" do |form| %>
+    <%# form.checkbox (#737): one ≥44px label-wrapped target per row (2.5.5 —
+        the raw markup had none) with the description as describedby-wired
+        help. unchecked_value nil suppresses the per-box hidden field: the
+        array param must not collect empty entries, and the controller
+        already treats an absent group as all-off. %>
     <% @tools.each do |tool| %>
-      <label class="flex items-start gap-3 rounded-md border border-border p-4">
-        <%= check_box_tag "project[enabled_tools][]", tool.key.to_s,
-              @project.tool_enabled?(tool.key),
-              id: "tool_#{tool.key}", class: "mt-1" %>
-        <span>
-          <span class="block font-semibold text-text-heading"><%= tool.name %></span>
-          <span class="block text-sm text-text-body"><%= tool.description %></span>
-        </span>
-      </label>
+      <div class="rounded-md border border-border p-4">
+        <%= form.checkbox :enabled_tools,
+              {
+                label: tool.name,
+                help: tool.description,
+                name: "project[enabled_tools][]",
+                id: "tool_#{tool.key}",
+                checked: @project.tool_enabled?(tool.key)
+              },
+              tool.key.to_s, nil %>
+      </div>
     <% end %>
     <%= form.submit t("project_tools.settings.save"), class: "btn-primary w-full" %>
   <% end %>

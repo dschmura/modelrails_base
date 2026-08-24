@@ -108,28 +108,27 @@
           <%= t("identity_picker.initial_color_name") %>
         </span>
       </div>
-      <input type="range" min="0" max="360" step="1"
-             value="<%= identity.hue %>"
-             autocomplete="off"
-             data-identity-picker-target="colorSlider"
-             data-action="input->identity-picker#handleColorChange"
-             aria-label="<%= t('identity_picker.color_aria_label') %>"
-             class="w-full min-h-11 rounded-full appearance-none cursor-pointer
-                    [&::-webkit-slider-thumb]:appearance-none
-                    [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5
-                    [&::-webkit-slider-thumb]:rounded-full
-                    [&::-webkit-slider-thumb]:bg-white
-                    [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-border-strong
-                    [&::-webkit-slider-thumb]:shadow-md
-                    [&::-webkit-slider-thumb]:cursor-pointer"
-             style="background: linear-gradient(to right,
+      <%# UI::Range (#733): component thumb/track chrome (cross-browser, ≥24px
+          thumb) with the OKLCH hue gradient riding an inline style — inline
+          background wins over the component's track classes by design. %>
+      <%= render UI::RangeComponent.new(
+            min: 0, max: 360, step: 1, value: identity.hue,
+            class: "w-full min-h-11",
+            autocomplete: "off",
+            "aria-label": t("identity_picker.color_aria_label"),
+            data: {
+              "identity-picker-target": "colorSlider",
+              action: "input->identity-picker#handleColorChange"
+            },
+            style: "background: linear-gradient(to right,
                oklch(0.35 0.2 0),
                oklch(0.35 0.2 60),
                oklch(0.35 0.2 120),
                oklch(0.35 0.2 180),
                oklch(0.35 0.2 240),
                oklch(0.35 0.2 300),
-               oklch(0.35 0.2 360));">
+               oklch(0.35 0.2 360));"
+          ) %>
     </div>
   <% end %>
 
