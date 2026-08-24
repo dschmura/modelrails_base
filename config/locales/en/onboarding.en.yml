@@ -3,6 +3,7 @@ en:
     steps:
       workspace: "Workspace"
       project: "Project"
+      tools: "Tools"
       team: "Team"
     workspaces:
       new:
