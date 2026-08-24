@@ -111,7 +111,7 @@ module WorkspaceHelper
     # src + fallback together arm the component's broken-image swap — a logo
     # that 404s renders initials instead of a broken image.
     render UI::AvatarComponent.new(
-      src: src, fallback: identity.initials, hue: identity.hue, size: size
+      src: src, fallback: identity.initials, hue: initials_hue(identity), size: size
     )
   end
 
@@ -119,11 +119,7 @@ module WorkspaceHelper
     avatar_for(workspace.owner, size: size)
   end
 
-  # hue: is always explicit here (Identity#hue defaults to DEFAULT_HUE), unlike
-  # avatar_helper, which passes nil at the default so the component's
-  # bg-interactive branch applies. Parity with the pre-component workspace
-  # markup; picking one behavior for both helpers is a tracked follow-up.
   def render_workspace_initials(identity, size)
-    render UI::AvatarComponent.new(fallback: identity.initials, hue: identity.hue, size: size)
+    render UI::AvatarComponent.new(fallback: identity.initials, hue: initials_hue(identity), size: size)
   end
 end
