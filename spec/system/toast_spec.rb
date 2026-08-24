@@ -16,17 +16,29 @@ RSpec.describe "Toast notification system", type: :system do
     JS
   end
 
+  # #683: a live region must exist and be registered BEFORE content arrives —
+  # a region inserted WITH its content (the appended toast carrying its own
+  # aria-live) is silently dropped by AT. The STABLE containers own the
+  # announcement semantics.
+  describe "stable live-region containers (#683)" do
+    it "both toast containers are live regions before any toast exists" do
+      sign_in_via_form(user)
+      expect(page.find("#toast-pills", visible: :all)["aria-live"]).to eq("polite")
+      expect(page.find("#toast-cards", visible: :all)["aria-live"]).to eq("assertive")
+    end
+  end
+
   describe "pill toasts (success/info)" do
     it "appears as a pill in the top-center container" do
       sign_in_via_form(user)
       expect(page).to have_css("#toast-pills [data-controller='toast-pill']")
     end
 
-    it "has role=status and aria-live=polite" do
+    it "keeps role=status but no own live attrs — the container announces (#683)" do
       sign_in_via_form(user)
       pill = find("[data-controller='toast-pill']")
       expect(pill["role"]).to eq("status")
-      expect(pill["aria-live"]).to eq("polite")
+      expect(pill["aria-live"]).to be_nil
     end
 
     it "includes a progress bar" do
@@ -63,11 +75,11 @@ RSpec.describe "Toast notification system", type: :system do
       expect(page).to have_css("#toast-cards [data-controller='toast-card']")
     end
 
-    it "has role=alert and aria-live=assertive" do
+    it "keeps role=alert but no own live attrs — the container announces (#683)" do
       trigger_login_failure
       card = find("[data-controller='toast-card']")
       expect(card["role"]).to eq("alert")
-      expect(card["aria-live"]).to eq("assertive")
+      expect(card["aria-live"]).to be_nil
     end
 
     it "persists until manually dismissed" do
