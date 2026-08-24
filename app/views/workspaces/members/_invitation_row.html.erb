@@ -22,7 +22,8 @@
     <%= ui :badge, t("workspaces.members.index.pending_invitations.pending"),
           variant: :soft, tone: :warning %>
   </td>
-  <td class="py-3 px-2 space-x-2">
+  <td class="py-3 px-2">
+    <div class="action-group">
     <% if policy(invitation).resend? %>
       <%= button_to t("workspaces.members.index.pending_invitations.resend"),
             resend_workspace_invitation_path(workspace, invitation),
@@ -39,5 +40,6 @@
             class: "text-sm text-danger hover:opacity-80 bg-transparent border-0 cursor-pointer
                     inline-flex min-h-11 items-center focus-ring rounded" %>
     <% end %>
+  </div>
   </td>
 </tr>

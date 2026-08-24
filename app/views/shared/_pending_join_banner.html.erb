@@ -10,7 +10,7 @@
         class: "rounded-none border-x-0 border-t-0 border-b"
       ) do %>
     <div class="max-w-5xl mx-auto px-4 py-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-      <%= icon(:user_group, class: "w-4 h-4 shrink-0") %>
+      <%= icon(:user_group, size: :sm, class: "shrink-0") %>
       <span role="status"><%= t("workspaces.pending_join_banner.message", workspace: workspace.name) %></span>
       <%# text-info/border-info-border override btn-secondary's text-text-body — the
           banner's info signal pairing on bg-info-surface (panel CP3). %>

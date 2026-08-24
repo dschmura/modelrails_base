@@ -205,9 +205,12 @@ body:has([data-biscuit-target="banner"]:not([hidden])) {
     @apply text-interactive;
   }
 
-  /* Trailing button-group container; --space-action-group-gap keeps inline spacing consistent. */
+  /* Trailing button-group container; --space-action-group-gap keeps inline spacing
+     consistent. whitespace-nowrap: in width-constrained containers (an overflowing
+     table cell) flex children otherwise shrink below content width and wrap their
+     own labels — the #769 bug class, and a 2.5.5 target-size loss (#692). */
   .action-group {
-    @apply inline-flex items-center;
+    @apply inline-flex items-center whitespace-nowrap;
     gap: var(--space-action-group-gap);
   }
 

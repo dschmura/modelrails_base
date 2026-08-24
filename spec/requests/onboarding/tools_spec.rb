@@ -35,6 +35,20 @@ RSpec.describe "Onboarding · tools step", type: :request do
     end
   end
 
+  # #692: the stepper must name the screen you're on — this page rendered
+  # current: :team (the NEXT screen) in a 3-step stepper with no Tools entry.
+  it "marks Tools as the current step, between Project and Team" do
+    with_two_tools do
+      get new_onboarding_tools_path
+      doc = Nokogiri::HTML(response.body)
+      current = doc.at_css("[aria-current='step']")
+      current_step = current.ancestors("li").first || current.parent
+      expect(current_step.text).to include(I18n.t("onboarding.steps.tools"))
+      labels = doc.css("ol li, [data-slot='step']").map(&:text).join(" ")
+      expect(labels).to include(I18n.t("onboarding.steps.team"))
+    end
+  end
+
   it "saves the selected tools and advances to the team step" do
     with_two_tools do
       post onboarding_tools_path, params: { project: { enabled_tools: [ "docs" ] } }
