@@ -14,11 +14,17 @@
            sm:flex-row sm:items-start sm:justify-between">
   <div class="min-w-0 flex-1">
     <p class="text-sm <%= notification.read_at? ? "text-text-body" : "text-text-heading font-medium" %>">
+      <%# Read state reaches AT as text (#763) — the font-weight swap above is
+          visual-only, and inferring state from which action button renders
+          put the burden on the listener. %>
+      <span class="sr-only"><%= notification.read_at? ? t("notifications.index.item.status_read") : t("notifications.index.item.status_unread") %></span>
       <%= message %>
     </p>
     <p class="mt-1 text-xs text-text-muted">
+      <%# Wrapped "ago" form (#763): <time datetime> is not announced, so the
+          bare time_ago_in_words read as "…3 hours." %>
       <time datetime="<%= notification.created_at.iso8601 %>">
-        <%= time_ago_in_words(notification.created_at) %>
+        <%= t("notifications.index.item.time_ago", time: time_ago_in_words(notification.created_at)) %>
       </time>
     </p>
   </div>
