@@ -14,6 +14,21 @@ RSpec.describe "Account Passwords", type: :request do
     # User with no password set (passwordless — signs in via magic link).
     let(:passwordless_user) { create(:user, password: nil) }
 
+    # #722: the third instance of the forgot-the-layout-opt-in class — the
+    # password pages are settings destinations and render inside the shell
+    # like every sibling (the sessions page was the second instance, #723).
+    describe "settings shell (#722)" do
+      before { sign_in(passwordless_user) }
+
+      it "renders the password page inside the settings shell" do
+        get new_settings_password_path
+        aside = Nokogiri::HTML(response.body).at_css(
+          %(aside[aria-label="#{I18n.t("settings.sidebar.aria_label")}"])
+        )
+        expect(aside).not_to be_nil
+      end
+    end
+
     describe "GET /account/password/new" do
       context "user without a password" do
         before { sign_in(passwordless_user) }
