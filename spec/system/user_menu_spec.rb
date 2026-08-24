@@ -14,18 +14,6 @@ require "rails_helper"
 RSpec.describe "User menu dropdown", type: :system do
   let(:user) { create(:user, first_name: "Jane", last_name: "Doe") }
 
-  def sign_in_via_form(user)
-    visit new_session_path
-    fill_in I18n.t("sessions.new.email_label"), with: user.email_address
-    click_button I18n.t("sessions.new.continue")
-    expect(page).to have_text(I18n.t("sessions.check_email.title"))
-    token = MagicLinkToken.create_for_email(user.email_address)
-    visit magic_link_callback_path(token: token)
-    click_button I18n.t("magic_link_callbacks.confirm.sign_in_button")
-    expect(page).to have_text(I18n.t("magic_link_callbacks.show.signed_in"))
-    visit root_path
-  end
-
   # Invoke a keyboard event on the dropdown controller directly. Programmatic
   # KeyboardEvent dispatch does not reliably reach Stimulus listeners through
   # the driver's isolated evaluation context, so we call the handler directly.
@@ -41,6 +29,7 @@ RSpec.describe "User menu dropdown", type: :system do
 
   before do
     sign_in_via_form(user)
+    visit root_path # this file's old helper copy baked this in; the examples assume it
   end
 
   describe "opening and closing" do
