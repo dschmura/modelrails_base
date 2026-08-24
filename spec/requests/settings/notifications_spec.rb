@@ -122,6 +122,28 @@ RSpec.describe "Account Notifications", type: :request do
         expect(rendered).to be <= 25
       end
 
+      # #763 (1.3.1): read-vs-unread was carried only by a font-weight class,
+      # and the timestamp read "3 hours" with no "ago" (the <time datetime>
+      # attribute is not announced). The row must open with an sr-only status
+      # and the timestamp must be the wrapped, localized "ago" form.
+      it "conveys read state and a complete timestamp to assistive tech" do
+        read_notification = deliver_security_notification
+        read_notification.update!(read_at: Time.current)
+        unread_notification = deliver_security_notification
+
+        get settings_notifications_path
+        page = Capybara.string(response.body)
+
+        within_read = page.find("##{ActionView::RecordIdentifier.dom_id(read_notification)}")
+        within_unread = page.find("##{ActionView::RecordIdentifier.dom_id(unread_notification)}")
+
+        expect(within_unread).to have_css(".sr-only", text: I18n.t("notifications.index.item.status_unread"))
+        expect(within_read).to have_css(".sr-only", text: I18n.t("notifications.index.item.status_read"))
+        [ within_read, within_unread ].each do |row|
+          expect(row.find("time").text.strip).to end_with("ago")
+        end
+      end
+
       context "?filter=unread" do
         it "renders only unread notifications" do
           read_notification = deliver_security_notification

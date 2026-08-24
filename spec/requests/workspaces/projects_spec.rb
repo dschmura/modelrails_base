@@ -148,6 +148,16 @@ RSpec.describe "Workspace Projects", type: :request do
         expect(response).to have_http_status(:ok)
       end
 
+      # #746 (2.4.9 Link Purpose, AAA): a links-list rotor shows this link out
+      # of context — "Edit" alone names no object. Literal string on purpose:
+      # an I18n.t assertion would move with a wrong locale edit.
+      it "names the edit link with its object for out-of-context reading" do
+        get workspace_project_path(workspace, project)
+        page = Capybara.string(response.body)
+        expect(page).to have_link("Edit project", href: edit_workspace_project_path(workspace, project))
+        expect(page).to have_no_link("Edit", exact: true)
+      end
+
       it "renders the header initials through the avatar component" do
         get workspace_project_path(workspace, project)
         html = Capybara.string(response.body)
