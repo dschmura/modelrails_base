@@ -1,5 +1,5 @@
 <%# locals: (current:) %>
-<% step_keys = %i[workspace project team] %>
+<% step_keys = %i[workspace project tools team] %>
 <% current_index = step_keys.index(current) %>
 <%= render(UI::StepperComponent.new(steps: step_keys.each_with_index.map { |key, i|
       {
