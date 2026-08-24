@@ -93,6 +93,19 @@
   --min-height-input: var(--form-input-height);
 }
 
+/* #719: when the cookie-consent banner is visible it owns the viewport's
+   bottom edge — bottom-anchored toasts lift above it instead of rendering
+   half-hidden behind it. The banner is taller at phone widths (stacked
+   action buttons). */
+body:has([data-biscuit-target="banner"]:not([hidden])) {
+  --toast-card-bottom: 13rem;
+}
+@media (min-width: 640px) {
+  body:has([data-biscuit-target="banner"]:not([hidden])) {
+    --toast-card-bottom: 7.5rem;
+  }
+}
+
 /* AAA focus indicator (converged-conventions B5): an OFFSET OUTLINE, not a ring.
    outline is OS-drawn → survives overflow:hidden clipping AND forced-colors/High-Contrast
    (box-shadow rings vanish in both → WCAG 2.4.7 fail). Uniform --color-interactive-focus
@@ -160,8 +173,27 @@
        ~26px wide) — under the AAA target floor (WCAG 2.5.5). Invisible
        hit-area growth. */
     @apply inline-flex min-h-11 min-w-11 items-center justify-center font-medium underline rounded;
-    @apply focus-ring;
+    @apply focus-ring transition-colors disabled:opacity-50 disabled:pointer-events-none;
     @apply hover:no-underline;
+  }
+
+  /* Icon+label text action (#760 ruling): with a glyph in the box the
+     underline would run beneath the icon, so this variant skips the underline
+     entirely. The hover cue is a tinted background per tone (below) — not a
+     text-color shift, because danger has no AAA-safe darker text token
+     (danger-strong is graphics-only in dark mode) and an opacity fade reads
+     as disabled. Same 44px floor and focus contract as .btn-text. */
+  .btn-text-icon {
+    @apply inline-flex min-h-11 min-w-11 items-center justify-center gap-2 font-medium rounded;
+    @apply focus-ring transition-colors disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-text-icon.btn-text-interactive {
+    @apply hover:bg-interactive-subtle;
+  }
+
+  .btn-text-icon.btn-text-danger {
+    @apply hover:bg-danger-surface;
   }
 
   /* Color variants of .btn-text. Apply alongside .btn-text. */
@@ -198,7 +230,7 @@
      Usage + variant guidance: Lookbook / UI::ButtonComponent / .modelrails_ui/agent-rules.md. */
   .btn-primary {
     @apply inline-flex items-center justify-center px-4 rounded-md font-medium cursor-pointer;
-    @apply focus-ring;
+    @apply focus-ring transition-colors disabled:opacity-50 disabled:pointer-events-none;
     @apply bg-interactive hover:bg-interactive-hover text-text-on-interactive;
     min-height: var(--form-input-height);
     min-width: var(--form-input-height);
@@ -206,7 +238,7 @@
 
   .btn-secondary {
     @apply inline-flex items-center justify-center px-4 rounded-md font-medium cursor-pointer;
-    @apply focus-ring;
+    @apply focus-ring transition-colors disabled:opacity-50 disabled:pointer-events-none;
     @apply border border-border text-text-body hover:bg-surface-sunken;
     min-height: var(--form-input-height);
     min-width: var(--form-input-height);
@@ -214,7 +246,7 @@
 
   .btn-danger {
     @apply inline-flex items-center justify-center px-4 rounded-md font-medium cursor-pointer;
-    @apply focus-ring;
+    @apply focus-ring transition-colors disabled:opacity-50 disabled:pointer-events-none;
     @apply bg-danger hover:bg-danger/90 text-text-on-interactive;
     min-height: var(--form-input-height);
     min-width: var(--form-input-height);
@@ -225,8 +257,19 @@
      token; hover fills with the subtle brand tint. */
   .btn-outline-primary {
     @apply inline-flex items-center justify-center px-4 rounded-md font-medium cursor-pointer;
-    @apply focus-ring;
+    @apply focus-ring transition-colors disabled:opacity-50 disabled:pointer-events-none;
     @apply border border-interactive text-interactive hover:bg-interactive-subtle;
+    min-height: var(--form-input-height);
+    min-width: var(--form-input-height);
+  }
+
+  /* Outline button, danger tone (#766) — variant :outline x tone :danger,
+     consolidating the two hand-derived recipes. Hover is the TINTED danger
+     surface (chips are tinted; fills are solid — the signal doctrine). */
+  .btn-outline-danger {
+    @apply inline-flex items-center justify-center px-4 rounded-md font-medium cursor-pointer;
+    @apply focus-ring transition-colors disabled:opacity-50 disabled:pointer-events-none;
+    @apply border border-danger-border text-danger hover:bg-danger-surface;
     min-height: var(--form-input-height);
     min-width: var(--form-input-height);
   }
