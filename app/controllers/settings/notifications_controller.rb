@@ -21,6 +21,10 @@ module Settings
       end
       @current_filter = current_filter_key
       @pagy, @notifications = pagy(scope, limit: 25)
+      # Second stage of the eager load: `includes` stops at the polymorphic
+      # record, so each notifier declares what its `#message` traverses
+      # (`record_preloads`) and this batch-loads those per subtype.
+      ApplicationNotifier.preload_records(@notifications)
     end
 
     def update
