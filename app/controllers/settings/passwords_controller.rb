@@ -1,5 +1,7 @@
 module Settings
   class PasswordsController < ApplicationController
+    layout "settings"
+
     before_action :require_reauthentication!, only: [ :create, :update, :destroy ]
 
     def new
