@@ -40,7 +40,7 @@ RSpec.describe "Account profile — identity picker", type: :system do
       # background for the rule to lose to.
       styles = page.evaluate_script(<<~JS)
         (() => {
-          const el = document.querySelector("[data-identity-picker-target='colorSlider']")
+          const el = document.querySelector("[data-identity-picker-target~='colorSlider']")
           // Chrome drops the ::-moz-range-track rule at parse (unknown selector) and
           // stores the var()-bearing declaration unparsed under the shorthand, so the
           // longhand backgroundImage getter returns "" — read cssText instead, and
@@ -78,7 +78,10 @@ RSpec.describe "Account profile — identity picker", type: :system do
         (() => {
           const preview = document.querySelector("[data-identity-picker-target~='initialsPreview']")
           const swatches = Array.from(document.querySelectorAll("[data-identity-picker-target~='hueSwatch']"))
-          const discs = [preview, ...swatches.filter(s => s !== preview)]
+          // hueSwatch now also rides the slider (its --hue feeds the loupe thumb);
+          // computed-background sync is a property of the DISCS — the elements that
+          // paint bg-hue-initials directly.
+          const discs = [preview, ...swatches.filter(s => s !== preview && s.classList.contains("bg-hue-initials"))]
           return {
             swatchCount: swatches.length,
             inlineBg: preview.style.backgroundColor,
@@ -92,6 +95,35 @@ RSpec.describe "Account profile — identity picker", type: :system do
       expect(state["previewHue"]).to eq("120")
       expect(state["swatchCount"]).to be >= 2 # big preview + card disc
       expect(state["distinctColors"]).to eq(1) # every disc shows the same pending color
+    end
+
+    # The thumb is a loupe: it shows the color the pending hue produces, using the
+    # SAME oklch(var(--hue-initials-*)) formula as the discs, sized up from the
+    # component's 20px. That needs --hue on the slider element itself (the slider
+    # rides hueSwatchTargets), plus .hue-range thumb rules in the served sheet.
+    it "fills the slider thumb with the pending color, loupe-style" do
+      open_identity_picker
+      select_identity_source("Initials")
+      expect_color_picker_visible
+
+      set_identity_color_hue(120)
+
+      state = page.evaluate_script(<<~JS)
+        (() => {
+          const slider = document.querySelector("[data-identity-picker-target~='colorSlider']")
+          const thumbRules = Array.from(document.styleSheets)
+            .flatMap(s => { try { return Array.from(s.cssRules) } catch { return [] } })
+            .filter(r => r.selectorText && r.selectorText.includes("hue-range") &&
+                         r.selectorText.includes("thumb"))
+          return {
+            sliderHue: slider.style.getPropertyValue("--hue").trim(),
+            loupeRules: thumbRules.filter(r => r.style.cssText.includes("--hue-initials-l")).length
+          }
+        })()
+      JS
+
+      expect(state["sliderHue"]).to eq("120") # the thumb's color input moves with the drag
+      expect(state["loupeRules"]).to be >= 1  # engine-appropriate thumb rule, token-based fill
     end
 
     it "switches to Initials with a custom color" do

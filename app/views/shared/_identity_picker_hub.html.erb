@@ -113,13 +113,17 @@
           thumb). The hue gradient rides `.hue-range` (application.css), which
           targets the track pseudo-elements — an inline background on the input
           cannot reach them and painted UNDER the component's sunken track bar. %>
+      <%# The slider rides hueSwatch too: its --hue feeds the loupe thumb
+          (.hue-range::-*-thumb reads it), so the thumb previews the pending
+          color exactly as the discs do. %>
       <%= render UI::RangeComponent.new(
             min: 0, max: 360, step: 1, value: identity.hue,
             class: "hue-range w-full min-h-11",
             autocomplete: "off",
             "aria-label": t("identity_picker.color_aria_label"),
+            style: "--hue: #{identity.hue}",
             data: {
-              "identity-picker-target": "colorSlider",
+              "identity-picker-target": "colorSlider hueSwatch",
               action: "input->identity-picker#handleColorChange"
             }
           ) %>
