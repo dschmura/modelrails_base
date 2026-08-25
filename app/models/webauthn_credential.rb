@@ -8,6 +8,14 @@ class WebauthnCredential < ApplicationRecord
   validates :external_id, presence: true, uniqueness: true
   validates :public_key, :sign_count, presence: true
 
+  # Strict tier (notifications lifecycle arc): enrollment/removal are
+  # credential mutations — the audit row commits with them or not at all.
+  # after_create runs inside the INSERT's transaction. Removal hooks the
+  # Discardable update the same way rather than after_discard, so the row
+  # and the discard share one transaction.
+  after_create :audit_added
+  after_update :audit_removed, if: -> { saved_change_to_discarded_at? && discarded_at.present? }
+
   # Atomic advance with clone detection: a single UPDATE guarded by the current
   # count, so concurrent assertions can't both "advance" past the same value.
   # Per WebAuthn §7.2 the signature counter is only meaningful when nonzero —
@@ -21,5 +29,17 @@ class WebauthnCredential < ApplicationRecord
              .update_all([ "sign_count = MAX(sign_count, ?), last_used_at = ?", new_count, Time.current ])
     raise Passkeys::ClonedAuthenticator, "sign_count regressed (#{new_count} <= #{sign_count})" if rows.zero?
     reload
+  end
+
+  private
+
+  def audit_added
+    ActivityLog.create!(action: "user.passkey_added", actor: user, trackable: user,
+                        visibility: "personal", metadata: { nickname: nickname })
+  end
+
+  def audit_removed
+    ActivityLog.create!(action: "user.passkey_removed", actor: user, trackable: user,
+                        visibility: "personal", metadata: { nickname: nickname })
   end
 end
