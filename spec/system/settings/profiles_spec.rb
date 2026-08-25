@@ -62,6 +62,38 @@ RSpec.describe "Account profile — identity picker", type: :system do
       expect(styles["gradientTrackRules"]).to be >= 1 # the engine-appropriate rule
     end
 
+    # Dragging the slider must preview by moving --hue, never by writing a literal
+    # oklch() background — a hardcoded L/C is theme-blind, so in dark mode the live
+    # preview showed the light-mode disc while save produced the re-lit one. Every
+    # disc in the picker (big preview + the Initials card swatch) previews the
+    # pending hue together, or they visibly disagree mid-drag.
+    it "previews the pending hue on every picker disc, theme-aware" do
+      open_identity_picker
+      select_identity_source("Initials")
+      expect_color_picker_visible
+
+      set_identity_color_hue(120)
+
+      state = page.evaluate_script(<<~JS)
+        (() => {
+          const preview = document.querySelector("[data-identity-picker-target~='initialsPreview']")
+          const swatches = Array.from(document.querySelectorAll("[data-identity-picker-target~='hueSwatch']"))
+          const discs = [preview, ...swatches.filter(s => s !== preview)]
+          return {
+            swatchCount: swatches.length,
+            inlineBg: preview.style.backgroundColor,
+            previewHue: preview.style.getPropertyValue("--hue").trim(),
+            distinctColors: new Set(discs.map(d => getComputedStyle(d).backgroundColor)).size
+          }
+        })()
+      JS
+
+      expect(state["inlineBg"]).to eq("") # no theme-blind override
+      expect(state["previewHue"]).to eq("120")
+      expect(state["swatchCount"]).to be >= 2 # big preview + card disc
+      expect(state["distinctColors"]).to eq(1) # every disc shows the same pending color
+    end
+
     it "switches to Initials with a custom color" do
       open_identity_picker
       select_identity_source("Initials")
@@ -178,7 +210,7 @@ RSpec.describe "Account profile — identity picker", type: :system do
       # Wait for the turbo frame to reload with Initials selected.
       expect(page).to have_css("#identity-picker-hub", wait: 5)
 
-      expect(page).to have_css("[data-identity-picker-target='initialsPreview']", wait: 3)
+      expect(page).to have_css("[data-identity-picker-target~='initialsPreview']", wait: 3)
       expect_color_picker_visible
       expect(page).to have_css("#identity-picker-hub a[aria-checked='true']",
         text: I18n.t("identity_picker.sources.initials.title"))
