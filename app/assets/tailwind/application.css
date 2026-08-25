@@ -404,6 +404,34 @@ body:has([data-biscuit-target="banner"]:not([hidden])) {
   background-color: oklch(var(--hue-initials-l) var(--hue-initials-c) var(--hue, 210));
 }
 
+/* Hue slider track (identity picker). The gradient must live on the track
+   pseudo-elements — an inline background on the <input> cannot reach them, so it
+   painted UNDER RangeComponent's surface-sunken track bar instead of replacing it.
+   Built from the hue-initials tokens, so the swatches preview the disc each hue
+   actually produces in the current theme (re-lit under .dark). */
+
+.hue-range::-webkit-slider-runnable-track {
+  background: linear-gradient(to right,
+    oklch(var(--hue-initials-l) var(--hue-initials-c) 0),
+    oklch(var(--hue-initials-l) var(--hue-initials-c) 60),
+    oklch(var(--hue-initials-l) var(--hue-initials-c) 120),
+    oklch(var(--hue-initials-l) var(--hue-initials-c) 180),
+    oklch(var(--hue-initials-l) var(--hue-initials-c) 240),
+    oklch(var(--hue-initials-l) var(--hue-initials-c) 300),
+    oklch(var(--hue-initials-l) var(--hue-initials-c) 360));
+}
+
+.hue-range::-moz-range-track {
+  background: linear-gradient(to right,
+    oklch(var(--hue-initials-l) var(--hue-initials-c) 0),
+    oklch(var(--hue-initials-l) var(--hue-initials-c) 60),
+    oklch(var(--hue-initials-l) var(--hue-initials-c) 120),
+    oklch(var(--hue-initials-l) var(--hue-initials-c) 180),
+    oklch(var(--hue-initials-l) var(--hue-initials-c) 240),
+    oklch(var(--hue-initials-l) var(--hue-initials-c) 300),
+    oklch(var(--hue-initials-l) var(--hue-initials-c) 360));
+}
+
 /* Dialog backdrop (animated via @starting-style). */
 
 dialog::backdrop {
