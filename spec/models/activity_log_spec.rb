@@ -170,14 +170,6 @@ RSpec.describe ActivityLog, type: :model do
         }.to raise_error(ArgumentError, /SECURITY_ACTIONS/)
       }.not_to change(ActivityLog, :count)
     end
-
-    # ArgumentError is NOT an ActiveRecord::ActiveRecordError, so a drifted
-    # literal propagates through Authenticatable's best-effort rescue instead
-    # of being swallowed. That is deliberate: a non-member action is a
-    # programmer error, not an infrastructure failure.
-    it "raises an error the best-effort rescue does not catch" do
-      expect(ArgumentError.ancestors).not_to include(ActiveRecord::ActiveRecordError)
-    end
   end
 
   # settings/sessions/index.html.erb builds its row label from this constant

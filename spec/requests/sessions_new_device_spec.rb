@@ -244,5 +244,28 @@ RSpec.describe "Sessions new-device detection", type: :request do
       expect(ActivityLog).to have_received(:create!)
         .with(hash_including(action: "user.signed_in_new_device")).once
     end
+
+    # The counterpart to the example above, and the reason
+    # ActivityLog.record_security_event! raises ArgumentError rather than an
+    # ActiveRecord error: an action outside SECURITY_ACTIONS is a PROGRAMMER
+    # error, so it must escape this method's best-effort rescue instead of
+    # being swallowed like a DB hiccup. Swallowing it would recreate exactly
+    # the silent audit-loss the guard exists to prevent — the row would simply
+    # never be written, with every spec still green.
+    #
+    # Shrinking SECURITY_ACTIONS reproduces a drifted action literal from the
+    # other side of the same membership test, without editing production code.
+    # This fails if the rescue is widened to StandardError, if the guard raises
+    # an ActiveRecord error instead, or if the guard is removed.
+    it "lets a drifted action literal escape the best-effort rescue instead of swallowing it" do
+      user # materialize before the stub: onboarding writes non-security rows of its own.
+      stub_const("ActivityLog::SECURITY_ACTIONS", %w[user.password_changed])
+
+      expect {
+        post session_path,
+          params: { email_address: user.email_address, password: "SecureP@ssw0rd123!" },
+          headers: { "User-Agent" => mac_ua }
+      }.to raise_error(ArgumentError, /SECURITY_ACTIONS/)
+    end
   end
 end
