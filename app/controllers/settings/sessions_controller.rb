@@ -4,6 +4,12 @@ module Settings
 
     def index
       @sessions = Current.user.sessions.active.order(last_active_at: :desc)
+      # Personal-visibility rows only (Tasks 3/5/6's security events) — the
+      # workspace feed's "visible" scope is the wrong shape here, it excludes
+      # personal rows entirely. Capped at 10: this is a security-context aid
+      # on the devices page, not a full audit log.
+      @recent_activity = ActivityLog.where(trackable: Current.user, visibility: :personal)
+                                     .order(created_at: :desc).limit(10)
     end
 
     def destroy

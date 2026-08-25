@@ -71,4 +71,33 @@
                 variant: :danger %>
     </div>
   <% end %>
+
+  <div class="mt-8">
+    <%= render layout: "shared/preferences_card",
+          locals: { title: t("settings.sessions.activity.heading") } do %>
+      <% if @recent_activity.any? %>
+        <ul class="divide-y divide-border">
+          <% @recent_activity.each do |entry| %>
+            <%# Label plus relative time only — metadata ({ os: }, { nickname: })
+                stays unrendered by design (spec v2.2 §5). A future
+                SECURITY_ACTIONS entry added without a matching label here
+                still renders, humanized, rather than a raw "translation
+                missing" string. -%>
+            <li data-testid="account-activity-item"
+                class="flex items-center justify-between gap-4 px-6 py-4 text-sm">
+              <span class="text-text-body">
+                <%= t("settings.sessions.activity.#{entry.action}",
+                      default: entry.action.delete_prefix("user.").humanize) %>
+              </span>
+              <time datetime="<%= entry.created_at.iso8601 %>" class="text-text-muted shrink-0">
+                <%= t("settings.sessions.activity.time_ago", time: time_ago_in_words(entry.created_at)) %>
+              </time>
+            </li>
+          <% end %>
+        </ul>
+      <% else %>
+        <p class="px-6 py-5 text-sm text-text-body"><%= t("settings.sessions.activity.empty") %></p>
+      <% end %>
+    <% end %>
+  </div>
 </div>
