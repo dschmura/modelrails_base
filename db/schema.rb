@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_09_172239) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_25_190510) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -63,6 +63,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_09_172239) do
     t.index ["trackable_type", "trackable_id"], name: "index_activity_logs_on_trackable"
     t.index ["workspace_id", "created_at"], name: "index_activity_logs_on_workspace_id_and_created_at"
     t.index ["workspace_id"], name: "index_activity_logs_on_workspace_id"
+    t.check_constraint "visibility IN ('workspace','admin','personal')", name: "activity_logs_visibility_valid"
   end
 
   create_table "authentications", force: :cascade do |t|

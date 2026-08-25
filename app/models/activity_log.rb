@@ -11,7 +11,7 @@ class ActivityLog < ApplicationRecord
   # sweep job (#438) has its explicit carve-out.
   def readonly? = persisted?
 
-  enum :visibility, { workspace: "workspace", admin: "admin" }, default: "workspace"
+  enum :visibility, { workspace: "workspace", admin: "admin", personal: "personal" }, default: "workspace"
 
   validates :action, presence: true
 

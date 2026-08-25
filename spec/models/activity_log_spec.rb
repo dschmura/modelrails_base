@@ -110,4 +110,34 @@ RSpec.describe ActivityLog, type: :model do
       expect(plan).not_to match(/SCAN activity_logs[^_]/)
     end
   end
+
+  describe "personal visibility" do
+    it "accepts visibility: personal" do
+      user = create(:user)
+      log = ActivityLog.create!(
+        action: "user.password_changed",
+        actor: user,
+        trackable: user,
+        visibility: "personal",
+        workspace_id: nil
+      )
+      expect(log.reload.visibility).to eq("personal")
+    end
+
+    it "is excluded from the workspace-visible scope" do
+      user = create(:user)
+      ActivityLog.create!(action: "user.password_changed", actor: user,
+                          trackable: user, visibility: "personal")
+      expect(ActivityLog.visible.where(trackable: user)).to be_empty
+    end
+
+    it "rejects unknown visibility values at the database" do
+      expect {
+        ActivityLog.connection.execute(<<~SQL)
+          INSERT INTO activity_logs (action, trackable_type, trackable_id, visibility, created_at, updated_at)
+          VALUES ('x', 'User', 1, 'bogus', datetime('now'), datetime('now'))
+        SQL
+      }.to raise_error(ActiveRecord::StatementInvalid, /activity_logs_visibility_valid|CHECK/)
+    end
+  end
 end
