@@ -134,9 +134,8 @@ module Authenticatable
         # Best-effort tier, unlike the strict in-transaction password/passkey
         # audit rows: the Session row is already the primary sign-in record,
         # so this row is corroboration, written inside this method's rescue.
-        ActivityLog.create!(action: "user.signed_in_new_device", actor: user,
-                            trackable: user, visibility: "personal", workspace_id: nil,
-                            metadata: { os: os })
+        ActivityLog.record_security_event!(action: "user.signed_in_new_device", user: user,
+                                          metadata: { os: os })
 
         # The flag gates the ALERT only; the audit row above always writes,
         # so detection history survives a fork toggling notifications off

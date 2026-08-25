@@ -36,7 +36,6 @@ class WebauthnCredential < ApplicationRecord
   def audit_removed = audit!("user.passkey_removed")
 
   def audit!(action)
-    ActivityLog.create!(action: action, actor: user, trackable: user,
-                        visibility: "personal", metadata: { nickname: nickname })
+    ActivityLog.record_security_event!(action: action, user: user, metadata: { nickname: nickname })
   end
 end

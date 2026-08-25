@@ -252,9 +252,9 @@ class User < ApplicationRecord
   end
 
   def audit_password_digest_change
-    ActivityLog.create!(
+    ActivityLog.record_security_event!(
       action: password_digest.nil? ? "user.password_removed" : "user.password_changed",
-      actor: self, trackable: self, visibility: "personal", workspace_id: nil
+      user: self
     )
   end
 

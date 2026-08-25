@@ -141,6 +141,45 @@ RSpec.describe ActivityLog, type: :model do
     end
   end
 
+  describe ".record_security_event!" do
+    let(:user) { create(:user) }
+
+    it "writes the personal, workspace-less row shape shared by every security writer" do
+      log = ActivityLog.record_security_event!(action: "user.passkey_added", user: user,
+                                              metadata: { nickname: "laptop" })
+
+      expect(log).to have_attributes(
+        action: "user.passkey_added", actor: user, trackable: user,
+        visibility: "personal", workspace_id: nil, metadata: { "nickname" => "laptop" }
+      )
+    end
+
+    it "defaults metadata to empty rather than nil" do
+      log = ActivityLog.record_security_event!(action: "user.password_changed", user: user)
+      expect(log.reload.metadata).to eq({})
+    end
+
+    # The guard is the point of the method: a drifted literal would otherwise
+    # write a plausible row that the retention sweep deletes at 12 months
+    # instead of the security floor, with every other spec still green.
+    it "raises instead of writing when the action is outside SECURITY_ACTIONS" do
+      user # Ruling R7: materialize before the count block — onboarding writes its own rows.
+      expect {
+        expect {
+          ActivityLog.record_security_event!(action: "user.passkey_add", user: user)
+        }.to raise_error(ArgumentError, /SECURITY_ACTIONS/)
+      }.not_to change(ActivityLog, :count)
+    end
+
+    # ArgumentError is NOT an ActiveRecord::ActiveRecordError, so a drifted
+    # literal propagates through Authenticatable's best-effort rescue instead
+    # of being swallowed. That is deliberate: a non-member action is a
+    # programmer error, not an infrastructure failure.
+    it "raises an error the best-effort rescue does not catch" do
+      expect(ArgumentError.ancestors).not_to include(ActiveRecord::ActiveRecordError)
+    end
+  end
+
   # settings/sessions/index.html.erb builds its row label from this constant
   # dynamically (t("settings.sessions.activity.#{action}")), which a static
   # scanner can't resolve — config/i18n-tasks.yml's ignore_unused entry for
