@@ -167,4 +167,62 @@ RSpec.describe "Sessions new-device detection", type: :request do
       }.to raise_error(NoMethodError)
     end
   end
+
+  describe "POST /session — new-device audit trail" do
+    let(:mac_ua) { "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_2) AppleWebKit/605.1.15" }
+
+    it "writes user.signed_in_new_device on first sign-in from a new browser" do
+      expect {
+        post session_path,
+          params: { email_address: user.email_address, password: "SecureP@ssw0rd123!" },
+          headers: { "User-Agent" => mac_ua }
+      }.to change {
+        ActivityLog.where(action: "user.signed_in_new_device", trackable: user).count
+      }.by(1)
+    end
+
+    it "writes the audit row even when the alert flag is off" do
+      allow(Rails.configuration.x.session).to receive(:new_device_notification).and_return(false)
+
+      expect {
+        post session_path,
+          params: { email_address: user.email_address, password: "SecureP@ssw0rd123!" },
+          headers: { "User-Agent" => mac_ua }
+      }.to change {
+        ActivityLog.where(action: "user.signed_in_new_device", trackable: user).count
+      }.by(1)
+
+      expect(Noticed::Event.where(type: "SignInFromNewDeviceNotifier").count).to eq(0)
+    end
+
+    it "does not write a second row for a known browser" do
+      post session_path,
+        params: { email_address: user.email_address, password: "SecureP@ssw0rd123!" },
+        headers: { "User-Agent" => mac_ua }
+      delete session_path
+
+      expect {
+        post session_path,
+          params: { email_address: user.email_address, password: "SecureP@ssw0rd123!" },
+          headers: { "User-Agent" => mac_ua }
+      }.not_to change { ActivityLog.where(action: "user.signed_in_new_device").count }
+    end
+
+    # Mirrors the "device-detection error handling" group above, but pins the
+    # contract for the audit write specifically: it shares the method's
+    # best-effort rescue, so a DB hiccup on the ActivityLog write must not
+    # break sign-in — the one behavior that sets this event apart from the
+    # strict, in-transaction password/passkey audit rows.
+    it "swallows an ActiveRecord error from the audit write so sign-in still succeeds" do
+      allow(ActivityLog).to receive(:create!)
+        .and_raise(ActiveRecord::StatementInvalid.new("simulated DB hiccup"))
+
+      post session_path,
+        params: { email_address: user.email_address, password: "SecureP@ssw0rd123!" },
+        headers: { "User-Agent" => mac_ua }
+
+      expect(response).to have_http_status(:redirect)
+      expect(user.sessions.count).to eq(1)
+    end
+  end
 end

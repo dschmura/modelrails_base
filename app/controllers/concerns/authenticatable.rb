@@ -123,10 +123,20 @@ module Authenticatable
       ua = request.user_agent.to_s
       os = parse_os_from_user_agent(ua)
 
-      # The flag gates the ALERT only; recording always runs so detection
-      # history survives a fork toggling notifications (sessions.rb).
-      if Rails.configuration.x.session.new_device_notification && !user.seen_browser?(ua, os)
-        SignInFromNewDeviceNotifier.with(record: user, user_agent: ua, os: os).deliver(user)
+      unless user.seen_browser?(ua, os)
+        # Best-effort tier, unlike the strict in-transaction password/passkey
+        # audit rows: the Session row is already the primary sign-in record,
+        # so this row is corroboration, written inside this method's rescue.
+        ActivityLog.create!(action: "user.signed_in_new_device", actor: user,
+                            trackable: user, visibility: "personal", workspace_id: nil,
+                            metadata: { os: os })
+
+        # The flag gates the ALERT only; the audit row above and
+        # record_browser! below always run, so detection history survives a
+        # fork toggling notifications off (sessions.rb).
+        if Rails.configuration.x.session.new_device_notification
+          SignInFromNewDeviceNotifier.with(record: user, user_agent: ua, os: os).deliver(user)
+        end
       end
 
       user.record_browser!(ua, os)
