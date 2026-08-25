@@ -34,6 +34,24 @@ RSpec.describe PasswordChangedNotifier, type: :notifier do
     end
   end
 
+  describe "#message" do
+    it "renders the password_changed copy when removed is absent (backward compatible)" do
+      described_class.with(record: user).deliver(user)
+      notification = user.notifications.last
+      expect(notification.message).to eq(
+        I18n.t("notifications.password_changed.message", user_name: user.first_name)
+      )
+    end
+
+    it "renders the password_removed copy when removed: true" do
+      described_class.with(record: user, removed: true).deliver(user)
+      notification = user.notifications.last
+      expect(notification.message).to eq(
+        I18n.t("notifications.password_removed.message", user_name: user.first_name)
+      )
+    end
+  end
+
   describe "security category bypasses DND" do
     let!(:prefs) { create(:user_preferences, user: user) }
 

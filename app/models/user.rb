@@ -21,6 +21,14 @@ class User < ApplicationRecord
   # Model-level so every digest-touching path notifies (settings change, reset,
   # removal) — the behavior app/docs/developer/notifications.md documents.
   after_update_commit :notify_password_changed, if: :saved_change_to_password_digest?
+  # Strict tier (notifications lifecycle arc): the audit row commits or the
+  # credential write doesn't — deliberate evidence-over-availability trade
+  # (a rollback here also leaves other sessions alive; they die with the
+  # retried rotation). after_update runs INSIDE the save transaction.
+  # notify_password_changed above stays after_update_COMMIT — it enqueues into
+  # the Solid Queue SQLite file, and pulling that inside the primary write
+  # lock is a cross-database lock-ordering hazard against queue workers.
+  after_update :audit_password_digest_change, if: :saved_change_to_password_digest?
 
   # Canonical email storage and lookup: NFC + downcase + strip via EmailNormalizer.
   # Rails 7.1+ also applies these normalizers to `find_by(email_address:)` and
@@ -243,10 +251,17 @@ class User < ApplicationRecord
     CheckGravatarJob.perform_later(self)
   end
 
+  def audit_password_digest_change
+    ActivityLog.create!(
+      action: password_digest.nil? ? "user.password_removed" : "user.password_changed",
+      actor: self, trackable: self, visibility: "personal", workspace_id: nil
+    )
+  end
+
   # Best-effort: the security alert must never fail the credential write
   # itself (same contract as the new-device hook in Authenticatable).
   def notify_password_changed
-    PasswordChangedNotifier.with(record: self).deliver(self)
+    PasswordChangedNotifier.with(record: self, removed: password_digest.nil?).deliver(self)
   rescue ActiveRecord::ActiveRecordError => e
     Rails.logger.warn("[password-changed] swallowed error for user=#{id}: #{e.class}: #{e.message}")
   end

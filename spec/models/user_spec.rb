@@ -631,4 +631,36 @@ RSpec.describe User, type: :model do
       expect(user.webauthn_handle!).to eq(handle) # stable on second call
     end
   end
+
+  describe "password digest audit trail" do
+    let(:user) { create(:user, password: "0riginal-Passw0rd!") }
+
+    it "writes user.password_changed in the same transaction as the digest write" do
+      expect {
+        user.update!(password: "n3w-Sekure-Passw0rd!")
+      }.to change { ActivityLog.where(action: "user.password_changed", trackable: user, visibility: "personal").count }.by(1)
+    end
+
+    it "writes user.password_removed when the digest is cleared" do
+      expect {
+        user.update!(password_digest: nil)
+      }.to change { ActivityLog.where(action: "user.password_removed", trackable: user).count }.by(1)
+    end
+
+    it "rolls back the credential write when the audit write fails (strict tier)" do
+      # Ruling R7: materialize `user` BEFORE installing the stub. If the stub
+      # were live already, the lazy `let(:user)` would create the user under
+      # it — onboard_workspace drives audit writes through other paths, and
+      # this example would pass for the wrong reason instead of proving the
+      # rollback.
+      original_digest = user.password_digest
+      allow(ActivityLog).to receive(:create!).and_raise(ActiveRecord::StatementInvalid, "boom")
+      expect { user.update!(password: "n3w-Sekure-Passw0rd!") }.to raise_error(ActiveRecord::StatementInvalid)
+      expect(user.reload.password_digest).to eq(original_digest)
+    end
+
+    it "audits with actions that are members of the security set" do
+      expect(ActivityLog::SECURITY_ACTIONS).to include("user.password_changed", "user.password_removed")
+    end
+  end
 end

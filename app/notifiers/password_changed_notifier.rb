@@ -7,9 +7,15 @@ class PasswordChangedNotifier < ApplicationNotifier
   notification_methods do
     def message
       render_safe_or_placeholder do
-        I18n.t("notifications.password_changed.message",
-               locale: recipient_locale,
-               user_name: event.record.first_name)
+        if event.params[:removed]
+          I18n.t("notifications.password_removed.message",
+                 locale: recipient_locale,
+                 user_name: event.record.first_name)
+        else
+          I18n.t("notifications.password_changed.message",
+                 locale: recipient_locale,
+                 user_name: event.record.first_name)
+        end
       end
     end
 
