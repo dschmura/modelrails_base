@@ -95,6 +95,19 @@ RSpec.describe "Account Passwords", type: :request do
         expect(user.reload.authenticate("brand-new-passw0rd")).to be_truthy
       end
 
+      # Revocation now rides inside update_password_with_precheck's transaction,
+      # so a rejected password must leave the digest and every other session
+      # untouched — no half-applied rotation.
+      it "leaves the digest and other sessions intact when the change is rejected" do
+        other = user.sessions.create!(user_agent: "other", ip_address: "10.0.0.1")
+
+        patch settings_password_path, params: { user: { password: "short", password_confirmation: "short" } }
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(Session.exists?(other.id)).to be(true)
+        expect(user.reload.authenticate("SecureP@ssw0rd123!")).to be_truthy
+      end
+
       # #674: the HIBP range check is network I/O. Run from the validation it
       # sits inside BEGIN IMMEDIATE — SQLite's database-wide write lock — so a
       # slow third party stalls every write in the app. The controller must
@@ -116,6 +129,23 @@ RSpec.describe "Account Passwords", type: :request do
         expect(pwned).to have_received(:pwned?).once
         expect(depth_at_check).to eq(baseline)
       end
+
+      # Sibling fence at the controller's call site. The spec above proves the
+      # range-check I/O lands outside the write transaction; this one proves the
+      # controller still issues the precheck from there, so the call can't drift
+      # inside the transaction and quietly fall back to the in-validation check.
+      it "calls the pwned precheck outside the write transaction" do
+        baseline = ActiveRecord::Base.connection.open_transactions
+        depth_at_precheck = nil
+        allow_any_instance_of(User).to receive(:precheck_password_pwned!) do
+          depth_at_precheck = ActiveRecord::Base.connection.open_transactions
+        end
+
+        patch settings_password_path, params: { user: { password: "n3w-Sekure-Passw0rd!", password_confirmation: "n3w-Sekure-Passw0rd!" } }
+
+        expect(depth_at_precheck).to eq(baseline)
+        expect(response).to redirect_to(settings_connected_accounts_path)
+      end
     end
 
     describe "DELETE /settings/password (remove)" do
@@ -124,6 +154,20 @@ RSpec.describe "Account Passwords", type: :request do
       it "removes the password and the email authentication, returning to passwordless" do
         delete settings_password_path
         expect(user.reload.has_password?).to be(false)
+      end
+
+      it "fires the removal notification and audit row (was silently skipped via update_columns)" do
+        expect {
+          delete settings_password_path
+        }.to change { ActivityLog.where(action: "user.password_removed", trackable: user).count }.by(1)
+          .and change { user.notifications.count }.by(1)
+      end
+
+      it "revokes other sessions atomically with the removal" do
+        other = user.sessions.create!(user_agent: "other", ip_address: "10.0.0.1")
+        delete settings_password_path
+        expect(Session.exists?(other.id)).to be(false)
+        expect(user.reload.password_digest).to be_nil
       end
     end
 
