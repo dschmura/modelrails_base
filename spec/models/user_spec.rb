@@ -647,6 +647,15 @@ RSpec.describe User, type: :model do
       }.to change { ActivityLog.where(action: "user.password_removed", trackable: user).count }.by(1)
     end
 
+    it "writes exactly one user.password_changed row on the first password set (passwordless -> password)" do
+      passwordless_user = create(:user, password: nil)
+      expect {
+        passwordless_user.update!(password: "First-Setup-Pass1!")
+      }.to change {
+        ActivityLog.where(action: "user.password_changed", trackable: passwordless_user, visibility: "personal").count
+      }.by(1)
+    end
+
     it "rolls back the credential write when the audit write fails (strict tier)" do
       # Ruling R7: materialize `user` BEFORE installing the stub. If the stub
       # were live already, the lazy `let(:user)` would create the user under

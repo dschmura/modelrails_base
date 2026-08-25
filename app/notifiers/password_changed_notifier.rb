@@ -3,6 +3,13 @@
 class PasswordChangedNotifier < ApplicationNotifier
   category :security
   severity :danger
+  # Without this, the base (class, record.id, minute) key collapses a change
+  # and a removal for the same user inside one minute onto the SAME
+  # idempotency key — the second #deliver hits RecordNotUnique and the more
+  # consequential removal alert is silently dropped. Folding `removed` into
+  # the seed makes the two copy branches independently dedupable, matching
+  # the audit trail's per-branch ActivityLog row.
+  dedup_seed { params[:removed] }
 
   notification_methods do
     def message

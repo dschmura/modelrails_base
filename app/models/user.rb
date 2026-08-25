@@ -24,10 +24,10 @@ class User < ApplicationRecord
   # Strict tier (notifications lifecycle arc): the audit row commits or the
   # credential write doesn't — deliberate evidence-over-availability trade
   # (a rollback here also leaves other sessions alive; they die with the
-  # retried rotation). after_update runs INSIDE the save transaction.
-  # notify_password_changed above stays after_update_COMMIT — it enqueues into
-  # the Solid Queue SQLite file, and pulling that inside the primary write
-  # lock is a cross-database lock-ordering hazard against queue workers.
+  # retried rotation). notify_password_changed above stays after_update_COMMIT
+  # — it enqueues into the Solid Queue SQLite file, and pulling that inside
+  # the primary write lock is a cross-database lock-ordering hazard against
+  # queue workers.
   after_update :audit_password_digest_change, if: :saved_change_to_password_digest?
 
   # Canonical email storage and lookup: NFC + downcase + strip via EmailNormalizer.
