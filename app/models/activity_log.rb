@@ -51,6 +51,20 @@ class ActivityLog < ApplicationRecord
 
   scope :for_workspace, ->(workspace) { where(workspace: workspace) }
   scope :visible, -> { where(visibility: "workspace") }
+  # The read side of the security tier. MEMBERSHIP is the test (#827): before
+  # this, the card filtered on `personal` visibility alone, which describes who
+  # a row is scoped to, not whether it is a security event.
+  # `Trackable#activity_visibility` is an overridable seam — Membership already
+  # returns "admin" through it — so a fork returning "personal" for a domain
+  # event had its rows rendered under a security heading.
+  # `visibility` is kept as a second, narrowing predicate rather than dropped:
+  # record_security_event! always writes personal, so a security action at any
+  # other visibility is malformed, and an existing spec deliberately pins that
+  # such a row stays out of this card.
+  scope :security_events_for, ->(user) {
+    where(action: SECURITY_ACTIONS, trackable: user, visibility: :personal)
+      .order(created_at: :desc)
+  }
   scope :recent, -> { order(created_at: :desc).limit(20) }
   # Project feed (#680): the LEADING for_workspace predicate rides
   # index_activity_logs_on_workspace_id_and_created_at, so the trackable OR
