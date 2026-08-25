@@ -212,9 +212,19 @@ RSpec.describe "Sessions new-device detection", type: :request do
     # contract for the audit write specifically: it shares the method's
     # best-effort rescue, so a DB hiccup on the ActivityLog write must not
     # break sign-in — the one behavior that sets this event apart from the
-    # strict, in-transaction password/passkey audit rows.
-    it "swallows an ActiveRecord error from the audit write so sign-in still succeeds" do
+    # strict, in-transaction password/passkey audit rows. It also pins the
+    # ordering that keeps a persistent audit-write failure bounded to one
+    # sign-in: record_browser! runs before the raising call, so the browser
+    # is marked seen regardless, and a same-browser sign-in afterward does
+    # not re-enter detection (no repeat row attempt, no repeat alert).
+    it "swallows an ActiveRecord error from the audit write, still records the browser, and does not re-detect on the next sign-in" do
+      # Narrowed to the new-device action specifically (`.and_call_original`
+      # for everything else) — user onboarding writes its own unrelated
+      # ActivityLog rows (workspace.created, membership.created) during the
+      # factory build below, and a blanket stub would raise on those too.
+      allow(ActivityLog).to receive(:create!).and_call_original
       allow(ActivityLog).to receive(:create!)
+        .with(hash_including(action: "user.signed_in_new_device"))
         .and_raise(ActiveRecord::StatementInvalid.new("simulated DB hiccup"))
 
       post session_path,
@@ -223,6 +233,16 @@ RSpec.describe "Sessions new-device detection", type: :request do
 
       expect(response).to have_http_status(:redirect)
       expect(user.sessions.count).to eq(1)
+      expect(user.reload.last_known_browsers).not_to be_empty
+      delete session_path
+
+      post session_path,
+        params: { email_address: user.email_address, password: "SecureP@ssw0rd123!" },
+        headers: { "User-Agent" => mac_ua }
+
+      expect(response).to have_http_status(:redirect)
+      expect(ActivityLog).to have_received(:create!)
+        .with(hash_including(action: "user.signed_in_new_device")).once
     end
   end
 end

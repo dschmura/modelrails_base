@@ -123,7 +123,14 @@ module Authenticatable
       ua = request.user_agent.to_s
       os = parse_os_from_user_agent(ua)
 
-      unless user.seen_browser?(ua, os)
+      # record_browser! runs before anything that can raise: if the audit
+      # write below fails, the browser is still marked seen, so the failure
+      # costs this one sign-in's row/alert rather than re-detecting (and
+      # re-alerting) on every subsequent sign-in from the same browser.
+      new_browser = !user.seen_browser?(ua, os)
+      user.record_browser!(ua, os)
+
+      if new_browser
         # Best-effort tier, unlike the strict in-transaction password/passkey
         # audit rows: the Session row is already the primary sign-in record,
         # so this row is corroboration, written inside this method's rescue.
@@ -131,15 +138,13 @@ module Authenticatable
                             trackable: user, visibility: "personal", workspace_id: nil,
                             metadata: { os: os })
 
-        # The flag gates the ALERT only; the audit row above and
-        # record_browser! below always run, so detection history survives a
-        # fork toggling notifications off (sessions.rb).
+        # The flag gates the ALERT only; the audit row above always writes,
+        # so detection history survives a fork toggling notifications off
+        # (sessions.rb).
         if Rails.configuration.x.session.new_device_notification
           SignInFromNewDeviceNotifier.with(record: user, user_agent: ua, os: os).deliver(user)
         end
       end
-
-      user.record_browser!(ua, os)
     rescue ActiveRecord::ActiveRecordError => e
       Rails.logger.warn("[new-device-detection] swallowed error for user=#{user.id}: #{e.class}: #{e.message}")
     end
