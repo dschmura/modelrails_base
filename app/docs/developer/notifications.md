@@ -343,6 +343,20 @@ Per-user retention enforcement. For each user with non-`nil` `retention_days`:
 
 Uses `delete_all` (not `destroy_all`) because `Noticed::Notification` has no destroy callbacks and no outgoing `dependent:` cascades (the only cascade is *inbound* from `noticed_events`) — `destroy_all` would instantiate every doomed row, fire nonexistent callbacks, and DELETE row-by-row: slower with no behavioral difference. Single DELETE per batch, no row instantiation. The `noticed_events` row remains; `Noticed::Event#has_many :notifications, dependent: :delete_all` handles cascade in the reverse direction.
 
+## Security event audit coverage
+
+The three security notifiers above each pair with a row in `ActivityLog` — a separate table from `noticed_events`/`noticed_notifications`, with its own write guarantee and its own retention. `ActivityLog::SECURITY_ACTIONS` is the single membership set naming these events (`user.password_changed`, `user.password_removed`, `user.signed_in_new_device`, `user.passkey_added`, `user.passkey_removed`); `ActivityLogRetentionSweepJob` keys its retention exemption off `action` membership in that set, never off `visibility` — the `personal` visibility tier is a coincidence of who these rows are scoped to, not the test the sweep uses, so a fork adding an unrelated `personal`-visibility action doesn't silently inherit the extended floor.
+
+| Event | ActivityLog write | Guarantee | Other corroborating record |
+|---|---|---|---|
+| Password set / changed / removed | `User#audit_password_digest_change` (`after_update`) | **Strict** — same transaction as the `password_digest` write, no rescue; a failed audit row fails the credential write | — |
+| Passkey added / removed | `WebauthnCredential#audit_added` / `#audit_removed` (`after_create` / `after_update`) | **Strict** — same transaction as the credential row; removal is a `Discardable` soft delete, not a destroy | The soft-deleted `webauthn_credentials` row itself (`discarded_at` set, row not gone) |
+| Sign-in from a new device | `Authenticatable#detect_and_record_new_device` | **Best-effort** — inside that method's own `rescue ActiveRecord::ActiveRecordError`; a failed audit write must never fail a sign-in | The `Session` row created moments earlier (the primary sign-in record; retained up to `absolute_timeout`, 90 days), and the user's `last_known_browsers` JSON column (a bounded LRU used only to decide "is this browser new?" — a fingerprint cache, not itself durable evidence) |
+
+Passkey removal has no notifier of its own — only enrollment does, via `PasskeyAddedNotifier`; the ActivityLog row above is the only record that a passkey was removed.
+
+Retention for this tier is `ActivityLogRetentionSweepJob::SECURITY_RETENTION_FLOOR` (365 days), not the job's normal 12-month `RETENTION_WINDOW`. This ActivityLog row is now the durable record of these events; `NotificationPreferences::RETENTION_FLOORS` above still governs the separate `noticed_notifications` row today, but exists only to protect that UI-facing copy — a future change may retire it now that this floor covers the underlying event.
+
 ## Record preloads (index N+1 prevention)
 
 The `/account/notifications` index eager-loads `includes(:recipient, event: :record)` for every row, but `includes` stops at the polymorphic `event.record` — it cannot reach the subtype-specific associations a notifier's `#message` traverses (a `ProjectMembership`'s `project`, an `Invitation`'s `invitable`). Each notifier therefore declares what its `#message` reads:

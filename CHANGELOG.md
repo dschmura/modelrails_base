@@ -37,6 +37,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 - `/docs/developer/security` outbound-request (SSRF) guidance for the first URL-accepting feature a fork adds (#664).
 - `/docs/developer/extending` documents the sanctioned cross-workspace query patterns (#695) and the commenting hierarchy (#699).
 - `/docs/developer/machine-clients` — the map for a fork's first non-browser entry point (MCP, API, webhooks): reproducing the tenancy boundary outside a controller, per-request MCP server construction, token-comparison guidance, and Host/Origin posture for a second exposed service.
+- Security account events (password, passkey, new-device sign-in) now write audit rows; password removal now notifies (previously silently skipped).
 
 ### Changed
 

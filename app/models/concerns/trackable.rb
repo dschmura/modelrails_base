@@ -10,6 +10,11 @@
 # rows past 12 months (#438). If a fork promotes this trail to
 # compliance-grade, the write moves inside the business transaction AND the
 # retention window becomes a compliance decision, together.
+#
+# Exactly two ActivityLog write shapes exist — do not add a third. This
+# concern is the BEST-EFFORT, workspace-domain shape. The STRICT,
+# in-transaction shape lives with the credential models (User password
+# callbacks, WebauthnCredential) and writes only ActivityLog::SECURITY_ACTIONS.
 module Trackable
   extend ActiveSupport::Concern
 
