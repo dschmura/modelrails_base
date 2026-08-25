@@ -13,6 +13,19 @@ class ActivityLog < ApplicationRecord
 
   enum :visibility, { workspace: "workspace", admin: "admin", personal: "personal" }, default: "workspace"
 
+  # The security tier: the ONLY membership test for the audit retention floor.
+  # Writers (User password callbacks, WebauthnCredential, Authenticatable) and
+  # ActivityLogRetentionSweepJob's exemption reference this same constant —
+  # never re-derive the set from visibility, which also carries non-security
+  # personal/admin rows. Spec: activity_log_retention_sweep_job_spec.
+  SECURITY_ACTIONS = %w[
+    user.password_changed
+    user.password_removed
+    user.signed_in_new_device
+    user.passkey_added
+    user.passkey_removed
+  ].freeze
+
   validates :action, presence: true
 
   scope :for_workspace, ->(workspace) { where(workspace: workspace) }
