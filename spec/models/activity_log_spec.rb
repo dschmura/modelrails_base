@@ -140,4 +140,19 @@ RSpec.describe ActivityLog, type: :model do
       }.to raise_error(ActiveRecord::StatementInvalid, /activity_logs_visibility_valid|CHECK/)
     end
   end
+
+  # settings/sessions/index.html.erb builds its row label from this constant
+  # dynamically (t("settings.sessions.activity.#{action}")), which a static
+  # scanner can't resolve — config/i18n-tasks.yml's ignore_unused entry for
+  # that namespace suppresses the "unused key" signal, so this is the only
+  # thing that still catches a label going stale in either direction: a
+  # deleted key, or (the case this arc will hit as later PRs add security
+  # actions) a new SECURITY_ACTIONS entry that ships without one.
+  describe "SECURITY_ACTIONS have a settings.sessions.activity label" do
+    ActivityLog::SECURITY_ACTIONS.each do |action|
+      it "has a translation for #{action}" do
+        expect(I18n.exists?("settings.sessions.activity.#{action}")).to be(true)
+      end
+    end
+  end
 end

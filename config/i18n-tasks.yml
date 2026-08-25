@@ -225,6 +225,9 @@ ignore_unused:
   #   t("settings.sessions.activity.#{entry.action}", default: ...humanize)
   # Same #522 risk as activity.actions.* above — the `default:` means a
   # deleted key silently degrades to a humanized action string.
+  # spec/models/activity_log_spec.rb pins every SECURITY_ACTIONS key's
+  # existence, so a stale entry here still fails the suite (same role as the
+  # passkeys.errors.* spec above).
   - settings.sessions.activity.user.*
   # Consumed by Rails/Active Model rather than an explicit t() call. Caveat
   # worth knowing: this also means a key left behind by a deleted validation

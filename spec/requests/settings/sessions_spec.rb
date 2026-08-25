@@ -190,5 +190,15 @@ RSpec.describe "Settings::Sessions", type: :request do
       expect(row.text).to include("Mystery action")
       expect(row.text).not_to include("translation missing")
     end
+
+    it "never renders metadata" do
+      create(:activity_log, action: "user.passkey_added", actor: user, trackable: user,
+                             visibility: "personal", metadata: { os: "macOS", nickname: "Dave's laptop" })
+
+      get settings_sessions_path
+
+      expect(response.body).not_to include("macOS")
+      expect(response.body).not_to include("Dave's laptop")
+    end
   end
 end
