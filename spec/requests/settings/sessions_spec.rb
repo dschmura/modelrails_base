@@ -162,6 +162,21 @@ RSpec.describe "Settings::Sessions", type: :request do
       expect(activity_items(response.body)).to be_empty
     end
 
+    # The card keys off SECURITY_ACTIONS membership, never off `personal`
+    # visibility (#827). `Trackable#activity_visibility` is an overridable
+    # seam — Membership already returns "admin" through it — so a fork
+    # returning "personal" for a domain event would otherwise render arbitrary
+    # rows under a heading whose empty state reads "No security events
+    # recorded yet".
+    it "excludes personal-visibility rows whose action is not a security action" do
+      create(:activity_log, action: "workspace.updated", actor: user,
+                             trackable: user, visibility: "personal")
+
+      get settings_sessions_path
+
+      expect(activity_items(response.body)).to be_empty
+    end
+
     it "excludes workspace-visibility rows, even ones tracking the signed-in user" do
       create(:activity_log, action: "workspace.updated", trackable: user.personal_workspace,
                              workspace: user.personal_workspace, visibility: "workspace")
@@ -180,7 +195,12 @@ RSpec.describe "Settings::Sessions", type: :request do
       expect(response.body).to include(I18n.t("settings.sessions.activity.empty"))
     end
 
+    # The fallback's real case is a NEW MEMBER of SECURITY_ACTIONS shipped
+    # without a locale key — a non-member no longer reaches the card at all
+    # now that membership is the filter (#827). stub_const puts the action in
+    # the set the way a later PR in this arc would.
     it "degrades a future security action without a label to a humanized fallback" do
+      stub_const("ActivityLog::SECURITY_ACTIONS", ActivityLog::SECURITY_ACTIONS + [ "user.mystery_action" ])
       create(:activity_log, action: "user.mystery_action", actor: user,
                              trackable: user, visibility: "personal")
 
