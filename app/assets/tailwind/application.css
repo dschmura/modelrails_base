@@ -26,6 +26,7 @@
   --color-text-body: var(--color-text-body);
   --color-text-muted: var(--color-text-muted);
   --color-text-on-interactive: var(--color-text-on-interactive);
+  --color-text-on-hue-initials: var(--color-text-on-hue-initials);
 
   /* Interactive */
   --color-interactive: var(--color-interactive);
@@ -395,10 +396,12 @@ body:has([data-biscuit-target="banner"]:not([hidden])) {
 }
 
 /* bg-hue-initials: per-workspace dynamic color via style="--hue: N" (avoids inline
-   background-color → CSP-safer). L=0.35 C=0.20 = AAA with white text. */
+   background-color → CSP-safer). Theme-aware via --hue-initials-l/-c (defined in
+   tokens/_semantic.css, re-lit under .dark); pair with text-text-on-hue-initials,
+   never a hardcoded text color. */
 
 .bg-hue-initials {
-  background-color: oklch(0.35 0.2 var(--hue, 210));
+  background-color: oklch(var(--hue-initials-l) var(--hue-initials-c) var(--hue, 210));
 }
 
 /* Dialog backdrop (animated via @starting-style). */
