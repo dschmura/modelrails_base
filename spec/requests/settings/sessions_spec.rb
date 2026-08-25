@@ -197,8 +197,15 @@ RSpec.describe "Settings::Sessions", type: :request do
 
       get settings_sessions_path
 
-      expect(response.body).not_to include("macOS")
-      expect(response.body).not_to include("Dave's laptop")
+      # Through the parsed row, not the raw body: ERB escapes the apostrophe to
+      # &#39;, so a raw-body include("Dave's laptop") could never fail even if
+      # the view did render the nickname — and nickname is the more sensitive
+      # half, being user-supplied free text. The label assertion keeps this
+      # honest: it proves the row rendered at all.
+      row = activity_items(response.body).first
+      expect(row.text).to include(I18n.t("settings.sessions.activity.user.passkey_added"))
+      expect(row.text).not_to include("macOS")
+      expect(row.text).not_to include("Dave's laptop")
     end
   end
 end

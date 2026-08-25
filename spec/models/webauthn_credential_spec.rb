@@ -54,6 +54,22 @@ RSpec.describe WebauthnCredential do
       expect { credential.undiscard! }.not_to change { ActivityLog.count }
     end
 
+    # discard! is an unconditional update!, so a second call restamps
+    # discarded_at and looks like a fresh removal. This row is the only record
+    # that a passkey was removed — a duplicate misreports one removal as two.
+    it "does not write a second row when an already-discarded passkey is discarded again" do
+      credential.discard!
+      expect { credential.discard! }
+        .not_to change { ActivityLog.where(action: "user.passkey_removed").count }
+    end
+
+    it "writes again when a restored passkey is removed a second time" do
+      credential.discard!
+      credential.undiscard!
+      expect { credential.discard! }
+        .to change { ActivityLog.where(action: "user.passkey_removed", trackable: credential.user).count }.by(1)
+    end
+
     it "does not write a row when advancing sign_count" do
       cred = create(:webauthn_credential, sign_count: 5)
       expect { cred.advance_sign_count!(6) }.not_to change { ActivityLog.count }

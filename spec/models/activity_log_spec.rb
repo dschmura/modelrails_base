@@ -137,7 +137,7 @@ RSpec.describe ActivityLog, type: :model do
           INSERT INTO activity_logs (action, trackable_type, trackable_id, visibility, created_at, updated_at)
           VALUES ('x', 'User', 1, 'bogus', datetime('now'), datetime('now'))
         SQL
-      }.to raise_error(ActiveRecord::StatementInvalid, /activity_logs_visibility_valid|CHECK/)
+      }.to raise_error(ActiveRecord::StatementInvalid, /activity_logs_visibility_valid/)
     end
   end
 

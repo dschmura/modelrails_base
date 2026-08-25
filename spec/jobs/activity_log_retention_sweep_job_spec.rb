@@ -47,6 +47,25 @@ RSpec.describe ActivityLogRetentionSweepJob, type: :job do
       expect(ActivityLog.exists?(swept.id)).to be(false)
     end
 
+    # A floor that deletes what the general window keeps is not a floor. The two
+    # constants are equal in an ordinary year, but 12.months.ago is calendar-aware
+    # and reaches a day FURTHER back than 365.days.ago whenever the window spans a
+    # Feb 29 — inverting them for roughly one year in four. Lengthening the general
+    # window here reproduces that inversion deterministically, at a scale a
+    # date-dependent example could not.
+    it "never deletes a security row the general window would keep" do
+      stub_const("ActivityLogRetentionSweepJob::RETENTION_WINDOW", 400.days)
+      security = personal_row("user.password_changed", 380.days)
+      ordinary = travel_to(380.days.ago) do
+        ActivityLog.create!(action: "workspace.updated", trackable: create(:workspace))
+      end
+
+      described_class.perform_now
+
+      expect(ActivityLog.exists?(ordinary.id)).to be(true) # the general window keeps it
+      expect(ActivityLog.exists?(security.id)).to be(true) # so the floor must too
+    end
+
     it "deletes security rows older than the floor" do
       doomed = personal_row("user.password_changed", 370.days)
       described_class.perform_now
