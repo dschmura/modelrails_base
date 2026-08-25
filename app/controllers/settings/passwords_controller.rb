@@ -44,15 +44,12 @@ module Settings
     end
 
     def destroy
-      # One transaction: auth teardown + digest clear (fires the strict audit
-      # callback) + session revocation commit together. update! (not
-      # update_columns) so the audit callback and post-commit notifier run —
-      # update_columns silently skipped both.
-      ApplicationRecord.transaction do
-        Current.user.authentications.email.destroy_all
-        Current.user.update!(password_digest: nil)
-        revoke_other_sessions
-      end
+      # Auth teardown, digest clear, and session revocation commit as one unit —
+      # the block runs inside remove_password!'s transaction. Idempotent under a
+      # concurrent double-submit: the second caller re-reads, finds the digest
+      # already gone, and does nothing. Either way the user's password is gone,
+      # so both get the same answer.
+      Current.user.remove_password! { revoke_other_sessions }
       redirect_to settings_connected_accounts_path, notice: t(".success")
     end
 

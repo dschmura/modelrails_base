@@ -127,6 +127,32 @@ class User < ApplicationRecord
     update!(failed_login_attempts: 0, locked_at: nil)
   end
 
+  # Tears down password authentication as one unit: email authentications, the
+  # digest itself, and whatever the caller needs committed with them (session
+  # revocation). Returns whether this caller performed the removal.
+  #
+  # The reload is the concurrency guard (#826). A second request that loaded
+  # this user before the first removal committed still holds the old digest in
+  # memory, so its update! issues a real UPDATE, satisfies
+  # saved_change_to_password_digest?, and writes a second user.password_removed
+  # row. Re-reading inside the transaction — where the write lock is already
+  # held, so the read is current — makes the second caller a no-op instead.
+  #
+  # update! rather than update_columns: the strict audit callback and the
+  # post-commit notifier both have to fire, and update_columns silently skipped
+  # both (#813).
+  def remove_password!
+    transaction do
+      reload
+      next false if password_digest.nil?
+
+      authentications.email.destroy_all
+      update!(password_digest: nil)
+      yield if block_given?
+      true
+    end
+  end
+
   def has_password?
     password_digest.present?
   end
