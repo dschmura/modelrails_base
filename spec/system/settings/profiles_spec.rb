@@ -23,6 +23,45 @@ RSpec.describe "Account profile — identity picker", type: :system do
   end
 
   describe "source switching" do
+    # The gradient must live on the track pseudo-element, not the input. An inline
+    # background on the input cannot reach the pseudo-element, so RangeComponent's
+    # surface-sunken track painted a light 8px bar straight across the gradient
+    # (W2-C regression — the view's old comment claimed inline wins "by design").
+    it "paints the hue gradient on the slider track, not over it" do
+      open_identity_picker
+      select_identity_source("Initials")
+      expect_color_picker_visible
+
+      # getComputedStyle(el, "::-webkit-slider-runnable-track") cannot prove this:
+      # Chrome resolves vendor pseudos in the two-arg form the same as a bogus one
+      # (verified with a control probe — both fall back to the element's styles).
+      # So assert the contract through the CSSOM instead: the SERVED stylesheet
+      # carries the track-gradient rule, and the input wears the class + no inline
+      # background for the rule to lose to.
+      styles = page.evaluate_script(<<~JS)
+        (() => {
+          const el = document.querySelector("[data-identity-picker-target='colorSlider']")
+          // Chrome drops the ::-moz-range-track rule at parse (unknown selector) and
+          // stores the var()-bearing declaration unparsed under the shorthand, so the
+          // longhand backgroundImage getter returns "" — read cssText instead, and
+          // expect exactly the engine-appropriate rule to survive.
+          const trackRules = Array.from(document.styleSheets)
+            .flatMap(s => { try { return Array.from(s.cssRules) } catch { return [] } })
+            .filter(r => r.selectorText && r.selectorText.includes("hue-range") &&
+                         r.selectorText.includes("track"))
+          return {
+            inline: el.getAttribute("style") || "",
+            hasClass: el.classList.contains("hue-range"),
+            gradientTrackRules: trackRules.filter(r => r.style.cssText.includes("linear-gradient")).length
+          }
+        })()
+      JS
+
+      expect(styles["inline"]).not_to include("linear-gradient")
+      expect(styles["hasClass"]).to be(true)
+      expect(styles["gradientTrackRules"]).to be >= 1 # the engine-appropriate rule
+    end
+
     it "switches to Initials with a custom color" do
       open_identity_picker
       select_identity_source("Initials")
