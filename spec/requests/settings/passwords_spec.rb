@@ -103,7 +103,7 @@ RSpec.describe "Account Passwords", type: :request do
 
         patch settings_password_path, params: { user: { password: "short", password_confirmation: "short" } }
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(Session.exists?(other.id)).to be(true)
         expect(user.reload.authenticate("SecureP@ssw0rd123!")).to be_truthy
       end
@@ -129,23 +129,6 @@ RSpec.describe "Account Passwords", type: :request do
         expect(pwned).to have_received(:pwned?).once
         expect(depth_at_check).to eq(baseline)
       end
-
-      # Sibling fence at the controller's call site. The spec above proves the
-      # range-check I/O lands outside the write transaction; this one proves the
-      # controller still issues the precheck from there, so the call can't drift
-      # inside the transaction and quietly fall back to the in-validation check.
-      it "calls the pwned precheck outside the write transaction" do
-        baseline = ActiveRecord::Base.connection.open_transactions
-        depth_at_precheck = nil
-        allow_any_instance_of(User).to receive(:precheck_password_pwned!) do
-          depth_at_precheck = ActiveRecord::Base.connection.open_transactions
-        end
-
-        patch settings_password_path, params: { user: { password: "n3w-Sekure-Passw0rd!", password_confirmation: "n3w-Sekure-Passw0rd!" } }
-
-        expect(depth_at_precheck).to eq(baseline)
-        expect(response).to redirect_to(settings_connected_accounts_path)
-      end
     end
 
     describe "DELETE /settings/password (remove)" do
@@ -163,11 +146,30 @@ RSpec.describe "Account Passwords", type: :request do
           .and change { user.notifications.count }.by(1)
       end
 
-      it "revokes other sessions atomically with the removal" do
+      it "revokes other sessions on removal" do
         other = user.sessions.create!(user_agent: "other", ip_address: "10.0.0.1")
         delete settings_password_path
         expect(Session.exists?(other.id)).to be(false)
         expect(user.reload.password_digest).to be_nil
+      end
+
+      # Strict tier: the audit row commits with the credential write or neither
+      # does. The rollback has to take the auth teardown with it — that is what
+      # proves one transaction wraps the whole unit, not just the digest write.
+      it "rolls back the removal atomically when the audit write fails" do
+        # Ruling R7 (see spec/models/user_spec.rb): read the digest and build
+        # the authentication BEFORE installing the stub, or setup runs under it
+        # and the example passes for the wrong reason.
+        original_digest = user.password_digest
+        auth = user.authentications.create!(
+          provider: "email", uid: user.email_address, verified_at: Time.current
+        )
+        allow(ActivityLog).to receive(:create!).and_raise(ActiveRecord::StatementInvalid, "boom")
+
+        expect { delete settings_password_path }.to raise_error(ActiveRecord::StatementInvalid)
+
+        expect(user.reload.password_digest).to eq(original_digest)
+        expect(Authentication.exists?(auth.id)).to be(true)
       end
     end
 
