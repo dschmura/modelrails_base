@@ -36,8 +36,7 @@ module Settings
         return
       end
 
-      if update_password_with_precheck
-        revoke_other_sessions
+      if update_password_with_precheck(revoke_others: true)
         redirect_to settings_connected_accounts_path, notice: t(".success")
       else
         render :edit, status: :unprocessable_entity
@@ -45,9 +44,15 @@ module Settings
     end
 
     def destroy
-      Current.user.authentications.email.destroy_all
-      Current.user.update_columns(password_digest: nil)
-      revoke_other_sessions
+      # One transaction: auth teardown + digest clear (fires the strict audit
+      # callback) + session revocation commit together. update! (not
+      # update_columns) so the audit callback and post-commit notifier run —
+      # update_columns silently skipped both.
+      ApplicationRecord.transaction do
+        Current.user.authentications.email.destroy_all
+        Current.user.update!(password_digest: nil)
+        revoke_other_sessions
+      end
       redirect_to settings_connected_accounts_path, notice: t(".success")
     end
 
@@ -64,11 +69,18 @@ module Settings
     end
 
     # Assign → precheck → save, so the HIBP range check (network I/O) runs
-    # OUTSIDE the write transaction and the validation consumes the memo (#674).
-    def update_password_with_precheck
+    # OUTSIDE the write transaction and the validation consumes the memo (#674)
+    # — fenced by the request spec's transaction-depth assertion.
+    # With revoke_others, the save and the revocation share one transaction:
+    # credential rotation and stolen-session death commit atomically.
+    def update_password_with_precheck(revoke_others: false)
       Current.user.assign_attributes(password_params)
       Current.user.precheck_password_pwned!
-      Current.user.save
+      ApplicationRecord.transaction do
+        Current.user.save.tap do |saved|
+          revoke_other_sessions if saved && revoke_others
+        end
+      end
     end
   end
 end
