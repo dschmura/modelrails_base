@@ -10,9 +10,8 @@ class WebauthnCredential < ApplicationRecord
 
   # Strict tier (notifications lifecycle arc): enrollment/removal are
   # credential mutations — the audit row commits with them or not at all.
-  # after_create runs inside the INSERT's transaction. Removal hooks the
-  # Discardable update the same way rather than after_discard, so the row
-  # and the discard share one transaction.
+  # Removal hooks the Discardable update the same way rather than
+  # after_discard, so the row and the discard share one transaction.
   after_create :audit_added
   after_update :audit_removed, if: -> { saved_change_to_discarded_at? && discarded_at.present? }
 
@@ -33,13 +32,11 @@ class WebauthnCredential < ApplicationRecord
 
   private
 
-  def audit_added
-    ActivityLog.create!(action: "user.passkey_added", actor: user, trackable: user,
-                        visibility: "personal", metadata: { nickname: nickname })
-  end
+  def audit_added = audit!("user.passkey_added")
+  def audit_removed = audit!("user.passkey_removed")
 
-  def audit_removed
-    ActivityLog.create!(action: "user.passkey_removed", actor: user, trackable: user,
+  def audit!(action)
+    ActivityLog.create!(action: action, actor: user, trackable: user,
                         visibility: "personal", metadata: { nickname: nickname })
   end
 end
