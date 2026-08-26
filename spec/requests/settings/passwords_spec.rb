@@ -158,6 +158,20 @@ RSpec.describe "Account Passwords", type: :request do
       # Strict tier: the audit row commits with the credential write or neither
       # does. The rollback has to take the auth teardown with it — that is what
       # proves one transaction wraps the whole unit, not just the digest write.
+      it "removes the password even when the record has drifted invalid for unrelated reasons" do
+        # A record can go invalid out from under its owner — the canonical
+        # path is an attachment allowlist tightening under a gem bump. Removal
+        # must not hold the credential hostage to an unrelated validation;
+        # update_column bypasses validation to manufacture the drifted state.
+        user.update_column(:first_name, "x" * 101)
+
+        delete settings_password_path
+
+        expect(response).to redirect_to(settings_connected_accounts_path)
+        expect(user.reload.password_digest).to be_nil
+        expect(ActivityLog.security_events_for(user).where(action: "user.password_removed")).to exist
+      end
+
       it "rolls back the removal atomically when the audit write fails" do
         # Ruling R7 (see spec/models/user_spec.rb): read the digest and build
         # the authentication BEFORE installing the stub, or setup runs under it
