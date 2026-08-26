@@ -1,4 +1,6 @@
 module AuthenticationHelpers
+  include ActionMailer::TestHelper
+
   # Establish a browser session via the magic-link callback. For system specs,
   # where the session cookie must live in the driven browser, not the
   # Rack::Test cookie jar. Canonical home (#743).
@@ -29,6 +31,39 @@ module AuthenticationHelpers
     visit magic_link_callback_path(token: token)
     click_button I18n.t("magic_link_callbacks.confirm.sign_in_button")
     expect(page).to have_text(I18n.t("magic_link_callbacks.show.signed_in"))
+  end
+
+  # Drive the lookup form and hand back the token the app minted, read out of
+  # the mail it sent — the way a recipient actually gets it.
+  #
+  # For specs where requesting the link is part of the SUBJECT, not setup.
+  # `sign_in_via_form` is the right tool for setup; this is the tool for the
+  # handful of specs that must show the form working. Either way exactly one
+  # party mints: there, the test; here, the app.
+  #
+  # The token never reaches the database in recoverable form (only its digest
+  # is stored), so the mail is the only place to read it back — which is why
+  # these specs used to mint a second token instead, and why they raced (#849).
+  def request_magic_link(email)
+    perform_enqueued_jobs do
+      fill_in I18n.t("sessions.new.email_label"), with: email
+      click_button I18n.t("sessions.new.continue")
+      expect(page).to have_text(I18n.t("sessions.check_email.title"))
+    end
+
+    magic_link_token_from_email(email)
+  end
+
+  # Fails loudly and by name: a nil token here would otherwise surface as an
+  # unrelated routing error at the callback.
+  def magic_link_token_from_email(email)
+    address = email.downcase
+    mail = ActionMailer::Base.deliveries.reverse.find { |m| m.to&.include?(address) }
+    raise "No magic-link mail was delivered to #{address}" if mail.nil?
+
+    body = (mail.text_part || mail.html_part || mail).body.decoded
+    body[%r{/magic_link_callback/([A-Za-z0-9_-]+)}, 1] ||
+      raise("Mail to #{address} carried no magic-link callback URL")
   end
 
   def sign_in(user)

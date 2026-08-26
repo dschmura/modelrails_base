@@ -122,6 +122,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 - Deployment docs' SSL section matches the shipped config and documents the green-healthcheck/dead-app trap (#600).
 - The quiet-hours "no days selected" warning is now rendered by the server rather than revealed by JavaScript after boot — a user whose JS was slow or blocked saw no warning at all in the one state it exists for.
 - **Email digests key off read state, not a separate `seen_at`.** A digest could re-send items you had already read, and could drop items that arrived while it was assembling; it now selects unread items over a half-open window, re-checks they are still unread at delivery, and stamps the window it actually covered. Security notifications are excluded from digests entirely — they are the ones you want immediately (#814).
+- **The magic-link sign-in race is gone from the eleven specs that still hand-rolled it.** Each drove the app into minting a token and then minted a second, competing for the one live-token slot a partial unique index allows — #846's shape, at fourteen sites. Setup now goes through `sign_in_via_form`; the specs that are *about* the magic link keep the form and read the token out of the mail the app sent, which also proves for the first time that the emailed link works. A code-smell spec fails the suite if the two-writer shape returns (#849).
 
 ## v2.0.0 — Passwordless Auth, Workspace Lifecycle & Navigation IA (2026-07-06)
 
