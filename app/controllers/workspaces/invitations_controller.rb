@@ -71,8 +71,15 @@ module Workspaces
         invited_by: Current.user
       )
 
-      redirect_to workspace_members_path(@workspace),
-        notice: t("workspaces.invitations.create.sent", sent: result[:sent], skipped: result[:skipped])
+      notice = t("workspaces.invitations.create.sent", sent: result[:sent], skipped: result[:skipped])
+      # The cap is never applied silently: a sender who pasted more addresses
+      # than we will take is told which ones went (D13).
+      if result[:over_limit]
+        notice += " " + t("workspaces.invitations.create.capped",
+                          cap: Invitation::MAX_EMAILS_PER_SUBMISSION)
+      end
+
+      redirect_to workspace_members_path(@workspace), notice: notice
     end
 
     def create_magic_link

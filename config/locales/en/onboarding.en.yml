@@ -39,6 +39,7 @@ en:
       create:
         sent: "Invitations sent."
         no_emails: "Enter at least one email address, or skip for now."
+        capped: "You can invite up to %{cap} people at a time. Trim the list and send the rest after this step."
   onboardings:
     update:
       complete: "You're all set."

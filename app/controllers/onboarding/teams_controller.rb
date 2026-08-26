@@ -13,7 +13,18 @@ module Onboarding
     def create
       authorize Invitation
 
-      emails = Invitation.parse_email_list(invitation_params[:emails])
+      parsed = Invitation.parse_email_list(invitation_params[:emails])
+      emails = parsed.emails
+
+      # An unhandled cap here would silently drop teammates the founder typed
+      # in during first-run, with nothing on screen to say so.
+      if parsed.over_limit?
+        flash.now[:alert] = t(".capped", cap: Invitation::MAX_EMAILS_PER_SUBMISSION)
+        @invitation = Invitation.new
+        @roles = assignable_roles_for(Invitation)
+        render :new, status: :unprocessable_entity
+        return
+      end
 
       if emails.empty?
         flash.now[:alert] = t(".no_emails")
