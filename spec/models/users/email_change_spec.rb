@@ -52,7 +52,7 @@ RSpec.describe Users::EmailChange, type: :model do
   end
 
   describe "#confirm!" do
-    let(:user) { create(:user, :with_email_auth) }
+    let(:user) { create(:user, :unverified_email) }
 
     before do
       described_class.new(user).initiate!("new@example.com")

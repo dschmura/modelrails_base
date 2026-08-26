@@ -5,7 +5,7 @@ require "rails_helper"
 # sender's list silently, which is the failure this pins.
 RSpec.describe "Invite address cap at the surfaces", type: :request do
   let(:cap) { Invitation::MAX_EMAILS_PER_SUBMISSION }
-  let(:user) { create(:user, :with_verified_email_auth) }
+  let(:user) { create(:user) }
   let(:over_limit_list) { Array.new(cap + 3) { |i| "invitee#{i}@example.test" }.join(", ") }
 
   describe "workspace invitations" do
@@ -42,7 +42,7 @@ RSpec.describe "Invite address cap at the surfaces", type: :request do
   describe "onboarding team step" do
     # The step guard derives the current step from data, so the user has to
     # genuinely be AT the team step: a workspace they own, with a project.
-    let(:onboarding_user) { create(:user, :with_verified_email_auth, :with_zero_workspaces) }
+    let(:onboarding_user) { create(:user, :with_zero_workspaces) }
     let(:onboarding_workspace) { create(:workspace) }
     let!(:onboarding_project) { create(:project, workspace: onboarding_workspace) }
 

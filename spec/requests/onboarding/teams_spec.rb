@@ -3,7 +3,7 @@ require "rails_helper"
 RSpec.describe "Onboarding · team step", type: :request do
   before { allow(TenancyConfig).to receive(:onboarding).and_return(:none) }
 
-  let(:user) { create(:user, :with_verified_email_auth, :with_zero_workspaces) }
+  let(:user) { create(:user, :with_zero_workspaces) }
   let(:workspace) { create(:workspace) }
   let!(:owner_role) do
     Role.find_or_create_by!(slug: "owner", workspace_id: nil) do |r|

@@ -4,7 +4,7 @@ require "rails_helper"
 
 RSpec.describe "Client invite flow", type: :system do
   let(:axe_options) { { runOnly: { type: "tag", values: [ "wcag2aaa" ] } } }
-  let(:owner) { create(:user, :with_verified_email_auth) }
+  let(:owner) { create(:user) }
   let(:workspace) { owner.workspaces.sole }
   let(:project) do
     create(:project, workspace: workspace, created_by: owner, clientside_enabled: true)

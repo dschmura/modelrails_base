@@ -1,6 +1,9 @@
 FactoryBot.define do
   factory :authentication do
-    user
+    # This factory exists to create the authentication, so its user must not
+    # arrive already holding one — the :user default is a verified email row,
+    # and provider is unique per user (#850).
+    association :user, factory: [ :user, :no_authentications ]
     provider { "email" }
     uid { Faker::Internet.email }
 

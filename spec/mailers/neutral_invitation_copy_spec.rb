@@ -4,7 +4,7 @@ require "rails_helper"
 # must not disclose the workspace's name. The name appears once the recipient
 # opens the accept/decline page — a deliberate, single exposure point.
 RSpec.describe "neutral invitation copy", type: :mailer do
-  let(:inviter) { create(:user, :with_verified_email_auth) }
+  let(:inviter) { create(:user) }
   let(:workspace) { create(:workspace, name: "Distinctive Secret Cabal") }
   let(:invitation) do
     create(:invitation, invitable: workspace, email: "invitee@example.test",

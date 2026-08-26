@@ -9,10 +9,11 @@ RSpec.describe "Account Passwords", type: :request do
   end
 
   context "authenticated" do
-    # Factory default: user has a password (password_digest present).
-    let(:user) { create(:user) }
+    # Password present (factory default); no email auth, so the controller's
+    # create branch is the one under test.
+    let(:user) { create(:user, :no_authentications) }
     # User with no password set (passwordless — signs in via magic link).
-    let(:passwordless_user) { create(:user, password: nil) }
+    let(:passwordless_user) { create(:user, :no_authentications, password: nil) }
 
     # #722: the third instance of the forgot-the-layout-opt-in class — the
     # password pages are settings destinations and render inside the shell

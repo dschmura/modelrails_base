@@ -35,7 +35,7 @@ RSpec.describe "Invitation address-list cap", type: :model do
 
   describe ".bulk_invite!" do
     let(:workspace) { create(:workspace) }
-    let(:inviter) { create(:user, :with_verified_email_auth) }
+    let(:inviter) { create(:user) }
     let(:role) { Role.system_default!("member") }
 
     it "sends no more than the cap and reports the truncation" do

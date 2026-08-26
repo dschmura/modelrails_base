@@ -5,7 +5,7 @@ require "rails_helper"
 # writer that skips the round trip fails this file rather than silently
 # widening who may send invitations.
 RSpec.describe "User#can_invite? — verified_at writer inventory", type: :request do
-  let(:user) { create(:user, password: "SecureP@ssw0rd123!") }
+  let(:user) { create(:user, :no_authentications, password: "SecureP@ssw0rd123!") }
 
   describe "writers that legitimately prove the address" do
     it "email round-trip: Authentication#verify! satisfies the gate" do
@@ -85,7 +85,7 @@ RSpec.describe "User#can_invite? — verified_at writer inventory", type: :reque
   end
 
   describe "the gate on onboarding, the fourth surface" do
-    let(:unverified) { create(:user, :with_zero_workspaces) }
+    let(:unverified) { create(:user, :unverified_email, :with_zero_workspaces) }
     let(:workspace) { create(:workspace) }
     let!(:project) { create(:project, workspace: workspace) }
 
