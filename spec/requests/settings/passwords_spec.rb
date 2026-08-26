@@ -90,6 +90,25 @@ RSpec.describe "Account Passwords", type: :request do
     end
 
     describe "POST /account/password against an existing email authentication" do
+      it "never downgrades an authentication that is already verified (#864)" do
+        # The magic-link signup: passwordless, holding the VERIFIED email row.
+        # Setting a password takes the find branch, and the promise in the
+        # controller comment -- proven control of the session says nothing
+        # about the mailbox, in either direction -- must hold.
+        magic_link_user = create(:user, password: nil)
+        sign_in(magic_link_user)
+
+        verified_at_before = magic_link_user.authentications.email.sole.verified_at
+
+        post settings_password_path, params: {
+          user: { password: "NewSecureP@ss123!", password_confirmation: "NewSecureP@ss123!" }
+        }
+
+        auth = magic_link_user.authentications.email.sole
+        expect(auth.verified_at).to eq(verified_at_before)
+        expect(magic_link_user.reload.has_password?).to be(true)
+      end
+
       it "finds the row by provider even when its uid is stale (#865)" do
         # The unique index is (user_id, provider); a finder keyed on uid
         # misses the existing row after the address changed underneath it and
