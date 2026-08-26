@@ -1,21 +1,34 @@
 module AuthenticationHelpers
-  # Sign in a user via the real magic-link flow (email → Continue → token
-  # lookup → callback). For system specs, where the session cookie must live
-  # in the driven browser, not the Rack::Test cookie jar. Canonical home
-  # (#743) — twelve spec-local copies of this once drifted independently.
+  # Establish a browser session via the magic-link callback. For system specs,
+  # where the session cookie must live in the driven browser, not the
+  # Rack::Test cookie jar. Canonical home (#743).
+  #
+  # EXACTLY ONE PARTY MINTS THE TOKEN, and that is the whole design.
+  #
+  # `MagicLinkToken.create_for_email` supersedes every prior unconsumed token
+  # for an address — a partial unique index enforces one live token per email.
+  # This helper used to open with the request-a-link form, so the app minted a
+  # token and then the test minted a second, competing for that one slot with
+  # nothing but a rendered-text assertion for ordering. Whenever the app's mint
+  # landed second, the token about to be clicked was already dead; the callback
+  # rejected it and, since the session had begun, redirected to root_path —
+  # the signed-in homepage carrying "invalid or has expired" that CI reported
+  # in #846, and in #796 three days before that.
+  #
+  # #796 answered it with `wait: 10`. A timeout cannot fix a data race: it only
+  # bets on which writer finishes first. Removing the second writer does fix
+  # it, and the prelude was never load-bearing here — requesting a link through
+  # the form is the SUBJECT of magic_link_sign_in_spec, and merely the setup
+  # cost of everyone else.
+  #
+  # spec/system/sign_in_helper_contract_spec.rb pins the one-mint property, so
+  # a returning prelude fails there by name rather than intermittently in an
+  # unrelated caller.
   def sign_in_via_form(user)
-    visit new_session_path
-    fill_in I18n.t("sessions.new.email_label"), with: user.email_address
-    click_button I18n.t("sessions.new.continue")
-    expect(page).to have_text(I18n.t("sessions.check_email.title"))
     token = MagicLinkToken.create_for_email(user.email_address)
     visit magic_link_callback_path(token: token)
     click_button I18n.t("magic_link_callbacks.confirm.sign_in_button")
-    # wait: 10 — the confirm POST → redirect → render round-trip outlasts the
-    # default wait on loaded CI shards; two unrelated specs flaked here in two
-    # days (#796). This helper is the one funnel, so the bump covers every
-    # caller without loosening any other wait.
-    expect(page).to have_text(I18n.t("magic_link_callbacks.show.signed_in"), wait: 10)
+    expect(page).to have_text(I18n.t("magic_link_callbacks.show.signed_in"))
   end
 
   def sign_in(user)
