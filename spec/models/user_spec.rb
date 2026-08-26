@@ -548,7 +548,7 @@ RSpec.describe User, type: :model do
     end
 
     it "is false when there is no email authentication (e.g. OAuth-only)" do
-      user = create(:user)
+      user = create(:user, :no_authentications)
       expect(user.email_verification_pending?).to be(false)
     end
   end

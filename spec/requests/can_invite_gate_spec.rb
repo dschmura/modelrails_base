@@ -85,7 +85,7 @@ RSpec.describe "User#can_invite? — verified_at writer inventory", type: :reque
   end
 
   describe "the gate on onboarding, the fourth surface" do
-    let(:unverified) { create(:user, :no_authentications, :with_zero_workspaces) }
+    let(:unverified) { create(:user, :unverified_email, :with_zero_workspaces) }
     let(:workspace) { create(:workspace) }
     let!(:project) { create(:project, workspace: workspace) }
 

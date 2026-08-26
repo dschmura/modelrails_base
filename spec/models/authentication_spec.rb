@@ -237,7 +237,7 @@ RSpec.describe Authentication, type: :model do
         r.permissions = { manage_projects: true }
       }
     }
-    let(:link) { create(:workspace_join_link, workspace: workspace, created_by: create(:user, :no_authentications)) }
+    let(:link) { create(:workspace_join_link, workspace: workspace, created_by: create(:user)) }
 
     before do
       allow(Rails.configuration.x.signup).to receive(:permitted_join_strategies).and_return(%i[invite open_link])
@@ -342,7 +342,7 @@ RSpec.describe Authentication, type: :model do
 
     it "reports :join_link_at_capacity and clears the spent digest when the workspace is full" do
       workspace.update!(max_members: 1)
-      create(:membership, workspace: workspace, user: create(:user, :no_authentications), role: member_role)
+      create(:membership, workspace: workspace, user: create(:user), role: member_role)
       authentication.update!(pending_join_link_digest: WorkspaceJoinLink.digest(link.plaintext_token))
 
       result = nil

@@ -9,7 +9,8 @@ RSpec.describe "Account Passwords", type: :request do
   end
 
   context "authenticated" do
-    # Factory default: user has a password (password_digest present).
+    # Password present (factory default); no email auth, so the controller's
+    # create branch is the one under test.
     let(:user) { create(:user, :no_authentications) }
     # User with no password set (passwordless — signs in via magic link).
     let(:passwordless_user) { create(:user, :no_authentications, password: nil) }

@@ -40,18 +40,16 @@ RSpec.describe "Account Connected Accounts", type: :request do
 
     describe "GET /account/connected_accounts (email label reflects password)" do
       it "labels the email method 'Email and password' when the user has a password" do
-        with_pw = create(:user, :no_authentications) # factory sets a password
+        with_pw = create(:user)
         sign_in(with_pw)
-        create(:authentication, :verified, user: with_pw, provider: "email", uid: with_pw.email_address)
 
         get settings_connected_accounts_path
         expect(response.body).to include(I18n.t("settings.connected_accounts.index.email_provider"))
       end
 
       it "does not claim 'and password' for a passwordless account" do
-        passwordless = create(:user, :no_authentications, password: nil)
+        passwordless = create(:user, password: nil)
         sign_in(passwordless)
-        create(:authentication, :verified, user: passwordless, provider: "email", uid: passwordless.email_address)
 
         get settings_connected_accounts_path
         expect(response.body).not_to include(I18n.t("settings.connected_accounts.index.email_provider"))
@@ -500,7 +498,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
     let!(:member_role) do
       Role.find_or_create_by!(slug: "member", workspace_id: nil) { |r| r.name = "Member" }
     end
-    let(:link) { create(:workspace_join_link, workspace: workspace, created_by: create(:user, :no_authentications)) }
+    let(:link) { create(:workspace_join_link, workspace: workspace, created_by: create(:user)) }
     let(:user) { create(:user, :no_authentications, email_address: "joiner@example.com") }
     let(:pending_auth) do
       user.authentications.create!(
@@ -533,7 +531,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
     context "when the link's workspace is at capacity" do
       it "verifies but surfaces a localized capacity message, not the raw model string" do
         workspace.update!(max_members: 1)
-        create(:membership, workspace: workspace, user: create(:user, :no_authentications), role: member_role)
+        create(:membership, workspace: workspace, user: create(:user), role: member_role)
 
         get verify_settings_connected_accounts_path(token: pending_auth.generate_token_for(:email_verification))
 

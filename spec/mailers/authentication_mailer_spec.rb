@@ -73,7 +73,7 @@ RSpec.describe AuthenticationMailer, type: :mailer do
   end
 
   describe "#collision_alert" do
-    let(:legitimate_user) { create(:user, :no_authentications, first_name: "Alice", email_address: "alice@example.com") }
+    let(:legitimate_user) { create(:user, first_name: "Alice", email_address: "alice@example.com") }
 
     subject(:mail) { described_class.collision_alert(legitimate_user, "Google") }
 

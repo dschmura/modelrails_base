@@ -31,7 +31,7 @@ RSpec.describe OauthLink do
     end
 
     it "returns :collision and alerts the owner when a different signed-in user presents the identity" do
-      eve = create(:user, :no_authentications)
+      eve = create(:user)
 
       outcome = nil
       expect {
@@ -64,9 +64,7 @@ RSpec.describe OauthLink do
 
   describe "signed-in user linking a new provider" do
     let(:actor) do
-      create(:user, :no_authentications, email_address: "actor@example.com").tap do |u|
-        u.authentications.create!(provider: "email", uid: u.email_address, verified_at: Time.current)
-      end
+      create(:user, email_address: "actor@example.com")
     end
 
     it "returns :already_linked when the provider is already verified for this user" do
@@ -139,9 +137,7 @@ RSpec.describe OauthLink do
     end
 
     it "attaches the identity to an existing user who owns a verified email auth" do
-      existing = create(:user, :no_authentications, email_address: "person@example.com").tap do |u|
-        u.authentications.create!(provider: "email", uid: u.email_address, verified_at: Time.current)
-      end
+      existing = create(:user, email_address: "person@example.com")
 
       outcome = nil
       expect {
@@ -153,9 +149,7 @@ RSpec.describe OauthLink do
     end
 
     it "returns :failed (C1 collision) when the email belongs to an account without a verified email auth" do
-      create(:user, :no_authentications, email_address: "person@example.com").tap do |u|
-        u.authentications.create!(provider: "email", uid: u.email_address)
-      end
+      create(:user, :unverified_email, email_address: "person@example.com")
 
       outcome = nil
       expect {
@@ -244,13 +238,11 @@ RSpec.describe OauthLink do
     end
 
     it "leaves a still-valid join token parked for a pre-existing user (drive-by guard)" do
-      create(:user, :no_authentications, email_address: "person@example.com").tap do |u|
-        u.authentications.create!(provider: "email", uid: u.email_address, verified_at: Time.current)
-      end
+      create(:user, email_address: "person@example.com")
       allow(Rails.configuration.x.signup).to receive(:permitted_join_strategies)
         .and_return(%i[invite open_link])
       workspace = create(:workspace, personal: false, join_policy: "open_link")
-      link = create(:workspace_join_link, workspace: workspace, created_by: create(:user, :no_authentications))
+      link = create(:workspace_join_link, workspace: workspace, created_by: create(:user))
       Role.find_or_create_by!(slug: "member", workspace_id: nil) { |r| r.name = "Member" }
 
       outcome = described_class.new(
