@@ -8,7 +8,7 @@ RSpec.describe "Admin rake tasks" do
 
   describe "users:unlock" do
     it "unlocks a locked user" do
-      user = create(:user)
+      user = create(:user, :no_authentications)
       5.times { user.register_failed_login! }
       expect(user.reload).to be_locked
 
@@ -22,7 +22,7 @@ RSpec.describe "Admin rake tasks" do
 
   describe "users:verify" do
     it "verifies an unverified email" do
-      user = create(:user)
+      user = create(:user, :no_authentications)
       auth = user.authentications.create!(provider: "email", uid: user.email_address)
       expect(auth).not_to be_verified
 
@@ -35,7 +35,7 @@ RSpec.describe "Admin rake tasks" do
 
   describe "users:suspend" do
     it "destroys sessions and discards memberships" do
-      user = create(:user)
+      user = create(:user, :no_authentications)
       workspace = create(:workspace)
       create(:membership, :owner, user: user, workspace: workspace)
       create(:membership, :owner, workspace: workspace)

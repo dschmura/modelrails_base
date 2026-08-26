@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "Client invitations (team side)", type: :request do
-  let(:user) { create(:user, :with_verified_email_auth) }
+  let(:user) { create(:user) }
   let(:workspace) { user.workspaces.sole }
   let(:project) do
     create(:project, workspace: workspace, created_by: user, clientside_enabled: true)

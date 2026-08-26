@@ -9,7 +9,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
   end
 
   context "authenticated" do
-    let(:user) { create(:user) }
+    let(:user) { create(:user, :no_authentications) }
 
     before { sign_in(user) }
 
@@ -40,7 +40,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
 
     describe "GET /account/connected_accounts (email label reflects password)" do
       it "labels the email method 'Email and password' when the user has a password" do
-        with_pw = create(:user) # factory sets a password
+        with_pw = create(:user, :no_authentications) # factory sets a password
         sign_in(with_pw)
         create(:authentication, :verified, user: with_pw, provider: "email", uid: with_pw.email_address)
 
@@ -49,7 +49,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
       end
 
       it "does not claim 'and password' for a passwordless account" do
-        passwordless = create(:user, password: nil)
+        passwordless = create(:user, :no_authentications, password: nil)
         sign_in(passwordless)
         create(:authentication, :verified, user: passwordless, provider: "email", uid: passwordless.email_address)
 
@@ -115,7 +115,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
   end
 
   describe "GET /account/connected_accounts/verify/:token" do
-    let(:user) { create(:user) }
+    let(:user) { create(:user, :no_authentications) }
     let(:auth) do
       user.authentications.create!(
         provider: "google",
@@ -191,7 +191,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
     end
 
     context "with a valid token belonging to a different user" do
-      let(:other_user) { create(:user) }
+      let(:other_user) { create(:user, :no_authentications) }
       let!(:other_auth) do
         other_user.authentications.create!(
           provider: "google",
@@ -217,7 +217,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
   end
 
   describe "DELETE /account/connected_accounts/:id (last verified method protection)" do
-    let(:user) { create(:user) }
+    let(:user) { create(:user, :no_authentications) }
     before { sign_in(user) }
 
     context "user has only one verified auth and one pending auth" do
@@ -272,7 +272,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
   end
 
   describe "POST /account/connected_accounts/:id/resend_verification" do
-    let(:user) { create(:user) }
+    let(:user) { create(:user, :no_authentications) }
     let(:pending_auth) do
       user.authentications.create!(
         provider: "google",
@@ -400,7 +400,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
     end
 
     context "with another user's authentication id (IDOR protection)" do
-      let(:other_user) { create(:user) }
+      let(:other_user) { create(:user, :no_authentications) }
       let!(:other_pending_auth) do
         other_user.authentications.create!(
           provider: "google",
@@ -425,7 +425,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
   describe "GET verify (new user with pending invitation)" do
     let(:workspace) { create(:workspace) }
     let(:invitation) { create(:invitation, invitable: workspace, email: "needsverify@example.com") }
-    let(:user) { create(:user, email_address: "needsverify@example.com") }
+    let(:user) { create(:user, :no_authentications, email_address: "needsverify@example.com") }
     let(:pending_auth) do
       auth = user.authentications.build(
         provider: "google",
@@ -471,7 +471,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
   describe "GET verify (pending invitation addressed to a different email)" do
     let(:workspace) { create(:workspace) }
     let(:invitation) { create(:invitation, invitable: workspace, email: "invited@example.com") }
-    let(:user) { create(:user, email_address: "different@example.com") }
+    let(:user) { create(:user, :no_authentications, email_address: "different@example.com") }
     let(:pending_auth) do
       auth = user.authentications.build(
         provider: "email",
@@ -500,8 +500,8 @@ RSpec.describe "Account Connected Accounts", type: :request do
     let!(:member_role) do
       Role.find_or_create_by!(slug: "member", workspace_id: nil) { |r| r.name = "Member" }
     end
-    let(:link) { create(:workspace_join_link, workspace: workspace, created_by: create(:user)) }
-    let(:user) { create(:user, email_address: "joiner@example.com") }
+    let(:link) { create(:workspace_join_link, workspace: workspace, created_by: create(:user, :no_authentications)) }
+    let(:user) { create(:user, :no_authentications, email_address: "joiner@example.com") }
     let(:pending_auth) do
       user.authentications.create!(
         provider: "google",
@@ -533,7 +533,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
     context "when the link's workspace is at capacity" do
       it "verifies but surfaces a localized capacity message, not the raw model string" do
         workspace.update!(max_members: 1)
-        create(:membership, workspace: workspace, user: create(:user), role: member_role)
+        create(:membership, workspace: workspace, user: create(:user, :no_authentications), role: member_role)
 
         get verify_settings_connected_accounts_path(token: pending_auth.generate_token_for(:email_verification))
 
@@ -624,7 +624,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
   end
 
   describe "DELETE /account/connected_accounts/:id (last verified method protection) - concurrency" do
-    let(:user) { create(:user) }
+    let(:user) { create(:user, :no_authentications) }
     before { sign_in(user) }
 
     context "destroy under transactional wrap (sanity check)" do

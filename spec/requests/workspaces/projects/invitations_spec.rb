@@ -10,7 +10,7 @@ RSpec.describe "Project Invitations", type: :request do
 
   context "authenticated" do
     let(:workspace) { create(:workspace) }
-    let(:user) { create(:user, :with_verified_email_auth) }
+    let(:user) { create(:user) }
     let!(:ws_membership) { create(:membership, :owner, user: user, workspace: workspace) }
     let(:project) { create(:project, workspace: workspace, created_by: user) }
     let!(:creator_pm) { project.project_memberships.find_by!(user: user) }

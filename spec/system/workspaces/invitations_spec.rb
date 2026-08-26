@@ -3,7 +3,7 @@ require "rails_helper"
 RSpec.describe "Workspace invitations", type: :system do
   include ActiveJob::TestHelper
 
-  let(:admin) { create(:user, :with_verified_email_auth, first_name: "Owner", last_name: "User") }
+  let(:admin) { create(:user, first_name: "Owner", last_name: "User") }
   let(:workspace) { create(:workspace, max_members: 50) }
   let!(:owner_membership) { create(:membership, :owner, user: admin, workspace: workspace) }
 

@@ -15,7 +15,7 @@ RSpec.describe OauthLink do
   end
 
   describe "existing identity (provider+uid already linked)" do
-    let!(:owner) { create(:user, email_address: "owner@example.com") }
+    let!(:owner) { create(:user, :no_authentications, email_address: "owner@example.com") }
     let!(:auth) do
       owner.authentications.create!(
         provider: "google", uid: "uid-1", email: "owner@example.com", verified_at: Time.current
@@ -31,7 +31,7 @@ RSpec.describe OauthLink do
     end
 
     it "returns :collision and alerts the owner when a different signed-in user presents the identity" do
-      eve = create(:user)
+      eve = create(:user, :no_authentications)
 
       outcome = nil
       expect {
@@ -64,7 +64,7 @@ RSpec.describe OauthLink do
 
   describe "signed-in user linking a new provider" do
     let(:actor) do
-      create(:user, email_address: "actor@example.com").tap do |u|
+      create(:user, :no_authentications, email_address: "actor@example.com").tap do |u|
         u.authentications.create!(provider: "email", uid: u.email_address, verified_at: Time.current)
       end
     end
@@ -139,7 +139,7 @@ RSpec.describe OauthLink do
     end
 
     it "attaches the identity to an existing user who owns a verified email auth" do
-      existing = create(:user, email_address: "person@example.com").tap do |u|
+      existing = create(:user, :no_authentications, email_address: "person@example.com").tap do |u|
         u.authentications.create!(provider: "email", uid: u.email_address, verified_at: Time.current)
       end
 
@@ -153,7 +153,7 @@ RSpec.describe OauthLink do
     end
 
     it "returns :failed (C1 collision) when the email belongs to an account without a verified email auth" do
-      create(:user, email_address: "person@example.com").tap do |u|
+      create(:user, :no_authentications, email_address: "person@example.com").tap do |u|
         u.authentications.create!(provider: "email", uid: u.email_address)
       end
 
@@ -191,7 +191,7 @@ RSpec.describe OauthLink do
       end
 
       it "returns :failed when the unverified email already belongs to another account (takeover guard)" do
-        create(:user, email_address: "person@example.com")
+        create(:user, :no_authentications, email_address: "person@example.com")
 
         outcome = nil
         expect {
@@ -244,13 +244,13 @@ RSpec.describe OauthLink do
     end
 
     it "leaves a still-valid join token parked for a pre-existing user (drive-by guard)" do
-      create(:user, email_address: "person@example.com").tap do |u|
+      create(:user, :no_authentications, email_address: "person@example.com").tap do |u|
         u.authentications.create!(provider: "email", uid: u.email_address, verified_at: Time.current)
       end
       allow(Rails.configuration.x.signup).to receive(:permitted_join_strategies)
         .and_return(%i[invite open_link])
       workspace = create(:workspace, personal: false, join_policy: "open_link")
-      link = create(:workspace_join_link, workspace: workspace, created_by: create(:user))
+      link = create(:workspace_join_link, workspace: workspace, created_by: create(:user, :no_authentications))
       Role.find_or_create_by!(slug: "member", workspace_id: nil) { |r| r.name = "Member" }
 
       outcome = described_class.new(

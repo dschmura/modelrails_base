@@ -9,6 +9,27 @@ FactoryBot.define do
     # is non-blocking; this just avoids incidental noise.)
     passkey_prompt_seen_at { Time.current }
 
+    # Every production signup creates an email authentication: magic-link
+    # registration stamps it verified (the mailbox round trip is the proof),
+    # password-set creates it pending on purpose. A user with none is a state
+    # the app cannot reach, so it is the default here rather than a trait
+    # somebody has to remember — the exceptional states are named instead.
+    #
+    # Carried as a transient rather than trait-local callbacks so the outcome
+    # does not depend on the order FactoryBot applies traits in (#850).
+    transient do
+      email_authentication { :verified }
+    end
+
+    after(:create) do |user, evaluator|
+      next if evaluator.email_authentication == :none
+
+      user.authentications.find_or_create_by!(provider: "email") do |auth|
+        auth.uid = user.email_address
+        auth.verified_at = Time.current if evaluator.email_authentication == :verified
+      end
+    end
+
     trait :passkey_prompt_pending do
       passkey_prompt_seen_at { nil }
     end
@@ -20,24 +41,16 @@ FactoryBot.define do
       password_digest { nil }
     end
 
-    # A user who has proven their address — what every production signup path
-    # produces, and what User#can_invite? requires. Factory users skip
-    # registration, so specs that send invitations need this explicitly.
-    trait :with_verified_email_auth do
-      after(:create) do |user|
-        user.authentications.find_or_create_by!(provider: "email") do |auth|
-          auth.uid = user.email_address
-          auth.verified_at = Time.current
-        end
-      end
+    # Has an address on file but has not proven it — what password-set alone
+    # produces. Cannot invite.
+    trait :unverified_email do
+      email_authentication { :pending }
     end
 
-    trait :with_email_auth do
-      after(:create) do |user|
-        user.authentications.find_or_create_by!(provider: "email") do |auth|
-          auth.uid = user.email_address
-        end
-      end
+    # No authentications row at all. Production cannot reach this; it exists
+    # for the specs that are ABOUT its absence.
+    trait :no_authentications do
+      email_authentication { :none }
     end
 
     trait :with_avatar do

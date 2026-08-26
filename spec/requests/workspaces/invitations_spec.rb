@@ -3,7 +3,7 @@ require "rails_helper"
 RSpec.describe "Workspace Invitations", type: :request do
   context "authenticated" do
     let(:workspace) { create(:workspace) }
-    let(:user) { create(:user, :with_verified_email_auth) }
+    let(:user) { create(:user) }
     let!(:membership) { create(:membership, :owner, user: user, workspace: workspace) }
 
     before do
