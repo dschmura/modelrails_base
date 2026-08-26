@@ -1,5 +1,6 @@
 module Workspaces
   class InvitationsController < ApplicationController
+    include InvitationSending
     include WorkspaceScoped
 
     rate_limit to: 10, within: 3.minutes, only: :resend,

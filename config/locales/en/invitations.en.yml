@@ -1,4 +1,6 @@
 en:
+  invitations:
+    unverified_sender: "Verify your email address before sending invitations."
   invitation_mailer:
     invite:
       subject: "You've been invited to %{workspace}"

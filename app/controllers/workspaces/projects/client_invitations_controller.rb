@@ -1,6 +1,7 @@
 module Workspaces
   module Projects
     class ClientInvitationsController < ApplicationController
+      include InvitationSending
       include WorkspaceScoped
       include ProjectScoped
       before_action :ensure_clientside_enabled

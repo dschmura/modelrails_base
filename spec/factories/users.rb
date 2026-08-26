@@ -20,6 +20,18 @@ FactoryBot.define do
       password_digest { nil }
     end
 
+    # A user who has proven their address — what every production signup path
+    # produces, and what User#can_invite? requires. Factory users skip
+    # registration, so specs that send invitations need this explicitly.
+    trait :with_verified_email_auth do
+      after(:create) do |user|
+        user.authentications.find_or_create_by!(provider: "email") do |auth|
+          auth.uid = user.email_address
+          auth.verified_at = Time.current
+        end
+      end
+    end
+
     trait :with_email_auth do
       after(:create) do |user|
         user.authentications.find_or_create_by!(provider: "email") do |auth|
