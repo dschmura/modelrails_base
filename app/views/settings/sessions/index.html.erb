@@ -4,7 +4,7 @@
         title: t("settings.sessions.index.title"),
         description: t("settings.sessions.index.description") %>
 
-  <ul role="list" class="mt-8 space-y-4">
+  <ul role="list" data-testid="device-list" class="mt-8 space-y-4">
     <% @sessions.each do |session| %>
       <% current = session.id == Current.session.id %>
       <%# Single-column stack below lg (#768): the settings sidebar appears at
