@@ -39,6 +39,23 @@ RSpec.describe "the :user factory" do
     end
   end
 
+  it "attaches the authentication on create only — build(:user) carries none" do
+    user = build(:user)
+
+    expect(user.authentications).to be_empty
+    expect(user).not_to be_can_invite
+  end
+
+  it "refuses an unknown email_authentication value instead of guessing" do
+    expect { create(:user, email_authentication: :unverified) }
+      .to raise_error(ArgumentError, /:verified, :pending or :none/)
+  end
+
+  it "resolves combined traits by last-trait-wins, FactoryBot's documented precedence" do
+    expect(create(:user, :unverified_email, :no_authentications).authentications).to be_empty
+    expect(create(:user, :no_authentications, :unverified_email).authentications.sole).not_to be_verified
+  end
+
   describe ":no_authentications" do
     it "builds the account with none at all, for specs about that edge" do
       user = create(:user, :no_authentications)

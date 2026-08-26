@@ -1,6 +1,11 @@
 FactoryBot.define do
   factory :user do
-    email_address { Faker::Internet.email }
+    # Sequence-prefixed so uniqueness is impossible to violate by construction,
+    # not merely improbable — the authentications default below mirrors this
+    # address into the GLOBAL (provider, uid) unique index on every create,
+    # where a Faker collision would surface as RecordInvalid from inside the
+    # factory callback, on a row the failing spec never mentions (#856).
+    sequence(:email_address) { |n| "user-#{n}-#{Faker::Internet.email}" }
     password { "SecureP@ssw0rd123!" }
     first_name { Faker::Name.first_name }
     last_name { Faker::Name.last_name }
@@ -9,24 +14,34 @@ FactoryBot.define do
     # is non-blocking; this just avoids incidental noise.)
     passkey_prompt_seen_at { Time.current }
 
-    # Every production signup creates an email authentication: magic-link
-    # registration stamps it verified (the mailbox round trip is the proof),
-    # password-set creates it pending on purpose. A user with none is a state
-    # the app cannot reach, so it is the default here rather than a trait
-    # somebody has to remember — the exceptional states are named instead.
+    # Every production signup leaves at least one authentication: magic-link
+    # registration creates the email row verified (the mailbox round trip is
+    # the proof), password-set creates it pending on purpose, and OAuth signup
+    # creates a verified provider row with no email row at all. A user with
+    # ZERO authentications is the state production cannot reach. The default
+    # here is the magic-link shape — the most common one in a passwordless-
+    # first template — and the exceptional states are named traits.
     #
-    # Carried as a transient rather than trait-local callbacks so the outcome
-    # does not depend on the order FactoryBot applies traits in (#850).
+    # Carried on a transient read by ONE callback, so combining traits resolves
+    # by FactoryBot's documented last-trait-wins override precedence instead of
+    # by which trait-local callback happened to run first — a second callback's
+    # find_or_create_by! would have found the first's row and silently kept its
+    # verified_at (#850).
     transient do
       email_authentication { :verified }
     end
 
     after(:create) do |user, evaluator|
-      next if evaluator.email_authentication == :none
-
-      user.authentications.find_or_create_by!(provider: "email") do |auth|
-        auth.uid = user.email_address
-        auth.verified_at = Time.current if evaluator.email_authentication == :verified
+      case evaluator.email_authentication
+      when :none then next
+      when :verified, :pending
+        user.authentications.create!(
+          provider: "email",
+          uid: user.email_address,
+          verified_at: (Time.current if evaluator.email_authentication == :verified)
+        )
+      else
+        raise ArgumentError, "email_authentication must be :verified, :pending or :none, "                              "got #{evaluator.email_authentication.inspect}"
       end
     end
 
@@ -47,8 +62,11 @@ FactoryBot.define do
       email_authentication { :pending }
     end
 
-    # No authentications row at all. Production cannot reach this; it exists
-    # for the specs that are ABOUT its absence.
+    # No authentications row of any provider. Production cannot reach this;
+    # use it when the example constructs its own authentication rows (the
+    # default's email row would collide — provider is unique per user) or
+    # asserts their absence. If you are about to hand-build a VERIFIED email
+    # row on top of this, you wanted the plain default.
     trait :no_authentications do
       email_authentication { :none }
     end
