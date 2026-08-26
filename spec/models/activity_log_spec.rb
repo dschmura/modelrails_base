@@ -111,6 +111,35 @@ RSpec.describe ActivityLog, type: :model do
     end
   end
 
+  describe ".security_events_for" do
+    let(:user) { create(:user) }
+
+    it "returns only SECURITY_ACTIONS rows for that user, newest first" do
+      travel_to(2.hours.ago) { ActivityLog.record_security_event!(action: "user.passkey_added", user: user) }
+      newest = ActivityLog.record_security_event!(action: "user.password_changed", user: user)
+      # Same user, personal visibility, but not a security action — the case
+      # a visibility-keyed query would wrongly include (#827).
+      ActivityLog.create!(action: "workspace.updated", actor: user,
+                          trackable: user, visibility: "personal")
+      ActivityLog.record_security_event!(action: "user.password_changed", user: create(:user))
+
+      result = ActivityLog.security_events_for(user)
+
+      expect(result.map(&:action)).to eq([ "user.password_changed", "user.passkey_added" ])
+      expect(result.first).to eq(newest)
+    end
+
+    # Without created_at on the trackable index, LIMIT does not bound the work:
+    # SQLite materializes every row for the user, builds a temp B-tree, sorts,
+    # then discards all but 10 (#823).
+    it "sorts on the index rather than in a temp B-tree" do
+      plan = ActivityLog.security_events_for(user).limit(10).explain.inspect
+      expect(plan).to include("index_activity_logs_on_trackable_and_created_at")
+      expect(plan).not_to include("USE TEMP B-TREE FOR ORDER BY")
+      expect(plan).not_to match(/SCAN activity_logs[^_]/)
+    end
+  end
+
   describe "personal visibility" do
     it "accepts visibility: personal" do
       user = create(:user)
