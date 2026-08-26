@@ -21,11 +21,10 @@ RSpec.describe "Settings::Notifications record-preload guard", type: :request do
       WorkspaceMemberAddedNotifier
       WorkspaceRoleChangedNotifier
       ProjectMembershipChangedNotifier
-      WorkspaceInvitationReceivedNotifier
+      WorkspaceInvitationResentNotifier
       WorkspaceInvitationAcceptedNotifier
       WorkspaceInvitationDeclinedNotifier
       WorkspaceInvitationExpiringSoonNotifier
-      WorkspaceInvitationResentNotifier
     ]
   end
 
@@ -73,7 +72,7 @@ RSpec.describe "Settings::Notifications record-preload guard", type: :request do
 
       create(:project_membership, user: user)
 
-      WorkspaceInvitationReceivedNotifier.with(record: project_invitation).deliver(user)
+      WorkspaceInvitationResentNotifier.with(record: project_invitation).deliver(user)
       WorkspaceInvitationAcceptedNotifier
         .with(record: project_invitation(accepted_by: create(:user))).deliver(user)
       WorkspaceInvitationDeclinedNotifier.with(record: project_invitation).deliver(user)

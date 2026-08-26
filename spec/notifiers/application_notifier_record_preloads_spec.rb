@@ -60,8 +60,11 @@ RSpec.describe ApplicationNotifier, "record preloads" do
     it "walks nested declarations per concrete class, skipping classes without the association" do
       workspace_invitation = create(:invitation, invitable: create(:workspace), email: recipient.email_address)
       project_invitation = create(:invitation, :client, email: recipient.email_address)
-      WorkspaceInvitationExpiringSoonNotifier.with(record: workspace_invitation).deliver(recipient)
-      WorkspaceInvitationExpiringSoonNotifier.with(record: project_invitation).deliver(recipient)
+      # ExpiringSoon dropped its nested declaration when its copy went neutral
+      # (it no longer traverses to the workspace), so the nested-walk case needs
+      # a notifier that still declares one.
+      WorkspaceInvitationResentNotifier.with(record: workspace_invitation).deliver(recipient)
+      WorkspaceInvitationResentNotifier.with(record: project_invitation).deliver(recipient)
       notifications = reloaded_notifications_for(recipient)
 
       ApplicationNotifier.preload_records(notifications)

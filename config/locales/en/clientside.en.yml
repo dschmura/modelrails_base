@@ -40,9 +40,9 @@ en:
           share_with_client: "Share with the client side"
   invitation_mailer:
     invite_client:
-      subject: "You've been invited to %{project}"
+      subject: "You've been invited to collaborate on %{app_name}"
       greeting: "Hello,"
-      body: "%{inviter} shared the project %{project} with you."
+      body: "%{inviter} has invited you to collaborate on a project on %{app_name}. The project is named on the page you land on when you accept or decline."
       action: "View the invitation"
   activerecord:
     errors:
