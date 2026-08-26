@@ -105,6 +105,7 @@ en:
           password_changed: "Password changed"
           password_removed: "Password removed"
           signed_in_new_device: "Signed in from a new device"
+          signed_in_new_device_with_os: "Signed in from a new device (%{os})"
           passkey_added: "Passkey added"
           passkey_removed: "Passkey removed"
     other_sessions:
