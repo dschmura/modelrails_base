@@ -89,6 +89,48 @@ RSpec.describe "Account Passwords", type: :request do
       end
     end
 
+    describe "POST /account/password against an existing email authentication" do
+      it "finds the row by provider even when its uid is stale (#865)" do
+        # The unique index is (user_id, provider); a finder keyed on uid
+        # misses the existing row after the address changed underneath it and
+        # attempts a duplicate. update_column manufactures the stale uid the
+        # way a bypassed email-change sync would.
+        stale = create(:user, :unverified_email, password: nil)
+        stale.update_column(:email_address, "moved@example.com")
+        sign_in(stale)
+
+        expect {
+          post settings_password_path, params: {
+            user: { password: "NewSecureP@ss123!", password_confirmation: "NewSecureP@ss123!" }
+          }
+        }.not_to change { stale.authentications.email.count }
+
+        expect(response).to redirect_to(settings_connected_accounts_path)
+        expect(stale.reload.has_password?).to be(true)
+      end
+
+      it "sets the password and creates the authentication atomically (#821)" do
+        # No stubs: the block's INSERT fails for real, against the GLOBAL
+        # (provider, uid) uniqueness, because another account already holds an
+        # email row under this address. A crash between the two writes must
+        # not strand a password without its authentication — so the password
+        # save rolls back with it.
+        victim = create(:user, :oauth_only, password: nil, email_address: "contested@example.com")
+        squatter = create(:user, :no_authentications)
+        squatter.authentications.create!(provider: "email", uid: "contested@example.com")
+        sign_in(victim)
+
+        post settings_password_path, params: {
+          user: { password: "NewSecureP@ss123!", password_confirmation: "NewSecureP@ss123!" }
+        }
+
+        # show_exceptions :rescuable renders RecordInvalid as 422 rather than
+        # propagating (unlike :161's StatementInvalid, which is 500-class).
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(victim.reload.has_password?).to be(false)
+      end
+    end
+
     describe "PATCH /settings/password (change)" do
       before { sign_in(user) }
 
