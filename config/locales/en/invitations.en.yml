@@ -26,6 +26,7 @@ en:
         no_assignable_roles: "You don't have permission to assign any of this workspace's roles, so you can't send invitations."
       create:
         sent: "%{sent} invitation(s) sent. %{skipped} skipped."
+        capped: "Only the first %{cap} addresses were invited — send the rest in another batch."
         magic_link_created: "Magic link created."
       destroy:
         revoked: "Invitation revoked."
