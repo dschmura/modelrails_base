@@ -1,7 +1,7 @@
 ---
 title: Notifications — Technical Reference
 description: Architecture, broadcast pipeline, persistence schema, and operational concerns for the notifications system
-keywords: notifications architecture noticed gem turbo streams broadcasts broadcaster indicator recipients gating idempotency value object pundit cleanup retention digest mailer seen_at quiet hours placeholder deleted record schema bullet
+keywords: notifications architecture noticed gem turbo streams broadcasts broadcaster indicator recipients gating idempotency value object pundit cleanup retention digest mailer seen_at quiet hours placeholder deleted record schema bullet audit trail activity log security event password passkey new device sign-in retention floor strict best-effort account activity
 ---
 
 # Notifications — Technical Reference
@@ -349,7 +349,7 @@ The three security notifiers above each pair with a row in `ActivityLog` — a s
 
 | Event | ActivityLog write | Guarantee | Other corroborating record |
 |---|---|---|---|
-| Password set / changed / removed | `User#audit_password_digest_change` (`after_update`) | **Strict** — same transaction as the `password_digest` write, no rescue; a failed audit row fails the credential write | — |
+| Password set / changed / removed | `User#audit_password_digest_change` (`after_update`) | **Strict** — same transaction as the `password_digest` write, no rescue; a failed audit row fails the credential write. Note the consequence when the credential change *is* a compromise response: the rollback also leaves the user's other sessions alive, since revocation commits with the rotation — they die when the rotation is retried successfully | — |
 | Passkey added / removed | `WebauthnCredential#audit_added` (`after_create`) / `#discard!` | **Strict** — same transaction as the credential row; removal is a `Discardable` soft delete, not a destroy. Removal is deliberately *not* a callback: `discard!` claims the kept → discarded transition with a compare-and-swap and audits only if it won, because a callback cannot see another request's commit and two concurrent removals would each write a row. Enrollment stays a callback — the `external_id` unique index makes a duplicate create impossible | The soft-deleted `webauthn_credentials` row itself (`discarded_at` set, row not gone) |
 | Sign-in from a new device | `Authenticatable#detect_and_record_new_device` | **Best-effort** — inside that method's own `rescue ActiveRecord::ActiveRecordError`; a failed audit write must never fail a sign-in | The `Session` row created moments earlier (the primary sign-in record; retained up to `absolute_timeout`, 90 days), and the user's `last_known_browsers` JSON column (a bounded LRU used only to decide "is this browser new?" — a fingerprint cache, not itself durable evidence) |
 
