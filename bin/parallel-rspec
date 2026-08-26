@@ -188,8 +188,23 @@ class ParallelRspecRunner
     # `config.formatters.empty?` side-effect (#496). parallel_tests reads its
     # worker summaries from this formatter, so it must stay present.
     targets = shard_file_list || [ "spec" ]
-    system("bundle", "exec", "parallel_rspec", *targets, "--test-options", "-f progress") ||
-      abort("parallel-rspec: spec failures (see output above)")
+
+    # Every worker runs the SAME ordering seed, and the seed is always printed.
+    #
+    # Before this, `config.order = :random` (spec/spec_helper.rb) meant each of
+    # the 32 processes in a CI run picked its own seed and recorded it nowhere,
+    # so no flake here was ever replayable — every diagnosis was a story rather
+    # than a reproduction, and the standing remedy became "raise a timeout"
+    # (panel audit, 2026-08-26). `SEED=<n> bin/parallel-rspec` now replays a
+    # failing interleaving; the file split is already deterministic from the
+    # frozen snapshot, so the same SEED plus the same shard reproduces it.
+    # Plain Ruby: this script runs outside Rails, so no ActiveSupport here.
+    seed = ENV["SEED"].to_s.empty? ? rand(100_000).to_s : ENV["SEED"]
+    puts "==> Ordering seed: #{seed}  (replay with SEED=#{seed} bin/parallel-rspec)"
+
+    system("bundle", "exec", "parallel_rspec", *targets,
+           "--test-options", "-f progress --seed #{seed}") ||
+      abort("parallel-rspec: spec failures (see output above; SEED=#{seed})")
   end
 
   def enforce_coverage!
