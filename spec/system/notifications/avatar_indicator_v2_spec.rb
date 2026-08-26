@@ -8,7 +8,7 @@ RSpec.describe "Avatar notification indicator v2", type: :system do
   def deliver_danger;  PasswordChangedNotifier.with(record: user).deliver(user); end
   def deliver_info
     invitation = create(:invitation, email: user.email_address)
-    WorkspaceInvitationReceivedNotifier.with(record: invitation).deliver(user)
+    WorkspaceInvitationResentNotifier.with(record: invitation).deliver(user)
   end
   def deliver_warning
     workspace = create(:workspace)
