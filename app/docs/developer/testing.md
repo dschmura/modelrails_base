@@ -38,6 +38,19 @@ A cache miss is harmless: the split falls back to file size — still correct, j
 
 ## Conventions and guards
 
+#### What a `SEED=` replay does and does not reproduce
+
+`SEED=<n> bin/parallel-rspec` replays a failing interleaving: every worker runs
+the same ordering seed, and — because the live runtime log changes between runs
+— an explicit `SEED` also pins worker grouping to file size and stands the
+runtime logger down, so a replay is deterministic from the working tree alone
+and never overwrites the balance data. What it does **not** reproduce is
+Faker-derived *data* from a run under a different file-to-worker mapping: each
+worker's Faker stream position depends on which files it ran and in what order.
+A clean replay therefore rules out an ordering flake, not a data-dependent one
+— before concluding "cannot reproduce", check whether the failing assertion
+involves Faker-generated values (see #856-class collisions).
+
 ### The code-smells suite
 
 `spec/code_smells/` holds specs that enforce project conventions structurally rather than by review. Examples: `mutating_actions_are_authorized_spec.rb` fails if a POST/PATCH/PUT/DELETE action neither calls `authorize` nor sits on the reviewed allow-list, and `no_unscoped_tenant_loads_spec.rb` fails on unscoped tenant finders in controllers (see [Extending](/docs/developer/extending)).
