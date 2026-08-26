@@ -3,6 +3,12 @@ module Settings
     layout "settings"
 
     before_action :require_reauthentication!, only: [ :create, :update, :destroy ]
+    # Every credential mutation shares one budget, matching the sibling
+    # settings controllers (#819). Each mutation writes an ActivityLog row
+    # retained under the 365-day security floor, so the endpoint has a durable
+    # side effect per request.
+    rate_limit to: 10, within: 3.minutes, only: [ :create, :update, :destroy ],
+      with: -> { redirect_to settings_connected_accounts_path, alert: t("settings.passwords.rate_limited") }
 
     def new
       redirect_to edit_settings_password_path if Current.user.has_password?

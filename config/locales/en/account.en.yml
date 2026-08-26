@@ -27,6 +27,7 @@ en:
       destroy:
         cancelled: "Email change cancelled."
     passwords:
+      rate_limited: "Too many password changes. Please wait a few minutes and try again."
       new:
         title: "Set a password"
         instructions: "Add email and password sign-in to your account."

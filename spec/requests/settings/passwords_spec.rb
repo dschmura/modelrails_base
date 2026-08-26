@@ -175,6 +175,22 @@ RSpec.describe "Account Passwords", type: :request do
       end
     end
 
+    describe "rate limiting (#819)" do
+      before { sign_in(user) }
+
+      it "redirects with an alert once the shared credential-mutation limit is exceeded" do
+        # rate_limit counts via Rails.cache.increment; return an over-limit
+        # count so the limiter fires without a persistent cache (house pattern,
+        # see avatars_spec).
+        allow(Rails.cache).to receive(:increment).and_return(11)
+
+        delete settings_password_path
+
+        expect(response).to redirect_to(settings_connected_accounts_path)
+        expect(flash[:alert]).to eq(I18n.t("settings.passwords.rate_limited"))
+      end
+    end
+
     describe "GET /settings/password/new for a user who already has a password" do
       before { sign_in(user) }
 
