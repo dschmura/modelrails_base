@@ -28,6 +28,7 @@ RSpec.describe "Project tools", type: :system do
 
     # Project home — Docs tab should no longer appear
     visit workspace_project_path(workspace, project)
+    expect(page).to have_css("h1", text: project.name)
     expect(page).to have_no_link("Docs & Files")
   end
 end

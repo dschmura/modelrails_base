@@ -170,6 +170,7 @@ RSpec.describe "Members table", type: :system do
       sign_in_via_form(regular)
       expect(page).to have_css("#user-menu-button")
       visit workspace_members_path(workspace)
+      expect(page).to have_css("h1", text: I18n.t("settings.pages.workspace_members.h1_html"))
       expect(page).not_to have_link(I18n.t("workspaces.members.index.invite_member"))
     end
   end
