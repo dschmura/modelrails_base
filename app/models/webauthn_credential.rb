@@ -10,10 +10,9 @@ class WebauthnCredential < ApplicationRecord
 
   # Strict tier (notifications lifecycle arc): enrollment/removal are
   # credential mutations — the audit row commits with them or not at all.
-  # Removal hooks the Discardable update the same way rather than
-  # after_discard, so the row and the discard share one transaction.
+  # Enrollment stays a callback: a duplicate create can't happen, the
+  # external_id unique index sees to that. Removal can't — see discard! below.
   after_create :audit_added
-  after_update :audit_removed, if: :newly_discarded?
 
   # Atomic advance with clone detection: a single UPDATE guarded by the current
   # count, so concurrent assertions can't both "advance" past the same value.
@@ -30,20 +29,38 @@ class WebauthnCredential < ApplicationRecord
     reload
   end
 
-  private
+  # Claims the kept -> discarded transition atomically, and audits only if this
+  # caller won it. Returns whether it won.
+  #
+  # Discardable#discard! is an unconditional update!, so two requests that each
+  # loaded a kept record both write a removal row: SQLite serializes the writers
+  # but does not make the second re-read, and dirty tracking only ever sees that
+  # instance's own stale nil (#826). This row is the only record that a passkey
+  # was removed — no notifier corroborates it — so a duplicate misreports one
+  # removal as two. The compare-and-swap is the same shape as
+  # advance_sign_count! above, for the same reason.
+  #
+  # undiscard! then discard! is a genuine second removal and still audits: the
+  # CAS predicate is satisfied again once discarded_at is back to nil.
+  def discard!
+    won = false
 
-  # The kept -> discarded EDGE, not merely "discarded_at changed and is set".
-  # Discardable#discard! is an unconditional update!, so a repeat call restamps
-  # discarded_at and would write a second removal row — and this row is the only
-  # record that a passkey was removed, so a duplicate misreports one removal as
-  # two. undiscard! followed by discard! is a genuine second removal and still
-  # writes, because discarded_at was nil before that save.
-  def newly_discarded?
-    saved_change_to_discarded_at? && discarded_at.present? && discarded_at_before_last_save.nil?
+    transaction do
+      claimed = self.class.where(id: id, discarded_at: nil)
+                  .update_all(discarded_at: Time.current, updated_at: Time.current)
+      next if claimed.zero?
+
+      won = true
+      reload
+      audit!("user.passkey_removed")
+    end
+
+    won
   end
 
+  private
+
   def audit_added = audit!("user.passkey_added")
-  def audit_removed = audit!("user.passkey_removed")
 
   def audit!(action)
     ActivityLog.record_security_event!(action: action, user: user, metadata: { nickname: nickname })

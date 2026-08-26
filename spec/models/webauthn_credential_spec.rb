@@ -43,7 +43,32 @@ RSpec.describe WebauthnCredential do
         .to change { ActivityLog.where(action: "user.passkey_added", visibility: "personal").count }.by(1)
     end
 
-    it "writes user.passkey_removed on discard" do
+  # SQLite serializes the two writers but does not make the second re-read.
+  # discarded_at_before_last_save is in-memory dirty tracking: it distinguishes
+  # a repeat discard! on the SAME object, and says nothing about a second
+  # request holding its own stale copy (#826). Two instances loaded while the
+  # record was kept reproduce that deterministically, no threads needed.
+  it "writes one removal row when two separately-loaded instances both discard" do
+    credential # Ruling R7: materialize before the count block.
+    first = WebauthnCredential.find(credential.id)
+    second = WebauthnCredential.find(credential.id)
+
+    expect {
+      first.discard!
+      second.discard!
+    }.to change { ActivityLog.where(action: "user.passkey_removed").count }.by(1)
+  end
+
+  it "reports whether it won the discard, so a loser can be told apart" do
+    credential
+    first = WebauthnCredential.find(credential.id)
+    second = WebauthnCredential.find(credential.id)
+
+    expect(first.discard!).to be(true)
+    expect(second.discard!).to be(false)
+  end
+
+  it "writes user.passkey_removed on discard" do
       credential
       expect { credential.discard! }
         .to change { ActivityLog.where(action: "user.passkey_removed", trackable: credential.user).count }.by(1)
@@ -73,6 +98,21 @@ RSpec.describe WebauthnCredential do
     it "does not write a row when advancing sign_count" do
       cred = create(:webauthn_credential, sign_count: 5)
       expect { cred.advance_sign_count!(6) }.not_to change { ActivityLog.count }
+    end
+
+    # The removal path's strict-tier guarantee. discard! now claims the
+    # transition with a CAS and audits inside the same transaction (#826), so
+    # this proves the claim rolls back too — not just that the raise escaped.
+    it "rolls back the discard when the removal audit write fails" do
+      credential # Ruling R7: materialize before the stub.
+      allow(ActivityLog).to receive(:record_security_event!)
+        .with(hash_including(action: "user.passkey_removed"))
+        .and_raise(ActiveRecord::StatementInvalid, "boom")
+
+      expect { credential.discard! }.to raise_error(ActiveRecord::StatementInvalid)
+
+      expect(credential.reload.discarded_at).to be_nil
+      expect(WebauthnCredential.kept).to include(credential)
     end
 
     it "rolls back the credential when the audit write fails" do
