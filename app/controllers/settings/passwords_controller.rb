@@ -15,10 +15,16 @@ module Settings
       end
 
       if update_password_with_precheck
-        Current.user.authentications.create!(
+        # PENDING, not verified: setting a password proves control of this
+        # session, not of the mailbox. Stamping verified_at here let
+        # password-set alone satisfy User#can_invite? with no email round
+        # trip. The user now sees the standard verify-your-email prompt, which
+        # is the truth. find_or_create_by so setting a password on an account
+        # that already has an email authentication does not collide — and
+        # never downgrades one that is already verified.
+        Current.user.authentications.find_or_create_by!(
           provider: "email",
-          uid: Current.user.email_address,
-          verified_at: Time.current
+          uid: Current.user.email_address
         )
         redirect_to settings_connected_accounts_path, notice: t(".success")
       else

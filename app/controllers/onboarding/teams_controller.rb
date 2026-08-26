@@ -1,6 +1,7 @@
 module Onboarding
   # Singular `resource :team` maps to a PLURAL controller name.
   class TeamsController < BaseController
+    include InvitationSending
     before_action :require_workspace_with_project
 
     def new

@@ -1,6 +1,7 @@
 module Workspaces
   module Projects
     class InvitationsController < ApplicationController
+      include InvitationSending
       include WorkspaceScoped
       include ProjectScoped
 
