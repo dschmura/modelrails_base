@@ -90,6 +90,12 @@ The Content-Security-Policy is enforced in test exactly as in dev and prod, and 
 
 The support file installs an init script on each example's fresh page — install is page-scoped, and the after-example session reset disposes the page along with its init scripts, so a per-process install would cover only the first example a worker runs (#848; `spec/system/csp_violation_capture_spec.rb` proves the listener survives that reset). The script accumulates violations in `sessionStorage`, so same-tab navigations within an example don't lose them. An after-hook reads *and clears* the list — nothing bleeds across examples — and fails any example that produced a violation. The `ALLOWED_VIOLATIONS` list is empty by design; every future entry needs a written reason.
 
+### Triage note: two cross-cutting hooks can fail any system example
+
+Every system example runs two after-hooks that can fail it for reasons unrelated to its own assertions: the WCAG 2.2 AAA axe audit (both themes, `spec/support/axe_accessibility.rb`) and the CSP-violation gate above. A failure raised inside an `after` hook is **reported against the example**, so an axe or CSP finding reads as a spec-body failure. When triaging a system-spec failure — especially an intermittent one — rule these out first: axe failures name the rule and theme (`[DARK] color-contrast: …`), CSP failures name the blocked directive. Both audit the example's *end* state, which may not be the state the example's own assertions ran against (#855).
+
+The audits are memoized per example on page state + options, so an example that already ran `axe_clean_in_both_themes?` on its final state pays nothing extra in the hook — the memo never skips an audit of state nothing has covered (`spec/system/axe_audit_memo_spec.rb` pins both properties).
+
 ### WebAuthn virtual authenticator
 
 `spec/support/webauthn_virtual_authenticator.rb` provides `with_virtual_authenticator { ... }`, which enables CDP's virtual authenticator (ctap2/internal, resident-key, `automaticPresenceSimulation: true`) so a system spec can drive real `navigator.credentials.create`/`get` calls with every gesture auto-approved.

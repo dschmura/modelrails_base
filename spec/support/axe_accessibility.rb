@@ -68,10 +68,24 @@ module AxeAccessibility
     }
     options[:rules] = AXE_RULE_OVERRIDES.merge(options[:rules] || {})
 
-    inject_axe
-
     exclude_list = Array(exclude)
     include_list = Array(include)
+
+    # Per-example memo (#855): the same page state audited with the same
+    # normalized options returns the cached result. Before this, a
+    # `axe_clean_in_both_themes?` call site paid SIX audits — two for the
+    # check, two for the eagerly evaluated failure-message argument, and two
+    # in the after-hook — all on identical state. Keyed on a DOM fingerprint
+    # (so a theme flip, toast style mutation, or any markup change is a miss)
+    # plus the full option set (so a component-scoped audit can never satisfy
+    # the hook's full-page pass). Misses only ever run a real audit — the
+    # unsafe direction does not exist. spec/system/axe_audit_memo_spec.rb
+    # pins both properties.
+    memo_key = [ axe_page_fingerprint, options, exclude_list, include_list ]
+    @__axe_audit_memo ||= {}
+    return @__axe_audit_memo[memo_key] if @__axe_audit_memo.key?(memo_key)
+
+    inject_axe
 
     # Ferrum's evaluate_async appends a resolve callback as the LAST argument of
     # the wrapping function; the async IIFE reaches it via
@@ -361,7 +375,33 @@ module AxeAccessibility
       raise "axe-core audit failed in the browser: #{result["__axe_error"]}\n#{result["__axe_stack"]}"
     end
 
-    result
+    @__axe_audit_run_count = axe_audit_run_count + 1
+    @__axe_audit_memo[memo_key] = result
+  end
+
+  # Real (non-memoized) audits this example has run — the observability handle
+  # for axe_audit_memo_spec.
+  def axe_audit_run_count
+    @__axe_audit_run_count ||= 0
+  end
+
+  # Cheap in-browser rolling hash of the document, plus the focused element
+  # and URL — anything axe could see differently changes it. An unqueryable
+  # page returns a never-equal key, so the fallback direction is always a
+  # fresh audit, never a stale reuse.
+  def axe_page_fingerprint
+    digest = page.evaluate_script(<<~JS)
+      (() => {
+        const s = document.documentElement.outerHTML;
+        let h = 0;
+        for (let i = 0; i < s.length; i++) { h = (Math.imul(h, 31) + s.charCodeAt(i)) | 0; }
+        const ae = document.activeElement;
+        return h + ":" + (ae ? ae.tagName + "#" + (ae.id || "") : "none");
+      })()
+    JS
+    [ page.current_url, digest ]
+  rescue StandardError
+    Object.new
   end
 
   def axe_clean?(options = {}, exclude: DEFERRED_AAA_EXCLUDES, include: nil)
