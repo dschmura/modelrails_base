@@ -127,6 +127,14 @@ RSpec.describe "Settings::Sessions", type: :request do
       Nokogiri::HTML(body).css("[data-testid='account-activity-item']")
     end
 
+    # The label half of a row, with the timestamp removed — so an assertion
+    # about what the label says cannot be satisfied by text from the <time>.
+    def activity_label(row)
+      row = row.dup
+      row.css("time").remove
+      row.text.strip
+    end
+
     it "lists the user's personal rows newest first, capped at 10" do
       # 12 rows an hour apart: the oldest 2 must be excluded, and the
       # remaining 10 must render in descending time order — not merely
@@ -211,7 +219,62 @@ RSpec.describe "Settings::Sessions", type: :request do
       expect(row.text).not_to include("translation missing")
     end
 
-    it "never renders metadata" do
+    # Three reviewers, independently: "about 5 hours ago" is not enough to
+    # decide whether an unfamiliar sign-in was yours. The exact moment was
+    # already sitting in the `datetime` attribute, machine-readable and shown
+    # to nobody. `title` surfaces it without displacing the scannable
+    # relative text.
+    #
+    # Tokyo is deliberate: 21:30 UTC is 06:30 the NEXT DAY there, so ignoring
+    # the user's timezone fails on the date and the hour, not merely on the
+    # zone suffix.
+    it "carries the exact moment, in the user's timezone, as the time's title" do
+      user.create_preferences!(timezone: "Asia/Tokyo")
+
+      travel_to(Time.utc(2026, 8, 26, 21, 30)) do
+        create(:activity_log, action: "user.password_changed", actor: user,
+                               trackable: user, visibility: "personal")
+      end
+
+      get settings_sessions_path
+
+      expect(activity_items(response.body).first.at_css("time")["title"])
+        .to eq("August 27, 2026 at 6:30 AM JST")
+    end
+
+    # #832 — the OS on a new-device sign-in is the ONE metadata field that
+    # renders. "Signed in from a new device" alone gives a user nothing to
+    # recognise or disown; naming the platform is what makes the row
+    # actionable. The value is one of six literals the user-agent parser
+    # emits, never free text and never attacker-chosen.
+    it "names the OS on a new-device sign-in" do
+      create(:activity_log, action: "user.signed_in_new_device", actor: user,
+                             trackable: user, visibility: "personal",
+                             metadata: { os: "Windows" })
+
+      get settings_sessions_path
+
+      expect(activity_label(activity_items(response.body).first))
+        .to eq("Signed in from a new device (Windows)")
+    end
+
+    # Rows written before the OS was captured, and any fork whose parser
+    # returns nothing, still have to read as a sentence.
+    it "falls back to the bare label for a device row with no OS recorded" do
+      create(:activity_log, action: "user.signed_in_new_device", actor: user,
+                             trackable: user, visibility: "personal", metadata: {})
+
+      get settings_sessions_path
+
+      expect(activity_label(activity_items(response.body).first))
+        .to eq(I18n.t("settings.sessions.activity.user.signed_in_new_device"))
+    end
+
+    # The exception is sanctioned by the LOCALE, not by the metadata: an
+    # `os` key on an action whose label does not interpolate one renders
+    # nothing extra. That is what keeps the nickname — user-supplied free
+    # text — off the page without a second guard to remember.
+    it "renders no metadata on actions whose label does not name any" do
       create(:activity_log, action: "user.passkey_added", actor: user, trackable: user,
                              visibility: "personal", metadata: { os: "macOS", nickname: "Dave's laptop" })
 
@@ -219,13 +282,10 @@ RSpec.describe "Settings::Sessions", type: :request do
 
       # Through the parsed row, not the raw body: ERB escapes the apostrophe to
       # &#39;, so a raw-body include("Dave's laptop") could never fail even if
-      # the view did render the nickname — and nickname is the more sensitive
-      # half, being user-supplied free text. The label assertion keeps this
-      # honest: it proves the row rendered at all.
-      row = activity_items(response.body).first
-      expect(row.text).to include(I18n.t("settings.sessions.activity.user.passkey_added"))
-      expect(row.text).not_to include("macOS")
-      expect(row.text).not_to include("Dave's laptop")
+      # the view did render the nickname. Equality, not include, so anything
+      # appended to the label fails.
+      expect(activity_label(activity_items(response.body).first))
+        .to eq(I18n.t("settings.sessions.activity.user.passkey_added"))
     end
   end
 end
