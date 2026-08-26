@@ -56,6 +56,21 @@ RSpec.describe "the :user factory" do
     expect(create(:user, :no_authentications, :unverified_email).authentications.sole).not_to be_verified
   end
 
+  describe ":oauth_only" do
+    it "builds the OAuth-signup shape: one verified provider row, no email row" do
+      user = create(:user, :oauth_only)
+
+      auth = user.authentications.sole
+      expect(auth.provider).to eq("google")
+      expect(auth).to be_verified
+      expect(user.authentications.email).to be_empty
+    end
+
+    it "can invite — the provider vouched for the address" do
+      expect(create(:user, :oauth_only)).to be_can_invite
+    end
+  end
+
   describe ":no_authentications" do
     it "builds the account with none at all, for specs about that edge" do
       user = create(:user, :no_authentications)
