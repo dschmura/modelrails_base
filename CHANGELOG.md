@@ -106,6 +106,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 ### Fixed
 
 - Setting a first password commits the password and its email authentication atomically — a failure between the two no longer strands a password without its sign-in method — and the existing email authentication is found by provider rather than by an address that may have changed underneath it, which previously answered a legitimate password set with a validation error (#821, #865).
+- Ten system-spec absence assertions are now anchored — each visited a page and asserted only absence, so a 500, a redirect, or a blank page kept them green (one guarded whether destructive workspace controls stay hidden). Each now first asserts something the intended page must render, and a new code-smell guard fails any future post-navigation negation that lacks such an anchor (#853).
 - Password removal no longer fails when the account is invalid for reasons unrelated to credentials (an attachment allowlist tightening, say) — removal skips full-record validation while the audit row and removal notification still fire (#820).
 
 - Demoting the last Owner through the role picker is now refused (previously only deactivation was guarded) — `Membership#change_role!` runs an owner-floor check inside the same locked transaction and rolls back, surfacing "You can't demote the last owner. Transfer ownership or promote another owner first." The error is delivered as a toast so it survives the inline-edit Turbo Frame.
