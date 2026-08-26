@@ -185,7 +185,10 @@ RSpec.describe OauthLink do
       end
 
       it "returns :failed when the unverified email already belongs to another account (takeover guard)" do
-        create(:user, :no_authentications, email_address: "person@example.com")
+        # The other account is the production shape -- a verified email auth.
+        # The guard must hold against an account that can exist, not only
+        # against the zero-auth state production cannot produce (#850 panel).
+        create(:user, email_address: "person@example.com")
 
         outcome = nil
         expect {
