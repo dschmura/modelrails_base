@@ -40,8 +40,8 @@ RSpec.describe "Email verifications", type: :request do
     end
   end
 
-  let(:user) { create(:user, :no_authentications) }
-  let(:authentication) { create(:authentication, user: user) }
+  let(:user) { create(:user, :unverified_email) }
+  let(:authentication) { user.authentications.email.sole }
 
   describe "GET /email_verification" do
     context "with valid token" do

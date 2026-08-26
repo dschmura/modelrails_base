@@ -62,6 +62,27 @@ FactoryBot.define do
       email_authentication { :pending }
     end
 
+    # The OAuth-signup shape: one verified provider row and NO email row —
+    # what a verified Google/GitHub signup actually creates (see
+    # app/lib/oauth_link.rb). The second reachable "signed-up user" in
+    # production, and the honest fixture for any example whose subject is a
+    # user with no email authentication. The uid derives from the row's own
+    # user, so it is unique by construction. Combining with the email traits
+    # is additive: this row is created regardless, and the email transient
+    # still resolves last-wins.
+    trait :oauth_only do
+      email_authentication { :none }
+
+      after(:create) do |user|
+        user.authentications.create!(
+          provider: "google",
+          uid: "google-uid-#{user.id}",
+          email: user.email_address,
+          verified_at: Time.current
+        )
+      end
+    end
+
     # No authentications row of any provider. Production cannot reach this;
     # use it when the example constructs its own authentication rows (the
     # default's email row would collide — provider is unique per user) or
