@@ -80,3 +80,23 @@ RSpec.describe "the :user factory" do
     end
   end
 end
+
+# The `:authentication` factory drew uids from a bare PRNG against the unique
+# (provider, uid) index — #456's collision class, patched downstream but never
+# removed at the source (#856). These pin uniqueness by construction.
+RSpec.describe "the :authentication factory" do
+  it "mirrors production: an email authentication's uid is its user's address" do
+    auth = create(:authentication)
+
+    expect(auth.uid).to eq(auth.user.email_address)
+  end
+
+  it "keeps OAuth uids unique even when the PRNG repeats itself" do
+    allow(Faker::Number).to receive(:number).and_return(12345678)
+
+    expect {
+      2.times { create(:authentication, :github) }
+      2.times { create(:authentication, :google) }
+    }.not_to raise_error
+  end
+end
