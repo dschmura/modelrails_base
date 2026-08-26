@@ -105,6 +105,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Fixed
 
+- Runtime CSP-violation capture now covers every system example — the listener install was memoized on the long-lived browser while the page-scoped init script died with each example's session reset, so only the first example per worker process was actually listening; the install is now per-example, and a harness self-test proves the listener survives a reset (#848).
 - Setting a first password commits the password and its email authentication atomically — a failure between the two no longer strands a password without its sign-in method — and the existing email authentication is found by provider rather than by an address that may have changed underneath it, which previously answered a legitimate password set with a validation error (#821, #865).
 - Password removal no longer fails when the account is invalid for reasons unrelated to credentials (an attachment allowlist tightening, say) — removal skips full-record validation while the audit row and removal notification still fire (#820).
 
