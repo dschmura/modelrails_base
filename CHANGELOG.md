@@ -89,6 +89,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 - Documented that account lockout scopes to password sign-in only, by design (SEC-12, #592).
 - sqlite3 bumped to 2.9.6 for GHSA-mwm8-39rw-8826 (#599).
 - CI/workflow hardening — the Dependabot-checksums job checks out the exact SHA the author gate evaluated (TOCTOU), a shard secret race is closed, and a throttle-store leak is fixed (#783).
+- A single invitation submission is capped at 20 addresses. The controller's rate limit bounded how often someone could submit; nothing bounded how far one submission could fan out. The cap is never applied silently — mid-flow the invitations that fit are sent and the remainder reported, and during first-run onboarding the submission is refused so the list can be trimmed rather than half-processed.
 
 ### Fixed
 
