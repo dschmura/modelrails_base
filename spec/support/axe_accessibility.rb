@@ -53,11 +53,19 @@ module AxeAccessibility
   # messages reveal the cascade reality at scan time. See §2b flake
   # investigation for the motivating case.
   def run_axe_audit(options = {}, exclude: DEFERRED_AAA_EXCLUDES, include: nil)
-    # Callers may narrow runOnly further, but the rule overrides (target-size
-    # enablement) always apply, and an options hash with no runOnly gets the
-    # full cumulative tag set rather than axe's open-ended default.
+    # A caller's runOnly tags are ADDED to the cumulative set, never swapped
+    # for it (#829). `||=` meant a caller-supplied value replaced AXE_TAG_SET
+    # outright, so the 32 system specs passing ["wcag2aaa"] audited the three
+    # AAA-tagged rules and skipped the entire A/AA foundation — labels, alt
+    # text, accessible names, document titles — while the harness self-test
+    # stayed green, because it exercises the default path these callers
+    # bypass. Narrowing coverage must not be something a caller can do by
+    # accident; adding a tag is.
     options = options.symbolize_keys
-    options[:runOnly] ||= DEFAULT_AXE_OPTIONS[:runOnly]
+    options[:runOnly] = {
+      type: "tag",
+      values: (AXE_TAG_SET | Array(options.dig(:runOnly, :values))).freeze
+    }
     options[:rules] = AXE_RULE_OVERRIDES.merge(options[:rules] || {})
 
     inject_axe
