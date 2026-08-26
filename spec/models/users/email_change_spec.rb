@@ -73,6 +73,31 @@ RSpec.describe Users::EmailChange, type: :model do
       expect(email_auth.reload.uid).to eq("new@example.com")
     end
 
+    # The production-common confirmer: a magic-link signup holding the
+    # VERIFIED email row (its own sibling context above pins the pending case).
+    context "when the email authentication is verified" do
+      let(:user) { create(:user) }
+
+      it "carries verification to the address the user just proved" do
+        # The confirmation link is mailed to pending_email, so the round trip
+        # proves the NEW mailbox — verified_at must survive the uid rewrite.
+        # It survives today by accident of update_all being the method chosen;
+        # this pins the property, not the accident.
+        verified_at_before = user.authentications.email.sole.verified_at
+        token = user.pending_email_token
+
+        expect(described_class.new(user).confirm!(token)).to be true
+
+        auth = user.authentications.email.sole
+        expect(auth.uid).to eq("new@example.com")
+        expect(auth.verified_at).to eq(verified_at_before)
+        # Load-bearing only while the email row is this user's SOLE auth —
+        # can_invite? counts verified rows across all providers. Don't add an
+        # OAuth row to this fixture without rethinking the assertion.
+        expect(user.reload.can_invite?).to be(true)
+      end
+    end
+
     it "does not touch OAuth authentications" do
       oauth_auth = user.authentications.create!(provider: "google", uid: "google123", verified_at: Time.current)
       token = user.pending_email_token
