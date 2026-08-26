@@ -147,7 +147,13 @@ class User < ApplicationRecord
       next false if password_digest.nil?
 
       authentications.email.destroy_all
-      update!(password_digest: nil)
+      # save! rather than update!: validate: false drops full-record
+      # validation, so a record that drifted invalid for reasons unrelated to
+      # credentials (an attachment allowlist tightening, say) cannot hold the
+      # removal hostage. Callbacks still run — the strict audit row and the
+      # post-commit notifier are the point of using the callback path (#820).
+      self.password_digest = nil
+      save!(validate: false)
       yield if block_given?
       true
     end
