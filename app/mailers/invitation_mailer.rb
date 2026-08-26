@@ -33,7 +33,7 @@ class InvitationMailer < ApplicationMailer
 
     mail(
       to: invitation.email,
-      subject: t("invitation_mailer.invite_client.subject", project: @project.name)
+      subject: t("invitation_mailer.invite_client.subject", app_name: t("application.name"))
     )
   end
 end
