@@ -35,7 +35,7 @@ RSpec.describe "Onboarding journey", type: :system do
 
   # A user that has no workspaces yet (the :with_zero_workspaces trait suppresses
   # the auto-workspace callback fired after factory creation).
-  let(:user) { create(:user, :with_zero_workspaces) }
+  let(:user) { create(:user, :with_verified_email_auth, :with_zero_workspaces) }
 
   before { sign_in_via_form(user) }
 

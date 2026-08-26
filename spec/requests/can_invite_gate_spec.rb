@@ -54,9 +54,16 @@ RSpec.describe "User#can_invite? — verified_at writer inventory", type: :reque
     end
   end
 
-  # The gate at the surfaces, not just the predicate. All three post-onboarding
-  # invitation controllers include InvitationSending; onboarding deliberately
-  # does not (first-run friction is a product call, not a security one).
+  # The gate at the surfaces, not just the predicate. ALL FOUR invitation
+  # create paths include InvitationSending — including onboarding.
+  #
+  # Onboarding is safe to gate because every production path to a session
+  # arrives with a verified authentication: verified OAuth stamps on both its
+  # link and signup branches; magic-link registration stamps; password and
+  # passkey sign-in are only reachable by someone who registered through one of
+  # those; and UNVERIFIED OAuth does not sign the user in at all — OauthLink
+  # returns :unverified_pending and the controller redirects to sign-in with a
+  # "check your email" notice. There is no way to reach onboarding unverified.
   describe "the gate on an invitation surface" do
     let(:workspace) { create(:workspace) }
     let!(:membership) do
@@ -69,6 +76,28 @@ RSpec.describe "User#can_invite? — verified_at writer inventory", type: :reque
 
       expect {
         post workspace_invitations_path(workspace),
+             params: { invitation: { emails: "someone@example.test",
+                                     role_id: Role.system_default!("member").id } }
+      }.not_to change(Invitation, :count)
+
+      expect(flash[:alert]).to eq(I18n.t("invitations.unverified_sender"))
+    end
+  end
+
+  describe "the gate on onboarding, the fourth surface" do
+    let(:unverified) { create(:user, :with_zero_workspaces) }
+    let(:workspace) { create(:workspace) }
+    let!(:project) { create(:project, workspace: workspace) }
+
+    before do
+      allow(TenancyConfig).to receive(:onboarding).and_return(:none)
+      workspace.memberships.create!(user: unverified, role: Role.system_default!("owner"))
+      sign_in(unverified)
+    end
+
+    it "refuses invitations from an unverified sender during first-run too" do
+      expect {
+        post onboarding_team_path,
              params: { invitation: { emails: "someone@example.test",
                                      role_id: Role.system_default!("member").id } }
       }.not_to change(Invitation, :count)
