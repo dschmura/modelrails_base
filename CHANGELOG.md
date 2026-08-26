@@ -120,6 +120,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 - The invitations sort control sorts by the key it displays (#613).
 - Notifier recipient resolution no longer N+1s on preferences (#630).
 - Deployment docs' SSL section matches the shipped config and documents the green-healthcheck/dead-app trap (#600).
+- The quiet-hours "no days selected" warning is now rendered by the server rather than revealed by JavaScript after boot — a user whose JS was slow or blocked saw no warning at all in the one state it exists for.
 - **Email digests key off read state, not a separate `seen_at`.** A digest could re-send items you had already read, and could drop items that arrived while it was assembling; it now selects unread items over a half-open window, re-checks they are still unread at delivery, and stamps the window it actually covered. Security notifications are excluded from digests entirely — they are the ones you want immediately (#814).
 
 ## v2.0.0 — Passwordless Auth, Workspace Lifecycle & Navigation IA (2026-07-06)
