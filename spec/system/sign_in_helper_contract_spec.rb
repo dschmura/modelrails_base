@@ -31,4 +31,22 @@ RSpec.describe "sign_in_via_form contract", type: :system do
     expect(tokens.count).to eq(1)
     expect(tokens.first.consumed_at).to be_present
   end
+  describe "request_magic_link" do
+    it "mints exactly one token, and the app is the party that mints it" do
+      visit new_session_path
+
+      expect { request_magic_link(user.email_address) }
+        .to change { MagicLinkToken.where(email: user.email_address).count }.by(1)
+    end
+
+    it "returns the token the app actually emailed, so the callback accepts it" do
+      visit new_session_path
+      token = request_magic_link(user.email_address)
+
+      visit magic_link_callback_path(token: token)
+      click_button I18n.t("magic_link_callbacks.confirm.sign_in_button")
+
+      expect(page).to have_text(I18n.t("magic_link_callbacks.show.signed_in"))
+    end
+  end
 end
