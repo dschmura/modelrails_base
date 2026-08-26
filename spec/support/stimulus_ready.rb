@@ -16,13 +16,23 @@ module StimulusReady
     end
   end
 
+  # Raises rather than returning false. A synchronization barrier that times
+  # out silently is indistinguishable from one that succeeded, and the caller
+  # below discards the return value — so before this, an exhausted wait and a
+  # satisfied one looked identical (panel audit, 2026-08-26). The message names
+  # the identifiers still unconnected, because with lazyLoadControllersFrom
+  # "not connected" covers both "module still fetching" and "identifier will
+  # never register" (a typo'd data-controller), and only the list distinguishes
+  # them.
   def wait_for_stimulus_controllers(attempts: 25, interval: 0.1)
     attempts.times do
       return true if all_stimulus_controllers_connected?
 
       sleep interval
     end
-    false
+
+    raise "Stimulus controllers never connected after #{(attempts * interval).round(1)}s: " \
+          "#{unconnected_stimulus_identifiers.join(", ")} (page: #{page.current_path})"
   end
 
   private
@@ -43,9 +53,30 @@ module StimulusReady
       })()
     JS
   rescue StandardError
-    # If the page isn't in a queryable state (mid-navigation, JS not yet
-    # evaluable), don't block — the spec's own expectations still gate it.
-    true
+    # Mid-navigation or not-yet-evaluable: NOT connected, so keep waiting.
+    # This used to return `true` — reporting "everything is connected" for any
+    # evaluate_script hiccup, which is exactly what a contended runner
+    # produces. The barrier was most likely to lie precisely when it mattered.
+    false
+  end
+
+  def unconnected_stimulus_identifiers
+    page.evaluate_script(<<~JS) || []
+      (function () {
+        if (!window.Stimulus) return ["(window.Stimulus absent)"];
+        var out = [], els = document.querySelectorAll('[data-controller]');
+        for (var i = 0; i < els.length; i++) {
+          var ids = els[i].getAttribute('data-controller').split(/\\s+/);
+          for (var j = 0; j < ids.length; j++) {
+            if (ids[j] === '') continue;
+            if (!window.Stimulus.getControllerForElementAndIdentifier(els[i], ids[j])) out.push(ids[j]);
+          }
+        }
+        return out;
+      })()
+    JS
+  rescue StandardError
+    [ "(could not query the page)" ]
   end
 end
 
