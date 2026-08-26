@@ -68,6 +68,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 - CI's test job is sharded across two free runners (#615).
 - The docs truth pass — the extending guide's create example now teaches the atomic creation-verb shape instead of the pre-#660 two-write anti-pattern; ghost method pointers resolve again; the README describes the actual multi-tenant kit.
 - Dependency bumps: mdl 0.18.1, image_processing 2.0.3, bootsnap 1.25.0, lexxy 0.9.29 (#586–#589); tailwind_merge 1.5.4 (#666), thruster 0.1.25 (#669), brakeman 8.0.6 (#671), GitHub-Actions group bumps (#668, #696). **axe-core-rspec 4.13.0** — the a11y gate's rule stack moves, so a previously green fork can newly fail AAA (#670). **SimpleCov 1.1.1** — forks with their own coverage config should skim its changelog; SimpleCov majors have broken this template's coverage spec before (#672).
+- Invitation emails no longer name the workspace or project they are for. An invitee has agreed to nothing yet, so the subject line sitting in their inbox — and anyone they forward it to — no longer discloses a private group's name. The name appears once, on the accept-or-decline page the recipient chose to open. The inviter is identified by their verified address rather than a display name, which is attacker-chosen text (#815).
 
 ### Security
 
