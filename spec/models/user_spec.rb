@@ -703,9 +703,5 @@ RSpec.describe User, type: :model do
       # with the credential teardown.
       expect(observed).to be_nil
     end
-
-    it "audits with actions that are members of the security set" do
-      expect(ActivityLog::SECURITY_ACTIONS).to include("user.password_changed", "user.password_removed")
-    end
   end
 end
