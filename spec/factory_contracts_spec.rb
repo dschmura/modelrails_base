@@ -100,3 +100,24 @@ RSpec.describe "the :authentication factory" do
     }.not_to raise_error
   end
 end
+
+# The security row shape belongs to ActivityLog.record_security_event!; the
+# :security trait mirrors it so fixtures cannot drift from the writer's real
+# output with nothing noticing (#830).
+RSpec.describe "the :activity_log factory" do
+  it ":security builds exactly the shape record_security_event! writes" do
+    user = create(:user)
+    written = ActivityLog.record_security_event!(action: "user.password_changed", user: user)
+    built = create(:activity_log, :security, actor: user, action: "user.password_changed")
+
+    shape = %w[actor_id trackable_type trackable_id visibility workspace_id]
+    expect(built.attributes.slice(*shape)).to eq(written.attributes.slice(*shape))
+  end
+
+  it ":personal scopes visibility without implying the self-tracking security shape" do
+    row = create(:activity_log, :personal)
+
+    expect(row.visibility).to eq("personal")
+    expect(row.trackable).not_to eq(row.actor)
+  end
+end
