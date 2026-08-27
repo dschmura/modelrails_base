@@ -80,3 +80,44 @@ RSpec.describe "the :user factory" do
     end
   end
 end
+
+# The `:authentication` factory drew uids from a bare PRNG against the unique
+# (provider, uid) index — #456's collision class, patched downstream but never
+# removed at the source (#856). These pin uniqueness by construction.
+RSpec.describe "the :authentication factory" do
+  it "mirrors production: an email authentication's uid is its user's address" do
+    auth = create(:authentication)
+
+    expect(auth.uid).to eq(auth.user.email_address)
+  end
+
+  it "keeps OAuth uids unique even when the PRNG repeats itself" do
+    allow(Faker::Number).to receive(:number).and_return(12345678)
+
+    expect {
+      2.times { create(:authentication, :github) }
+      2.times { create(:authentication, :google) }
+    }.not_to raise_error
+  end
+end
+
+# The security row shape belongs to ActivityLog.record_security_event!; the
+# :security trait mirrors it so fixtures cannot drift from the writer's real
+# output with nothing noticing (#830).
+RSpec.describe "the :activity_log factory" do
+  it ":security builds exactly the shape record_security_event! writes" do
+    user = create(:user)
+    written = ActivityLog.record_security_event!(action: "user.password_changed", user: user)
+    built = create(:activity_log, :security, actor: user, action: "user.password_changed")
+
+    shape = %w[actor_id trackable_type trackable_id visibility workspace_id]
+    expect(built.attributes.slice(*shape)).to eq(written.attributes.slice(*shape))
+  end
+
+  it ":personal scopes visibility without implying the self-tracking security shape" do
+    row = create(:activity_log, :personal)
+
+    expect(row.visibility).to eq("personal")
+    expect(row.trackable).not_to eq(row.actor)
+  end
+end

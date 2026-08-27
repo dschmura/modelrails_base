@@ -146,9 +146,18 @@ RSpec.describe "Notification preferences", type: :system do
 
       toggle_label.click
 
+      # Poll on the suite-owned wait budget, not a private 2s — a CSS
+      # transition's rect change is not Capybara-retryable, and a sibling
+      # example has blown a five-second budget on this contended runner
+      # (#841/#857). The rescue keeps a timeout reporting through the
+      # expectation's message instead of a bare Timeout::Error.
       moved = false
-      Timeout.timeout(2) do
-        sleep 0.05 until (moved = page.evaluate_script(knob_left_js) != initial_x)
+      begin
+        Timeout.timeout(Capybara.default_max_wait_time) do
+          sleep 0.05 until (moved = page.evaluate_script(knob_left_js) != initial_x)
+        end
+      rescue Timeout::Error
+        moved = false
       end
 
       expect(moved).to eq(true), "Toggle pill knob did not move after click — visual feedback is broken"
