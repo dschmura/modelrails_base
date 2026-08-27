@@ -1,19 +1,21 @@
 # frozen_string_literal: true
 
-# Stimulus boot lags behind page load, so an event dispatched before a
-# controller connects is silently dropped — under random spec ordering an
-# interactive preview spec can be the first to hit a cold module cache, an
-# intermittent failure (#525 was exactly the gate not yet covering
-# /draft_harness). This waits once, centrally, after any visit to a gated
-# path; window.Stimulus is exposed in
+# Stimulus boot lags behind page load, so an assertion or event that lands
+# before a controller connects reads a page the controller has not touched
+# yet — silently dropped events, or an element still carrying its
+# server-rendered class. Under random spec ordering any example can be the
+# first to hit a cold module cache, so the failure is intermittent and
+# load-dependent. window.Stimulus is exposed in
 # app/javascript/controllers/application.js. See /docs/developer/testing.
+#
+# This gate was an allow-list of two paths, each added after a specific flake
+# (#525 /draft_harness, then the preview path). That left 536 `visit` calls
+# across 164 system spec files ungated, and #837 came back a third time on
+# one of them. Per that issue, the barrier now runs after EVERY system-spec
+# visit rather than being annotated call site by call site.
 module StimulusReady
-  GATED_PATHS = [ "/rails/view_components/", "/draft_harness" ].freeze
-
   def visit(path, *args, **kwargs)
-    super.tap do
-      wait_for_stimulus_controllers if GATED_PATHS.any? { |gated| path.to_s.include?(gated) }
-    end
+    super.tap { wait_for_stimulus_controllers }
   end
 
   # Raises rather than returning false. A synchronization barrier that times
@@ -37,11 +39,20 @@ module StimulusReady
 
   private
 
+  # Two guards exist because the gate now runs on every visit, not on two
+  # hand-picked paths:
+  # - a still-parsing document has not reached its controllers yet, so an
+  #   empty match means "too early", not "nothing to wait for";
+  # - a page with no controllers is ready even with no window.Stimulus (a
+  #   redirect target, a plain error page). Without this the widened gate
+  #   would spend its whole budget and then raise on them.
   def all_stimulus_controllers_connected?
     page.evaluate_script(<<~JS)
       (function () {
-        if (!window.Stimulus) return false;
+        if (document.readyState === 'loading') return false;
         var els = document.querySelectorAll('[data-controller]');
+        if (els.length === 0) return true;
+        if (!window.Stimulus) return false;
         for (var i = 0; i < els.length; i++) {
           var ids = els[i].getAttribute('data-controller').split(/\\s+/);
           for (var j = 0; j < ids.length; j++) {

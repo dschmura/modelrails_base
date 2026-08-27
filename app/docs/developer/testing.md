@@ -82,7 +82,29 @@ System specs run on Capybara + Cuprite, a pure-Ruby CDP driver (the suite migrat
 
 ### Stimulus readiness gate
 
-The importmap module fetch and Stimulus boot lag behind page load, so an event dispatched before a controller connects is silently dropped. That is harmless while a warm spec always runs first, but random spec ordering can make an interactive spec the *first* to run against a cold module cache — an intermittent failure. Rather than sprinkle waits across specs, `spec/support/stimulus_ready.rb` waits once, centrally: after any system-spec `visit` to a Lookbook component preview (`/rails/view_components/`) or the form-drafts harness (`/draft_harness`, #525 — a flake that survived every local run and failed CI precisely because the gate didn't yet cover that path), it blocks until every `data-controller` element on the page has its controllers connected. It is best-effort — it proceeds after a short timeout so a preview with no controllers can't hang the suite — and other system specs are pass-through.
+The importmap module fetch and Stimulus boot lag behind page load, so anything that lands before a controller connects reads a page the controller has not touched yet — a dispatched event is silently dropped, and an element still carries the class the server rendered. That is harmless while a warm spec always runs first, but random spec ordering can make any spec the *first* to run against a cold module cache — an intermittent, load-dependent failure.
+
+Rather than sprinkle waits across specs, `spec/support/stimulus_ready.rb` waits once, centrally: **after every system-spec `visit`**, it blocks until every `data-controller` element on the page has its controllers connected. `spec/system/stimulus_ready_gate_spec.rb` pins that behavior.
+
+The gate used to be an allow-list of two paths — the Lookbook component previews (`/rails/view_components/`) and the form-drafts harness (`/draft_harness`, #525) — each added after a specific flake. That left the other ~536 `visit` calls ungated and #837 recurred a third time on one of them, so the gate was widened rather than annotated call site by call site.
+
+Two properties matter when reading it:
+
+- **It raises, it does not proceed.** A barrier that times out silently is indistinguishable from one that succeeded. The message names the identifiers still unconnected, which is what separates "module still fetching" from "identifier will never register" (a typo'd `data-controller`).
+- **A page with no controllers is ready immediately**, even with no `window.Stimulus` — a redirect target or a plain error page must not spend the budget and then raise. A still-parsing document is *not* treated that way: an empty match there means "too early", not "nothing to wait for".
+
+The race does not reproduce at ordinary local load, which is why #837 recurred three times before it was closed properly. To open the window deliberately, cold the module cache and throttle the network — the lag is the importmap module fetch, not CPU, so `Emulation.setCPUThrottlingRate` will not do it:
+
+```ruby
+cdp_command("Network.enable")
+cdp_command("Network.clearBrowserCache")
+cdp_command("Network.emulateNetworkConditions",
+            offline: false, latency: 250, downloadThroughput: 100_000, uploadThroughput: 100_000)
+page.visit(root_path)          # page.visit bypasses the gate; `visit` does not
+all_stimulus_controllers_connected?   # => false, the window an assertion can land in
+```
+
+Those numbers are machine-specific: too gentle and the page is already connected on load, too harsh and the barrier legitimately exhausts its budget and raises. Tune until `at_load` is false and the barrier still succeeds.
 
 ### CSP violation capture
 
