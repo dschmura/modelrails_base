@@ -83,9 +83,9 @@ RSpec.describe "Form draft isolation", type: :system do
     within_window(first_window) do
       # storage event fired here: notice hidden + autosave disarmed
       fill_in "Title", with: "stale edits"
-      # Negative-assertion window (#453): a wrongful autosave would fire after
-      # the 300ms debounce; wait it out plus margin, then assert silence.
-      sleep 0.5
+      # A wrongful autosave would fire after the debounce; wait it out, then
+      # assert silence (window owned by the helper — #453/#857).
+      wait_out_draft_autosave_window
       expect(page.evaluate_script("localStorage.getItem(#{draft_storage_key(user, 'harness-main').to_json}) === null")).to be(true)
     end
   end
