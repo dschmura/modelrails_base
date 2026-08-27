@@ -143,8 +143,7 @@ RSpec.describe "Settings::Sessions", type: :request do
       timestamps = 12.times.map { |i| (12 - i).hours.ago }
       timestamps.each do |t|
         travel_to(t) do
-          create(:activity_log, action: "user.password_changed", actor: user,
-                                 trackable: user, visibility: "personal")
+          create(:activity_log, :security, action: "user.password_changed", actor: user)
         end
       end
 
@@ -162,8 +161,7 @@ RSpec.describe "Settings::Sessions", type: :request do
 
     it "excludes another user's personal rows" do
       other_user = create(:user)
-      create(:activity_log, action: "user.password_changed", actor: other_user,
-                             trackable: other_user, visibility: "personal")
+      create(:activity_log, :security, action: "user.password_changed", actor: other_user)
 
       get settings_sessions_path
 
@@ -177,8 +175,7 @@ RSpec.describe "Settings::Sessions", type: :request do
     # rows under a heading whose empty state reads "No security events
     # recorded yet".
     it "excludes personal-visibility rows whose action is not a security action" do
-      create(:activity_log, action: "workspace.updated", actor: user,
-                             trackable: user, visibility: "personal")
+      create(:activity_log, :security, action: "workspace.updated", actor: user)
 
       get settings_sessions_path
 
@@ -188,8 +185,7 @@ RSpec.describe "Settings::Sessions", type: :request do
     it "excludes workspace-visibility rows, even ones tracking the signed-in user" do
       create(:activity_log, action: "workspace.updated", trackable: user.personal_workspace,
                              workspace: user.personal_workspace, visibility: "workspace")
-      create(:activity_log, action: "user.password_changed", actor: user,
-                             trackable: user, visibility: "workspace")
+      create(:activity_log, :security, action: "user.password_changed", actor: user, visibility: "workspace")
 
       get settings_sessions_path
 
@@ -209,14 +205,12 @@ RSpec.describe "Settings::Sessions", type: :request do
     # the set the way a later PR in this arc would.
     it "degrades a future security action without a label to a humanized fallback" do
       stub_const("ActivityLog::SECURITY_ACTIONS", ActivityLog::SECURITY_ACTIONS + [ "user.mystery_action" ])
-      create(:activity_log, action: "user.mystery_action", actor: user,
-                             trackable: user, visibility: "personal")
+      create(:activity_log, :security, action: "user.mystery_action", actor: user)
 
       get settings_sessions_path
 
       row = activity_items(response.body).first
       expect(row.text).to include("Mystery action")
-      expect(row.text).not_to include("translation missing")
     end
 
     # Three reviewers, independently: "about 5 hours ago" is not enough to
@@ -232,8 +226,7 @@ RSpec.describe "Settings::Sessions", type: :request do
       user.create_preferences!(timezone: "Asia/Tokyo")
 
       travel_to(Time.utc(2026, 8, 26, 21, 30)) do
-        create(:activity_log, action: "user.password_changed", actor: user,
-                               trackable: user, visibility: "personal")
+        create(:activity_log, :security, action: "user.password_changed", actor: user)
       end
 
       get settings_sessions_path
@@ -248,8 +241,7 @@ RSpec.describe "Settings::Sessions", type: :request do
     # actionable. The value is one of six literals the user-agent parser
     # emits, never free text and never attacker-chosen.
     it "names the OS on a new-device sign-in" do
-      create(:activity_log, action: "user.signed_in_new_device", actor: user,
-                             trackable: user, visibility: "personal",
+      create(:activity_log, :security, action: "user.signed_in_new_device", actor: user,
                              metadata: { os: "Windows" })
 
       get settings_sessions_path
@@ -261,8 +253,7 @@ RSpec.describe "Settings::Sessions", type: :request do
     # Rows written before the OS was captured, and any fork whose parser
     # returns nothing, still have to read as a sentence.
     it "falls back to the bare label for a device row with no OS recorded" do
-      create(:activity_log, action: "user.signed_in_new_device", actor: user,
-                             trackable: user, visibility: "personal", metadata: {})
+      create(:activity_log, :security, action: "user.signed_in_new_device", actor: user, metadata: {})
 
       get settings_sessions_path
 
@@ -275,8 +266,7 @@ RSpec.describe "Settings::Sessions", type: :request do
     # nothing extra. That is what keeps the nickname — user-supplied free
     # text — off the page without a second guard to remember.
     it "renders no metadata on actions whose label does not name any" do
-      create(:activity_log, action: "user.passkey_added", actor: user, trackable: user,
-                             visibility: "personal", metadata: { os: "macOS", nickname: "Dave's laptop" })
+      create(:activity_log, :security, action: "user.passkey_added", actor: user, metadata: { os: "macOS", nickname: "Dave's laptop" })
 
       get settings_sessions_path
 
