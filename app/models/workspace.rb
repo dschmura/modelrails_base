@@ -4,6 +4,8 @@ class Workspace < ApplicationRecord
   include Suspendable
   include Trackable
   include Broadcastable
+  # `name` stays plaintext while other personal data is encrypted (#902,
+  # ruling R3): the slug is the name parameterized, and sits in every URL.
   include Sluggable
 
   # Raised when an owner tries to archive/delete a home workspace (personal or

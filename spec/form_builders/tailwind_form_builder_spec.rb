@@ -267,5 +267,24 @@ RSpec.describe TailwindFormBuilder, type: :component do
       result = parse(builder.number_field(:failed_login_attempts))
       expect(result).to have_css("input[value='abc']")
     end
+
+    # For a record loaded from the database, *_before_type_cast is the stored
+    # bytes — for an encrypted attribute, the ciphertext (#902). The raw
+    # pre-cast value is only the user's when they assigned it this request.
+    it "renders the decrypted value of an encrypted attribute loaded from the database" do
+      persisted = User.find(create(:user, email_address: "ada@example.com").id)
+      loaded_builder = described_class.new(:user, persisted, vc_test_controller.view_context, {})
+
+      result = parse(loaded_builder.email_field(:email_address))
+
+      expect(result).to have_css("input[value='ada@example.com']")
+    end
+
+    it "keeps the user's raw input for an encrypted attribute on re-render" do
+      user.email_address = "not an address"
+      result = parse(builder.email_field(:email_address))
+
+      expect(result).to have_css("input[value='not an address']")
+    end
   end
 end

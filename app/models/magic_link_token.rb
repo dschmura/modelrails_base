@@ -3,6 +3,9 @@ class MagicLinkToken < ApplicationRecord
 
   validates :token_digest, presence: true, uniqueness: true
   normalizes :email, with: ->(e) { EmailNormalizer.normalize(e) }
+  # Encrypted at rest (#902): deterministic for the one-unconsumed-token-per-
+  # address index that create_for_email's supersede relies on.
+  encrypts :email, deterministic: true, downcase: true
   validates :email, presence: true, format: { with: User::EMAIL_FORMAT }
   validates :expires_at, presence: true
 

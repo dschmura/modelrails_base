@@ -25,6 +25,11 @@ class Invitation < ApplicationRecord
   # becoming nil: nil means a bearer magic-link invitation, and normalization
   # must never turn a user's empty field into one.
   normalizes :email, with: ->(e) { EmailNormalizer.normalize(e) || e }
+  # Encrypted at rest (#902): email deterministic for the pending-invite
+  # unique index that bulk_invite! leans on; company_name takes the stronger
+  # cipher.
+  encrypts :email, deterministic: true, downcase: true
+  encrypts :company_name
   validates :email, format: { with: User::EMAIL_FORMAT }, allow_nil: true
 
   before_create :generate_token

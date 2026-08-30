@@ -36,6 +36,16 @@ Rails.application.configure do
   # Store uploaded files on the local file system in a temporary directory.
   config.active_storage.service = :test
 
+  # Active Record Encryption keys for the test database (#902). Literal on
+  # purpose: the template ships no credentials and CI has none, and test data
+  # is disposable. Rails applies these OVER credentials — a fork that adds test
+  # credentials later must delete these lines for them to win.
+  config.active_record.encryption.primary_key = "vauOXZgIb7aP2CYJQ5E7A2s9lzQBHq4u"
+  config.active_record.encryption.deterministic_key = "SiBtuw5trN4zlNpD2Zp51S434Oh5xl3G"
+  config.active_record.encryption.key_derivation_salt = "o0fFAcEEJceU0nHIq7Abhwh5UTyf6cGx"
+  # YAML fixtures (none today) carry plaintext and are encrypted on load.
+  config.active_record.encryption.encrypt_fixtures = true
+
   # Use the test queue adapter so have_enqueued_job/have_enqueued_mail
   # matchers can inspect the queue deterministically.
   config.active_job.queue_adapter = :test

@@ -36,6 +36,12 @@ class User < ApplicationRecord
   # directly into find_by automatically benefit from the same normalization.
   normalizes :email_address, with: ->(e) { EmailNormalizer.normalize(e) }
   normalizes :pending_email, with: ->(e) { EmailNormalizer.normalize(e) }
+  # Encrypted at rest (#902). Deterministic only where a finder or the unique
+  # index names the column; `downcase:` stays beside `normalizes` on purpose
+  # (each covers a hole the other leaves). Declared after `normalizes` so the
+  # cipher wraps the normalized value.
+  encrypts :email_address, deterministic: true, downcase: true
+  encrypts :pending_email, :first_name, :last_name
 
   EMAIL_FORMAT = /\A[^@\s]+@[^@\s]+\.[^@\s]+\z/
 

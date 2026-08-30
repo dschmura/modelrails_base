@@ -19,6 +19,11 @@ class Authentication < ApplicationRecord
   end
 
   normalizes :email, with: ->(e) { EmailNormalizer.normalize(e) }
+  # Encrypted at rest (#902). uid is deterministic because (provider, uid) is
+  # the sign-in lookup and a unique index — and for email-provider rows it is
+  # the address itself (#903). No downcase: provider ids are opaque.
+  encrypts :email
+  encrypts :uid, deterministic: true
 
   validates :provider, presence: true
   validates :uid, presence: true
