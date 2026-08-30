@@ -179,6 +179,24 @@ Your fork **may** commit its own `.yml.enc` blobs — normal for a private app; 
 `.key` files stay gitignored. `.kamal/secrets` reads
 `config/credentials/production.key` at deploy time.
 
+Personal data — email addresses, names, company names — is encrypted at rest
+with Active Record Encryption, and **production refuses to boot without the
+keys**. Generate them once and paste the block into the production credentials:
+
+```bash
+bin/rails db:encryption:init
+bin/rails credentials:edit --environment production   # paste the active_record_encryption block
+```
+
+Development and test read literal keys from `config/environments/development.rb`
+and `test.rb` — a fresh clone and CI run with no secrets, and that data is
+disposable. Rails applies those settings *over* credentials, so keys added to
+development credentials are ignored until the environment-file lines are
+removed. The `deterministic_key` has no rotation path in Rails: back it up
+wherever the credentials key is backed up, because losing it loses every
+email lookup. Which columns, and why some are deterministic:
+[Security](/docs/developer/security#personal-data-at-rest).
+
 For production you'll also set `RAILS_HOST`, pick a tenancy preset
 (`WORKSPACE_ON_SIGNUP`), and choose a signup mode — see `.env.example`,
 [Presets](presets), and [Deployment](deployment).

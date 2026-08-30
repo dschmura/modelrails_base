@@ -7,6 +7,7 @@ class ClientAccess < ApplicationRecord
   belongs_to :project
   belongs_to :user
 
+  encrypts :company_name # at rest (#902); never looked up, so the stronger cipher
   validates :company_name, presence: true
   validates :user_id, uniqueness: { scope: :project_id }
   validate :project_clientside_enabled, on: :create

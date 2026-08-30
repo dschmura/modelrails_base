@@ -199,6 +199,36 @@ canonical key. The **local part** is deliberately untouched: SMTPUTF8
 (RFC 6531) lets mailboxes accept Unicode local parts, and IDNA does not apply
 there.
 
+### Personal Data at Rest
+
+Every column that holds something about a person is an Active Record
+Encryption column — a database dump or backup carries ciphertext, not
+addresses. Deterministic encryption (same plaintext, same bytes) is used only
+where a finder or a unique index needs the column; everything else takes the
+stronger non-deterministic cipher and cannot be searched or sorted in SQL —
+which is why the members page filters and sorts in Ruby (`WorkspaceRoster`).
+
+| Column | Cipher | Why |
+| ------ | ------ | --- |
+| `users.email_address` | deterministic, downcased | sign-in lookup; unique index |
+| `authentications.uid` | deterministic | `(provider, uid)` lookup and unique index — for email-provider rows this *is* the address |
+| `invitations.email` | deterministic, downcased | one pending invitation per address per invitable |
+| `magic_link_tokens.email` | deterministic, downcased | one unconsumed token per address |
+| `users.pending_email`, `first_name`, `last_name` | non-deterministic | never looked up |
+| `authentications.email`, `invitations.company_name`, `client_accesses.company_name` | non-deterministic | never looked up |
+
+`workspaces.name` stays plaintext deliberately: the slug is the name,
+parameterized, and sits in every URL. Two properties worth knowing: the
+deterministic columns for one address — `users.email_address` and the
+email-provider `authentications.uid` — hold identical bytes, so a leaked dump
+joins them; and the `deterministic_key` cannot be rotated (Rails raises on a
+key list), so it is backed up with the credentials key. Keys are generated per
+fork — see [Forking](/docs/developer/forking#bootstrap-secrets-and-configuration).
+Rows written before a column was encrypted are unreadable by this release;
+the template ships no conversion. Rails' own coexistence path
+(`support_unencrypted_data`, `extend_queries`, `record.encrypt`) is documented
+in the Active Record Encryption guide under "Migrating Existing Data".
+
 ### OAuth Security
 
 - OAuth email matching requires a verified email authentication on the existing account
@@ -381,7 +411,7 @@ config.ssl_options = { hsts: { subdomains: true, preload: true, expires: 1.year 
 Some vulnerabilities disclose anything readable by the app process — CVE-2026-66066 above is one. Upgrading closes the hole but does not undo an exfiltration that already happened. If your deployment ran an affected version while reachable by untrusted users, treat every secret the process could read as exposed and replace it:
 
 1. `secret_key_base` — rotating it signs out every user and invalidates encrypted and signed cookies, signed global IDs, and existing Active Storage URLs.
-2. The master key (`config/master.key` or `RAILS_MASTER_KEY`) and everything `config/credentials.yml.enc` decrypts. Re-encrypt under the new key with `bin/rails credentials:edit`.
+2. The master key (`config/master.key` or `RAILS_MASTER_KEY`) and everything `config/credentials.yml.enc` decrypts. Re-encrypt under the new key with `bin/rails credentials:edit`. One entry inside the blob is different: `active_record_encryption.primary_key` rotates by listing the new key after the old one and re-saving records (Rails guide, "Rotating Keys"), but `deterministic_key` **cannot** rotate — Rails refuses a list. Replacing it means decrypting every deterministic column under the old key and re-writing under the new one in a one-off pass this template does not ship; until then, an exposed deterministic key means the addresses in `users.email_address`, `authentications.uid`, `invitations.email`, and `magic_link_tokens.email` are recoverable from any dump taken while it was in use.
 3. Storage service credentials (S3, GCS, Azure) if you moved off the local disk service.
 4. Database credentials, if your database is not the bundled SQLite file.
 5. API tokens and keys for every third-party service the app calls — OAuth client secrets, mail provider keys, error reporting DSNs.
