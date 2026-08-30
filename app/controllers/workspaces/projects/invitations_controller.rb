@@ -15,7 +15,7 @@ module Workspaces
         viewer_role = Role.system_default!("viewer")
 
         @invitation = @project.invitations.build(
-          email: invitation_params[:email]&.downcase,
+          email: invitation_params[:email],
           role: viewer_role,
           project_role: invitation_params[:project_role] || "editor",
           invited_by: Current.user,

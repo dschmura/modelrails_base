@@ -50,6 +50,17 @@ RSpec.describe "Project Invitations", type: :request do
         }
         expect(response).to have_http_status(:unprocessable_entity)
       end
+
+      # A blank field is invalid input, not "no address": a nil email is a
+      # bearer (magic-link) invitation, and a form submission must never mint one.
+      it "rejects a blank email instead of creating a bearer invitation" do
+        expect {
+          post workspace_project_invitations_path(workspace, project), params: {
+            invitation: { email: "  ", project_role: "editor" }
+          }
+        }.not_to change(Invitation, :count)
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
     end
 
     describe "accepting a project invitation" do

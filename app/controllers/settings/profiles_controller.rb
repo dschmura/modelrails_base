@@ -31,7 +31,7 @@ module Settings
 
     def email_change_requested?
       new_email = params.dig(:user, :email_address)
-      new_email.present? && new_email.strip.downcase != Current.user.email_address
+      new_email.present? && User.normalize_value_for(:email_address, new_email) != Current.user.email_address
     end
 
     def handle_email_change

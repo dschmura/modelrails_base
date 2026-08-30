@@ -1,6 +1,13 @@
 require "rails_helper"
 
 RSpec.describe Authentication, type: :model do
+  describe "email normalization" do
+    it "stores the canonical form of a provider-supplied address" do
+      auth = create(:authentication, :google, email: " Ada@Home.com ")
+      expect(auth.email).to eq("ada@home.com")
+    end
+  end
+
   describe "validations" do
     it "requires a provider" do
       auth = build(:authentication, provider: nil)

@@ -533,6 +533,26 @@ RSpec.describe Invitation, type: :model do
     end
   end
 
+  describe "email normalization" do
+    let(:workspace) { create(:workspace) }
+
+    it "stores the canonical form of the address" do
+      invitation = create(:invitation, invitable: workspace, email: "Invitee@Example.COM")
+      expect(invitation.email).to eq("invitee@example.com")
+    end
+
+    it "accepts an address padded with whitespace" do
+      invitation = build(:invitation, invitable: workspace, email: " invitee@example.com ")
+      expect(invitation).to be_valid
+      expect(invitation.email).to eq("invitee@example.com")
+    end
+
+    it "stores an IDN domain in its punycode form, matching User" do
+      invitation = create(:invitation, invitable: workspace, email: "user@bücher.de")
+      expect(invitation.email).to eq("user@xn--bcher-kva.de")
+    end
+  end
+
   describe ".bulk_invite!" do
     let(:workspace) { create(:workspace) }
     let(:role) { workspace.effective_roles.first }
@@ -540,6 +560,33 @@ RSpec.describe Invitation, type: :model do
 
     before do
       create(:membership, :owner, user: inviter, workspace: workspace)
+    end
+
+    # Users are stored through EmailNormalizer (IDN domains punycoded), so the
+    # dedupe key must be the same normalization — not a bare downcase.
+    describe "dedupe against normalized storage" do
+      it "skips an existing member typed in the Unicode form of a punycoded address" do
+        member = create(:user, email_address: "user@bücher.de")
+        create(:membership, user: member, workspace: workspace)
+
+        result = Invitation.bulk_invite!(
+          workspace: workspace, emails: [ "user@bücher.de" ], role: role, invited_by: inviter
+        )
+
+        expect(result).to include(sent: 0, skipped: 1)
+        expect(workspace.invitations.count).to eq(0)
+      end
+
+      it "skips a pending invitation typed in the other form of the same IDN address" do
+        create(:invitation, invitable: workspace, email: "user@bücher.de", invited_by: inviter)
+
+        result = Invitation.bulk_invite!(
+          workspace: workspace, emails: [ "user@xn--bcher-kva.de" ], role: role, invited_by: inviter
+        )
+
+        expect(result).to include(sent: 0, skipped: 1)
+        expect(workspace.invitations.count).to eq(1)
+      end
     end
 
     it "creates invitations for valid emails and returns counts" do
