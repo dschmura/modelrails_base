@@ -247,34 +247,6 @@ RSpec.describe Membership, type: :model do
       carol_membership.user.update!(first_name: "Carol", last_name: "Clark", email_address: "carol.clark@example.test")
     end
 
-    describe ".search" do
-      it "finds by first name" do
-        results = workspace.memberships.search("Alice")
-        expect(results).to include(alice_membership)
-        expect(results).not_to include(bob_membership)
-      end
-
-      it "finds by last name" do
-        results = workspace.memberships.search("Baker")
-        expect(results).to include(bob_membership)
-      end
-
-      it "finds by email" do
-        results = workspace.memberships.search(alice_membership.user.email_address)
-        expect(results).to include(alice_membership)
-      end
-
-      it "is case-insensitive" do
-        results = workspace.memberships.search("alice")
-        expect(results).to include(alice_membership)
-      end
-
-      it "returns all when query is blank" do
-        expect(workspace.memberships.search("")).to match_array(workspace.memberships)
-        expect(workspace.memberships.search(nil)).to match_array(workspace.memberships)
-      end
-    end
-
     describe ".filter_by_role" do
       it "filters by role slug" do
         results = workspace.memberships.filter_by_role("owner")
@@ -305,30 +277,6 @@ RSpec.describe Membership, type: :model do
 
       it "returns all when status is blank" do
         expect(workspace.memberships.filter_by_status("")).to match_array(workspace.memberships)
-      end
-    end
-
-    describe ".sorted_by" do
-      it "sorts by name ascending" do
-        results = workspace.memberships.includes(:user).sorted_by("name", "asc")
-        names = results.map { |m| m.user.first_name }
-        expect(names).to eq(%w[Alice Bob Carol])
-      end
-
-      it "sorts by name descending" do
-        results = workspace.memberships.includes(:user).sorted_by("name", "desc")
-        names = results.map { |m| m.user.first_name }
-        expect(names).to eq(%w[Carol Bob Alice])
-      end
-
-      it "sorts by role" do
-        results = workspace.memberships.includes(:role).sorted_by("role", "asc")
-        expect(results).to be_present
-      end
-
-      it "defaults to created_at desc for unknown columns" do
-        results = workspace.memberships.sorted_by("unknown", "asc")
-        expect(results).to eq(workspace.memberships.order(created_at: :desc))
       end
     end
   end

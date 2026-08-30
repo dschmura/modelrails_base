@@ -41,15 +41,6 @@ class Membership < ApplicationRecord
   # is actionable; firing there would produce a self-notification at best.
   after_create_commit :notify_member_added, if: :workspace_has_other_owners?
 
-  scope :search, ->(query) {
-    return all if query.blank?
-    sanitized = sanitize_sql_like(query.downcase)
-    joins(:user).where(
-      "LOWER(users.first_name) LIKE :q ESCAPE '\\' OR LOWER(users.last_name) LIKE :q ESCAPE '\\' OR LOWER(users.email_address) LIKE :q ESCAPE '\\'",
-      q: "%#{sanitized}%"
-    )
-  }
-
   scope :filter_by_role, ->(role_slug) {
     return all if role_slug.blank?
     joins(:role).where(roles: { slug: role_slug })
@@ -63,27 +54,16 @@ class Membership < ApplicationRecord
     end
   }
 
-  scope :sorted_by, ->(column, direction) {
-    dir = direction&.downcase == "asc" ? :asc : :desc
-    case column
-    when "name" then joins(:user).order(Arel.sql("users.first_name #{dir}, users.last_name #{dir}"))
-    when "email" then joins(:user).order(Arel.sql("users.email_address #{dir}"))
-    when "role" then joins(:role).order(Arel.sql("roles.name #{dir}"))
-    else order(created_at: :desc)
-    end
-  }
-
-  # Composed scope used by Workspaces::MembersController#index. Memberships
-  # are excluded entirely when the status filter is "pending" — that filter
-  # value selects pending invitations only, which live on Invitation.
-  scope :for_members_index, ->(q:, role:, status:, sort:, direction:) {
+  # The SQL half of the members page (WorkspaceRoster does search and sort in
+  # Ruby). Memberships are excluded entirely when the status filter is
+  # "pending" — that filter value selects pending invitations only, which live
+  # on Invitation.
+  scope :for_members_index, ->(role:, status:) {
     return none if status == "pending"
 
     includes(:user, :role)
-      .search(q)
       .filter_by_role(role)
       .filter_by_status(status)
-      .sorted_by(sort, direction)
   }
 
   # Kept owner-role memberships in the workspace, excluding the given

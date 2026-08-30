@@ -45,35 +45,13 @@ class Invitation < ApplicationRecord
   scope :acceptable, -> { where(status: "pending").where("expires_at > ?", Time.current) }
   scope :expired, -> { where(status: "pending").where("expires_at <= ?", Time.current) }
 
-  # Composed scope used by Workspaces::MembersController#index. Pending
-  # invitations are excluded entirely when the status filter selects a
-  # membership-only state (active or deactivated). Sort direction comes
-  # from the page's column-sort UI but invitations have no full_name,
-  # so the email column carries the sort if any.
-  # Mirrors Membership.sorted_by so the combined members table sorts as one
-  # list (#124): the sort headers render over BOTH row kinds, and a control
-  # that silently applies to half the rows is a control that lies. An
-  # invitation has no name yet — its name cell displays the email — so the
-  # name sort orders by what the user actually sees.
-  scope :sorted_by, ->(column, direction) {
-    dir = direction&.downcase == "asc" ? :asc : :desc
-    case column
-    when "name", "email" then order(email: dir)
-    when "role" then joins(:role).order(Arel.sql("roles.name #{dir}"))
-    else order(created_at: :desc)
-    end
-  }
-
-  scope :for_members_index, ->(q:, role:, status:, sort: nil, direction: nil) {
+  # The SQL half of the members page (WorkspaceRoster does search and sort in
+  # Ruby). Pending invitations are excluded entirely when the status filter
+  # selects a membership-only state (active or deactivated).
+  scope :for_members_index, ->(role:, status:) {
     return none if %w[active deactivated].include?(status)
 
-    scope = acceptable.includes(:role).sorted_by(sort, direction)
-    # Escape LIKE wildcards (%, _) so they match literally, mirroring
-    # Membership.search — otherwise a query like "a_b" matches "axb" too.
-    if q.present?
-      sanitized = sanitize_sql_like(q.to_s.downcase)
-      scope = scope.where("LOWER(email) LIKE :q ESCAPE '\\'", q: "%#{sanitized}%")
-    end
+    scope = acceptable.includes(:role)
     scope = scope.joins(:role).where(roles: { slug: role }) if role.present?
     scope
   }
