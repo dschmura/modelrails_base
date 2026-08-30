@@ -83,6 +83,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Security
 
+- `first_name`, `last_name`, and `company_name` are filtered from request logs and `#inspect`, alongside the `email` partial match Rails already ships.
 - Password create, change and removal now share a rate limit (10 / 3 min), matching every sibling settings endpoint; each mutation writes an audit row retained under the security floor, so the endpoint has a durable side effect per request (#819).
 
 - **A parked open-link join no longer force-joins a pre-existing account.** A logged-out visitor lured into an open-link join stashes the token in their session (Flow B), and it survives login. Previously, if the person who then authenticated turned out to be a *pre-existing* user — specifically one linking a new verified OAuth provider — they were silently added to the workspace as a side effect. Now only a brand-new account created in that same signup flow auto-joins (its signup is its consent); a pre-existing user instead sees a dismissible "You followed a link to join **X** — Join / Dismiss" banner and re-consents explicitly (`PendingJoinsController`, `Signupable#accept_pending_join_link!` gated on `newly_registered:`). Low severity (open-link only, visible, leaveable), but it removes the last silent-admit path.
