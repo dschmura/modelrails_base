@@ -64,9 +64,9 @@ Rails.application.configure do
 
   # Bullet: raise on N+1 queries in tests
   # CSP enforced in test as it is in dev/prod. Previously report-only with
-  # the rationale "Playwright doesn't forward CSP nonces" — but in practice
+  # the rationale "the browser driver doesn't forward CSP nonces" — but in practice
   # importmap+Stimulus tags do receive nonces via the standard layout helpers
-  # and Playwright's execute_script bypasses CSP at the driver level anyway.
+  # and the driver's execute_script bypasses CSP at the driver level anyway.
   # Enforcing here catches real bugs like inline event handlers
   # (onchange="...") that get silently dropped by the browser in prod.
   config.content_security_policy_report_only = false
