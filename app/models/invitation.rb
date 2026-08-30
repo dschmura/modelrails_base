@@ -21,6 +21,10 @@ class Invitation < ApplicationRecord
   validates :invited_by, presence: true
   validates :expires_at, presence: true
   validates :project_role, inclusion: { in: %w[editor viewer] }, allow_nil: true
+  # A blank string stays blank (and fails the format check) rather than
+  # becoming nil: nil means a bearer magic-link invitation, and normalization
+  # must never turn a user's empty field into one.
+  normalizes :email, with: ->(e) { EmailNormalizer.normalize(e) || e }
   validates :email, format: { with: User::EMAIL_FORMAT }, allow_nil: true
 
   before_create :generate_token
@@ -81,7 +85,7 @@ class Invitation < ApplicationRecord
   def self.invite_client!(project:, email:, company_name:, invited_by:)
     invitation = create!(
       invitable: project,
-      email: email.to_s.downcase.strip,
+      email: email,
       company_name: company_name,
       invited_by: invited_by,
       expires_at: 7.days.from_now
@@ -124,15 +128,13 @@ class Invitation < ApplicationRecord
     sent = 0
     skipped = 0
 
-    existing_members = workspace.memberships.kept.joins(:user)
-      .pluck("LOWER(users.email_address)").to_set
-    existing_invites = workspace.invitations.acceptable
-      .where.not(email: nil).pluck(:email).map(&:downcase).to_set
+    existing_members = workspace.memberships.kept.joins(:user).pluck(:email_address).to_set
+    existing_invites = workspace.invitations.acceptable.where.not(email: nil).pluck(:email).to_set
 
     emails.each do |email|
-      normalized = email.downcase
+      normalized = normalize_value_for(:email, email)
 
-      unless normalized.match?(User::EMAIL_FORMAT)
+      unless normalized.to_s.match?(User::EMAIL_FORMAT)
         skipped += 1
         next
       end

@@ -33,7 +33,7 @@ class SessionsController < ApplicationController
       return
     end
 
-    email = @email_lookup_form.email_address.downcase.strip
+    email = @email_lookup_form.email_address
     user = User.find_by(email_address: email)
 
     if user

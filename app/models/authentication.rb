@@ -18,6 +18,8 @@ class Authentication < ApplicationRecord
     self.class.display_name_for(provider)
   end
 
+  normalizes :email, with: ->(e) { EmailNormalizer.normalize(e) }
+
   validates :provider, presence: true
   validates :uid, presence: true
   validates :provider, uniqueness: { scope: :user_id }

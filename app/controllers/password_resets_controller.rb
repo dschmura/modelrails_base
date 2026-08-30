@@ -4,7 +4,7 @@ class PasswordResetsController < ApplicationController
     with: -> { redirect_to new_session_path, alert: t("sessions.create.rate_limited") }
 
   def create
-    email = params[:email_address].to_s.downcase.strip
+    email = params[:email_address].to_s
     user = User.find_by(email_address: email)
 
     # Always show the same confirmation — never reveal whether the address
