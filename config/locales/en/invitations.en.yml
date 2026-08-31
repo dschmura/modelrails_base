@@ -57,8 +57,13 @@ en:
     invalid: "This invitation link is invalid or has expired."
     show:
       title: "Decline invitation"
-      body: "Are you sure you want to decline the invitation to %{workspace}?"
+      body: "Are you sure you want to decline the invitation to %{workspace} from %{inviter}?"
+      client_body: "Are you sure you want to decline %{inviter}'s invitation to the project %{project}?"
       confirm: "Decline invitation"
+      block_trigger: "Decline and block invitations from %{inviter}"
+      block_title: "Block invitations from %{inviter}?"
+      block_message: "This declines the invitation and stops future invitations from %{inviter} reaching %{email}. They'll still see that you declined. Other people can still invite you. Only this app's operators can undo a block."
+      block_confirm: "Decline and block"
     create:
       success: "Invitation declined."
       rate_limited: "Too many attempts. Open the link from your invitation email and try again in a few minutes."
