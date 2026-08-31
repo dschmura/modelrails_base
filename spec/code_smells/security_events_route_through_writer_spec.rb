@@ -25,7 +25,7 @@ RSpec.describe "Code smell: security events route through record_security_event!
   direct_writes = /\bActivityLog\.(create!?|insert(_all)?|upsert(_all)?)\b/
 
   # path => why this call site legitimately writes ActivityLog directly.
-  # All three are BEST-EFFORT, workspace-domain writers — the other tier.
+  # All four are BEST-EFFORT, workspace-domain writers — the other tier.
   # A security-tier write does not belong here; it belongs in the writer.
   allowed_direct_writes = {
     "app/models/concerns/trackable.rb" =>
@@ -36,7 +36,11 @@ RSpec.describe "Code smell: security events route through record_security_event!
       "update_all, so the concern's callbacks cannot fire for it",
     "app/controllers/application_controller.rb" =>
       "log_blocked_role_grant, which records a REFUSAL — there is no persisted " \
-      "record to track, so Trackable has nothing to hang off"
+      "record to track, so Trackable has nothing to hang off",
+    "app/models/invitation.rb" =>
+      "record_suppressed_delivery — best-effort, admin-visibility, fired from " \
+      "mailer callbacks where Trackable's hooks must not run (a block oracle " \
+      "otherwise; PR 4 spec §7)"
   }.freeze
 
   # Files allowed to mention a security-action literal without routing it

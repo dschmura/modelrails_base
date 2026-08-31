@@ -70,6 +70,13 @@ RSpec.describe Invitation, type: :model do
         expect(open_invite).to be_acceptable
         expect(Invitation.acceptable).to include(open_invite)
       end
+
+      it "keeps has_invitee? the exact complement of magic_link? (PR 4)" do
+        emailed = create(:invitation)
+        bearer = create(:invitation, :magic_link)
+        expect(emailed.has_invitee?).to eq(!emailed.magic_link?)
+        expect(bearer.has_invitee?).to eq(!bearer.magic_link?)
+      end
     end
   end
 
