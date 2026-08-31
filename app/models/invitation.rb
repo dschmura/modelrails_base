@@ -74,7 +74,7 @@ class Invitation < ApplicationRecord
       invited_by: invited_by,
       expires_at: 7.days.from_now
     )
-    InvitationMailer.invite_client(invitation).deliver_later
+    InvitationMailer.with(invitation: invitation).invite_client.deliver_later
     invitation
   end
 
@@ -142,7 +142,7 @@ class Invitation < ApplicationRecord
         next
       end
       existing_invites.add(normalized)
-      InvitationMailer.invite(invitation).deliver_later
+      InvitationMailer.with(invitation: invitation).invite.deliver_later
       sent += 1
     end
 

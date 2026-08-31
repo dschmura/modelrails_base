@@ -23,7 +23,7 @@ module Workspaces
         )
 
         if @invitation.save
-          InvitationMailer.invite(@invitation).deliver_later
+          InvitationMailer.with(invitation: @invitation).invite.deliver_later
           redirect_to workspace_project_memberships_path(@workspace, @project), notice: t(".success")
         else
           render :new, status: :unprocessable_entity
