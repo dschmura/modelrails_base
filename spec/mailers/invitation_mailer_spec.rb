@@ -86,7 +86,12 @@ RSpec.describe InvitationMailer, type: :mailer do
       project = create(:project, clientside_enabled: true)
       inv = create(:invitation, :client, invitable: project, email: "dana@bigco.com")
       mail = InvitationMailer.with(invitation: inv).invite_client
-      expect(mail.body.encoded).to include(decline_invitation_url(token: inv.token))
+      url = decline_invitation_url(token: inv.token)
+      # body.encoded concatenates both parts of a multipart message, so it
+      # can't catch a link missing from just one of them — assert each part
+      # on its own (review finding, Task 10 fix round 1).
+      expect(mail.text_part.body.to_s).to include(url)
+      expect(mail.html_part.body.to_s).to include(url)
     end
   end
 
