@@ -81,6 +81,13 @@ RSpec.describe InvitationMailer, type: :mailer do
       expect(mail.to).to eq([ "dana@bigco.com" ])
       expect(mail.body.encoded).to include(accept_invitation_url(token: inv.token))
     end
+
+    it "includes the decline link (fourth ruling)" do
+      project = create(:project, clientside_enabled: true)
+      inv = create(:invitation, :client, invitable: project, email: "dana@bigco.com")
+      mail = InvitationMailer.with(invitation: inv).invite_client
+      expect(mail.body.encoded).to include(decline_invitation_url(token: inv.token))
+    end
   end
 
   describe "deliverability guard" do

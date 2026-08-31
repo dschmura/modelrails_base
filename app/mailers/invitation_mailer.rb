@@ -30,6 +30,7 @@ class InvitationMailer < ApplicationMailer
     @project = invitation.invitable
     @workspace = @project.workspace
     @accept_url = accept_invitation_url(token: invitation.token)
+    @decline_url = decline_invitation_url(token: invitation.token)
 
     mail(
       to: invitation.email,

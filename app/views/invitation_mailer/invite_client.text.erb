@@ -3,3 +3,5 @@
 <%= t("invitation_mailer.invite_client.body", inviter: @inviter.email_address, app_name: t("application.name")) %>
 
 <%= t("invitation_mailer.invite_client.action") %>: <%= @accept_url %>
+
+<%= t("invitation_mailer.invite_client.decline_action") %>: <%= @decline_url %>

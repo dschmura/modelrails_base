@@ -56,4 +56,27 @@ RSpec.describe "Invitation blocks", type: :request do
       expect(flash[:alert]).to eq(I18n.t("invitation_blocks.create.rate_limited"))
     end
   end
+
+  describe "client invitation journey (T30)" do
+    include ActiveJob::TestHelper
+
+    it "declines-and-blocks a client invitation and suppresses the re-invite" do
+      project = create(:project, clientside_enabled: true)
+      inviter = create(:user)
+      invitation = create(:invitation, :client, invitable: project,
+                          invited_by: inviter, email: "dana@bigco.com")
+
+      post block_invitation_path(token: invitation.token)
+      expect(invitation.reload).to be_declined
+      expect(Noticed::Event.where(type: "WorkspaceInvitationDeclinedNotifier",
+                                  record: invitation).count).to eq(1)
+
+      perform_enqueued_jobs(only: ActionMailer::MailDeliveryJob) do
+        Invitation.invite_client!(project: create(:project, clientside_enabled: true),
+                                  email: "dana@bigco.com", company_name: "BigCo",
+                                  invited_by: inviter)
+      end
+      expect(ActionMailer::Base.deliveries).to be_empty
+    end
+  end
 end

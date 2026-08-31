@@ -44,6 +44,7 @@ en:
       greeting: "Hello,"
       body: "%{inviter} has invited you to collaborate on a project on %{app_name}. The project is named on the page you land on when you accept or decline."
       action: "View the invitation"
+      decline_action: "Decline invitation"
   activerecord:
     errors:
       models:
