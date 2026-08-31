@@ -63,4 +63,86 @@ RSpec.describe InvitationBlock, type: :model do
         .not_to change(ActivityLog, :count)
     end
   end
+
+  describe ".block! (T3, T4, T5, T6)" do
+    let(:workspace) { create(:workspace) }
+    let(:invitation) { create(:invitation, invitable: workspace, invited_by: inviter) }
+
+    it "is idempotent under a double submit" do
+      expect {
+        2.times { described_class.block!(inviter: inviter, email: invitation.email) }
+      }.to change(described_class, :count).by(1)
+    end
+
+    it "absorbs the two-instance uniqueness race, whichever signal fires (T3)" do
+      # The loser of a find_or_create_by! race sees RecordInvalid (validation
+      # reads the winner's committed row) or RecordNotUnique (the index).
+      # Force each branch by stubbing the first lookup to miss.
+      described_class.block!(inviter: inviter, email: "raced@example.com")
+      allow(described_class).to receive(:find_or_create_by!)
+        .and_raise(ActiveRecord::RecordNotUnique)
+      expect(described_class.block!(inviter: inviter, email: "raced@example.com"))
+        .to eq(described_class.find_by(inviter: inviter, email: "raced@example.com"))
+
+      allow(described_class).to receive(:find_or_create_by!)
+        .and_raise(ActiveRecord::RecordInvalid.new(described_class.new))
+      expect(described_class.block!(inviter: inviter, email: "raced@example.com"))
+        .to eq(described_class.find_by(inviter: inviter, email: "raced@example.com"))
+    end
+
+    it "retroactively stamps this inviter's pending invitations to the address, and only theirs (T4)" do
+      travel_to(Time.zone.local(2026, 9, 1, 12)) do
+        other_invitable = create(:invitation, email: "target@example.com",
+                                 invitable: create(:workspace), invited_by: inviter)
+        same = create(:invitation, email: "target@example.com",
+                      invitable: workspace, invited_by: inviter)
+        strangers = create(:invitation, email: "target@example.com",
+                           invitable: create(:workspace), invited_by: create(:user))
+
+        described_class.block!(inviter: inviter, email: "target@example.com")
+
+        expect(Invitation.find(same.id)).to be_suppressed
+        expect(Invitation.find(other_invitable.id)).to be_suppressed
+        expect(Invitation.find(strangers.id)).not_to be_suppressed
+      end
+    end
+
+    it "skips a colliding stamp and continues to later rows (T4)" do
+      live = create(:invitation, email: "collide@example.com",
+                    invitable: workspace, invited_by: inviter)
+      # The ghost already holds the (email, invitable, inviter) ghost slot, so
+      # stamping `live` would collide. Placed second on purpose — that is the
+      # order the pending_live/pending_ghosts pair admits.
+      create(:invitation, :suppressed, suppressed_at: 1.hour.ago, email: "collide@example.com",
+             invitable: workspace, invited_by: inviter)
+      later = create(:invitation, email: "collide@example.com",
+                     invitable: create(:workspace), invited_by: inviter)
+
+      expect { described_class.block!(inviter: inviter, email: "collide@example.com") }
+        .not_to raise_error
+      expect(Invitation.find(live.id)).not_to be_suppressed   # ghost holds the slot
+      expect(Invitation.find(later.id)).to be_suppressed      # loop continued
+    end
+
+    it "sweeps only the invitee's notification rows for this inviter's invitations (T5)" do
+      invitee = create(:user, email_address: invitation.email)
+      WorkspaceInvitationExpiringSoonNotifier.with(record: invitation).deliver(invitee)
+      # Two survivors: the invitee's row for a different address, and the
+      # inviter's own row about THIS invitation — deleting the latter would
+      # itself be the tell (invariant I1).
+      other_address = create(:invitation, invitable: create(:workspace), invited_by: inviter)
+      WorkspaceInvitationExpiringSoonNotifier.with(record: other_address).deliver(invitee)
+      WorkspaceInvitationResentNotifier.with(record: invitation).deliver(inviter)
+
+      expect { described_class.block!(inviter: inviter, email: invitation.email) }
+        .to change { invitee.notifications.count }.by(-1)
+      expect(inviter.notifications.count).to be >= 1   # inviter's rows survive
+    end
+
+    it "works for an address with no account (T6)" do
+      create(:invitation, email: "noaccount@example.com", invitable: workspace, invited_by: inviter)
+      expect { described_class.block!(inviter: inviter, email: "noaccount@example.com") }
+        .to change(described_class, :count).by(1)
+    end
+  end
 end

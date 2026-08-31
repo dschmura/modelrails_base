@@ -143,4 +143,31 @@ RSpec.describe "Invitation suppression schema", type: :model do
       expect(ghost.reload).to be_suppressed
     end
   end
+
+  describe "#decline_and_block!" do
+    let(:invitation) { create(:invitation, invited_by: inviter) }
+
+    it "declines once and notifies the inviter exactly once (T7, invariant I1)" do
+      expect { invitation.decline_and_block! }
+        .to change { Noticed::Event.where(type: "WorkspaceInvitationDeclinedNotifier",
+                                          record: invitation).count }.by(1)
+      expect(invitation.reload).to be_declined
+      expect(InvitationBlock.exists?(inviter_id: inviter.id, email: invitation.email)).to be(true)
+    end
+
+    it "refuses a magic-link invitation before any write (T8)" do
+      bearer = create(:invitation, :magic_link, invited_by: inviter)
+      expect { bearer.decline_and_block! }.to raise_error(ArgumentError)
+      expect(InvitationBlock.count).to eq(0)
+    end
+
+    it "keeps the block when the decline is raced (T9, #675 shape)" do
+      stale = Invitation.find(invitation.id)
+      invitation.accept!(create(:user))
+
+      expect { stale.decline_and_block! }.to raise_error(ActiveRecord::RecordInvalid)
+      expect(InvitationBlock.exists?(inviter_id: inviter.id, email: invitation.email)).to be(true)
+      expect(invitation.reload).to be_accepted
+    end
+  end
 end

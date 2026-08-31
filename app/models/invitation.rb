@@ -230,6 +230,15 @@ class Invitation < ApplicationRecord
     end
   end
 
+  def decline_and_block!
+    # ArgumentError, deliberately never rescued: the controller pre-checks
+    # has_invitee?; reaching this raise is a programmer error (PR 4 spec §6.2).
+    raise ArgumentError, "magic-link invitations have no invitee to block for" unless has_invitee?
+    # Block commits first: a lost decline race still records the block.
+    InvitationBlock.block!(inviter: invited_by, email: email)
+    decline!
+  end
+
   def acceptable?
     pending? && !expired?
   end
