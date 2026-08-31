@@ -87,6 +87,21 @@ RSpec.describe WorkspaceInvitationExpiringSoonNotifier, type: :notifier do
         drain_noticed_jobs
       }.to have_enqueued_mail(NotificationMailer, :workspace_invitation_expiring_soon)
     end
+
+    # Scoped to ActionMailer::MailDeliveryJob rather than a bare
+    # perform_enqueued_jobs — the latter also runs unrelated jobs like
+    # CheckGravatarJob (enqueued from the user factories above), which does
+    # network IO and isn't relevant to this notifier (same reasoning as the
+    # sibling notifier specs' drain_noticed_jobs comment).
+    it "does not email when the block lands after dispatch (T14, final-hop gate)" do
+      described_class.with(record: invitation).deliver(invitee)
+      create(:invitation_block, inviter: inviter, email: invitation.email)
+
+      expect {
+        drain_noticed_jobs                                             # EventJob → Email method
+        perform_enqueued_jobs(only: ActionMailer::MailDeliveryJob)      # → ActionMailer job
+      }.not_to change { ActionMailer::Base.deliveries.count }
+    end
   end
 
   describe "preferences gating" do
