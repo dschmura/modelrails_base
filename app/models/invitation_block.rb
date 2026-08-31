@@ -45,6 +45,11 @@ class InvitationBlock < ApplicationRecord
     # pending_live guarantees pairwise-distinct invitables, so rows collide
     # only with a pre-existing ghost, never each other (PR 4 spec §5.1).
     rows.each do |row|
+      # The ROUTINE case, not a race: re-inviting a suppressed address mints a
+      # fresh live row beside the old ghost, so a pre-existing ghost for this
+      # (email, invitable, inviter) is the ordinary shape here. Skipping it is
+      # what keeps the common path off the index; the rescue below is the narrow
+      # TOCTOU backstop for a ghost that lands between this check and the write.
       next if Invitation.pending.where.not(suppressed_at: nil).exists?(
         email: email, invitable_type: row.invitable_type,
         invitable_id: row.invitable_id, invited_by_id: inviter.id

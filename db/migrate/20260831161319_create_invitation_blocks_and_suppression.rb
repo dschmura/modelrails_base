@@ -1,4 +1,11 @@
 class CreateInvitationBlocksAndSuppression < ActiveRecord::Migration[8.1]
+  # ROLLBACK PRECONDITION. `change` inverts correctly as schema, but the index it
+  # restores (one pending row per (email, invitable), any inviter) forbids data
+  # this schema deliberately permits — a ghost beside a live row. Once the
+  # feature has been used, roll back only after clearing the stamps:
+  #   Invitation.where.not(suppressed_at: nil).update_all(suppressed_at: nil)
+  # Otherwise the restore raises SQLite3::ConstraintException. Same recipe as
+  # the operator unblock in app/docs/developer/troubleshooting.md.
   def change
     create_table :invitation_blocks do |t|
       t.references :inviter, null: false, foreign_key: { to_table: :users }

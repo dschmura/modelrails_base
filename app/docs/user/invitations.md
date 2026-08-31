@@ -38,7 +38,7 @@ The one exception: **magic-link invitations** (a shareable URL that an admin cop
 
 ## Declining an invitation
 
-Every invitation email includes a **Decline** link. Clicking it marks the invitation as declined — no account or membership is created.
+Every invitation email in the table above includes a **Decline** link. Clicking it marks the invitation as declined — no account or membership is created. (The "expiring soon" reminder is a different email and links only to **Accept** — decline from the original invitation email.)
 
 The decline page offers a second choice: **Decline and block**. That declines the invitation and also stops future invitations from that sender to your address. Blocking is per-sender and per-address — it needs no account, it covers only invitations that one sender addresses to you, and it does not follow you if you later switch to a different address. The sender is told nothing beyond the ordinary "invitation declined" notice.
 

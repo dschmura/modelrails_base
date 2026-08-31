@@ -7,6 +7,12 @@ RSpec.describe "Invitation decline and block", type: :system do
   it "opens the block dialog with the consequence as its description — and leaves it open for the axe audit (T21a)" do
     visit decline_invitation_path(token: invitation.token)
 
+    # The non-client half of the copy branch T28 pins; without it, swapping the
+    # two branches leaves only T28 red.
+    expect(page).to have_content(
+      I18n.t("invitation_declines.show.body",
+             workspace: invitation.invitable.name, inviter: inviter.email_address)
+    )
     expect(page).to have_button(
       I18n.t("invitation_declines.show.block_trigger", inviter: inviter.email_address)
     )
@@ -36,12 +42,19 @@ RSpec.describe "Invitation decline and block", type: :system do
     expect(page.evaluate_script("document.activeElement.textContent").strip).to eq(trigger_text)
   end
 
-  it "reflows at 320px with no horizontal scroll (T21c)" do
-    cdp_resize(320, 800)
-    visit decline_invitation_path(token: invitation.token)
-    expect(page.evaluate_script(
-      "document.documentElement.scrollWidth <= document.documentElement.clientWidth"
-    )).to be(true)
+  # Scoped: `with_viewport`'s ensure restores the suite default, so a leaked
+  # narrow viewport can't reframe later specs in this parallel worker. The axe
+  # assertion lives INSIDE the block for the same reason — the suite-wide hook
+  # runs after the restore and would audit the desktop DOM, leaving the 320px
+  # state the one unaudited page state here.
+  it "reflows at 320px with no horizontal scroll (T21c)", skip_axe_hook: true do
+    with_viewport(320, 800) do
+      visit decline_invitation_path(token: invitation.token)
+      expect(page.evaluate_script(
+        "document.documentElement.scrollWidth <= document.documentElement.clientWidth"
+      )).to be(true)
+      expect(axe_violations_in_both_themes).to be_empty
+    end
   end
 
   it "confirming posts the block (T21d)" do

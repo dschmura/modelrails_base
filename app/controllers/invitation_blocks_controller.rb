@@ -20,13 +20,16 @@ class InvitationBlocksController < ApplicationController
   private
 
   # Duplicated from InvitationDeclinesController on purpose: second copy — the
-  # house rule extracts at the third (standards/code-style.md). The magic_link?
-  # refusal is this endpoint's own: nothing to block for. Absolute key: shared
-  # failure message with the decline flow.
+  # house rule extracts at the third (standards/code-style.md). The has_invitee?
+  # refusal is this endpoint's own: nothing to block for. Named for the predicate
+  # `decline_and_block!` guards on, so the two cannot drift apart — the model's
+  # ArgumentError is deliberately never rescued, and a drift would surface it as
+  # a 500 on a public unauthenticated endpoint. Absolute key: shared failure
+  # message with the decline flow.
   def find_valid_invitation
     invitation = Invitation.find_by(token: params[:token])
 
-    if invitation.nil? || !invitation.pending? || invitation.expired? || invitation.magic_link?
+    if invitation.nil? || !invitation.pending? || invitation.expired? || !invitation.has_invitee?
       redirect_to root_path, alert: t("invitation_declines.invalid")
       return nil
     end

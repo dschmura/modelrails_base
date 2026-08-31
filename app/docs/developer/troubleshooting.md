@@ -70,10 +70,28 @@ invitation = Invitation.where(email: "invitee@example.com").order(created_at: :d
 **Unblocking is two statements, not one:**
 
 ```ruby
-InvitationBlock.find_by(inviter: inviter, email: email).destroy
+InvitationBlock.destroy_by(inviter: inviter, email: email)
 Invitation.pending.where(invited_by: inviter, email: email).update_all(suppressed_at: nil)
 ```
+
+`destroy_by`, not `find_by(...).destroy` — the stamp can outlive its block row (an earlier unblock that cleared only the block), and a `NoMethodError` on `nil` is the wrong thing to hand someone already debugging.
 
 Destroying the block alone leaves the stamped invitation invisible to `bulk_invite!`'s duplicate check — which skips only *unsuppressed* pending rows — so every later invite to that address mints another pending duplicate. `update_all` is right here for the same reason the stamping writes are callback-free: clearing the flag is not a workspace-feed event.
 
 After unblocking, **resend the existing invitation** rather than creating a new one. Once the stamp is cleared the row is an ordinary pending invitation again, so a fresh invite to the same address is skipped as a duplicate and nothing is sent — resend is the path that both refreshes the expiry and actually mails.
+
+### Rolling back the invitation-blocks migration
+
+`CreateInvitationBlocksAndSuppression` inverts correctly as *schema*, but rolling it back on a database where the feature has been used raises `SQLite3::ConstraintException`. The old index it restores — `UNIQUE (email, invitable_type, invitable_id) WHERE status = 'pending'` — forbids a shape the new schema deliberately permits: a suppressed pending row (a ghost) sitting beside a live one for the same address and invitable.
+
+Clear the stamps first, then roll back:
+
+```ruby
+Invitation.where.not(suppressed_at: nil).update_all(suppressed_at: nil)
+```
+
+```bash
+bin/rails db:rollback
+```
+
+This discards the record of which invitations were suppressed; the `invitation_blocks` rows go with the table, so nothing is left to re-derive it from. Take a database copy first if that matters.
