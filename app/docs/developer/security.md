@@ -87,8 +87,13 @@ Four invariants hold the design together:
   creates a record, so neither can be told apart by the count. The single-create
   paths (`Invitation.invite_client!`, `Workspaces::Projects::InvitationsController#create`)
   reach the same symmetry through `Invitation.already_invited?`, which refuses a
-  re-invite on this inviter's own row — live *or* ghost — so both cases get the
-  identical "already has a pending invitation" flash.
+  re-invite when a *pending* row exists that is either unsuppressed (from any
+  inviter) or this inviter's own — live *or* ghost. Both halves are scoped
+  `pending`, not `acceptable`, to match the expiry-blind `pending_live` index:
+  an expired pending row still holds the live slot, so a narrower pre-check
+  would let a blocked re-invite succeed where an unblocked one is refused, once
+  the first invitation ages out. Matched, both cases get the identical "already
+  has a pending invitation" flash.
 - **`suppressed_at` has exactly three writers, all callback-free.**
   Create-time on the bulk path (create attributes), retroactively at block
   creation (`update_column`), and the mailer guard (`update_column`) — never a

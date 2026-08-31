@@ -256,6 +256,38 @@ RSpec.describe "Invitation suppression schema", type: :model do
       expect(outcomes.first).to eq([ ActiveRecord::RecordNotUnique, 1 ])
     end
 
+    # `index_invitations_pending_live` is expiry-blind (`status = 'pending' AND
+    # suppressed_at IS NULL`), so a still-pending expired row keeps holding the
+    # live slot. A pre-check narrower than that index reopens the C1 oracle
+    # roughly seven days after any blocked invite, and nothing re-statuses an
+    # expired pending row, so it never heals.
+    it "refuses a re-invite the same way once row 1 is pending but expired" do
+      create(:invitation_block, inviter: inviter, email: "stale@bigco.com")
+
+      outcomes = %w[stale@bigco.com fresh@bigco.com].map do |email|
+        first = Invitation.invite_client!(project: project, email: email,
+                                          company_name: "BigCo", invited_by: inviter)
+        # Stamps the blocked row. only:, because the user factory also queues
+        # CheckGravatarJob, which does network I/O the suite disallows.
+        perform_enqueued_jobs(only: ActionMailer::MailDeliveryJob)
+        first.update_column(:expires_at, 1.day.ago) # callback-free: fixture aging
+
+        raised = nil
+        begin
+          Invitation.invite_client!(project: project, email: email,
+                                    company_name: "BigCo", invited_by: inviter)
+        rescue StandardError => e
+          raised = e.class
+        end
+        [ raised, project.invitations.where(email: email).count ]
+      end
+
+      # Anchored to literals on BOTH sides: comparing the two to each other
+      # passes vacuously if they regress together.
+      expect(outcomes).to eq([ [ ActiveRecord::RecordNotUnique, 1 ],
+                               [ ActiveRecord::RecordNotUnique, 1 ] ])
+    end
+
     it "sees this inviter's own ghost but never a stranger's (T16 preserved)" do
       create(:invitation, :suppressed, email: "ghost@example.com",
              invitable: project, invited_by: inviter)

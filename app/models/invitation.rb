@@ -65,13 +65,19 @@ class Invitation < ApplicationRecord
   def client_invite? = company_name.present?
 
   # The single-create paths' duplicate rule. A live pending row from ANY inviter
-  # refuses a second invite (the `pending_live` index's rule, unchanged); so now
-  # does THIS inviter's own row, live or ghost. The ghost half is invariant I3: a
-  # stamped row vacates the live slot, so without it a blocked re-invite quietly
-  # succeeds where an unblocked one is refused, and that difference is readable
-  # as a block. A *different* inviter's ghost still doesn't refuse (T16).
+  # refuses a second invite — exactly `index_invitations_pending_live`'s
+  # predicate; so does THIS inviter's own row, live or ghost. The ghost half is
+  # invariant I3: a stamped row vacates the live slot, so without it a blocked
+  # re-invite quietly succeeds where an unblocked one is refused, and that
+  # difference is readable as a block. A *different* inviter's ghost still
+  # doesn't refuse (T16).
+  #
+  # `pending`, NOT `acceptable`: that index is expiry-blind, so a still-pending
+  # expired row goes on holding the live slot. Narrowing this to `acceptable`
+  # reopens the same oracle about seven days after any blocked invite, and
+  # nothing re-statuses an expired pending row, so it never heals.
   def self.already_invited?(invitable:, email:, invited_by:)
-    existing = invitable.invitations.acceptable.where(email: normalize_value_for(:email, email))
+    existing = invitable.invitations.pending.where(email: normalize_value_for(:email, email))
     existing.unsuppressed.exists? || existing.where(invited_by: invited_by).exists?
   end
 
