@@ -30,6 +30,13 @@ FactoryBot.define do
       expires_at { 1.day.ago }
     end
 
+    # A stamped pending row with NO InvitationBlock — reachable in production
+    # via the unblock residual (spec §14). Mailer-guard specs need a real
+    # block row instead: the guard keys on blocked_by_invitee?, not the stamp.
+    trait :suppressed do
+      suppressed_at { Time.current }
+    end
+
     trait :client do
       association :invitable, factory: :project, clientside_enabled: true
       role { nil }
