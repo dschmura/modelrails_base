@@ -704,4 +704,20 @@ RSpec.describe User, type: :model do
       expect(observed).to be_nil
     end
   end
+
+  describe "#destroy with invitation history (T23, #816)" do
+    it "destroys sent invitations and blocks, and detaches accepted ones" do
+      user = create(:user)
+      workspace = create(:workspace)
+      sent = create(:invitation, invitable: workspace, invited_by: user)
+      create(:invitation_block, inviter: user, email: "b@example.com")
+      accepted = create(:invitation, invitable: create(:workspace), invited_by: create(:user))
+      accepted.accept!(user)
+
+      expect { user.destroy! }.to change(Invitation, :count).by(-1)
+      expect(InvitationBlock.where(inviter_id: user.id)).to be_empty
+      expect(accepted.reload.accepted_by_id).to be_nil
+      expect(Invitation.exists?(sent.id)).to be(false)
+    end
+  end
 end
