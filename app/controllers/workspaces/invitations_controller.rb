@@ -41,7 +41,7 @@ module Workspaces
       else
         # Invitee email path is unconditional — the dedup sentinel only
         # gates the in-app confirmation surface for the inviter.
-        InvitationMailer.invite(invitation).deliver_later
+        InvitationMailer.with(invitation: invitation).invite.deliver_later
 
         # Branch the flash on the sentinel return from
         # ApplicationNotifier#deliver. :delivered means the in-app

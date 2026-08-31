@@ -412,6 +412,8 @@ Watch for:
 
 The `category` + `severity` macros and the `with` parameter are enough to route the new notifier through the existing preference gates, bell-indicator severity selection, idempotency, broadcasts, retention, and digest pipeline. No controller or view changes needed.
 
+One extra obligation if the notifier reaches an **invitee** rather than a workspace member: re-check `Invitation#deliverable?` at the notifier's delivery gate — the last hop it controls — and add the site to the delivery-site roster in [Security](/docs/developer/security#invitation-blocks-decline-and-block). A preference gate is not a deliverability gate.
+
 ## Related
 
 - **End-user instructions** for the same feature — switch to **User Guide** in the sidebar to view the user-facing companion to this doc

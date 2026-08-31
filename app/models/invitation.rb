@@ -49,6 +49,7 @@ class Invitation < ApplicationRecord
   # enum's `pending` is left alone; the extra constraint lives under its own name.
   scope :acceptable, -> { where(status: "pending").where("expires_at > ?", Time.current) }
   scope :expired, -> { where(status: "pending").where("expires_at <= ?", Time.current) }
+  scope :unsuppressed, -> { where(suppressed_at: nil) }
 
   # The SQL half of the members page (WorkspaceRoster does search and sort in
   # Ruby). Pending invitations are excluded entirely when the status filter
@@ -61,11 +62,31 @@ class Invitation < ApplicationRecord
     scope
   }
 
-  def client_invite?
-    company_name.present?
+  def client_invite? = company_name.present?
+
+  # The single-create paths' duplicate rule. A live pending row from ANY inviter
+  # refuses a second invite — exactly `index_invitations_pending_live`'s
+  # predicate; so does THIS inviter's own row, live or ghost. The ghost half is
+  # invariant I3: a stamped row vacates the live slot, so without it a blocked
+  # re-invite quietly succeeds where an unblocked one is refused, and that
+  # difference is readable as a block. A *different* inviter's ghost still
+  # doesn't refuse (T16).
+  #
+  # `pending`, NOT `acceptable`: that index is expiry-blind, so a still-pending
+  # expired row goes on holding the live slot. Narrowing this to `acceptable`
+  # reopens the same oracle about seven days after any blocked invite, and
+  # nothing re-statuses an expired pending row, so it never heals.
+  def self.already_invited?(invitable:, email:, invited_by:)
+    existing = invitable.invitations.pending.where(email: normalize_value_for(:email, email))
+    existing.unsuppressed.exists? || existing.where(invited_by: invited_by).exists?
   end
 
   def self.invite_client!(project:, email:, company_name:, invited_by:)
+    # The same signal the `pending_live` index raises, so the pre-check and a
+    # lost race land on the controller's one rescue and one flash.
+    raise ActiveRecord::RecordNotUnique, "pending invitation already exists" if
+      already_invited?(invitable: project, email: email, invited_by: invited_by)
+
     invitation = create!(
       invitable: project,
       email: email,
@@ -73,7 +94,7 @@ class Invitation < ApplicationRecord
       invited_by: invited_by,
       expires_at: 7.days.from_now
     )
-    InvitationMailer.invite_client(invitation).deliver_later
+    InvitationMailer.with(invitation: invitation).invite_client.deliver_later
     invitation
   end
 
@@ -105,6 +126,9 @@ class Invitation < ApplicationRecord
     )
   end
 
+  # `sent` means records created — delivery is asynchronous and may be
+  # suppressed; this method has never known whether mail arrived, on the
+  # blocked path or any other (PR 4 spec §6.4).
   def self.bulk_invite!(workspace:, emails:, role:, invited_by:)
     parsed = parse_email_list(emails)
     emails = parsed.emails
@@ -112,7 +136,11 @@ class Invitation < ApplicationRecord
     skipped = 0
 
     existing_members = workspace.memberships.kept.joins(:user).pluck(:email_address).to_set
-    existing_invites = workspace.invitations.acceptable.where.not(email: nil).pluck(:email).to_set
+    # unsuppressed: a ghost must not make an unblocked admin skip the address.
+    existing_invites = workspace.invitations.acceptable.unsuppressed.where.not(email: nil).pluck(:email).to_set
+    # Bounded to this submission (≤ MAX_EMAILS_PER_SUBMISSION); `normalizes`
+    # applies to the finder values, so raw input matches stored rows.
+    blocked = InvitationBlock.where(inviter: invited_by, email: emails).pluck(:email).to_set
 
     emails.each do |email|
       normalized = normalize_value_for(:email, email)
@@ -132,16 +160,24 @@ class Invitation < ApplicationRecord
           email: normalized,
           role: role,
           invited_by: invited_by,
-          expires_at: 7.days.from_now
+          expires_at: 7.days.from_now,
+          suppressed_at: (Time.current if blocked.include?(normalized))
         )
       rescue ActiveRecord::RecordNotUnique
-        # Concurrent request won the race to the pending-invite partial unique
-        # index after our preload; that invite already exists and was mailed.
+        # Two ways here — a collision into this inviter's existing ghost, and a
+        # concurrent request that won the live slot — and both count `skipped`,
+        # because neither created a record and "sent" means created (see above).
+        # For the ghost that is also the deliberate call on invariant I3: now
+        # that `existing_invites` excludes ghosts via `.unsuppressed` (T16),
+        # counting it `sent` would make "pending in the members index, yet
+        # sent:1" an oracle that fires only for a blocked address. Controller-
+        # ruled override of PR 4 spec §6.4's "collision counts sent" text
+        # (task-6 fix round 1).
         skipped += 1
         next
       end
       existing_invites.add(normalized)
-      InvitationMailer.invite(invitation).deliver_later
+      InvitationMailer.with(invitation: invitation).invite.deliver_later
       sent += 1
     end
 
@@ -229,16 +265,43 @@ class Invitation < ApplicationRecord
     end
   end
 
+  def decline_and_block!
+    # ArgumentError, deliberately never rescued: the controller pre-checks
+    # has_invitee?; reaching this raise is a programmer error (PR 4 spec §6.2).
+    raise ArgumentError, "magic-link invitations have no invitee to block for" unless has_invitee?
+    # Block commits first, so a lost decline race still records the block —
+    # true when called outside a caller transaction (the controller's case).
+    # Nested, `block!` joins that transaction and both roll back together.
+    InvitationBlock.block!(inviter: invited_by, email: email)
+    decline!
+  end
+
   def acceptable?
     pending? && !expired?
   end
 
-  def expired?
-    expires_at <= Time.current
+  def expired? = expires_at <= Time.current
+
+  def magic_link? = email.nil?
+
+  # Nothing to deliver to on a magic link — a false here is NOT a block, so a
+  # future magic-link mailer must not read it as one (PR 4 spec §2).
+  def has_invitee? = !magic_link?
+
+  def blocked_by_invitee?
+    has_invitee? && InvitationBlock.exists?(inviter_id: invited_by_id, email: email)
   end
 
-  def magic_link?
-    email.nil?
+  def deliverable? = has_invitee? && !blocked_by_invitee?
+
+  def suppressed? = suppressed_at.present?
+
+  # One suppressed mailer-delivery attempt: stamp (idempotent, collision-safe),
+  # then record. Unexpected errors propagate BEFORE any audit row — the mailer
+  # job retries and re-enters the guard (PR 4 spec §6.3).
+  def suppress_delivery!(mailer_action:)
+    stamp_suppression
+    record_suppressed_delivery(mailer_action)
   end
 
   # Hours remaining until expiry, ceiled to the next whole hour. Single source
@@ -322,6 +385,35 @@ class Invitation < ApplicationRecord
 
   def generate_token
     self.token = SecureRandom.urlsafe_base64(32)
+  end
+
+  # Callback-free on purpose: Trackable#track_update would publish this stamp
+  # into the workspace activity feed as "Invitation updated" — a block oracle
+  # (PR 4 spec §3, Departure 1 / invariant I4).
+  def stamp_suppression
+    update_column(:suppressed_at, Time.current) unless suppressed?
+  rescue ActiveRecord::RecordNotUnique
+    # A sibling ghost already holds the suppressed slot — correct end state
+    # (Aaron V-1). update_columns wrote the cast value into @attributes and
+    # cleared the dirty flag BEFORE the DB refused, so there is no recorded
+    # change left to restore_attributes; reload takes value and clean state
+    # back from the row, which is still live.
+    reload
+  end
+
+  # Best-effort, admin-visibility, outside Trackable's callbacks — the same
+  # shape as Membership#record_ownership_demotion; Trackable's header names
+  # this writer. Metadata never carries the address (unencrypted JSON).
+  def record_suppressed_delivery(mailer_action)
+    ActivityLog.create!(
+      actor: nil, action: "invitation.delivery_suppressed", trackable: self,
+      workspace: resolved_workspace, visibility: "admin",
+      metadata: { "mailer_action" => mailer_action.to_s }
+    )
+  rescue StandardError => e
+    Rails.logger.warn("Activity tracking failed for Invitation##{id} (delivery_suppressed): #{e.message}")
+    Rails.error.report(e, handled: true,
+      context: { trackable: "Invitation##{id}", action: "invitation.delivery_suppressed" })
   end
 
   # Attribute activity to the invitation's own workspace context, never the

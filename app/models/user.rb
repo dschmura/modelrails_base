@@ -9,7 +9,11 @@ class User < ApplicationRecord
   has_one_attached :avatar_original
   has_many :memberships, dependent: :destroy
   has_many :workspaces, through: :memberships
-  has_many :sent_invitations, class_name: "Invitation", foreign_key: :invited_by_id, dependent: :nullify
+  has_many :sent_invitations, class_name: "Invitation", foreign_key: :invited_by_id, dependent: :destroy
+  # accepted_by_id is nullable but carries a real FK — without this, #816's
+  # fix above merely unmasks InvalidForeignKey on destroy.
+  has_many :accepted_invitations, class_name: "Invitation", foreign_key: :accepted_by_id, dependent: :nullify
+  has_many :invitation_blocks, foreign_key: :inviter_id, dependent: :delete_all
   has_many :project_memberships, dependent: :destroy
   has_many :projects, through: :project_memberships
   has_many :client_accesses, dependent: :destroy

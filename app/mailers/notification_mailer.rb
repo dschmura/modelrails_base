@@ -27,6 +27,11 @@ class NotificationMailer < ApplicationMailer
     @notification = params[:notification]
     @recipient = params[:recipient]
     @invitation = params[:record]
+    # Delivery-time gate, the reminder's final hop: noticed's before_enqueue
+    # runs at EventJob time, so a block landing between dispatch and render is
+    # only catchable here (PR 4 spec §8.3 site 6 / Departure 3). No mail call →
+    # NullMail → no delivery.
+    return unless @invitation.deliverable?
     @workspace = @invitation.resolved_workspace
     @hours_remaining = @invitation.expires_in_hours
     @accept_url = accept_invitation_url(token: @invitation.token)

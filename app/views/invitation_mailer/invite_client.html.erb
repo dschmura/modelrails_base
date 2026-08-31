@@ -1,3 +1,4 @@
 <p><%= t("invitation_mailer.invite_client.greeting") %></p>
 <p><%= t("invitation_mailer.invite_client.body", inviter: @inviter.email_address, app_name: t("application.name")) %></p>
 <p><%= link_to t("invitation_mailer.invite_client.action"), @accept_url %></p>
+<p><%= link_to t("invitation_mailer.invite_client.decline_action"), @decline_url %></p>

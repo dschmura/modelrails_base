@@ -5,30 +5,20 @@ RSpec.describe InvitationMailer, type: :mailer do
     let(:invitation) { create(:invitation) }
 
     it "sends to the invitee's email" do
-      mail = described_class.invite(invitation)
+      mail = described_class.with(invitation: invitation).invite
       expect(mail.to).to eq([ invitation.email ])
     end
 
     it "includes the accept link" do
-      mail = described_class.invite(invitation)
+      mail = described_class.with(invitation: invitation).invite
       expect(mail.body.encoded).to include(invitation.token)
     end
 
     # D4: the invitee has consented to nothing yet, so the invitation does not
     # disclose the workspace's name. It appears once, on the accept/decline page.
     it "does not disclose the workspace name in the body" do
-      mail = described_class.invite(invitation)
+      mail = described_class.with(invitation: invitation).invite
       expect(mail.body.encoded).not_to include(invitation.invitable.name)
-    end
-  end
-
-  describe "#invite with magic link" do
-    let(:invitation) { create(:invitation, :magic_link) }
-
-    it "does not deliver for magic link invitations (no email sent)" do
-      expect { described_class.invite(invitation).deliver_now }
-        .not_to have_enqueued_mail(InvitationMailer, :invite)
-      expect(ActionMailer::Base.deliveries).to be_empty
     end
   end
 
@@ -50,13 +40,13 @@ RSpec.describe InvitationMailer, type: :mailer do
     before { create(:membership, user: user, workspace: workspace) }
 
     it "does not disclose the workspace name in the subject" do
-      mail = described_class.invite(invitation)
+      mail = described_class.with(invitation: invitation).invite
       expect(mail.subject).not_to include(workspace.name)
       expect(mail.subject).to include(I18n.t("application.name"))
     end
 
     it "sends to the invitee email" do
-      mail = described_class.invite(invitation)
+      mail = described_class.with(invitation: invitation).invite
       expect(mail.to).to eq([ "project-invite@example.com" ])
     end
   end
@@ -65,7 +55,7 @@ RSpec.describe InvitationMailer, type: :mailer do
     let(:invitation) { create(:invitation) }
 
     it "names the app rather than the workspace in the subject" do
-      mail = described_class.invite(invitation)
+      mail = described_class.with(invitation: invitation).invite
       expect(mail.subject).not_to include(invitation.invitable.name)
       expect(mail.subject).to include(I18n.t("application.name"))
     end
@@ -73,12 +63,12 @@ RSpec.describe InvitationMailer, type: :mailer do
     # The inviter is identified by their verified address, not a display name
     # they chose — the address is the part the invitee can actually judge.
     it "identifies the inviter by their address in the body" do
-      mail = described_class.invite(invitation)
+      mail = described_class.with(invitation: invitation).invite
       expect(mail.body.encoded).to include(invitation.invited_by.email_address)
     end
 
     it "includes the decline link" do
-      mail = described_class.invite(invitation)
+      mail = described_class.with(invitation: invitation).invite
       expect(mail.body.encoded).to include("decline")
     end
   end
@@ -87,9 +77,57 @@ RSpec.describe InvitationMailer, type: :mailer do
     it "renders to the client with the accept URL" do
       project = create(:project, clientside_enabled: true)
       inv = create(:invitation, :client, invitable: project, email: "dana@bigco.com")
-      mail = InvitationMailer.invite_client(inv)
+      mail = InvitationMailer.with(invitation: inv).invite_client
       expect(mail.to).to eq([ "dana@bigco.com" ])
       expect(mail.body.encoded).to include(accept_invitation_url(token: inv.token))
+    end
+
+    it "includes the decline link (fourth ruling)" do
+      project = create(:project, clientside_enabled: true)
+      inv = create(:invitation, :client, invitable: project, email: "dana@bigco.com")
+      mail = InvitationMailer.with(invitation: inv).invite_client
+      url = decline_invitation_url(token: inv.token)
+      # body.encoded concatenates both parts of a multipart message, so it
+      # can't catch a link missing from just one of them — assert each part
+      # on its own (review finding, Task 10 fix round 1).
+      expect(mail.text_part.body.to_s).to include(url)
+      expect(mail.html_part.body.to_s).to include(url)
+    end
+  end
+
+  describe "deliverability guard" do
+    include ActiveJob::TestHelper
+
+    it "delivers nothing to a blocked address and stamps the invitation (T11)" do
+      invitation = create(:invitation)
+      create(:invitation_block, inviter: invitation.invited_by, email: invitation.email)
+
+      perform_enqueued_jobs do
+        described_class.with(invitation: invitation).invite.deliver_later
+      end
+
+      expect(ActionMailer::Base.deliveries).to be_empty
+      expect(Invitation.find(invitation.id)).to be_suppressed
+      expect(ActivityLog.where(action: "invitation.delivery_suppressed",
+                               trackable: invitation).count).to eq(1)
+    end
+
+    it "still sends to an unblocked address" do
+      invitation = create(:invitation)
+      perform_enqueued_jobs do
+        described_class.with(invitation: invitation).invite.deliver_later
+      end
+      expect(ActionMailer::Base.deliveries.size).to eq(1)
+    end
+
+    it "does not deliver, stamp, or record for magic links (T12)" do
+      invitation = create(:invitation, :magic_link)
+      perform_enqueued_jobs do
+        described_class.with(invitation: invitation).invite.deliver_later
+      end
+      expect(ActionMailer::Base.deliveries).to be_empty
+      expect(Invitation.find(invitation.id)).not_to be_suppressed
+      expect(ActivityLog.where(action: "invitation.delivery_suppressed").count).to eq(0)
     end
   end
 end

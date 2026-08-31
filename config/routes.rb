@@ -141,6 +141,7 @@ Rails.application.routes.draw do
   post "invitations/:token/accept", to: "invitation_accepts#create"
   get "invitations/:token/decline", to: "invitation_declines#show", as: :decline_invitation
   post "invitations/:token/decline", to: "invitation_declines#create"
+  post "invitations/:token/block", to: "invitation_blocks#create", as: :block_invitation
 
   resource :onboarding, only: %i[show update]
   namespace :onboarding do

@@ -70,6 +70,13 @@ RSpec.describe Invitation, type: :model do
         expect(open_invite).to be_acceptable
         expect(Invitation.acceptable).to include(open_invite)
       end
+
+      it "keeps has_invitee? the exact complement of magic_link? (PR 4)" do
+        emailed = create(:invitation)
+        bearer = create(:invitation, :magic_link)
+        expect(emailed.has_invitee?).to eq(!emailed.magic_link?)
+        expect(bearer.has_invitee?).to eq(!bearer.magic_link?)
+      end
     end
   end
 
@@ -678,25 +685,22 @@ RSpec.describe Invitation, type: :model do
     end
 
     it "skips an email whose pending invitation was created concurrently instead of aborting the batch" do
-      # The lost race: another request commits the same pending invitation
-      # after bulk_invite! preloads pending emails but before create!. Hide
-      # the existing row from the preload so the partial unique index
-      # (index_invitations_on_email_and_invitable_pending) raises for real.
+      # The lost race: create the row for real, then stub THIS call's
+      # `acceptable` preload to miss it — simulating a commit that lands
+      # after the preload reads but before create! — so the real row still
+      # trips the pending_live unique index in create!, for real.
       workspace.invitations.create!(
-        email: "raced@example.com",
-        role: role,
-        invited_by: inviter,
+        email: "raced@example.com", role: role, invited_by: inviter,
         expires_at: 7.days.from_now
       )
       invitations = workspace.invitations
       allow(workspace).to receive(:invitations).and_return(invitations)
-      allow(invitations).to receive(:pending).and_return(Invitation.none)
+      allow(invitations).to receive(:acceptable).and_return(Invitation.none)
 
       result = Invitation.bulk_invite!(
         workspace: workspace,
         emails: [ "raced@example.com", "fresh@example.com" ],
-        role: role,
-        invited_by: inviter
+        role: role, invited_by: inviter
       )
 
       expect(result[:sent]).to eq(1)

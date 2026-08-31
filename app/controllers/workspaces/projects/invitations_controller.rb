@@ -22,12 +22,22 @@ module Workspaces
           expires_at: 7.days.from_now
         )
 
-        if @invitation.save
-          InvitationMailer.invite(@invitation).deliver_later
+        if Invitation.already_invited?(invitable: @project, email: invitation_params[:email],
+                                       invited_by: Current.user)
+          flash.now[:alert] = t(".already_invited")
+          render :new, status: :unprocessable_entity
+        elsif @invitation.save
+          InvitationMailer.with(invitation: @invitation).invite.deliver_later
           redirect_to workspace_project_memberships_path(@workspace, @project), notice: t(".success")
         else
           render :new, status: :unprocessable_entity
         end
+      rescue ActiveRecord::RecordNotUnique
+        # Invitation carries no uniqueness *validation*, so a lost race reaches
+        # the action as the raw index error — unrescued that was a 500, an
+        # outcome the blocked path could never produce (invariant I3).
+        flash.now[:alert] = t(".already_invited")
+        render :new, status: :unprocessable_entity
       end
 
       private
