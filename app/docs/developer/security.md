@@ -1,7 +1,7 @@
 ---
 title: Security
 description: Security configuration, recommendations, and best practices for ModelRails
-keywords: rate limiting account locking headers csp password oauth rack attack https clientside client access bearer token libvips heic content types direct upload email normalization punycode recipient throttle nonce form-action provider registry
+keywords: rate limiting account locking headers csp password oauth rack attack https clientside client access bearer token libvips heic content types direct upload email normalization punycode recipient throttle nonce form-action provider registry invitation block decline suppression deliverable ghost
 ---
 
 # Security
@@ -43,6 +43,87 @@ so they must share one budget or endpoint-hopping resets it. The window
 matches the 15-minute token expiry: a throttled-out user is never stranded
 longer than their newest link's lifetime, and an attacker gets at most the cap
 in supersedes per window before the victim's link becomes untouchable.
+
+### Invitation blocks (decline-and-block)
+
+An invitee who declines an invitation can, in the same motion, stop that
+inviter's future invitations from reaching that address. An `InvitationBlock`
+row means "invitations from inviter *I* to address *E* are not delivered".
+Blocks are **email-keyed and account-independent**: they work for a decliner
+with no account, survive the address later becoming a user, and do not follow
+a user who changes their address. A block is policy state, not audit — it is
+deleted with its inviter, and the operator door in
+[Troubleshooting](/docs/developer/troubleshooting#operations) is the only way
+to lift one.
+
+When a delivery aimed at a blocked address is refused, the invitation is
+stamped `suppressed_at` (a **ghost**) and, on the mailer sites, an
+admin-visibility `invitation.delivery_suppressed` activity row records the
+attempt. Suppression is delivery-side only: it never changes what the
+invitation *is* or whether it can be accepted.
+`Invitation#deliverable?` is `has_invitee? && !blocked_by_invitee?` — two named
+checks so a `false` self-identifies (a magic-link invitation has nothing to
+deliver, which is not a block and writes no row).
+
+Four invariants hold the design together:
+
+- **Directional.** A block suppresses deliveries to the blocked-from address
+  only, never to the inviter. Inviter-facing notifiers (declined, accepted,
+  resent) never consult blocks, so decline-and-block still delivers exactly
+  one decline notification.
+- **Ghosts stay redeemable.** `acceptable?`, the `acceptable` scope, and
+  `guard_acceptable!` never look at `suppressed_at`. A redemption error would
+  hand the blocked inviter a detection oracle, and the accept page is fresh,
+  informed consent — so a suppressed invitation can still be accepted by
+  token.
+- **No oracle in the inviter's surfaces.** A ghost is an ordinary pending row
+  in the members index; resend produces the same confirmation as a live
+  invitation; and no activity row the inviter can read is written by
+  suppression or by block creation. `bulk_invite!`'s counters stay symmetric
+  with the unblocked case: re-inviting an address that already has a pending
+  invitation counts `skipped` whether or not a block exists. The two paths get
+  there differently — an unblocked duplicate is caught by the pending-address
+  check, a blocked one collides with its own ghost in the index — but neither
+  creates a record, so neither can be told apart by the count.
+- **`suppressed_at` has exactly three writers, all callback-free.**
+  Create-time on the bulk path, retroactively at block creation, and the
+  mailer guard — each via `update_column`/`update_all`/create attributes,
+  never a callback-running `update!`. `Trackable` would otherwise publish the
+  stamp to the workspace feed as an ordinary update, which is itself the
+  oracle. A fourth writer, or a callback-running one, is a violation.
+
+The honest claim is that a block is **not cheaply confirmable — not
+unknowable**. A 100% non-response rate across repeated invitations is a
+statistical tell, and ghosts expire with their invitations at 7 days.
+Suppression buys the invitee deniability, not secrecy.
+
+**Delivery-site roster.** Every place an invitation email can leave the app,
+and the guard that stops it:
+
+| # | Site | Guard |
+| --- | --- | --- |
+| 1 | `Invitation.bulk_invite!` (workspace invites, incl. onboarding) | `InvitationMailer` `before_action` + create-time stamp |
+| 2 | `Invitation.invite_client!` | `InvitationMailer` `before_action` |
+| 3 | `Workspaces::InvitationsController#resend` | `InvitationMailer` `before_action` |
+| 4 | `Workspaces::Projects::InvitationsController#create` | `InvitationMailer` `before_action` |
+| 5 | `WorkspaceInvitationExpiringSweepJob` (in-app + email dispatch) | `next unless invitation.deliverable?` — silent skip, no audit row |
+| 6 | `NotificationMailer#workspace_invitation_expiring_soon` (the reminder's email leg) | `return unless @invitation.deliverable?` before `mail(...)` — silent skip |
+
+Sites 1–4 share one guard, and so does every future `InvitationMailer` method
+a fork adds — the `before_action` halts the action by setting an empty
+`response_body`, not by `throw :abort`, which raises `UncaughtThrowError` in an
+ActionMailer callback.
+Site 6 exists because the reminder's preference gate runs at dispatch time: a
+block landing between the sweep's dispatch and the mail's render is only
+catchable at the final hop.
+
+**Any new invitee-facing notifier must re-check `deliverable?` at its delivery
+gate — the last hop it controls.** Adding a site to this table is part of
+adding the notifier.
+
+`invitation_declines#create` and `invitation_blocks#create` are both public,
+unauthenticated endpoints and are rate-limited at 10 requests per 3 minutes
+per IP.
 
 ### Account Locking
 

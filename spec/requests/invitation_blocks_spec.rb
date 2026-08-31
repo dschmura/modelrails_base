@@ -79,4 +79,35 @@ RSpec.describe "Invitation blocks", type: :request do
       expect(ActionMailer::Base.deliveries).to be_empty
     end
   end
+
+  describe "the inviter's-eye journey (T22, invariant I3)" do
+    include ActiveJob::TestHelper
+
+    it "keeps the blocked invitation indistinguishable in the inviter's surfaces" do
+      workspace = create(:workspace)
+      inviter = create(:user)
+      create(:membership, :owner, user: inviter, workspace: workspace)
+      role = Role.find_or_create_by!(slug: "member", workspace_id: nil) { |r| r.name = "Member" }
+
+      Invitation.bulk_invite!(workspace: workspace, emails: [ "target@example.com" ],
+                              role: role, invited_by: inviter)
+      invitation = Invitation.find_by(email: "target@example.com")
+
+      post block_invitation_path(token: invitation.token)
+      expect(Invitation.find(invitation.id)).to be_declined
+
+      # A declined invitation leaves the members index anyway; the oracle test
+      # is the PENDING ghost from a fresh invite:
+      perform_enqueued_jobs(only: ActionMailer::MailDeliveryJob) do
+        Invitation.bulk_invite!(workspace: workspace, emails: [ "target@example.com" ],
+                                role: role, invited_by: inviter)
+      end
+      ghost = Invitation.pending.find_by(email: "target@example.com")
+      expect(ghost).to be_suppressed
+      expect(Invitation.for_members_index(role: nil, status: nil)).to include(ghost)
+      expect(ActionMailer::Base.deliveries).to be_empty
+      expect(ActivityLog.visible.for_workspace(workspace).where(trackable: ghost)
+               .where.not(action: "invitation.created").count).to eq(0)
+    end
+  end
 end

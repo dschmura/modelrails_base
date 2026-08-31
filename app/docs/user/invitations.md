@@ -1,7 +1,7 @@
 ---
 title: Invitations
 description: Receiving and accepting workspace, project, and client invitations
-keywords: invitation invite workspace project client accept decline email-match magic link clientside
+keywords: invitation invite workspace project client accept decline block email-match magic link clientside
 ---
 
 ## Receiving an invitation
@@ -14,7 +14,7 @@ There are three invitation types:
 |------|-------------|----------------------|
 | Workspace member invitation | Workspace admin | Yes |
 | Project collaborator invitation | Project member | Yes |
-| Client invitation | Project member | No |
+| Client invitation | Project member | Yes |
 
 ## Accepting an invitation
 
@@ -38,7 +38,13 @@ The one exception: **magic-link invitations** (a shareable URL that an admin cop
 
 ## Declining an invitation
 
-Workspace and project invitations include a **Decline** link in the email. Clicking it marks the invitation as declined — no account or membership is created. Client invitations do not include a decline link; to decline, simply ignore it.
+Every invitation email includes a **Decline** link. Clicking it marks the invitation as declined — no account or membership is created.
+
+The decline page offers a second choice: **Decline and block**. That declines the invitation and also stops future invitations from that sender to your address. Blocking is per-sender and per-address — it needs no account, it covers only invitations that one sender addresses to you, and it does not follow you if you later switch to a different address. The sender is told nothing beyond the ordinary "invitation declined" notice.
+
+A block stops **delivery only**. It does not cancel or invalidate anything: an invitation link you already have still works while that invitation is valid, and blocking does not stop that person creating invitations or reaching you any other way.
+
+Undoing a block is not self-serve yet — ask the people who run this app to lift it for you.
 
 ## Client invitations
 

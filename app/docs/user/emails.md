@@ -30,11 +30,11 @@ ModelRails sends transactional emails for authentication, invitations, and accou
 
 | Email | Trigger | Mailer action | Recipient | Expiry |
 | ----- | ------- | ------------- | --------- | ------ |
-| Workspace invitation | Admin invites a member by email | `InvitationMailer.invite` | Invitee's email | 7 days |
-| Project invitation | Project member invites a collaborator | `InvitationMailer.invite` | Invitee's email | 7 days |
-| Client invitation | Project member invites an external client | `InvitationMailer.invite_client` | Client's email | 7 days |
+| Workspace invitation | Admin invites a member by email | `InvitationMailer.with(invitation:).invite` | Invitee's email | 7 days |
+| Project invitation | Project member invites a collaborator | `InvitationMailer.with(invitation:).invite` | Invitee's email | 7 days |
+| Client invitation | Project member invites an external client | `InvitationMailer.with(invitation:).invite_client` | Client's email | 7 days |
 
-`InvitationMailer.invite_client` is a client-flavoured variant: the subject references the project name (not the workspace), and the email omits the decline link. See [Clientside](/docs/user/clientside) for the client area this invitation leads to.
+`invite_client` is a client-flavoured variant: the subject references the project name (not the workspace). It carries the same decline link as the other two, so a client invitee can decline — and block that sender — from the email. See [Clientside](/docs/user/clientside) for the client area this invitation leads to.
 
 ### Magic Link Emails
 
@@ -90,7 +90,7 @@ sign-in options and [Application Flows](/docs/developer/application-flows) for t
 
 ### Invitation Acceptance
 
-1. Admin creates invitation → `InvitationMailer.invite` sent (workspace member or project collaborator). For external client invitations, `InvitationMailer.invite_client` is sent instead — it uses a client-flavoured subject and omits the decline link.
+1. Admin creates invitation → `InvitationMailer.with(invitation:).invite` sent (workspace member or project collaborator). For external client invitations, `InvitationMailer.with(invitation:).invite_client` is sent instead — it uses a client-flavoured subject and the same decline link.
 2. Invitee clicks accept link.
 3. If authenticated: accepted immediately, provided the account's email matches the invited address.
 4. If not authenticated: the token is stashed, the invitee registers, and the invitation is claimed when they verify the invited email — not at signup.
