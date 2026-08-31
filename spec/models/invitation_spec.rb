@@ -685,25 +685,21 @@ RSpec.describe Invitation, type: :model do
     end
 
     it "skips an email whose pending invitation was created concurrently instead of aborting the batch" do
-      # The lost race: another request commits the same pending invitation
-      # after bulk_invite! preloads pending emails but before create!. Hide
-      # the existing row from the preload so the partial unique index
-      # (index_invitations_on_email_and_invitable_pending) raises for real.
+      # The lost race, reproduced with the #675 two-instance discipline: hide
+      # the existing row from THIS call's preload so create! meets the
+      # pending_live index for real.
       workspace.invitations.create!(
-        email: "raced@example.com",
-        role: role,
-        invited_by: inviter,
+        email: "raced@example.com", role: role, invited_by: inviter,
         expires_at: 7.days.from_now
       )
       invitations = workspace.invitations
       allow(workspace).to receive(:invitations).and_return(invitations)
-      allow(invitations).to receive(:pending).and_return(Invitation.none)
+      allow(invitations).to receive(:acceptable).and_return(Invitation.none)
 
       result = Invitation.bulk_invite!(
         workspace: workspace,
         emails: [ "raced@example.com", "fresh@example.com" ],
-        role: role,
-        invited_by: inviter
+        role: role, invited_by: inviter
       )
 
       expect(result[:sent]).to eq(1)

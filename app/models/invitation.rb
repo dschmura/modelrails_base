@@ -62,9 +62,7 @@ class Invitation < ApplicationRecord
     scope
   }
 
-  def client_invite?
-    company_name.present?
-  end
+  def client_invite? = company_name.present?
 
   def self.invite_client!(project:, email:, company_name:, invited_by:)
     invitation = create!(
@@ -106,6 +104,9 @@ class Invitation < ApplicationRecord
     )
   end
 
+  # `sent` means records created — delivery is asynchronous and may be
+  # suppressed; this method has never known whether mail arrived, on the
+  # blocked path or any other (PR 4 spec §6.4).
   def self.bulk_invite!(workspace:, emails:, role:, invited_by:)
     parsed = parse_email_list(emails)
     emails = parsed.emails
@@ -113,7 +114,11 @@ class Invitation < ApplicationRecord
     skipped = 0
 
     existing_members = workspace.memberships.kept.joins(:user).pluck(:email_address).to_set
-    existing_invites = workspace.invitations.acceptable.where.not(email: nil).pluck(:email).to_set
+    # unsuppressed: a ghost must not make an unblocked admin skip the address.
+    existing_invites = workspace.invitations.acceptable.unsuppressed.where.not(email: nil).pluck(:email).to_set
+    # Bounded to this submission (≤ MAX_EMAILS_PER_SUBMISSION); `normalizes`
+    # applies to the finder values, so raw input matches stored rows.
+    blocked = InvitationBlock.where(inviter: invited_by, email: emails).pluck(:email).to_set
 
     emails.each do |email|
       normalized = normalize_value_for(:email, email)
@@ -133,12 +138,18 @@ class Invitation < ApplicationRecord
           email: normalized,
           role: role,
           invited_by: invited_by,
-          expires_at: 7.days.from_now
+          expires_at: 7.days.from_now,
+          suppressed_at: (Time.current if blocked.include?(normalized))
         )
       rescue ActiveRecord::RecordNotUnique
-        # Concurrent request won the race to the pending-invite partial unique
-        # index after our preload; that invite already exists and was mailed.
-        skipped += 1
+        if blocked.include?(normalized)
+          # Collided into this inviter's existing ghost — the correct end
+          # state, and `skipped` would be a second oracle bucket (T15).
+          sent += 1
+        else
+          # Concurrent request won the live slot; that invite was mailed.
+          skipped += 1
+        end
         next
       end
       existing_invites.add(normalized)
@@ -239,17 +250,11 @@ class Invitation < ApplicationRecord
     decline!
   end
 
-  def acceptable?
-    pending? && !expired?
-  end
+  def acceptable? = pending? && !expired?
 
-  def expired?
-    expires_at <= Time.current
-  end
+  def expired? = expires_at <= Time.current
 
-  def magic_link?
-    email.nil?
-  end
+  def magic_link? = email.nil?
 
   # Nothing to deliver to on a magic link — a false here is NOT a block, so a
   # future magic-link mailer must not read it as one (PR 4 spec §2).

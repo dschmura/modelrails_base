@@ -1,6 +1,8 @@
 require "rails_helper"
 
 RSpec.describe "Invitation suppression schema", type: :model do
+  include ActiveJob::TestHelper
+
   let(:workspace) { create(:workspace) }
   let(:inviter) { create(:user) }
 
@@ -168,6 +170,50 @@ RSpec.describe "Invitation suppression schema", type: :model do
       expect { stale.decline_and_block! }.to raise_error(ActiveRecord::RecordInvalid)
       expect(InvitationBlock.exists?(inviter_id: inviter.id, email: invitation.email)).to be(true)
       expect(invitation.reload).to be_accepted
+    end
+  end
+
+  describe ".bulk_invite! with blocks (T15, T16)" do
+    let(:workspace) { create(:workspace) }
+    let(:role) { Role.find_or_create_by!(slug: "member", workspace_id: nil) { |r| r.name = "Member" } }
+
+    it "creates a blocked target stamped, counts it sent, and delivers nothing" do
+      create(:invitation_block, inviter: inviter, email: "blocked@example.com")
+
+      result = nil
+      perform_enqueued_jobs do
+        # Mixed case on purpose: proves Rails `normalizes` applies to the
+        # preload's finder values (spec §15's verification, encoded here).
+        result = Invitation.bulk_invite!(workspace: workspace,
+                                         emails: [ "Blocked@Example.COM", "open@example.com" ],
+                                         role: role, invited_by: inviter)
+      end
+
+      expect(result).to include(sent: 2, skipped: 0)
+      expect(Invitation.find_by(email: "blocked@example.com")).to be_suppressed
+      expect(ActionMailer::Base.deliveries.map(&:to).flatten).to eq([ "open@example.com" ])
+    end
+
+    it "collides a blocked re-invite into the existing ghost — sent, no new row" do
+      create(:invitation_block, inviter: inviter, email: "again@example.com")
+      Invitation.bulk_invite!(workspace: workspace, emails: [ "again@example.com" ],
+                              role: role, invited_by: inviter)
+
+      expect {
+        result = Invitation.bulk_invite!(workspace: workspace, emails: [ "again@example.com" ],
+                                         role: role, invited_by: inviter)
+        expect(result).to include(sent: 1, skipped: 0)
+      }.not_to change { Invitation.where(email: "again@example.com").count }
+    end
+
+    it "lets an unblocked admin invite an address another inviter ghosted (T16)" do
+      ghosted = create(:invitation, :suppressed, email: "shared@example.com",
+                       invitable: workspace, invited_by: inviter)
+      other_admin = create(:user)
+
+      result = Invitation.bulk_invite!(workspace: workspace, emails: [ "shared@example.com" ],
+                                       role: role, invited_by: other_admin)
+      expect(result).to include(sent: 1, skipped: 0)
     end
   end
 end
