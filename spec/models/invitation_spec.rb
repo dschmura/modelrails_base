@@ -685,9 +685,10 @@ RSpec.describe Invitation, type: :model do
     end
 
     it "skips an email whose pending invitation was created concurrently instead of aborting the batch" do
-      # The lost race, reproduced with the #675 two-instance discipline: hide
-      # the existing row from THIS call's preload so create! meets the
-      # pending_live index for real.
+      # The lost race: create the row for real, then stub THIS call's
+      # `acceptable` preload to miss it — simulating a commit that lands
+      # after the preload reads but before create! — so the real row still
+      # trips the pending_live unique index in create!, for real.
       workspace.invitations.create!(
         email: "raced@example.com", role: role, invited_by: inviter,
         expires_at: 7.days.from_now

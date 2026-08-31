@@ -174,41 +174,50 @@ RSpec.describe "Invitation suppression schema", type: :model do
   end
 
   describe ".bulk_invite! with blocks (T15, T16)" do
-    let(:workspace) { create(:workspace) }
     let(:role) { Role.find_or_create_by!(slug: "member", workspace_id: nil) { |r| r.name = "Member" } }
 
     it "creates a blocked target stamped, counts it sent, and delivers nothing" do
       create(:invitation_block, inviter: inviter, email: "blocked@example.com")
 
-      result = nil
-      perform_enqueued_jobs do
-        # Mixed case on purpose: proves Rails `normalizes` applies to the
-        # preload's finder values (spec §15's verification, encoded here).
-        result = Invitation.bulk_invite!(workspace: workspace,
-                                         emails: [ "Blocked@Example.COM", "open@example.com" ],
-                                         role: role, invited_by: inviter)
-      end
+      # Mixed case on purpose: proves Rails `normalizes` applies to the
+      # preload's finder values (spec §15's verification, encoded here).
+      result = Invitation.bulk_invite!(workspace: workspace,
+                                       emails: [ "Blocked@Example.COM", "open@example.com" ],
+                                       role: role, invited_by: inviter)
 
       expect(result).to include(sent: 2, skipped: 0)
+      # Create-time gate: asserted before any mailer job can run, so this
+      # fails if the create-time stamp is missing — the guard from Task 5
+      # only stamps once its job is performed, below.
       expect(Invitation.find_by(email: "blocked@example.com")).to be_suppressed
+      # only: — CheckGravatarJob is also queued (enqueued from the user
+      # factory behind `inviter`/the invitation_block) and does real
+      # network I/O the test suite disallows (house pattern, see
+      # workspace_member_added_notifier_spec).
+      perform_enqueued_jobs(only: ActionMailer::MailDeliveryJob)
       expect(ActionMailer::Base.deliveries.map(&:to).flatten).to eq([ "open@example.com" ])
     end
 
-    it "collides a blocked re-invite into the existing ghost — sent, no new row" do
+    it "collides a blocked re-invite into the existing ghost — skipped, no new row" do
       create(:invitation_block, inviter: inviter, email: "again@example.com")
       Invitation.bulk_invite!(workspace: workspace, emails: [ "again@example.com" ],
                               role: role, invited_by: inviter)
 
+      result = nil
       expect {
         result = Invitation.bulk_invite!(workspace: workspace, emails: [ "again@example.com" ],
                                          role: role, invited_by: inviter)
-        expect(result).to include(sent: 1, skipped: 0)
       }.not_to change { Invitation.where(email: "again@example.com").count }
+
+      # skipped, not sent: no record was created, and counting it sent would
+      # make "pending in the index, yet sent:1" an oracle for "blocked"
+      # (invariant I3 override of PR 4 spec §6.4 — see commit message).
+      expect(result).to include(sent: 0, skipped: 1)
     end
 
     it "lets an unblocked admin invite an address another inviter ghosted (T16)" do
-      ghosted = create(:invitation, :suppressed, email: "shared@example.com",
-                       invitable: workspace, invited_by: inviter)
+      create(:invitation, :suppressed, email: "shared@example.com",
+             invitable: workspace, invited_by: inviter)
       other_admin = create(:user)
 
       result = Invitation.bulk_invite!(workspace: workspace, emails: [ "shared@example.com" ],

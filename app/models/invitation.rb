@@ -143,9 +143,15 @@ class Invitation < ApplicationRecord
         )
       rescue ActiveRecord::RecordNotUnique
         if blocked.include?(normalized)
-          # Collided into this inviter's existing ghost — the correct end
-          # state, and `skipped` would be a second oracle bucket (T15).
-          sent += 1
+          # Collided into this inviter's existing ghost — no record created,
+          # so `skipped` is this method's own contract ("sent" means
+          # created, see above). It is also the deliberate call on
+          # invariant I3: now that `existing_invites` excludes ghosts via
+          # `.unsuppressed` (T16), counting this `sent` would make "pending
+          # in the members index, yet sent:1" an oracle that only fires for
+          # a blocked address. Controller-ruled override of PR 4 spec §6.4's
+          # "collision counts sent" text (task-6 fix round 1).
+          skipped += 1
         else
           # Concurrent request won the live slot; that invite was mailed.
           skipped += 1
@@ -250,7 +256,9 @@ class Invitation < ApplicationRecord
     decline!
   end
 
-  def acceptable? = pending? && !expired?
+  def acceptable?
+    pending? && !expired?
+  end
 
   def expired? = expires_at <= Time.current
 
