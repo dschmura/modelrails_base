@@ -84,11 +84,16 @@ Four invariants hold the design together:
   invitation counts `skipped` whether or not a block exists. The two paths get
   there differently — an unblocked duplicate is caught by the pending-address
   check, a blocked one collides with its own ghost in the index — but neither
-  creates a record, so neither can be told apart by the count.
+  creates a record, so neither can be told apart by the count. The single-create
+  paths (`Invitation.invite_client!`, `Workspaces::Projects::InvitationsController#create`)
+  reach the same symmetry through `Invitation.already_invited?`, which refuses a
+  re-invite on this inviter's own row — live *or* ghost — so both cases get the
+  identical "already has a pending invitation" flash.
 - **`suppressed_at` has exactly three writers, all callback-free.**
-  Create-time on the bulk path, retroactively at block creation, and the
-  mailer guard — each via `update_column`/`update_all`/create attributes,
-  never a callback-running `update!`. `Trackable` would otherwise publish the
+  Create-time on the bulk path (create attributes), retroactively at block
+  creation (`update_column`), and the mailer guard (`update_column`) — never a
+  callback-running `update!`. (`update_all` is the operator unblock's verb, not
+  a writer's.) `Trackable` would otherwise publish the
   stamp to the workspace feed as an ordinary update, which is itself the
   oracle. A fourth writer, or a callback-running one, is a violation.
 

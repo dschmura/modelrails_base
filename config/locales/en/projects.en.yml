@@ -48,6 +48,7 @@ en:
           submit: "Send invitation"
         create:
           success: "Invitation sent."
+          already_invited: "That email already has a pending invitation to this project."
       memberships:
         index:
           title: "Project members"

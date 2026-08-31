@@ -46,6 +46,34 @@ RSpec.describe "Client invitations (team side)", type: :request do
     expect(response).to have_http_status(:unprocessable_entity)
   end
 
+  # A ghost vacates the `pending_live` slot, so this second POST used to succeed
+  # with "Client invitation sent." where the unblocked one was refused — a flash
+  # the inviter reads as a block (invariant I3).
+  describe "a blocked re-invite is refused exactly like an unblocked one" do
+    include ActiveJob::TestHelper
+
+    def re_invite_outcome(email)
+      2.times do |attempt|
+        post workspace_project_client_invitations_path(workspace, project),
+          params: { client_invitation: { email: email, company_name: "BigCo" } }
+        # Performs the mailer guard, which stamps the blocked row. only:, because
+        # the user factory also queues CheckGravatarJob (network I/O).
+        perform_enqueued_jobs(only: ActionMailer::MailDeliveryJob) if attempt.zero?
+      end
+      [ response.status, flash[:alert], project.invitations.where(email: email).count ]
+    end
+
+    it "returns the same status, flash and record count either way" do
+      create(:invitation_block, inviter: user, email: "blocked@bigco.com")
+
+      blocked = re_invite_outcome("blocked@bigco.com")
+      unblocked = re_invite_outcome("open@bigco.com")
+
+      expect(blocked).to eq(unblocked)
+      expect(blocked).to eq([ 422, I18n.t("clientside.invitations.already_invited"), 1 ])
+    end
+  end
+
   context "as a viewer (no manage_members permission)" do
     let(:viewer) { create(:user) }
     let!(:viewer_role) do

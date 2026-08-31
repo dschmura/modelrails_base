@@ -225,4 +225,47 @@ RSpec.describe "Invitation suppression schema", type: :model do
       expect(result).to include(sent: 1, skipped: 0)
     end
   end
+
+  # The single-create counterpart to T15's bulk symmetry. A ghost vacates the
+  # `pending_live` slot, so a blocked re-invite used to SUCCEED on paths where
+  # an unblocked one was refused — the flash difference is a block oracle
+  # (invariant I3). Flash-level pins live with the request specs for each path.
+  describe "single-create re-invite symmetry (invariant I3)" do
+    let(:project) { create(:project, clientside_enabled: true) }
+
+    it "refuses a blocked client re-invite exactly as it refuses an unblocked one" do
+      create(:invitation_block, inviter: inviter, email: "blocked@bigco.com")
+
+      outcomes = %w[blocked@bigco.com open@bigco.com].map do |email|
+        Invitation.invite_client!(project: project, email: email,
+                                  company_name: "BigCo", invited_by: inviter)
+        # The mailer guard stamps the blocked row here — the ghost that freed
+        # the live slot. only:, because the user factory also queues
+        # CheckGravatarJob, which does network I/O the suite disallows.
+        perform_enqueued_jobs(only: ActionMailer::MailDeliveryJob)
+
+        raised = nil
+        expect {
+          Invitation.invite_client!(project: project, email: email,
+                                    company_name: "BigCo", invited_by: inviter)
+        }.to raise_error { |e| raised = e.class }
+        [ raised, project.invitations.where(email: email).count ]
+      end
+
+      expect(outcomes.first).to eq(outcomes.last)
+      expect(outcomes.first).to eq([ ActiveRecord::RecordNotUnique, 1 ])
+    end
+
+    it "sees this inviter's own ghost but never a stranger's (T16 preserved)" do
+      create(:invitation, :suppressed, email: "ghost@example.com",
+             invitable: project, invited_by: inviter)
+      stranger = create(:user)
+
+      # Mixed case: the rule must compare against the normalized stored value.
+      expect(Invitation.already_invited?(invitable: project, email: "Ghost@Example.COM",
+                                         invited_by: inviter)).to be(true)
+      expect(Invitation.already_invited?(invitable: project, email: "ghost@example.com",
+                                         invited_by: stranger)).to be(false)
+    end
+  end
 end

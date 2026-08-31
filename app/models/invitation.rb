@@ -64,7 +64,23 @@ class Invitation < ApplicationRecord
 
   def client_invite? = company_name.present?
 
+  # The single-create paths' duplicate rule. A live pending row from ANY inviter
+  # refuses a second invite (the `pending_live` index's rule, unchanged); so now
+  # does THIS inviter's own row, live or ghost. The ghost half is invariant I3: a
+  # stamped row vacates the live slot, so without it a blocked re-invite quietly
+  # succeeds where an unblocked one is refused, and that difference is readable
+  # as a block. A *different* inviter's ghost still doesn't refuse (T16).
+  def self.already_invited?(invitable:, email:, invited_by:)
+    existing = invitable.invitations.acceptable.where(email: normalize_value_for(:email, email))
+    existing.unsuppressed.exists? || existing.where(invited_by: invited_by).exists?
+  end
+
   def self.invite_client!(project:, email:, company_name:, invited_by:)
+    # The same signal the `pending_live` index raises, so the pre-check and a
+    # lost race land on the controller's one rescue and one flash.
+    raise ActiveRecord::RecordNotUnique, "pending invitation already exists" if
+      already_invited?(invitable: project, email: email, invited_by: invited_by)
+
     invitation = create!(
       invitable: project,
       email: email,
@@ -142,20 +158,16 @@ class Invitation < ApplicationRecord
           suppressed_at: (Time.current if blocked.include?(normalized))
         )
       rescue ActiveRecord::RecordNotUnique
-        if blocked.include?(normalized)
-          # Collided into this inviter's existing ghost — no record created,
-          # so `skipped` is this method's own contract ("sent" means
-          # created, see above). It is also the deliberate call on
-          # invariant I3: now that `existing_invites` excludes ghosts via
-          # `.unsuppressed` (T16), counting this `sent` would make "pending
-          # in the members index, yet sent:1" an oracle that only fires for
-          # a blocked address. Controller-ruled override of PR 4 spec §6.4's
-          # "collision counts sent" text (task-6 fix round 1).
-          skipped += 1
-        else
-          # Concurrent request won the live slot; that invite was mailed.
-          skipped += 1
-        end
+        # Two ways here — a collision into this inviter's existing ghost, and a
+        # concurrent request that won the live slot — and both count `skipped`,
+        # because neither created a record and "sent" means created (see above).
+        # For the ghost that is also the deliberate call on invariant I3: now
+        # that `existing_invites` excludes ghosts via `.unsuppressed` (T16),
+        # counting it `sent` would make "pending in the members index, yet
+        # sent:1" an oracle that fires only for a blocked address. Controller-
+        # ruled override of PR 4 spec §6.4's "collision counts sent" text
+        # (task-6 fix round 1).
+        skipped += 1
         next
       end
       existing_invites.add(normalized)
@@ -251,7 +263,9 @@ class Invitation < ApplicationRecord
     # ArgumentError, deliberately never rescued: the controller pre-checks
     # has_invitee?; reaching this raise is a programmer error (PR 4 spec §6.2).
     raise ArgumentError, "magic-link invitations have no invitee to block for" unless has_invitee?
-    # Block commits first: a lost decline race still records the block.
+    # Block commits first, so a lost decline race still records the block —
+    # true when called outside a caller transaction (the controller's case).
+    # Nested, `block!` joins that transaction and both roll back together.
     InvitationBlock.block!(inviter: invited_by, email: email)
     decline!
   end

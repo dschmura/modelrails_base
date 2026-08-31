@@ -61,6 +61,38 @@ RSpec.describe "Project Invitations", type: :request do
         }.not_to change(Invitation, :count)
         expect(response).to have_http_status(:unprocessable_entity)
       end
+
+      # A ghost vacates the `pending_live` slot, so this second POST used to
+      # succeed where the unblocked one hit the index with no uniqueness
+      # validation to catch it — a 500 versus a success redirect, the widest
+      # possible tell that a block exists (invariant I3).
+      describe "a blocked re-invite is refused exactly like an unblocked one" do
+        include ActiveJob::TestHelper
+
+        def re_invite_outcome(email)
+          2.times do |attempt|
+            post workspace_project_invitations_path(workspace, project), params: {
+              invitation: { email: email, project_role: "editor" }
+            }
+            # Performs the mailer guard, which stamps the blocked row. only:,
+            # because the user factory also queues CheckGravatarJob (network I/O).
+            perform_enqueued_jobs(only: ActionMailer::MailDeliveryJob) if attempt.zero?
+          end
+          [ response.status, flash[:alert], Invitation.where(email: email).count ]
+        end
+
+        it "returns the same status, flash and record count either way" do
+          create(:invitation_block, inviter: user, email: "blocked@example.com")
+
+          blocked = re_invite_outcome("blocked@example.com")
+          unblocked = re_invite_outcome("open@example.com")
+
+          expect(blocked).to eq(unblocked)
+          expect(blocked).to eq(
+            [ 422, I18n.t("workspaces.projects.invitations.create.already_invited"), 1 ]
+          )
+        end
+      end
     end
 
     describe "accepting a project invitation" do
