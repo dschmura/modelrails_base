@@ -40,5 +40,12 @@ RSpec.describe "Invitation Declines", type: :request do
       expect(response).to redirect_to(root_path)
       expect(flash[:notice]).to eq(I18n.t("invitation_declines.create.success"))
     end
+
+    it "rate limits via the cache counter" do
+      allow(Rails.cache).to receive(:increment).and_return(11)
+      post decline_invitation_path(token: invitation.token)
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq(I18n.t("invitation_declines.create.rate_limited"))
+    end
   end
 end

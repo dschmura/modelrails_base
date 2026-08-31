@@ -61,3 +61,9 @@ en:
       confirm: "Decline invitation"
     create:
       success: "Invitation declined."
+      rate_limited: "Too many attempts. Open the link from your invitation email and try again in a few minutes."
+  invitation_blocks:
+    create:
+      success: "Invitation declined. You won't receive more invitations from this sender."
+      already_processed: "This invitation was already handled. You won't receive more invitations from this sender."
+      rate_limited: "Too many attempts. Open the link from your invitation email and try again in a few minutes."

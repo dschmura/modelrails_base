@@ -74,6 +74,7 @@ RSpec.describe "Mutating controller actions authorize or are allow-listed" do
     direct_uploads#create
     email_verification_resends#create
     invitation_accepts#create
+    invitation_blocks#create
     invitation_declines#create
     magic_link_callbacks#create
     magic_link_callbacks#sign_in
