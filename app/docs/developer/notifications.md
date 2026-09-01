@@ -441,7 +441,7 @@ Watch for:
 
 1. Subclass `ApplicationNotifier` under `app/notifiers/`
 2. Declare `category :name` (one of `security`, `account_access`, `workspace_activity`, `project_activity`, `billing`)
-3. Declare `severity :level` (one of `:danger`, `:warning`, `:info`, `:success`) — drives the bell color; omitting it defaults to `:info`
+3. Declare `severity :level` (one of `:danger`, `:warning`, `:info`, `:success`) — drives the bell color; omitting it defaults to `:info`. Then add the notifier to the roster in `spec/notifiers/notifier_severity_assignments_spec.rb` — that spec fails until you do, so a forgotten `severity` cannot quietly ship as `:info`
 4. Define `notification_methods do; def message; def url; end` (use `event.record.*` for context)
 5. Add `deliver_by :email, ... if:` guards if you want email
 6. Add I18n keys under `notifications.<notifier_snake_case>.message`
