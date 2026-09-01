@@ -2,11 +2,12 @@
 
 require "rails_helper"
 
-# The open-link self-join paths have no granter: the joining user is the actor.
-# So WorkspaceMemberAddedNotifier must exclude them (nobody is notified about
-# their own action) and WorkspaceJoinedNotifier is what orients them instead —
-# otherwise a self-joiner reads "Grace joined Ada's Workspace" about herself.
-RSpec.describe "Open-link self-join notifications", type: :notifier do
+# The self-join paths have no granter: the joining user is the actor. So
+# WorkspaceMemberAddedNotifier must exclude them (nobody is notified about their
+# own action) — otherwise a self-joiner reads "Grace joined Ada's Workspace"
+# about herself. Whether they get an orientation notice in its place depends on
+# the self_join grade, and both onboarding presets are pinned here too.
+RSpec.describe "Self-join notifications", type: :notifier do
   include ActiveJob::TestHelper
   include ActionMailer::TestHelper
 
@@ -146,6 +147,49 @@ RSpec.describe "Open-link self-join notifications", type: :notifier do
 
       expect(member_added_recipients).to contain_exactly(joiner)
       expect(joined_notifications_for(joiner).count).to eq 0
+    end
+  end
+
+  # User#create_personal_workspace also creates a Membership directly and sets
+  # no marker — correctly, because the first owner has nobody to tell. The
+  # workspace_has_other_owners? guard is what keeps it silent; pinned here so
+  # the Guard A allow-list entry for that call site stays falsifiable.
+  describe "the :personal preset's signup workspace" do
+    it "raises no membership notification for the first owner" do
+      newcomer = create(:user)
+
+      expect(newcomer.personal_workspace_id).to be_present
+      expect(member_added_recipients).to be_empty
+      expect(joined_notifications_for(newcomer)).to be_empty
+    end
+  end
+
+  # The :shared preset's signup join (User#join_shared_workspace) bypasses
+  # Workspace#admit and creates the membership directly, so it needs the same
+  # actor stance declared explicitly. Its orientation notice is deliberately
+  # suppressed — see the :onboarding grade on Membership#self_join.
+  describe "the :shared preset's signup join" do
+    before do
+      allow(Rails.configuration.x.tenancy).to receive(:onboarding).and_return(:shared)
+      allow(Rails.configuration.x.tenancy).to receive(:shared_workspace_slug).and_return(workspace.slug)
+    end
+
+    it "does not tell the new user, in the third person, that they joined" do
+      newcomer = create(:user)
+
+      expect(member_added_recipients).not_to include(newcomer)
+    end
+
+    it "still tells the shared workspace's owners that someone joined" do
+      create(:user)
+
+      expect(member_added_recipients).to contain_exactly(owner)
+    end
+
+    it "raises no orientation notice — WelcomeNotifier already covers day one" do
+      newcomer = create(:user)
+
+      expect(joined_notifications_for(newcomer)).to be_empty
     end
   end
 end

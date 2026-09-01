@@ -17,10 +17,20 @@ class Membership < ApplicationRecord
   # Workspace#admit when an invitation acceptance created this membership.
   attr_accessor :granted_by
 
-  # Non-persisted marker for the open-link self-join paths (Workspace#admit's
-  # `self_join:`). Kept apart from `granted_by` on purpose: nobody granted a
-  # self-join, so it must not reach the audit row's grant provenance — it only
-  # answers "who acted", and on this path that is always `user`.
+  # Non-persisted marker for the self-join paths (Workspace#admit's
+  # `self_join:`, and User#join_shared_workspace). Kept apart from `granted_by`
+  # on purpose: nobody granted a self-join, so it must not reach the audit row's
+  # grant provenance — it only answers "who acted", and on those paths that is
+  # always `user`. Supplying both is refused — see .reject_conflicting_provenance!.
+  #
+  # Two grades, because "who acted" and "does the joiner need telling where they
+  # landed" are separate questions:
+  #   true        — a join the user chose (an open link). Earns the
+  #                 WorkspaceJoinedNotifier orientation notice.
+  #   :onboarding — auto-provisioned at signup under the :shared preset. Silent:
+  #                 WelcomeNotifier lands in the same second, and the :personal
+  #                 sibling path (User#create_personal_workspace) raises no
+  #                 workspace notification either.
   attr_accessor :self_join
   belongs_to :role
 
@@ -60,12 +70,13 @@ class Membership < ApplicationRecord
 
   # The self-joiner's own orientation. They are the actor, so the callbacks
   # above deliberately drop them from "someone joined" — this is what still
-  # tells them where they landed. Both grades of self-join are covered: a fresh
-  # membership and a removed member coming back through the same link. Two
-  # distinct filter names for one body, for the :commit-chain dedup reason
-  # spelled out above notify_member_readmitted.
-  after_create_commit :notify_self_joined, if: :self_join
-  after_update_commit :notify_self_rejoined, if: [ :just_reactivated?, :self_join ]
+  # tells them where they landed. Both shapes of a CHOSEN self-join are covered:
+  # a fresh membership and a removed member coming back through the same link.
+  # The :onboarding grade is deliberately silent (see self_join). Two distinct
+  # filter names for one body, for the :commit-chain dedup reason spelled out
+  # above notify_member_readmitted.
+  after_create_commit :notify_self_joined, if: :chosen_self_join?
+  after_update_commit :notify_self_rejoined, if: [ :just_reactivated?, :chosen_self_join? ]
 
   scope :filter_by_role, ->(role_slug) {
     return all if role_slug.blank?
@@ -307,6 +318,12 @@ class Membership < ApplicationRecord
   end
 
   alias_method :notify_self_rejoined, :notify_self_joined
+
+  # Only a self-join the user CHOSE earns the orientation notice; the
+  # :onboarding grade answers "who acted" and nothing else. See self_join.
+  def chosen_self_join?
+    self_join.present? && self_join != :onboarding
+  end
 
   # Self-exclusion is the contract: the very first owner being seeded
   # (User#create_personal_workspace, bootstrap) must not count as a pre-existing owner.
