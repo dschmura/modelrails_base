@@ -34,8 +34,26 @@ class Membership < ApplicationRecord
   attr_accessor :self_join
   belongs_to :role
 
+  # The closed grade set for self_join. A grade outside it is a typo, and the
+  # validation below is what makes it fail loud instead of silently reading as
+  # "a chosen self-join" (see chosen_self_join?).
+  SELF_JOIN_GRADES = [ nil, false, true, :onboarding ].freeze
+
+  CONFLICTING_PROVENANCE_MESSAGE =
+    "granted_by and self_join are mutually exclusive: a self-join has no granter"
+
   validates :user_id, uniqueness: { scope: :workspace_id }
   validate :workspace_has_member_capacity, on: :create
+
+  # The provenance rules as a MODEL invariant, not just an entry-point guard.
+  # .reject_conflicting_provenance! only sees callers that go through
+  # Workspace#admit or #reactivate!; User#join_shared_workspace creates a
+  # membership directly, and the actor-stance code smell is satisfied by EITHER
+  # marker, so a site naming both looks declared and reaches the row. Both
+  # layers are kept on purpose: the entry points raise ArgumentError at the
+  # caller's own line before any DB work, this catches every other path.
+  # Programmer-facing strings — no form can produce either message.
+  validate :provenance_markers_are_coherent
 
   # Capacity race-safety net: the pre-flight validator's workspace.lock! is
   # silently a no-op across SQLite connections, so this post-INSERT COUNT is the
@@ -111,8 +129,7 @@ class Membership < ApplicationRecord
   # (Workspace#admit, #reactivate!) rather than documented.
   def self.reject_conflicting_provenance!(granted_by:, self_join:)
     return unless granted_by && self_join
-    raise ArgumentError,
-      "granted_by and self_join are mutually exclusive: a self-join has no granter"
+    raise ArgumentError, CONFLICTING_PROVENANCE_MESSAGE
   end
 
   # Kept owner-role memberships in the workspace, excluding the given
@@ -199,6 +216,15 @@ class Membership < ApplicationRecord
 
   def activity_workspace
     workspace
+  end
+
+  def provenance_markers_are_coherent
+    errors.add(:base, CONFLICTING_PROVENANCE_MESSAGE) if granted_by && self_join
+    return if SELF_JOIN_GRADES.include?(self_join)
+
+    errors.add(:base,
+      "self_join must be one of #{SELF_JOIN_GRADES.map(&:inspect).join(', ')}, " \
+      "got #{self_join.inspect}")
   end
 
   def workspace_has_member_capacity
@@ -321,8 +347,13 @@ class Membership < ApplicationRecord
 
   # Only a self-join the user CHOSE earns the orientation notice; the
   # :onboarding grade answers "who acted" and nothing else. See self_join.
+  #
+  # Inclusion, not exclusion ("anything but :onboarding"): this runs in an
+  # after_create_commit, so on any path that skipped validation a grade nobody
+  # taught it about — a typo, a grade a fork adds later — used to read as
+  # "chosen" and mail the person. A new grade now has to opt in here.
   def chosen_self_join?
-    self_join.present? && self_join != :onboarding
+    self_join == true
   end
 
   # Self-exclusion is the contract: the very first owner being seeded
