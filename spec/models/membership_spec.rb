@@ -606,6 +606,51 @@ RSpec.describe Membership, type: :model do
           membership.deactivate!
         }.not_to change { Noticed::Event.where(type: "WorkspaceMemberAddedNotifier").count }
       end
+
+      # track_creation is the only writer of grant provenance, and a
+      # re-admission is an UPDATE, so re-granting a previously removed member
+      # recorded who did it nowhere: `changes: {discarded_at: [...]}` and an
+      # actor that, on the invitation path, is the invitee themselves.
+      describe "grant provenance on the audit row" do
+        def reactivation_row
+          ActivityLog.where(action: "membership.updated", trackable: membership).last
+        end
+
+        before { ActivityLog.where(trackable: membership).delete_all }
+
+        it "records the granter on the re-admission row" do
+          membership.reactivate!(granted_by: owner)
+
+          expect(reactivation_row.metadata["granted_by"]).to eq(owner.id)
+        end
+
+        it "records the granter when the re-admission comes through Workspace#admit" do
+          workspace.admit(member, role: Role.system_default!("member"), granted_by: owner)
+
+          expect(reactivation_row.metadata["granted_by"]).to eq(owner.id)
+        end
+
+        it "still records the changed columns alongside it" do
+          membership.reactivate!(granted_by: owner)
+
+          expect(reactivation_row.metadata["changes"]).to have_key("discarded_at")
+        end
+
+        it "claims no granter for a re-admission that had none" do
+          membership.reactivate!
+
+          expect(reactivation_row.metadata).not_to have_key("granted_by")
+        end
+
+        it "claims no granter for an ordinary update that is not a re-admission" do
+          membership.reactivate!
+          ActivityLog.where(trackable: membership).delete_all
+          membership.granted_by = owner
+          membership.update!(role: Role.system_default!("admin"))
+
+          expect(reactivation_row.metadata).not_to have_key("granted_by")
+        end
+      end
     end
 
     describe "role changed (after_update_commit)" do

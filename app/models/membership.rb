@@ -284,6 +284,20 @@ class Membership < ApplicationRecord
     create_activity("membership.created", metadata.compact)
   end
 
+  # A re-admission is an UPDATE, so track_creation — the only writer of grant
+  # provenance — never sees it. The row recorded `changes: {discarded_at: …}`
+  # and nothing about who let the member back in; on the invitation-driven path
+  # its actor is Current.user, i.e. the invitee. Re-granting a previously
+  # removed member was therefore the one grant shape with no granter on record.
+  # Merged through Trackable's hook rather than written directly: this UPDATE
+  # does reach the concern's callbacks, so it has no claim on the
+  # bypass-the-concern exemption record_ownership_demotion holds.
+  def tracked_update_metadata(changes)
+    return super unless just_reactivated? && granted_by
+
+    super.merge("granted_by" => granted_by.id)
+  end
+
   # G (SEC-1 follow-up): the transfer's demote is a callback-skipping CAS
   # update_all (race-safety, by design — see transfer_ownership_to!), which
   # also skipped Trackable. A privilege demotion must still reach the audit
