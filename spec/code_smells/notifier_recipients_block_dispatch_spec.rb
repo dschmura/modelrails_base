@@ -44,38 +44,31 @@ RSpec.describe "Code smell: notifier recipient dispatch matches its recipients b
     Dir[Rails.root.join("app/**/*.rb")].reject { _1.include?("/app/notifiers/") }
   end
 
+  # Structural, not textual: Noticed's `recipients` DSL writes the block to the
+  # `_recipients` class_attribute (noticed-3.0.0,
+  # app/models/concerns/noticed/deliverable.rb), which is the same value
+  # `deliver` reads. The old `/^\s*recipients\b/` source scan only approximated
+  # it, and missed real declarations — `self.recipients do … end` reads as "no
+  # block", and so does a subclass inheriting one, because the scan sees a
+  # single file's text rather than the class. Both shapes would have been waved
+  # through with an explicit recipient, skipping permitted_in_app silently.
+  #
+  # `constantize` deliberately, not `safe_constantize`: a notifier file that
+  # does not define the class its name promises should fail loudly here rather
+  # than drop out of the fence's coverage.
   def notifiers_declaring_recipients
+    notifier_classes.select { |klass| klass._recipients.present? }.map(&:name)
+  end
+
+  def notifier_classes
     Dir[Rails.root.join("app/notifiers/*_notifier.rb")].filter_map do |file|
       next if File.basename(file) == "application_notifier.rb"
-      File.basename(file, ".rb").camelize if File.read(file).match?(/^\s*recipients\b/)
+      File.basename(file, ".rb").camelize.constantize
     end
   end
 
   def all_notifiers
-    Dir[Rails.root.join("app/notifiers/*_notifier.rb")]
-      .map { File.basename(_1, ".rb").camelize }
-      .reject { _1 == "ApplicationNotifier" }
-  end
-
-  # Blanked, not deleted, so reported line numbers still match the real file —
-  # and so a comment quoting a dispatch isn't scanned as one.
-  def without_comments(source)
-    source.lines.map { |line| line.lstrip.start_with?("#") ? "\n" : line }.join
-  end
-
-  def balanced_end(source, open_index)
-    depth = 0
-    index = open_index
-    while index < source.length
-      case source[index]
-      when "(" then depth += 1
-      when ")"
-        depth -= 1
-        return index + 1 if depth.zero?
-      end
-      index += 1
-    end
-    nil
+    notifier_classes.map(&:name)
   end
 
   # [notifier, deliver argument, "path:line"] for every dispatch in app/.

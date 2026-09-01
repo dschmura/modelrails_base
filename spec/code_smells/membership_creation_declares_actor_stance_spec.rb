@@ -48,26 +48,8 @@ RSpec.describe "Code smell: membership creation declares its actor stance" do
     Dir[Rails.root.join("{app,lib}/**/*.rb")]
   end
 
-  # Blanked, not deleted, so reported line numbers still match the real file.
-  def without_comments(source)
-    source.lines.map { |line| line.lstrip.start_with?("#") ? "\n" : line }.join
-  end
-
-  def balanced_end(source, open_index)
-    depth = 0
-    index = open_index
-    while index < source.length
-      case source[index]
-      when "(" then depth += 1
-      when ")"
-        depth -= 1
-        return index + 1 if depth.zero?
-      end
-      index += 1
-    end
-    nil
-  end
-
+  # without_comments / balanced_end come from spec/support/source_scanning.rb,
+  # shared with the recipients-block fence.
   def enclosing_method(source, index)
     source[0...index].scan(/^\s*def\s+(?:self\.)?([\w?!]+)/).last&.first || "(top level)"
   end
