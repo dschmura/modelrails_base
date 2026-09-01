@@ -123,6 +123,8 @@ en:
       message: "Your password was removed from your account, %{user_name}."
     sign_in_from_new_device:
       message: "We noticed a new sign-in from %{os}. If this wasn't you, please review your account."
+    welcome:
+      message: "Welcome, %{user_name}. Invitations, member changes and account activity land here. Choose what you hear about in your preferences."
     index:
       heading: "Notifications"
       filters_aria: "Filter notifications"

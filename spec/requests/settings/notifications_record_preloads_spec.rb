@@ -26,6 +26,7 @@ RSpec.describe "Settings::Notifications record-preload guard", type: :request do
       WorkspaceInvitationAcceptedNotifier
       WorkspaceInvitationDeclinedNotifier
       WorkspaceInvitationExpiringSoonNotifier
+      WelcomeNotifier
     ]
   end
 
@@ -79,7 +80,12 @@ RSpec.describe "Settings::Notifications record-preload guard", type: :request do
         .with(record: project_invitation(accepted_by: create(:user))).deliver(user)
       WorkspaceInvitationDeclinedNotifier.with(record: project_invitation).deliver(user)
       WorkspaceInvitationExpiringSoonNotifier.with(record: project_invitation).deliver(user)
+      WelcomeNotifier.with(record: user).deliver(user)
     end
+  end
+
+  def categories_in_roster
+    notifier_types.map { _1.constantize.category_name }.uniq
   end
 
   it "keeps the roster in sync with app/notifiers" do
@@ -90,22 +96,29 @@ RSpec.describe "Settings::Notifications record-preload guard", type: :request do
     expect(notifier_types).to match_array(on_disk)
   end
 
-  it "renders two of every notifier type in one request without an N+1" do
+  it "renders two of every notifier type without an N+1" do
     2.times { |round| deliver_roster_to(user, round: round) }
 
-    # The index page caps at 25 rows; a roster change that silently pushes a
-    # type off page 1 would hollow out this guard — fail loud instead.
-    expect(user.notifications.count).to be <= 25,
-      "roster delivers #{user.notifications.count} notifications — page 1 caps at 25, so some types would escape the guard"
+    # One request per category rather than one for the whole roster: page 1
+    # caps at 25 rows and two of every type outgrew that when WelcomeNotifier
+    # made thirteen. Each request is still a mixed page for its category, and
+    # still carries TWO of every type it renders — which is what Bullet needs.
+    bodies = categories_in_roster.index_with do |category|
+      rows = user.notifications.where(type: ApplicationNotifier.notification_types_for(category)).count
+      expect(rows).to be <= 25,
+        "the #{category} slice delivers #{rows} notifications — page 1 caps at 25, so some types would escape the guard"
 
-    get settings_notifications_path
+      get settings_notifications_path(category: category)
+      expect(response).to have_http_status(:ok)
+      response.body
+    end
 
-    expect(response).to have_http_status(:ok)
     notifier_types.each do |notifier_class|
+      body = bodies.fetch(notifier_class.constantize.category_name)
       # At least, not exactly: ambient dispatches (sign_in itself notifies
       # SignInFromNewDevice) can add a third row, which only strengthens
       # the guard.
-      expect(response.body.scan("data-notification-type=\"#{notifier_class}::Notification\"").size)
+      expect(body.scan("data-notification-type=\"#{notifier_class}::Notification\"").size)
         .to be >= 2, "expected at least two rendered #{notifier_class} notifications"
     end
   end

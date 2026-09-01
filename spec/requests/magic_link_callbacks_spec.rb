@@ -145,6 +145,16 @@ RSpec.describe "Magic Link Callbacks", type: :request do
         }
         expect(response).to redirect_to(root_path)
       end
+
+      it "leaves exactly one welcome notification on the new account" do
+        post magic_link_callback_path(token: token), params: {
+          user: { first_name: "Jane", last_name: "Doe" }
+        }
+
+        registrant = User.find_by(email_address: "newreg@example.com")
+        expect(Noticed::Notification.where(recipient: registrant,
+                                           type: "WelcomeNotifier::Notification").count).to eq 1
+      end
     end
 
     context "valid token but invalid user params" do
