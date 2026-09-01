@@ -190,6 +190,47 @@ RSpec.describe Membership, type: :model do
     end
   end
 
+  # `granted_by` and `self_join` are mutually exclusive: nobody granted a
+  # self-join. Before the guard, passing both silently let self_join win the
+  # actor selection while granted_by still landed in the membership.created
+  # audit row — a row naming a granter for something the same row records as
+  # ungranted. Both entry points refuse it.
+  describe "exclusive grant provenance" do
+    let(:workspace) { create(:workspace, personal: false) }
+    let(:granter) { create(:user) }
+    let(:member_role) do
+      Role.find_or_create_by!(slug: "member", workspace_id: nil) { |r| r.name = "Member" }
+    end
+
+    it "refuses a Workspace#admit claiming both a granter and a self-join" do
+      expect {
+        workspace.admit(create(:user), role: member_role, granted_by: granter, self_join: true)
+      }.to raise_error(ArgumentError, /mutually exclusive/)
+    end
+
+    it "refuses the same combination on #reactivate!" do
+      membership = create(:membership, workspace: workspace, role: member_role)
+      membership.discard!
+
+      expect {
+        membership.reactivate!(granted_by: granter, self_join: true)
+      }.to raise_error(ArgumentError, /mutually exclusive/)
+    end
+
+    it "creates nothing when it refuses" do
+      expect {
+        expect {
+          workspace.admit(create(:user), role: member_role, granted_by: granter, self_join: true)
+        }.to raise_error(ArgumentError)
+      }.not_to change(workspace.memberships, :count)
+    end
+
+    it "still accepts either one on its own" do
+      expect { workspace.admit(create(:user), role: member_role, granted_by: granter) }.not_to raise_error
+      expect { workspace.admit(create(:user), role: member_role, self_join: true) }.not_to raise_error
+    end
+  end
+
   describe "max_members enforcement" do
     it "prevents exceeding max_members" do
       # The workspace factory does not auto-create memberships.

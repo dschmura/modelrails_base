@@ -92,6 +92,18 @@ class Membership < ApplicationRecord
       .filter_by_status(status)
   }
 
+  # `granted_by` and `self_join` answer different questions (see the accessors
+  # above) and are mutually exclusive: nobody granted a self-join. Supplying
+  # both silently let self_join win the actor selection while granted_by still
+  # landed in the membership.created audit row — a row naming a granter for
+  # something the same row records as ungranted. Refused at both entry points
+  # (Workspace#admit, #reactivate!) rather than documented.
+  def self.reject_conflicting_provenance!(granted_by:, self_join:)
+    return unless granted_by && self_join
+    raise ArgumentError,
+      "granted_by and self_join are mutually exclusive: a self-join has no granter"
+  end
+
   # Kept owner-role memberships in the workspace, excluding the given
   # membership id — "are there OTHER owners besides this one?".
   def self.other_kept_owners(workspace_id, excluding:)
@@ -136,6 +148,7 @@ class Membership < ApplicationRecord
   # stays accessible to existing members, and the admin doing this is actively
   # in the workspace. The pinning test in membership_spec locks this in.
   def reactivate!(granted_by: nil, self_join: false)
+    self.class.reject_conflicting_provenance!(granted_by: granted_by, self_join: self_join)
     self.granted_by = granted_by
     self.self_join = self_join
     undiscard!

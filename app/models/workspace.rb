@@ -236,6 +236,7 @@ class Workspace < ApplicationRecord
   # acceptance whose real work lies past workspace admission. Returns the
   # membership on every non-raising path.
   def admit(user, role:, granted_by: nil, self_join: false, on_existing: :raise)
+    Membership.reject_conflicting_provenance!(granted_by: granted_by, self_join: self_join)
     transaction do
       lock!
       raise NotAdmittableError unless admittable?
