@@ -14,6 +14,14 @@ RSpec.describe WorkspaceCreatedNotifier, type: :notifier do
     Noticed::Event.where(type: described_class.name)
   end
 
+  # Workspace declares no `dependent:` for activity_logs and the FK blocks the
+  # DELETE, so the audit rows go first. The placeholder contract is about the
+  # record being gone, not about how it got there.
+  def hard_delete(workspace)
+    ActivityLog.where(workspace_id: workspace.id).delete_all
+    workspace.destroy!
+  end
+
   describe "declarations" do
     it "is :workspace_activity" do
       expect(described_class.category_name).to eq "workspace_activity"
@@ -56,6 +64,26 @@ RSpec.describe WorkspaceCreatedNotifier, type: :notifier do
         I18n.t("notifications.workspace_created.message", workspace: "Acme")
       )
       expect(notification.url).to eq(Rails.application.routes.url_helpers.workspace_members_path(workspace))
+    end
+
+    # The record IS the routed object here, so a deleted workspace hands the
+    # helper a bare nil — ActionController::UrlGenerationError, which
+    # render_safe_or_placeholder deliberately does not rescue. Unrescued it
+    # takes down the whole digest render for this user, not just this row.
+    it "returns the placeholder copy when the workspace has been deleted" do
+      workspace = Workspace.create_owned({ name: "Acme" }, owner: creator)
+      notification = events.last.notifications.first
+      hard_delete(workspace)
+
+      expect(notification.reload.url).to eq(I18n.t("notifications.placeholder"))
+    end
+
+    it "returns the placeholder copy for the message too when the workspace has been deleted" do
+      workspace = Workspace.create_owned({ name: "Acme" }, owner: creator)
+      notification = events.last.notifications.first
+      hard_delete(workspace)
+
+      expect(notification.reload.message).to eq(I18n.t("notifications.placeholder"))
     end
   end
 

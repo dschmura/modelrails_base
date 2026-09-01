@@ -82,6 +82,18 @@ RSpec.describe "Self-join notifications", type: :notifier do
       expect(notification.url).to eq(Rails.application.routes.url_helpers.workspace_path(workspace))
     end
 
+    # Mirrors the invitation notifiers' deleted-record url examples: the row
+    # outlives the membership it points at, and neither #message nor #url may
+    # raise out of the notifications index or the digest render.
+    it "renders the placeholder for both message and url once the membership is gone" do
+      workspace.admit(joiner, role: member_role, self_join: true)
+      notification = joined_notifications_for(joiner).sole
+      workspace.memberships.find_by!(user: joiner).destroy
+
+      expect(notification.reload.message).to eq(I18n.t("notifications.placeholder"))
+      expect(notification.url).to eq(I18n.t("notifications.placeholder"))
+    end
+
     it "does not notify the owners about the joiner's own orientation" do
       workspace.admit(joiner, role: member_role, self_join: true)
 

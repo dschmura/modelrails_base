@@ -183,6 +183,19 @@ class ApplicationNotifier < Noticed::Event
       I18n.t("notifications.placeholder")
     end
 
+    # Convert a possibly-deleted record into the deletion shape BEFORE it
+    # reaches a route helper. Helpers reject nil with
+    # ActionController::UrlGenerationError, which render_safe_or_placeholder
+    # deliberately does not rescue (elsewhere it is a real routing bug) — so an
+    # unconverted nil escapes even the digest's own wrapped call site and takes
+    # down that user's ENTIRE digest render, not just the one dead row.
+    # Only #url bodies need this: #message traversals dereference the record
+    # and already raise NoMethodError on nil.
+    def present_or_gone!(record)
+      raise ActiveRecord::RecordNotFound if record.nil?
+      record
+    end
+
     private
 
     # Delegates to ApplicationNotifier#preferences_for so per-recipient

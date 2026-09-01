@@ -30,7 +30,9 @@ class WorkspaceCreatedNotifier < ApplicationNotifier
     end
 
     def url
-      Rails.application.routes.url_helpers.workspace_members_path(event.record)
+      render_safe_or_placeholder do
+        Rails.application.routes.url_helpers.workspace_members_path(present_or_gone!(event.record))
+      end
     end
   end
 end
