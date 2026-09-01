@@ -554,8 +554,10 @@ RSpec.describe Workspace, type: :model do
 
       expect(result).to eq(discarded)
       expect(discarded.reload).not_to be_discarded
-      # Reactivation preserves the original grant's provenance — granted_by is
-      # only written when a membership row is created, identical to :raise.
+      # Reactivation preserves the original grant's provenance: no new
+      # `membership.created` audit row, and admit never mutates the caller's
+      # instance. The granted_by admit sets on its OWN copy of the row is
+      # transient notifier provenance (actor exclusion), not a rewrite.
       expect(discarded.granted_by).to be_nil
     end
 

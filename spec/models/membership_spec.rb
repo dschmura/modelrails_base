@@ -452,6 +452,63 @@ RSpec.describe Membership, type: :model do
       end
     end
 
+    # Re-admission is an undiscard, not a create, so after_create_commit never
+    # fires — a previously removed member came silently back with zero
+    # notifications. Covered here rather than in the notifier spec because the
+    # bug was in the callback wiring.
+    describe "member re-admitted (after_update_commit)" do
+      include ActiveJob::TestHelper
+
+      let!(:membership) { create(:membership, user: member, workspace: workspace) }
+
+      before do
+        membership.deactivate!
+        Noticed::Notification.delete_all
+        Noticed::Event.delete_all
+        ActionMailer::Base.deliveries.clear
+        clear_enqueued_jobs
+      end
+
+      it "notifies the re-admitted member and the owners on Membership#reactivate!" do
+        expect {
+          membership.reactivate!
+        }.to change { Noticed::Event.where(type: "WorkspaceMemberAddedNotifier").count }.by(1)
+
+        event = Noticed::Event.where(type: "WorkspaceMemberAddedNotifier").last
+        expect(event.record).to eq(membership)
+        expect(event.notifications.map(&:recipient)).to contain_exactly(member, owner)
+      end
+
+      it "excludes the actor who performed the re-admission" do
+        membership.reactivate!(granted_by: owner)
+        event = Noticed::Event.where(type: "WorkspaceMemberAddedNotifier").last
+        expect(event.notifications.map(&:recipient)).to eq([ member ])
+      end
+
+      it "notifies through Workspace#admit's undiscard branch too, minus the actor" do
+        workspace.admit(member, role: Role.system_default!("member"), granted_by: owner)
+        event = Noticed::Event.where(type: "WorkspaceMemberAddedNotifier").last
+        expect(event).to be_present
+        expect(event.notifications.map(&:recipient)).to eq([ member ])
+      end
+
+      it "sends the re-admitted member the same welcome email a new member gets" do
+        perform_enqueued_jobs(only: Noticed::EventJob) { membership.reactivate! }
+        perform_enqueued_jobs(only: Noticed::DeliveryMethods::Email)
+        perform_enqueued_jobs(only: ActionMailer::MailDeliveryJob)
+
+        expect(ActionMailer::Base.deliveries.flat_map(&:to)).to eq([ member.email_address ])
+      end
+
+      it "does not notify on deactivation" do
+        membership.reactivate!
+        Noticed::Event.delete_all
+        expect {
+          membership.deactivate!
+        }.not_to change { Noticed::Event.where(type: "WorkspaceMemberAddedNotifier").count }
+      end
+    end
+
     describe "role changed (after_update_commit)" do
       let!(:membership) { create(:membership, user: member, workspace: workspace) }
       let(:admin_role) { Role.find_or_create_by!(slug: "admin", workspace_id: nil) { |r| r.name = "Admin" } }

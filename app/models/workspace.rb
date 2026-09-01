@@ -236,7 +236,7 @@ class Workspace < ApplicationRecord
       raise NotAdmittableError unless admittable?
       existing = memberships.find_by(user: user)
       if existing&.discarded?
-        existing.undiscard!
+        existing.reactivate!(granted_by: granted_by)
         existing
       elsif existing
         raise AlreadyMember unless on_existing == :adopt || TenancyConfig.shared?

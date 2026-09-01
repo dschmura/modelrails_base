@@ -41,6 +41,17 @@ class Membership < ApplicationRecord
   # is actionable; firing there would produce a self-notification at best.
   after_create_commit :notify_member_added, if: :workspace_has_other_owners?
 
+  # Re-admission (Workspace#admit's undiscard branch, and #reactivate! from the
+  # members page) is an UPDATE, so the create callback above never saw it and a
+  # removed member came silently back — no in-app row, no welcome email. Hung
+  # on the undiscard rather than on either caller so both paths, and any future
+  # one, are covered by construction.
+  #
+  # Its own method name is load-bearing: the :commit chain dedups by filter, so
+  # registering :notify_member_added here would REPLACE the create callback
+  # above instead of adding to it.
+  after_update_commit :notify_member_readmitted, if: [ :just_reactivated?, :workspace_has_other_owners? ]
+
   scope :filter_by_role, ->(role_slug) {
     return all if role_slug.blank?
     joins(:role).where(roles: { slug: role_slug })
@@ -109,7 +120,8 @@ class Membership < ApplicationRecord
   # existing member of an archived workspace is intentionally allowed: archived
   # stays accessible to existing members, and the admin doing this is actively
   # in the workspace. The pinning test in membership_spec locks this in.
-  def reactivate!
+  def reactivate!(granted_by: nil)
+    self.granted_by = granted_by
     undiscard!
   end
 
@@ -253,10 +265,18 @@ class Membership < ApplicationRecord
     WorkspaceMemberAddedNotifier.with(record: self, actor: granted_by).deliver(nil)
   end
 
+  alias_method :notify_member_readmitted, :notify_member_added
+
   # Self-exclusion is the contract: the very first owner being seeded
   # (User#create_personal_workspace, bootstrap) must not count as a pre-existing owner.
   def workspace_has_other_owners?
     return false if workspace_id.blank?
     Membership.other_kept_owners(workspace_id, excluding: id).exists?
+  end
+
+  # Discarded → kept. Direction matters: the same column change in the other
+  # direction is a removal.
+  def just_reactivated?
+    saved_change_to_discarded_at? && discarded_at.nil?
   end
 end
