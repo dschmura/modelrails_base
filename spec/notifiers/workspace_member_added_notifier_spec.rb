@@ -113,18 +113,19 @@ RSpec.describe WorkspaceMemberAddedNotifier, type: :notifier do
       expect(recipients).to contain_exactly(added_user, owner_user_a, owner_user_b)
     end
 
-    it "notifies nobody at all when the actor is the sole other recipient" do
+    it "drops the actor even when they are the only owner left, leaving just the added user" do
       # Ada (owner_user_a) re-adds herself is impossible; the real shape is a
-      # lone-owner workspace where the owner adds the only other person and
-      # that person has in-app off — pinned instead as "the actor is gone from
-      # the list even when the list would otherwise be just them".
+      # lone-owner workspace where the owner adds the only other person —
+      # "the actor is gone from the list even when they are the whole rest of
+      # it". The full recipient set is pinned, not just the actor's own count:
+      # asserting only `owner_user_a.count == 0` also passed when the fan-out
+      # was empty, or when it had reached someone it should not have.
       owner_b_membership.deactivate!
       workspace.admit(added_user, role: member_role, granted_by: owner_user_a)
 
       expect(
-        Noticed::Notification.where(recipient: owner_user_a,
-                                    type: "#{described_class.name}::Notification").count
-      ).to eq 0
+        Noticed::Notification.where(type: "#{described_class.name}::Notification").map(&:recipient)
+      ).to eq([ added_user ])
     end
   end
 

@@ -57,6 +57,13 @@ RSpec.describe "Settings::Notifications record-preload guard", type: :request do
   # dispatches its notifier via model callback — the creation IS that
   # delivery; an extra explicit dispatch would inflate the page past the
   # 25-row cap.
+  #
+  # Deliberate: the block-declaring notifiers below are handed an explicit
+  # `user`, which bypasses their `recipients` block and its preference gating.
+  # App code must never do this (spec/code_smells/notifier_recipients_block_dispatch_spec.rb
+  # fences app/ for exactly that) — here it is what makes the roster
+  # deterministic: every type must land one row for this user regardless of
+  # preferences, or the page under test loses the type it is meant to render.
   def deliver_roster_to(user, round:)
     in_distinct_idempotency_bucket do
       PasskeyAddedNotifier.with(record: user).deliver(user)

@@ -591,7 +591,9 @@ RSpec.describe Membership, type: :model do
         expect(event.notifications.map(&:recipient)).to eq([ member ])
       end
 
-      it "sends the re-admitted member the same welcome email a new member gets" do
+      # WorkspaceMemberAddedNotifier's email, not WelcomeNotifier's — that one
+      # is the account's day-one notice and has no email leg at all.
+      it "sends the re-admitted member WorkspaceMemberAddedNotifier's email, as a fresh add would" do
         perform_enqueued_jobs(only: Noticed::EventJob) { membership.reactivate! }
         perform_enqueued_jobs(only: Noticed::DeliveryMethods::Email)
         perform_enqueued_jobs(only: ActionMailer::MailDeliveryJob)
