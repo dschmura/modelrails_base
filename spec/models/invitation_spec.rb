@@ -1073,6 +1073,10 @@ RSpec.describe Invitation, type: :model do
     let(:inviter) { create(:user) }
     let(:invitation) { create(:invitation, invitable: workspace, invited_by: inviter, email: "invitee@example.com") }
 
+    def recipients_of(notifier_type)
+      Noticed::Notification.where(type: "#{notifier_type}::Notification").map(&:recipient)
+    end
+
     describe "accepted (after_update_commit)" do
       it "notifies the inviter when someone else accepts" do
         acceptor = create(:user)
@@ -1087,6 +1091,52 @@ RSpec.describe Invitation, type: :model do
         expect {
           invitation.accept!(inviter)
         }.not_to change { Noticed::Event.where(type: "WorkspaceInvitationAcceptedNotifier").count }
+      end
+    end
+
+    # Actor exclusion across the two notifiers that fire on one acceptance.
+    # Before this, an owner-inviter got BOTH "Alan joined" and "alan@…
+    # accepted your invitation" for the same event.
+    describe "accepted — actor exclusion across both notifiers" do
+      include ActiveJob::TestHelper
+
+      it "gives an owner-inviter only the acceptance notice, and the invitee the member-added one" do
+        ada = create(:user)
+        create(:membership, :owner, user: ada, workspace: workspace)
+        alan = create(:user)
+        alan_email = alan.email_address
+        invite = create(:invitation, invitable: workspace, invited_by: ada, email: alan_email)
+        Noticed::Notification.delete_all
+        Noticed::Event.delete_all
+        ActionMailer::Base.deliveries.clear
+        clear_enqueued_jobs
+
+        invite.accept!(alan)
+        perform_enqueued_jobs(only: Noticed::EventJob)
+        perform_enqueued_jobs(only: Noticed::DeliveryMethods::Email)
+        perform_enqueued_jobs(only: ActionMailer::MailDeliveryJob)
+
+        expect(recipients_of("WorkspaceMemberAddedNotifier")).to eq([ alan ])
+        expect(recipients_of("WorkspaceInvitationAcceptedNotifier")).to eq([ ada ])
+        # The invitee still gets the welcome email; the inviter gets no email
+        # for an event she performed herself.
+        expect(ActionMailer::Base.deliveries.flat_map(&:to)).to eq([ alan_email ])
+      end
+
+      it "keeps owners notified and the inviter thanked when a non-owner admin invited" do
+        ada = create(:user)
+        create(:membership, :owner, user: ada, workspace: workspace)
+        edith = create(:user)
+        create(:membership, :admin, user: edith, workspace: workspace)
+        barb = create(:user)
+        invite = create(:invitation, invitable: workspace, invited_by: edith, email: barb.email_address)
+        Noticed::Notification.delete_all
+        Noticed::Event.delete_all
+
+        invite.accept!(barb)
+
+        expect(recipients_of("WorkspaceMemberAddedNotifier")).to contain_exactly(barb, ada)
+        expect(recipients_of("WorkspaceInvitationAcceptedNotifier")).to eq([ edith ])
       end
     end
 

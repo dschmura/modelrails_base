@@ -84,6 +84,50 @@ RSpec.describe WorkspaceMemberAddedNotifier, type: :notifier do
     end
   end
 
+  # 37signals rule (Fizzy/Campfire): you are never notified about your own
+  # action. The actor rides as an event PARAM, not off `record.granted_by` —
+  # that attr_accessor is non-persisted, so an exclusion keyed on it would
+  # silently exclude nobody the moment recipient resolution moved off the
+  # in-memory record.
+  describe "actor exclusion" do
+    it "drops the owner who performed the add, keeping the added user and the other owners" do
+      workspace.admit(added_user, role: member_role, granted_by: owner_user_a)
+
+      recipients = Noticed::Notification
+        .where(type: "#{described_class.name}::Notification").map(&:recipient)
+      expect(recipients).to contain_exactly(added_user, owner_user_b)
+    end
+
+    it "persists the actor on the event so resolution never depends on a transient attribute" do
+      workspace.admit(added_user, role: member_role, granted_by: owner_user_a)
+
+      event = Noticed::Event.where(type: described_class.name).last
+      expect(event.reload.params[:actor]).to eq(owner_user_a)
+    end
+
+    it "notifies everyone when there is no actor (system-seeded grant)" do
+      workspace.admit(added_user, role: member_role)
+
+      recipients = Noticed::Notification
+        .where(type: "#{described_class.name}::Notification").map(&:recipient)
+      expect(recipients).to contain_exactly(added_user, owner_user_a, owner_user_b)
+    end
+
+    it "notifies nobody at all when the actor is the sole other recipient" do
+      # Ada (owner_user_a) re-adds herself is impossible; the real shape is a
+      # lone-owner workspace where the owner adds the only other person and
+      # that person has in-app off — pinned instead as "the actor is gone from
+      # the list even when the list would otherwise be just them".
+      owner_b_membership.deactivate!
+      workspace.admit(added_user, role: member_role, granted_by: owner_user_a)
+
+      expect(
+        Noticed::Notification.where(recipient: owner_user_a,
+                                    type: "#{described_class.name}::Notification").count
+      ).to eq 0
+    end
+  end
+
   # Spec case 2: Added user receives one in-app notification.
   describe "added user — in-app" do
     it "creates exactly one Noticed::Notification row for the added user" do

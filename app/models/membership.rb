@@ -244,11 +244,13 @@ class Membership < ApplicationRecord
   end
 
   # Pass `nil` to deliver — the Notifier's class-level `recipients` block is
-  # responsible for resolving the (added user + owners) bucket and filtering by
-  # in-app preference.
+  # responsible for resolving the (added user + owners) bucket, dropping the
+  # actor, and filtering by in-app preference. `granted_by` is handed over as a
+  # PARAM because it is a non-persisted attr_accessor; the notifier must not
+  # read it back off the record.
   def notify_member_added
     return if user.blank? || workspace.blank?
-    WorkspaceMemberAddedNotifier.with(record: self).deliver(nil)
+    WorkspaceMemberAddedNotifier.with(record: self, actor: granted_by).deliver(nil)
   end
 
   # Self-exclusion is the contract: the very first owner being seeded

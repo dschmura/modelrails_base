@@ -444,6 +444,12 @@ RSpec.describe Membership, type: :model do
           create(:membership, :owner, user: member, workspace: fresh_workspace)
         }.not_to change { Noticed::Event.where(type: "WorkspaceMemberAddedNotifier").count }
       end
+
+      it "excludes the actor who performed the add" do
+        workspace.admit(member, role: Role.system_default!("member"), granted_by: owner)
+        event = Noticed::Event.where(type: "WorkspaceMemberAddedNotifier").last
+        expect(event.notifications.map(&:recipient)).to eq([ member ])
+      end
     end
 
     describe "role changed (after_update_commit)" do
