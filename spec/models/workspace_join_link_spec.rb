@@ -89,6 +89,25 @@ RSpec.describe WorkspaceJoinLink, type: :model do
       create(:membership, workspace: open_workspace, user: joiner)
       expect { link.admit(joiner) }.to raise_error(Workspace::AlreadyMember)
     end
+
+    # There is no granter on this path, so the joiner is the actor: they are
+    # excluded from "someone joined" and oriented by WorkspaceJoinedNotifier.
+    it "leaves the joiner out of member-added, notifies the owners, and orients the joiner" do
+      owner_role = Role.find_or_create_by!(slug: "owner", workspace_id: nil) { |r| r.name = "Owner" }
+      owner = create(:user)
+      create(:membership, workspace: open_workspace, user: owner, role: owner_role)
+      joiner
+      Noticed::Notification.delete_all
+
+      link.admit(joiner)
+
+      member_added = Noticed::Notification
+        .where(type: "WorkspaceMemberAddedNotifier::Notification").map(&:recipient)
+      expect(member_added).to contain_exactly(owner)
+      expect(
+        Noticed::Notification.where(recipient: joiner, type: "WorkspaceJoinedNotifier::Notification").count
+      ).to eq 1
+    end
   end
 
   describe "digest uniqueness" do

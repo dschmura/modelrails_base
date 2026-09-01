@@ -42,7 +42,7 @@ class WorkspaceJoinLink < ApplicationRecord
   def admit(user)
     return unless workspace.accepting_open_joins?
 
-    workspace.admit(user, role: workspace.default_self_join_role)
+    workspace.admit(user, role: workspace.default_self_join_role, self_join: true)
   end
 
   def revoked?

@@ -39,6 +39,22 @@ RSpec.describe "Workspaces::Joins (Flow A: authenticated user joins via link)", 
       expect(response).to redirect_to(workspace_path(workspace))
     end
 
+    # Nobody is notified about their own action: the joiner is the actor here,
+    # so member-added goes to the owner only and the joiner is oriented by
+    # WorkspaceJoinedNotifier instead.
+    it "leaves the joiner out of member-added, notifies the owner, and orients the joiner" do
+      Noticed::Notification.delete_all
+
+      post workspace_join_path(workspace, token: link.plaintext_token)
+
+      member_added = Noticed::Notification
+        .where(type: "WorkspaceMemberAddedNotifier::Notification").map(&:recipient)
+      expect(member_added).to contain_exactly(owner)
+      expect(
+        Noticed::Notification.where(recipient: newcomer, type: "WorkspaceJoinedNotifier::Notification").count
+      ).to eq 1
+    end
+
     it "rejects a revoked link" do
       link.revoke!
       expect {

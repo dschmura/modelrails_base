@@ -16,6 +16,12 @@ class Membership < ApplicationRecord
   # Non-persisted grant provenance for the creation audit entry (G): set by
   # Workspace#admit when an invitation acceptance created this membership.
   attr_accessor :granted_by
+
+  # Non-persisted marker for the open-link self-join paths (Workspace#admit's
+  # `self_join:`). Kept apart from `granted_by` on purpose: nobody granted a
+  # self-join, so it must not reach the audit row's grant provenance — it only
+  # answers "who acted", and on this path that is always `user`.
+  attr_accessor :self_join
   belongs_to :role
 
   validates :user_id, uniqueness: { scope: :workspace_id }
@@ -51,6 +57,15 @@ class Membership < ApplicationRecord
   # registering :notify_member_added here would REPLACE the create callback
   # above instead of adding to it.
   after_update_commit :notify_member_readmitted, if: [ :just_reactivated?, :workspace_has_other_owners? ]
+
+  # The self-joiner's own orientation. They are the actor, so the callbacks
+  # above deliberately drop them from "someone joined" — this is what still
+  # tells them where they landed. Both grades of self-join are covered: a fresh
+  # membership and a removed member coming back through the same link. Two
+  # distinct filter names for one body, for the :commit-chain dedup reason
+  # spelled out above notify_member_readmitted.
+  after_create_commit :notify_self_joined, if: :self_join
+  after_update_commit :notify_self_rejoined, if: [ :just_reactivated?, :self_join ]
 
   scope :filter_by_role, ->(role_slug) {
     return all if role_slug.blank?
@@ -120,8 +135,9 @@ class Membership < ApplicationRecord
   # existing member of an archived workspace is intentionally allowed: archived
   # stays accessible to existing members, and the admin doing this is actively
   # in the workspace. The pinning test in membership_spec locks this in.
-  def reactivate!(granted_by: nil)
+  def reactivate!(granted_by: nil, self_join: false)
     self.granted_by = granted_by
+    self.self_join = self_join
     undiscard!
   end
 
@@ -257,15 +273,27 @@ class Membership < ApplicationRecord
 
   # Pass `nil` to deliver — the Notifier's class-level `recipients` block is
   # responsible for resolving the (added user + owners) bucket, dropping the
-  # actor, and filtering by in-app preference. `granted_by` is handed over as a
-  # PARAM because it is a non-persisted attr_accessor; the notifier must not
-  # read it back off the record.
+  # actor, and filtering by in-app preference. The actor is handed over as a
+  # PARAM because both sources are non-persisted attr_accessors; the notifier
+  # must not read them back off the record.
+  #
+  # On a self-join the actor is the joiner — never `granted_by`, which stays
+  # nil there so the audit row doesn't claim they granted themselves access.
   def notify_member_added
     return if user.blank? || workspace.blank?
-    WorkspaceMemberAddedNotifier.with(record: self, actor: granted_by).deliver(nil)
+    WorkspaceMemberAddedNotifier.with(record: self, actor: self_join ? user : granted_by).deliver(nil)
   end
 
   alias_method :notify_member_readmitted, :notify_member_added
+
+  # `deliver(nil)` again: WorkspaceJoinedNotifier declares a `recipients` block
+  # so the in-app preference gate runs. An explicit recipient would skip it.
+  def notify_self_joined
+    return if user.blank? || workspace.blank?
+    WorkspaceJoinedNotifier.with(record: self).deliver(nil)
+  end
+
+  alias_method :notify_self_rejoined, :notify_self_joined
 
   # Self-exclusion is the contract: the very first owner being seeded
   # (User#create_personal_workspace, bootstrap) must not count as a pre-existing owner.

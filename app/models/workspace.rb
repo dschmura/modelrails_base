@@ -225,18 +225,23 @@ class Workspace < ApplicationRecord
   # are safe; nested calls join the surrounding transaction.
   # granted_by: audit provenance only (G) — the inviter, when an invitation
   # acceptance is what created the membership. Never affects admission logic.
+  # self_join: the open-link paths, where nobody granted anything — the joining
+  # user is the actor. Deliberately NOT expressed as `granted_by: user`: that
+  # would write the joiner into the membership.created audit row as their own
+  # granter, making a self-join read exactly like an admin grant. Separate flag,
+  # so "who granted this" and "who acted" can't be conflated.
   # on_existing: policy for a kept member showing up again. :raise preserves
   # the duplicate-accept error (reconciling the role first under :shared);
   # :adopt returns the membership untouched — for callers like project-invite
   # acceptance whose real work lies past workspace admission. Returns the
   # membership on every non-raising path.
-  def admit(user, role:, granted_by: nil, on_existing: :raise)
+  def admit(user, role:, granted_by: nil, self_join: false, on_existing: :raise)
     transaction do
       lock!
       raise NotAdmittableError unless admittable?
       existing = memberships.find_by(user: user)
       if existing&.discarded?
-        existing.reactivate!(granted_by: granted_by)
+        existing.reactivate!(granted_by: granted_by, self_join: self_join)
         existing
       elsif existing
         raise AlreadyMember unless on_existing == :adopt || TenancyConfig.shared?
@@ -250,7 +255,7 @@ class Workspace < ApplicationRecord
         existing
       else
         raise AtCapacity if at_capacity?
-        memberships.create!(user: user, role: role, granted_by: granted_by)
+        memberships.create!(user: user, role: role, granted_by: granted_by, self_join: self_join)
       end
     end
   end
