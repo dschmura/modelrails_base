@@ -246,6 +246,19 @@ class Workspace < ApplicationRecord
         existing
       elsif existing
         raise AlreadyMember unless on_existing == :adopt || TenancyConfig.shared?
+        # EVERY in-memory instance of the row that saves inside this transaction
+        # must carry the provenance markers, because Rails — not us — picks
+        # which instance runs the commit callbacks: with
+        # run_commit_callbacks_on_first_saved_instances_in_transaction false it
+        # is the LAST one saved. `existing` is a second instance of a row the
+        # same transaction may have just INSERTed (the :shared placeholder from
+        # User#onboard_workspace, reconciled here by Invitation#accept! — both
+        # inside Signupable#commit_signup_atomically), so leaving it markerless
+        # silently dropped the actor rule: the granter got told about their own
+        # grant, and a self-joiner got told they had joined.
+        # Already validated at the top of this method — not re-checked here.
+        existing.granted_by = granted_by
+        existing.self_join = self_join
         if on_existing != :adopt && existing.role_id != role.id
           # Under :shared, the User#onboard_workspace callback pre-creates a
           # placeholder Member membership. Reconcile: adopt the new role
