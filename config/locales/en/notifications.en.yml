@@ -107,6 +107,8 @@ en:
       message: "Your role in %{workspace} changed to %{new_role}"
     workspace_invitation_expiring_soon:
       message: "Your invitation expires in %{hours_remaining} hours"
+    workspace_created:
+      message: "You created %{workspace}. Invite people from the Members page."
     workspace_member_added:
       message: "%{added_user_name} joined %{workspace}"
     workspace_capacity_approaching:

@@ -41,6 +41,19 @@ class Workspace < ApplicationRecord
 
   has_many :join_links, class_name: "WorkspaceJoinLink", dependent: :destroy
 
+  # Non-persisted creator provenance, set by `.create_owned` — the ONE path a
+  # person creates a workspace through. Gating the notification on it (rather
+  # than on every INSERT) keeps seeds, fixtures and the signup-time personal
+  # workspace silent; a fork adding a creation site opts in by setting it.
+  attr_accessor :created_by
+
+  # after_create_COMMIT, not after_create: `User#create_personal_workspace`
+  # runs inside the registration transaction, and enqueueing into Solid
+  # Queue's separate SQLite file under the primary write lock is the
+  # cross-database lock-ordering hazard User#notify_password_changed already
+  # avoids the same way.
+  after_create_commit :notify_workspace_created, if: -> { created_by.present? }
+
   validates :name, presence: true, length: { maximum: 255 }
   validates :logo,
     content_type: IMAGE_CONTENT_TYPES,
@@ -272,6 +285,7 @@ class Workspace < ApplicationRecord
   # Returns the possibly-invalid workspace — form callers render its errors.
   def self.create_owned(attrs, owner:)
     workspace = new(attrs)
+    workspace.created_by = owner
     transaction do
       if workspace.save
         workspace.memberships.create!(user: owner, role: Role.system_default!("owner"))
@@ -294,6 +308,10 @@ class Workspace < ApplicationRecord
   end
 
   private
+
+  def notify_workspace_created
+    WorkspaceCreatedNotifier.with(record: self, creator: created_by).deliver(nil)
+  end
 
   def personal_workspaces_are_invite_only
     return unless personal? && !invite?
