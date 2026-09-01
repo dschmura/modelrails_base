@@ -3,9 +3,9 @@
 # Fires when someone admits themselves through an open join link. The single
 # recipient is the joiner, and it exists because they are the actor: the
 # 37signals rule drops them from WorkspaceMemberAddedNotifier, which would
-# otherwise tell them in the third person that they joined. This is the same
-# receipt-plus-orientation shape as WorkspaceCreatedNotifier — something on the
-# notifications page, pointing at the workspace they just landed in.
+# otherwise tell them in the third person that they joined. Same receipt shape
+# as WorkspaceCreatedNotifier, including its copy rule: the message names no
+# destination, because `url` is linked from the digest email only.
 #
 # No recipient param: on a self-join the actor is always `record.user`, so the
 # recipient is read off the record rather than travelling alongside it.

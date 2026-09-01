@@ -108,9 +108,9 @@ en:
     workspace_invitation_expiring_soon:
       message: "Your invitation expires in %{hours_remaining} hours"
     workspace_created:
-      message: "You created %{workspace}. Invite people from the Members page."
+      message: "You created %{workspace}."
     workspace_joined:
-      message: "You joined %{workspace}. Its projects and people are on the workspace page."
+      message: "You joined %{workspace}."
     workspace_member_added:
       message: "%{added_user_name} joined %{workspace}"
     workspace_capacity_approaching:

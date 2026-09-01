@@ -1,9 +1,13 @@
 # frozen_string_literal: true
 
 # Fires when someone creates a workspace through `Workspace.create_owned`.
-# The single recipient is the creator: partly a receipt, partly onboarding —
-# it puts something on a brand-new account's notifications page and points at
-# the next useful step (inviting people).
+# The single recipient is the creator: a receipt that puts something on a
+# brand-new account's notifications page.
+#
+# The copy names no destination on purpose. `url` is linked from the digest
+# email only — the in-app row renders the message and its read/delete controls
+# and nothing else — so "Invite people from the Members page" was a promise the
+# row could not keep. Restore the clause when the row links its url.
 #
 # The creator rides as a param, not off the record: `workspaces` has no
 # created_by column, and the transient `Workspace#created_by` that gates the

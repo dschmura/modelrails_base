@@ -72,7 +72,7 @@ RSpec.describe "Self-join notifications", type: :notifier do
       expect(joined_notifications_for(joiner).count).to eq 1
     end
 
-    it "orients them with the workspace name and points at the workspace" do
+    it "orients them with the workspace name and carries the workspace url" do
       workspace.admit(joiner, role: member_role, self_join: true)
       notification = joined_notifications_for(joiner).sole
 
@@ -80,6 +80,17 @@ RSpec.describe "Self-join notifications", type: :notifier do
         I18n.t("notifications.workspace_joined.message", workspace: workspace.name)
       )
       expect(notification.url).to eq(Rails.application.routes.url_helpers.workspace_path(workspace))
+    end
+
+    # `url` is linked from the digest email only — the in-app row
+    # (settings/notifications/_item) renders the message, a timestamp and the
+    # read/delete controls, and nothing else. Copy that names a page is
+    # therefore a promise the row itself cannot keep.
+    it "promises no destination the in-app row cannot reach" do
+      workspace.admit(joiner, role: member_role, self_join: true)
+      notification = joined_notifications_for(joiner).sole
+
+      expect(notification.message).not_to match(/\bpage\b/i)
     end
 
     # Mirrors the invitation notifiers' deleted-record url examples: the row

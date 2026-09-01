@@ -56,7 +56,7 @@ RSpec.describe WorkspaceCreatedNotifier, type: :notifier do
   end
 
   describe "rendering" do
-    it "names the workspace and points at the members page" do
+    it "names the workspace and carries the members-page url" do
       workspace = Workspace.create_owned({ name: "Acme" }, owner: creator)
       notification = events.last.notifications.first
 
@@ -64,6 +64,17 @@ RSpec.describe WorkspaceCreatedNotifier, type: :notifier do
         I18n.t("notifications.workspace_created.message", workspace: "Acme")
       )
       expect(notification.url).to eq(Rails.application.routes.url_helpers.workspace_members_path(workspace))
+    end
+
+    # `url` is linked from the digest email only — the in-app row
+    # (settings/notifications/_item) renders the message, a timestamp and the
+    # read/delete controls, and nothing else. Copy that names a page is
+    # therefore a promise the row itself cannot keep.
+    it "promises no destination the in-app row cannot reach" do
+      workspace = Workspace.create_owned({ name: "Acme" }, owner: creator)
+      notification = events.last.notifications.first
+
+      expect(notification.message).not_to match(/\bpage\b/i)
     end
 
     # The record IS the routed object here, so a deleted workspace hands the
