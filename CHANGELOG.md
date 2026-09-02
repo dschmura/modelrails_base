@@ -137,6 +137,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Fixed
 
+- Membership notification callbacks are best-effort: a raising role-change, add, re-admit, or self-join notifier no longer 500s a committed membership — it reports and moves on, matching the removal notifier's existing posture (#935).
 - Removing a member is idempotent: a replayed DELETE on an already-removed membership no longer re-stamps the removal timestamp, no longer writes a second audit row, and no longer sends the removed member a second notification and email.
 - The workspace activity feed renders its written English again — every key under `activity.actions` was flat and dotted, which I18n's nested lookup never finds, so each row silently degraded to a humanized column value (#911).
 - A membership removal reads as "Ada deactivated Dee" and a re-admission as "Ada reactivated Dee" instead of both claiming "had their role changed" — and instead of naming the person who acted as the person removed, which the passive voice did. A member who removes their own membership "left the workspace". `ActivityLog#display_action` picks the sentence from the row's own changes and its actor, and a row carrying both a role and a status change reports the status (#932).
