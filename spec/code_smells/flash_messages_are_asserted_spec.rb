@@ -83,7 +83,6 @@ RSpec.describe "Flash messages are asserted, not just redirects" do
     "workspaces.members.reactivate.reactivated",
     "workspaces.members.transfer_ownership.transferred",
     "workspaces.members.update.success",
-    "workspaces.not_found",
     "workspaces.projects.create.success",
     "workspaces.projects.invitations.create.success",
     "workspaces.projects.memberships.create.success",
