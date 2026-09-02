@@ -246,7 +246,7 @@ This is the primary seam for [Workspace-optional (`:none`)](/docs/developer/pres
 These constants are yours to change and are **not** merge-frozen: an upstream change to them will conflict on sync, which is the point — you decide.
 
 - `NotificationPreferences::ALLOWED_RETENTION_DAYS` — the retention choices offered (`app/lib/notification_preferences.rb`)
-- `NotificationPreferences::DEFAULT_RETENTION_DAYS` — what a user gets before choosing (matches the column default in `db/schema.rb`)
+- `NotificationPreferences::DEFAULT_RETENTION_DAYS` — the fallback for a row whose `retention_days` key is absent; the column default in `db/schema.rb` is what a new user actually gets — change both, or the column default wins
 - `NotificationPreferences::NEVER_CAP_DAYS` — what a pre-PR-5 "Never" choice reads as
 - `ActivityLogRetentionSweepJob::SECURITY_RETENTION_FLOOR` — how long credential-event audit rows are kept, regardless of the general window
 

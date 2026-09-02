@@ -380,7 +380,7 @@ If quiet hours block delivery at the digest time, the digest is held until the w
 
 Per-user retention enforcement. For every user:
 
-1. `days = ApplicationNotifier.preferences_for(user).retention_days` — the single owner of the missing-row fallback, so a user with no preferences row is swept at `NotificationPreferences::DEFAULT_RETENTION_DAYS` (90), and a pre-migration explicit null reads as `NEVER_CAP_DAYS` (365).
+1. `days = ApplicationNotifier.preferences_for(user).retention_days` — the single owner of the missing-row fallback, so a user with no preferences row is swept at the schema default carried by `UserPreferences.new` (90, matching `DEFAULT_RETENTION_DAYS`), and a pre-migration explicit null reads as `NEVER_CAP_DAYS` (365).
 2. Cutoff = `(days + 2).days.ago` (2 days of slack against timezone drift; it only ever keeps a row longer).
 3. Delete `Noticed::Notification` where `recipient_id = user.id` AND `read_at < cutoff` AND `read_at IS NOT NULL`.
 
