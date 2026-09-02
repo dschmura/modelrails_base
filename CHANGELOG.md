@@ -38,7 +38,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Added
 
-- Removing a member now notifies the people it concerns — the removed member and every workspace owner but the one who acted — with the in-app row reading "was removed" or "left" depending on who did it, and a second-person email to the removed member only (#933).
+- Removing a member now notifies the people it concerns — the removed member and every workspace owner but the one who acted — with the in-app row reading "was removed" or "left" depending on who did it, and a second-person email to the removed member only. It sits in the `account_access` category, so muting workspace chatter never mutes losing access (#933).
 - **Active-devices management** — `/settings/sessions` lists the devices where you're signed in (browser/OS, IP, last active), marks the current one, and lets you revoke any device or "sign out all other devices." Revoking is scoped to your own sessions.
 - **`bin/fork`** — one-command fork onboarding: remote surgery, identity rename, and tenancy preset in a single commit, with provenance recorded in `.fork.yml`. Run it once after cloning, before `bin/setup`. Teammates run only `bin/setup`, which now applies the fork's recorded preset and adds the upstream remote per clone. See [Forking](/docs/developer/forking).
 - Parallel test suite — `bin/parallel-rspec` runs RSpec across all cores with example-count and merged-coverage integrity gates; CI and the Lefthook pre-push gate use it, cutting CI's test job from ~14 to ~8.5 minutes (#485; further wins tracked in #486–#488).

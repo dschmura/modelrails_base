@@ -103,7 +103,7 @@ end
 | `WorkspaceRoleChangedNotifier` | `account_access` | `info` | Owner changes a member's role |
 | `WorkspaceCreatedNotifier` | `workspace_activity` | `success` | Someone creates a workspace through `Workspace.create_owned` |
 | `WorkspaceMemberAddedNotifier` | `workspace_activity` | `success` | New member joins, or a removed one is re-admitted (fans out to all owners except whoever performed the add) |
-| `WorkspaceMemberRemovedNotifier` | `workspace_activity` | `warning` | A membership is discarded — an owner removing someone, or a member leaving. In-app to the removed member and the owners (minus whoever acted); email to the removed member only |
+| `WorkspaceMemberRemovedNotifier` | `account_access` | `warning` | A membership is discarded — an owner removing someone, or a member leaving. In-app to the removed member and the owners (minus whoever acted); email to the removed member only |
 | `WorkspaceJoinedNotifier` | `workspace_activity` | `success` | Someone admits themselves through an open join link — the joiner's own orientation, since the actor rule drops them from `WorkspaceMemberAddedNotifier` |
 | `ProjectMembershipChangedNotifier` | `project_activity` | `info` | Project member role changed |
 | `WorkspaceCapacityApproachingNotifier` | `billing` | `warning` | Sweep job finds a workspace approaching its plan limit |

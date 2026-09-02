@@ -12,7 +12,14 @@
 # only second-person surface, and only the removed member ever gets one.
 # See /docs/developer/notifications (Notifier subclasses).
 class WorkspaceMemberRemovedNotifier < ApplicationNotifier
-  category :workspace_activity
+  # `account_access`, not `workspace_activity`, and the category is the whole
+  # reason: it is the user's opt-out axis, and workspace_activity is the
+  # chattiest one — every join, every workspace created. A member who had muted
+  # it would learn they lost access to a workspace through neither channel,
+  # which is the silence this notifier exists to end (#933). The nearest
+  # precedent, WorkspaceRoleChangedNotifier, sits in the same category for the
+  # same reason: it is a change to this person's access, not workspace news.
+  category :account_access
   severity :warning
   record_preloads :user, :workspace
 

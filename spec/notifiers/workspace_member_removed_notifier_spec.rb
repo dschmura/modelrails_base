@@ -48,6 +48,13 @@ RSpec.describe WorkspaceMemberRemovedNotifier, type: :notifier do
     clear_enqueued_jobs
   end
 
+  def mute(user, category)
+    prefs = create(:user_preferences, user: user)
+    np = prefs.notification_preferences.deep_dup
+    np["notification_types"][category] = false
+    prefs.update!(notification_preferences: np)
+  end
+
   def recipients_of_removal
     Noticed::Notification
       .where(type: "#{described_class.name}::Notification")
@@ -56,8 +63,13 @@ RSpec.describe WorkspaceMemberRemovedNotifier, type: :notifier do
   end
 
   describe "declaration" do
-    it "is workspace_activity at warning severity" do
-      expect(described_class.category_name).to eq("workspace_activity")
+    # #933 prescribes account_access, and the category is the user's opt-out
+    # axis: on workspace_activity — the chattiest category, carrying every join
+    # and workspace-created notice — a user who had muted it would learn they
+    # lost access to a workspace through neither channel. That is the silence
+    # this notifier exists to end.
+    it "is account_access at warning severity" do
+      expect(described_class.category_name).to eq("account_access")
       expect(described_class.severity_name).to eq(:warning)
     end
   end
@@ -140,16 +152,26 @@ RSpec.describe WorkspaceMemberRemovedNotifier, type: :notifier do
       expect(ActionMailer::Base.deliveries.flat_map(&:to) & owner_addresses).to be_empty
     end
 
-    it "respects the removed member's category opt-out" do
-      prefs = create(:user_preferences, user: removed_user)
-      np = prefs.notification_preferences.deep_dup
-      np["notification_types"]["workspace_activity"] = false
-      prefs.update!(notification_preferences: np)
+    it "respects the removed member's account_access opt-out" do
+      mute(removed_user, "account_access")
 
       expect {
         target_membership.deactivate!(removed_by: owner_a)
         drain_noticed_jobs
       }.not_to have_enqueued_mail(NotificationMailer, :workspace_member_removed)
+    end
+
+    # The whole point of the category choice: losing access is not workspace
+    # chatter, and muting the chatter must not mute this.
+    it "still reaches a member who has muted workspace_activity" do
+      mute(removed_user, "workspace_activity")
+
+      expect {
+        target_membership.deactivate!(removed_by: owner_a)
+        drain_noticed_jobs
+      }.to have_enqueued_mail(NotificationMailer, :workspace_member_removed).once
+
+      expect(recipients_of_removal).to include(removed_user)
     end
   end
 
