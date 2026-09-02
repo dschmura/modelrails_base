@@ -170,6 +170,13 @@ class Membership < ApplicationRecord
   end
 
   def deactivate!(removed_by: nil)
+    # A replayed DELETE (stale tab, back button, scripted retry) reaches
+    # MembersController#destroy with an already-removed membership — that action
+    # resolves through the UNSCOPED association on purpose, so the members page
+    # can show removed people. Without this, discard! re-stamped discarded_at
+    # and the removal notified and audited a second time.
+    return if discarded?
+
     self.removed_by = removed_by
     transaction do
       workspace.lock!
@@ -415,8 +422,11 @@ class Membership < ApplicationRecord
     saved_change_to_discarded_at? && discarded_at.nil?
   end
 
-  # Kept → discarded, the other direction of the same column change.
+  # Kept → discarded, the other direction of the same column change. The
+  # before-value is part of the question: a re-stamp on an already-removed
+  # membership changes the column without being a removal, and deactivate!'s
+  # own guard is not the only way to reach discard!.
   def just_deactivated?
-    saved_change_to_discarded_at? && discarded_at.present?
+    saved_change_to_discarded_at? && discarded_at.present? && discarded_at_before_last_save.nil?
   end
 end

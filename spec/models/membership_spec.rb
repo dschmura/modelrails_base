@@ -167,6 +167,70 @@ RSpec.describe Membership, type: :model do
     end
   end
 
+  # A replayed DELETE — a stale tab, the back button, a scripted retry — reaches
+  # MembersController#destroy with an already-discarded membership, because that
+  # action resolves through the UNSCOPED association on purpose (the members
+  # page shows removed people). Before this, Discardable#discard! moved
+  # discarded_at t1 -> t2 unconditionally, so the removed member got a second
+  # "was removed" row and a second email, and the audit trail grew a second
+  # removal that never happened. The one-minute idempotency bucket absorbs a
+  # rapid double-submit and nothing else.
+  describe "deactivation idempotency" do
+    let(:workspace) { create(:workspace) }
+    let(:owner) { create(:user) }
+    let(:membership) { create(:membership, workspace: workspace) }
+
+    before do
+      create(:membership, :owner, user: owner, workspace: workspace)
+      membership
+    end
+
+    def removal_events
+      Noticed::Event.where(type: "WorkspaceMemberRemovedNotifier")
+    end
+
+    def removal_audit_rows
+      ActivityLog.where(trackable: membership, action: "membership.updated")
+    end
+
+    it "records one removal and one notification however many times it is called" do
+      membership.deactivate!(removed_by: owner)
+      # Past the notifier's dedup bucket, so a second dispatch would be a real
+      # second event rather than a swallowed duplicate.
+      travel_to(2.minutes.from_now) { membership.deactivate!(removed_by: owner) }
+
+      expect(removal_events.count).to eq(1)
+      expect(removal_audit_rows.count).to eq(1)
+    end
+
+    it "leaves the removal timestamp where the first call put it" do
+      membership.deactivate!(removed_by: owner)
+      first_stamp = membership.reload.discarded_at
+
+      travel_to(2.minutes.from_now) { membership.deactivate!(removed_by: owner) }
+
+      expect(membership.reload.discarded_at).to eq(first_stamp)
+    end
+
+    it "returns from the second call without writing an audit row" do
+      membership.deactivate!(removed_by: owner)
+
+      expect {
+        travel_to(2.minutes.from_now) { membership.deactivate!(removed_by: owner) }
+      }.not_to change { ActivityLog.count }
+    end
+
+    # Belt to the return's braces: any other path that re-stamps discarded_at on
+    # an already-removed membership must not read as a fresh removal either.
+    it "does not treat a re-discard as a new removal" do
+      membership.deactivate!(removed_by: owner)
+
+      expect {
+        travel_to(2.minutes.from_now) { membership.discard! }
+      }.not_to change { removal_events.count }
+    end
+  end
+
   describe "reactivation" do
     let(:membership) { create(:membership) }
 
