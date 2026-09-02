@@ -68,10 +68,14 @@ class WorkspaceMemberRemovedNotifier < ApplicationNotifier
       end
     end
 
+    # The index, not the workspace. The workspace is exactly where the removed
+    # member can no longer go — WorkspaceScoped answers that link with a
+    # "not found" alert — and it is the one destination that stays true for
+    # every recipient of this event. Reading nothing off the record also means
+    # the deleted-record contract holds here by construction, with no rescue to
+    # keep in step: there is nothing a vanished workspace can break.
     def url
-      render_safe_or_placeholder do
-        Rails.application.routes.url_helpers.workspace_path(present_or_gone!(event.record.workspace))
-      end
+      Rails.application.routes.url_helpers.workspaces_path
     end
 
     private

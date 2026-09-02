@@ -243,13 +243,38 @@ RSpec.describe WorkspaceMemberRemovedNotifier, type: :notifier do
   end
 
   describe "#url" do
-    it "renders a placeholder rather than raising when the workspace is gone" do
+    def notification_for(user)
+      Noticed::Notification
+        .where(type: "#{described_class.name}::Notification", recipient: user).last
+    end
+
+    # The workspace is precisely where the removed member can no longer go —
+    # following that link lands them on WorkspaceScoped's own gate and a
+    # "not found" alert. The index is true for every recipient of this event.
+    it "points at the workspace index, not at the workspace" do
       target_membership.deactivate!(removed_by: owner_a)
-      notification = Noticed::Notification
-        .where(type: "#{described_class.name}::Notification", recipient: removed_user).last
+
+      expect(notification_for(removed_user).url)
+        .to eq(Rails.application.routes.url_helpers.workspaces_path)
+    end
+
+    it "gives the remaining owners the same destination" do
+      target_membership.deactivate!(removed_by: owner_a)
+
+      expect(notification_for(owner_b).url)
+        .to eq(Rails.application.routes.url_helpers.workspaces_path)
+    end
+
+    # The deleted-record contract, still held — now by construction rather than
+    # by a rescue: the body reads nothing off the record, so there is nothing
+    # for a vanished workspace to break.
+    it "still resolves when the workspace is gone" do
+      target_membership.deactivate!(removed_by: owner_a)
+      notification = notification_for(removed_user)
       allow(notification.event.record).to receive(:workspace).and_return(nil)
 
       expect { notification.url }.not_to raise_error
+      expect(notification.url).to eq(Rails.application.routes.url_helpers.workspaces_path)
     end
   end
 end

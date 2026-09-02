@@ -170,7 +170,13 @@ A membership created with **neither** marker is not neutral. The actor resolves 
 
 ### Email gating and the `:digest` sentinel
 
-An email is one of three fates: deliver now, drop, or wait for `DigestMailerJob` to pick it up. Email `before_enqueue` guards call `deliver_email_now?`, which is strictly "send the instant email now" — it answers `false` both for an opt-out/DND drop and for the digest deferral, so the digest frequency choice can never be defeated by an accidental truthiness check. (`recipient_pref(:email)` still reports the tri-state — `true` / `false` / `:digest` — as an introspection surface.)
+An email is one of three fates: deliver now, drop, or wait for `DigestMailerJob` to pick it up. The gate is `deliver_email_now_for?(user)`, which is strictly "send the instant email to this user now" — it answers `false` both for an opt-out/DND drop and for the digest deferral, so the digest frequency choice can never be defeated by an accidental truthiness check. (`recipient_pref(:email)` still reports the tri-state — `true` / `false` / `:digest` — as an introspection surface.)
+
+`deliver_email_now?` is the one-argument shim for the common case: it is `deliver_email_now_for?(recipient)` and nothing else. Reach for it whenever the recipient is the user being asked about.
+
+Prefer the explicit form in a `before_enqueue` that has already narrowed the fan-out to one known user — typically with `throw(:abort) unless recipient_id == event.record.user_id`. At that point the surviving recipient *is* `event.record.user`, which the guard has already loaded, so asking about it directly is equivalent. It is not a query saving: an aborting guard loads `recipient` at most once either way, and both member notifiers' `EventJob` measures flat at four queries with two owners and with eight. What it avoids is Bullet — Noticed's `EventJob` iterates `event.notifications.each`, and a lazy `recipient` load off a member of that collection is a shape Bullet's N+1 heuristic raises on whether or not the load repeats.
+
+A notifier whose email leg has **no** narrowing guard is a different case: there the gate genuinely runs per recipient, loads each one and their preferences, and grows with the fan-out. `deliver_email_now_for?` cannot help — each recipient's own preferences are exactly what that gate needs.
 
 ### `render_safe_or_placeholder` — the deleted-record contract
 
