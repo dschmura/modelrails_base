@@ -215,7 +215,7 @@ ignore_unused:
   # key's existence, so a stale entry here still fails the suite.
   - passkeys.errors.*
   # activity_logs/_activity_log.html.erb builds the key from the record:
-  #   t("activity.actions.#{activity_log.action}", default: action.humanize)
+  #   t("activity.actions.#{activity_log.display_action}", default: action.humanize)
   # The `default:` is what makes this dangerous rather than merely invisible —
   # delete these and every feed entry silently degrades to a humanized column
   # value with nothing raising and the suite still green (#522).

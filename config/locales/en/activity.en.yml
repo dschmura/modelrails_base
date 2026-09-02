@@ -4,13 +4,27 @@ en:
     empty: "No activity yet."
     system: "System"
     ago: "ago"
+    # Nested, never flat and dotted: I18n splits a requested key on "." and
+    # walks the hash segment by segment, so a literal "membership.created" key
+    # is unreachable and the renderer's `default:` silently humanizes instead
+    # (#911). spec/i18n_spec.rb fails on a dot inside any key here.
     actions:
-      workspace.updated: "updated workspace settings"
-      membership.created: "joined the workspace"
-      membership.updated: "had their role changed"
-      invitation.created: "sent an invitation"
-      invitation.updated: "invitation was updated"
-      project.created: "created a project"
-      project.updated: "updated a project"
-      resource.created: "added a resource"
-      resource.updated: "updated a resource"
+      workspace:
+        updated: "updated workspace settings"
+      membership:
+        created: "joined the workspace"
+        updated: "had their role changed"
+        # A deactivation and a reactivation are both recorded as
+        # `membership.updated`; ActivityLog#display_action picks between these
+        # three from the row's own `changes` metadata (#932).
+        deactivated: "was deactivated"
+        reactivated: "was reactivated"
+      invitation:
+        created: "sent an invitation"
+        updated: "invitation was updated"
+      project:
+        created: "created a project"
+        updated: "updated a project"
+      resource:
+        created: "added a resource"
+        updated: "updated a resource"

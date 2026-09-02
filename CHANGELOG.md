@@ -124,6 +124,8 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Fixed
 
+- The workspace activity feed renders its written English again — every key under `activity.actions` was flat and dotted, which I18n's nested lookup never finds, so each row silently degraded to a humanized column value (#911).
+- A membership removal reads as "was deactivated" and a re-admission as "was reactivated" instead of both claiming "had their role changed"; `ActivityLog#display_action` picks the sentence from the row's own changes, and a row carrying both a role and a status change reports the status (#932).
 - A removed member who still holds a workspace URL now lands on the workspace index with a not-found notice instead of an endless redirect: `User#workspaces` runs through kept memberships only, and the not-authorized handler refuses to answer a refusal at the workspace's own path with that same path (#931).
 - `normalizes` is the one home of email normalization: `Invitation`, `MagicLinkToken`, and `Authentication` now normalize `email` the way `User` does (NFC, strip, downcase, punycoded domain), and the eight hand-rolled `downcase`/`strip` copies in controllers and models are gone. An existing member whose address has an internationalized domain could be re-invited — the bulk-invite dedupe compared a bare `downcase` against punycoded storage.
 - Calendar arrow keys cross the month boundary instead of dead-ending at the grid's edge — a target past the 42-cell grid pages to the adjacent month and lands on that date (APG date-grid). The date-picker keyboard spec no longer depends on the day it runs; it failed on the last days of every month.

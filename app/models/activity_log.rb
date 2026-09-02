@@ -11,6 +11,24 @@ class ActivityLog < ApplicationRecord
   # sweep job (#438) has its explicit carve-out.
   def readonly? = persisted?
 
+  # The locale key the feed renders this row with — usually just `action`.
+  # A membership deactivation and a reactivation both arrive as
+  # `membership.updated` (Discardable#discard! is an ordinary update), so the
+  # one action carried three different sentences and the feed said "had their
+  # role changed" for a removal (#932). The row's own `changes` metadata is the
+  # only thing that tells them apart. A status change outranks a role change:
+  # `reactivate!` can carry both, and losing or regaining access is the more
+  # consequential half. Unknown shapes fall through to `action`, which the
+  # partial's `default:` humanizes — true, if plain.
+  def display_action
+    return action unless action == "membership.updated"
+
+    transition = metadata.to_h.with_indifferent_access.dig(:changes, :discarded_at)
+    return action if transition.blank?
+
+    transition.last.present? ? "membership.deactivated" : "membership.reactivated"
+  end
+
   enum :visibility, { workspace: "workspace", admin: "admin", personal: "personal" }, default: "workspace"
 
   # The security tier: the ONLY membership test for the audit retention floor.
