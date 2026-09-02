@@ -95,6 +95,19 @@ RSpec.describe "Account Notifications", type: :request do
         expect(response.body).to include(I18n.t("notifications.index.heading"))
       end
 
+      # The missing-row default can't be proven through a system spec: the
+      # timezone beacon (layout-level Stimulus, JS-only) creates a
+      # preferences row on every real-browser sign-in before any assertion
+      # can run. This request spec's sign_in helper never touches JS, so the
+      # row genuinely stays absent — the one place this contract holds.
+      it "states the default retention for a user with no preferences row" do
+        expect(user.preferences).to be_nil
+
+        get settings_notifications_path
+
+        expect(response.body).to include("we remove it 90 days later")
+      end
+
       # Regression (Bullet unused-eager-loading). The index eager-loads
       # `event: :record` because ~10 of the 12 notifier `#message` impls read it
       # (workspace/invitation/password). SignInFromNewDevice's `#message` is

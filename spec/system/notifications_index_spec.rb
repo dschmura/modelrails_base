@@ -153,9 +153,7 @@ RSpec.describe "Notifications index page", type: :system do
         expect(page).to have_text("Unread notifications stay until you read them.")
       end
 
-      it "states the default for a user who never opened preferences" do
-        expect(user.preferences).to be_nil
-
+      it "states the default for a user with untouched preferences" do
         visit settings_notifications_path
 
         expect(page).to have_text("we remove it 90 days later")
