@@ -167,8 +167,7 @@ class NotificationPreferences
   #
   # `changes` is the parameter shape posted from the preferences form:
   # nested string-keyed hash with values that may need type coercion
-  # (the form submits strings; the JSONB column wants booleans / ints /
-  # nil for "never" retention).
+  # (the form submits strings; the JSONB column wants booleans / ints).
   #
   # Raises NotificationPreferences::InvalidChange on:
   #   - retention_days not in ALLOWED_RETENTION_DAYS

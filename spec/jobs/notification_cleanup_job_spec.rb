@@ -95,22 +95,6 @@ RSpec.describe NotificationCleanupJob, type: :job do
       end
     end
 
-    context "user with retention_days = nil (Never)" do
-      before do
-        prefs = user.preferences.notification_preferences
-        user.preferences.update!(notification_preferences: prefs.merge("retention_days" => nil))
-      end
-
-      it "does not delete any read notifications regardless of age" do
-        ancient = deliver_workspace_invitation_at(2.years.ago)
-        ancient.update!(read_at: 2.years.ago)
-
-        described_class.perform_now
-
-        expect(Noticed::Notification.where(id: ancient.id)).to exist
-      end
-    end
-
     context "user without preferences row" do
       it "does not raise" do
         unconfigured = create(:user)
