@@ -113,6 +113,11 @@ en:
       message: "You joined %{workspace}."
     workspace_member_added:
       message: "%{added_user_name} joined %{workspace}"
+    # Third-person event-log voice, and it branches on the EVENT rather than on
+    # who is reading: the removed member sees the same sentence the owners do.
+    workspace_member_removed:
+      removed: "%{user_name} was removed from %{workspace}"
+      left: "%{user_name} left %{workspace}"
     workspace_capacity_approaching:
       message: "%{workspace} is approaching its %{metric} limit (%{current} of %{limit})"
     project_membership_changed:
@@ -189,6 +194,14 @@ en:
       greeting: "Hi %{name},"
       body: "You've been added to %{workspace} as %{new_role}."
       action: "Open workspace"
+    # The one second-person surface of this event, and the only one the removed
+    # member alone receives. No action link: the workspace is exactly where
+    # they can no longer go.
+    workspace_member_removed:
+      subject: "You've been removed from %{workspace}"
+      heading: "You've been removed from %{workspace}"
+      greeting: "Hi %{name},"
+      body: "You no longer have access to %{workspace}."
     workspace_capacity_approaching:
       subject: "%{workspace} is approaching its %{metric} limit"
       heading: "%{workspace} is approaching its %{metric} limit"

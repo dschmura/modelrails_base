@@ -154,7 +154,19 @@ class ApplicationNotifier < Noticed::Event
     # all abort.
     # See /docs/developer/notifications (Email gating and the `:digest` sentinel).
     def deliver_email_now?
-      preferences_object.deliver_now?(category: event.class.category_name, channel: :email)
+      deliver_email_now_for?(recipient)
+    end
+
+    # The same gate asked about a user the caller already holds. Noticed's
+    # EventJob iterates `event.notifications.each`, so reading `recipient` in a
+    # before_enqueue lazy-loads it off a member of that collection and Bullet
+    # reports an N+1. A hook that has just established
+    # `recipient_id == event.record.user_id` can hand the record's own user
+    # here instead — one load for the whole fan-out, and the gate itself stays
+    # in one place.
+    def deliver_email_now_for?(user)
+      ApplicationNotifier.preferences_for(user)
+        .deliver_now?(category: event.class.category_name, channel: :email)
     end
 
     def recipient_locale

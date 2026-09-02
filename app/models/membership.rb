@@ -32,6 +32,13 @@ class Membership < ApplicationRecord
   #                 sibling path (User#create_personal_workspace) raises no
   #                 workspace notification either.
   attr_accessor :self_join
+
+  # Non-persisted actor for the removal fan-out (#933): who removed this
+  # member, which is also how "was removed" and "left" are told apart. Kept
+  # off `granted_by` on purpose — that answers who granted the membership, and
+  # a removal grants nothing. Reaches the model as an argument to
+  # #deactivate!; the model never reads Current.
+  attr_accessor :removed_by
   belongs_to :role
 
   # The closed grade set for self_join. A grade outside it is a typo, and the
@@ -85,6 +92,13 @@ class Membership < ApplicationRecord
   # registering :notify_member_added here would REPLACE the create callback
   # above instead of adding to it.
   after_update_commit :notify_member_readmitted, if: [ :just_reactivated?, :workspace_has_other_owners? ]
+
+  # The mirror of the two callbacks above: removal was the one membership
+  # transition nobody heard about. Hung on the discard rather than on the
+  # controller so any future caller of #deactivate! is covered by construction.
+  # Not gated on workspace_has_other_owners? — unlike an addition, a removal is
+  # always news to the person removed, even in a workspace with one owner.
+  after_update_commit :notify_member_removed, if: :just_deactivated?
 
   # The self-joiner's own orientation. They are the actor, so the callbacks
   # above deliberately drop them from "someone joined" — this is what still
@@ -155,7 +169,8 @@ class Membership < ApplicationRecord
     end
   end
 
-  def deactivate!
+  def deactivate!(removed_by: nil)
+    self.removed_by = removed_by
     transaction do
       workspace.lock!
       validate_not_last_owner!
@@ -350,6 +365,23 @@ class Membership < ApplicationRecord
 
   alias_method :notify_member_readmitted, :notify_member_added
 
+  # `deliver(nil)` and the actor-as-param for the same reasons as
+  # notify_member_added above. Its own filter name, too: the :commit chain
+  # dedups by name, so a shared one would replace a sibling rather than join it.
+  #
+  # Rescued, unlike its siblings: this runs after the discard has COMMITTED, so
+  # a raising notifier cannot undo the removal — it can only turn a completed
+  # removal into a 500 for the person who performed it. Same best-effort
+  # posture, and same swallow-log-report shape, as Trackable#create_activity
+  # and NotificationBroadcaster#safe_broadcast.
+  def notify_member_removed
+    return if user.blank? || workspace.blank?
+    WorkspaceMemberRemovedNotifier.with(record: self, actor: removed_by).deliver(nil)
+  rescue StandardError => e
+    Rails.logger.warn("Removal notification failed for Membership##{id}: #{e.message}")
+    Rails.error.report(e, handled: true, context: { trackable: "Membership##{id}", action: "member_removed" })
+  end
+
   # `deliver(nil)` again: WorkspaceJoinedNotifier declares a `recipients` block
   # so the in-app preference gate runs. An explicit recipient would skip it.
   def notify_self_joined
@@ -381,5 +413,10 @@ class Membership < ApplicationRecord
   # direction is a removal.
   def just_reactivated?
     saved_change_to_discarded_at? && discarded_at.nil?
+  end
+
+  # Kept → discarded, the other direction of the same column change.
+  def just_deactivated?
+    saved_change_to_discarded_at? && discarded_at.present?
   end
 end

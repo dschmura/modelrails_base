@@ -57,6 +57,22 @@ class NotificationMailer < ApplicationMailer
     )
   end
 
+  # The removal notice. Only the removed member is ever sent one — the
+  # notifier's before_enqueue drops every other recipient — so this is the one
+  # place the event speaks in the second person.
+  def workspace_member_removed
+    @notification = params[:notification]
+    @recipient = params[:recipient]
+    @membership = params[:record]
+    @workspace = @membership.workspace
+
+    mail(
+      to: @recipient.email_address,
+      subject: t("notification_mailer.workspace_member_removed.subject",
+                 workspace: @workspace.name)
+    )
+  end
+
   # Billing alert: a workspace has crossed the 80%-of-capacity threshold for a
   # given metric. notification.params carries `:metric`, `:current`, `:limit`
   # from WorkspaceCapacityApproachingNotifier.with(...).

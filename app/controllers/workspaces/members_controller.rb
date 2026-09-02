@@ -59,7 +59,7 @@ module Workspaces
 
       leaving = @membership.user == Current.user
 
-      @membership.deactivate!
+      @membership.deactivate!(removed_by: Current.user)
 
       if leaving
         redirect_to workspaces_path,

@@ -551,6 +551,50 @@ RSpec.describe Membership, type: :model do
       end
     end
 
+    # #933: removal was the one membership transition that notified nobody.
+    # Covered here rather than in the notifier spec because these pin the
+    # CALLBACK wiring — the actor arriving as an argument, the direction of the
+    # discarded_at change, and the write surviving a broken notifier.
+    describe "member removed (after_update_commit)" do
+      let!(:membership) { create(:membership, user: member, workspace: workspace) }
+
+      it "hands the notifier the actor the caller named, without reading Current" do
+        membership.deactivate!(removed_by: owner)
+
+        event = Noticed::Event.where(type: "WorkspaceMemberRemovedNotifier").last
+        expect(event).to be_present
+        expect(event.record).to eq(membership)
+        expect(event.reload.params[:actor]).to eq(owner)
+      end
+
+      it "leaves the actor nil when the caller names none" do
+        membership.deactivate!
+
+        event = Noticed::Event.where(type: "WorkspaceMemberRemovedNotifier").last
+        expect(event.reload.params[:actor]).to be_nil
+      end
+
+      it "does not reuse an earlier actor when a later removal names none" do
+        membership.deactivate!(removed_by: owner)
+        membership.reactivate!(granted_by: owner)
+        # Past the one-minute idempotency bucket, so the second removal is a
+        # new event rather than a dedup drop of the first.
+        travel_to(2.minutes.from_now) { membership.deactivate! }
+
+        event = Noticed::Event.where(type: "WorkspaceMemberRemovedNotifier").order(:created_at).last
+        expect(event.reload.params[:actor]).to be_nil
+      end
+
+      # Same best-effort posture the rest of the notification wiring has: the
+      # business write is not hostage to the fan-out.
+      it "still removes the member when the notifier raises" do
+        allow(WorkspaceMemberRemovedNotifier).to receive(:with).and_raise(StandardError, "boom")
+
+        expect { membership.deactivate!(removed_by: owner) }.not_to raise_error
+        expect(membership.reload).to be_discarded
+      end
+    end
+
     # Re-admission is an undiscard, not a create, so after_create_commit never
     # fires — a previously removed member came silently back with zero
     # notifications. Covered here rather than in the notifier spec because the

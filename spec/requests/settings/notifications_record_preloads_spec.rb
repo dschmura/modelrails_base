@@ -21,6 +21,7 @@ RSpec.describe "Settings::Notifications record-preload guard", type: :request do
       WorkspaceCreatedNotifier
       WorkspaceJoinedNotifier
       WorkspaceMemberAddedNotifier
+      WorkspaceMemberRemovedNotifier
       WorkspaceRoleChangedNotifier
       ProjectMembershipChangedNotifier
       WorkspaceInvitationResentNotifier
@@ -76,6 +77,7 @@ RSpec.describe "Settings::Notifications record-preload guard", type: :request do
       workspace = create(:workspace)
       membership = create(:membership, user: user, workspace: workspace, role: owner_role)
       WorkspaceMemberAddedNotifier.with(record: membership).deliver(user)
+      WorkspaceMemberRemovedNotifier.with(record: membership, actor: nil).deliver(user)
       WorkspaceJoinedNotifier.with(record: membership).deliver(user)
       WorkspaceCapacityApproachingNotifier
         .with(record: workspace, metric: :members, current: 8, limit: 10).deliver(user)

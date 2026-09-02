@@ -592,6 +592,41 @@ RSpec.describe "Workspaces::Members destroy", type: :request do
       end
     end
 
+    # #933: the controller is the only caller of #deactivate!, so it is the
+    # only place the actor can be named. Without it every removal would read
+    # as a system action and the person who did it would be notified about it.
+    context "notifying the people a removal concerns" do
+      let!(:owner_membership) { create(:membership, :owner, user: user, workspace: workspace) }
+      let!(:other_membership) { create(:membership, user: other_user, workspace: workspace) }
+      let!(:bystander_owner) { create(:user) }
+      let!(:second_owner) { create(:membership, :owner, user: bystander_owner, workspace: workspace) }
+
+      def removal_message_for(recipient)
+        Noticed::Notification
+          .where(type: "WorkspaceMemberRemovedNotifier::Notification", recipient: recipient)
+          .last&.message
+      end
+
+      it "names the acting owner, so the removed member reads it as a removal" do
+        delete workspace_member_path(workspace, other_membership)
+
+        expect(removal_message_for(other_user))
+          .to eq("#{other_user.first_name} was removed from #{workspace.name}")
+        expect(removal_message_for(user)).to be_nil
+      end
+
+      # The other owner is the reader here on purpose: recipients are the removed
+      # member plus the owners, and a plain member hears nothing about someone
+      # else's removal.
+      it "reads as a departure when the member removes their own membership" do
+        delete workspace_member_path(workspace, owner_membership)
+
+        expect(removal_message_for(bystander_owner))
+          .to eq("#{user.first_name} left #{workspace.name}")
+        expect(removal_message_for(other_user)).to be_nil
+      end
+    end
+
     context "non-member tries to delete someone else's membership" do
       let!(:stranger) { user }  # the signed-in user has no membership in workspace
       let!(:target_membership) { create(:membership, user: other_user, workspace: workspace) }
