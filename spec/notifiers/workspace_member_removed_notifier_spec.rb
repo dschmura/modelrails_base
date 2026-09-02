@@ -175,6 +175,43 @@ RSpec.describe WorkspaceMemberRemovedNotifier, type: :notifier do
     end
   end
 
+  # The email gate's real property, measured rather than asserted, because the
+  # comments here previously asserted the opposite of what the queries do.
+  #
+  # What this pins: the gate asks about the RECORD's user, not about each
+  # recipient, so the delivery pipeline costs the same whether the workspace
+  # has two owners or eight. Rewriting it as a per-recipient
+  # `deliver_email_now?` takes it from 7 queries to 19 at eight owners — which
+  # is what WorkspaceCapacityApproachingNotifier, whose email leg has no
+  # narrowing guard, actually does today (5 at two owners, 17 at eight).
+  #
+  # What this does NOT pin: Bullet. Bullet raises on a lazy `recipient` load
+  # off a member of `event.notifications` whether or not the load repeats, so
+  # its verdict and the query count are separate questions.
+  describe "email gate cost" do
+    def queries_draining_removal_in(workspace_owner_count)
+      workspace = create(:workspace, max_members: 60)
+      workspace_owner_count.times do
+        create(:membership, user: create(:user), workspace: workspace, role: owner_role)
+      end
+      membership = create(:membership, user: create(:user), workspace: workspace, role: member_role)
+      membership.deactivate!(removed_by: nil)
+      event = Noticed::Event.where(type: described_class.name).order(:created_at).last
+
+      collected = []
+      subscription = ActiveSupport::Notifications.subscribe("sql.active_record") do |*, payload|
+        collected << payload[:sql] unless payload[:name].to_s.match?(/SCHEMA|TRANSACTION/)
+      end
+      Noticed::EventJob.perform_now(event)
+      ActiveSupport::Notifications.unsubscribe(subscription)
+      collected.size
+    end
+
+    it "does not grow with the number of owners in the fan-out" do
+      expect(queries_draining_removal_in(8)).to eq(queries_draining_removal_in(2))
+    end
+  end
+
   describe "dispatch trigger" do
     it "fires exactly one event on the discard" do
       expect {

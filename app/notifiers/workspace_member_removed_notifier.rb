@@ -38,9 +38,12 @@ class WorkspaceMemberRemovedNotifier < ApplicationNotifier
   # who removed themselves is the actor, so the block above already dropped
   # them and no notification exists for this to run against.
   #
-  # Both guards read columns and the already-loaded record, never `recipient`:
-  # Noticed's EventJob iterates `event.notifications.each`, so touching that
-  # association here is a per-row load Bullet reports as an N+1. The id
+  # Both guards read columns and the already-loaded record, never `recipient`.
+  # The first one narrows the fan-out to a single recipient, so the gate below
+  # runs once however many owners there are — see the fan-out invariant in this
+  # notifier's spec. Reading `recipient` instead would cost the same one load,
+  # but Noticed's EventJob iterates `event.notifications.each`, and a lazy load
+  # off a member of that collection is a shape Bullet raises on. The id
   # comparison has already established that the surviving recipient IS
   # `record.user`, which is what makes the second guard equivalent.
   deliver_by :email do |config|

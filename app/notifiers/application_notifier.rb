@@ -157,13 +157,22 @@ class ApplicationNotifier < Noticed::Event
       deliver_email_now_for?(recipient)
     end
 
-    # The same gate asked about a user the caller already holds. Noticed's
-    # EventJob iterates `event.notifications.each`, so reading `recipient` in a
-    # before_enqueue lazy-loads it off a member of that collection and Bullet
-    # reports an N+1. A hook that has just established
-    # `recipient_id == event.record.user_id` can hand the record's own user
-    # here instead — one load for the whole fan-out, and the gate itself stays
-    # in one place.
+    # The same gate asked about a user the caller already holds.
+    #
+    # Not a performance fix, despite appearances: a hook that aborts every
+    # recipient but one loads `recipient` once either way, and the EventJob
+    # measures flat at 4 queries with 2 owners and with 8. What it avoids is
+    # Bullet. Noticed's EventJob iterates `event.notifications.each`, so
+    # reading `recipient` in a before_enqueue is a lazy load off a member of
+    # that collection — which Bullet's heuristic cannot tell from a real N+1,
+    # and raises on. A hook that has just established
+    # `recipient_id == event.record.user_id` hands the record's own user here
+    # instead, keeping the gate in one place.
+    #
+    # A notifier whose email leg has NO such narrowing guard is a different
+    # story: there `deliver_email_now?` really does load per recipient, and
+    # this method cannot help, because each recipient's own preferences are
+    # what the gate needs.
     def deliver_email_now_for?(user)
       ApplicationNotifier.preferences_for(user)
         .deliver_now?(category: event.class.category_name, channel: :email)
