@@ -76,6 +76,10 @@ class MagicLinkCallbacksController < ApplicationController
 
     if success && token_consumed
       start_new_session_for(@user)
+      # Here, not inside commit_signup_atomically: a concurrently-consumed
+      # token rolls the signup back yet still returns true, and never from a
+      # User callback (see WelcomeNotifier).
+      WelcomeNotifier.with(record: @user).deliver(nil)
       redirect_to after_authentication_url, notice: t(".registered")
     elsif @user.errors.any?
       # User failed model validation — re-render the registration form.

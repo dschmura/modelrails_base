@@ -180,4 +180,21 @@ RSpec.describe WorkspaceInvitationExpiringSoonNotifier, type: :notifier do
       end
     end
   end
+
+  describe "#url" do
+    it "links to the accept-invitation path with the invitation token" do
+      described_class.with(record: invitation).deliver(invitee)
+      notification = invitee.notifications.last
+      expect(notification.url).to eq(
+        Rails.application.routes.url_helpers.accept_invitation_path(token: invitation.token)
+      )
+    end
+
+    it "returns the placeholder copy when the invitation has been deleted" do
+      described_class.with(record: invitation).deliver(invitee)
+      invitation.destroy
+      notification = invitee.notifications.last
+      expect(notification.url).to eq(I18n.t("notifications.placeholder"))
+    end
+  end
 end

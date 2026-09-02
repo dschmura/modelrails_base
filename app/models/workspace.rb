@@ -41,6 +41,19 @@ class Workspace < ApplicationRecord
 
   has_many :join_links, class_name: "WorkspaceJoinLink", dependent: :destroy
 
+  # Non-persisted creator provenance, set by `.create_owned` — the ONE path a
+  # person creates a workspace through. Gating the notification on it (rather
+  # than on every INSERT) keeps seeds, fixtures and the signup-time personal
+  # workspace silent; a fork adding a creation site opts in by setting it.
+  attr_accessor :created_by
+
+  # after_create_COMMIT, not after_create: `User#create_personal_workspace`
+  # runs inside the registration transaction, and enqueueing into Solid
+  # Queue's separate SQLite file under the primary write lock is the
+  # cross-database lock-ordering hazard User#notify_password_changed already
+  # avoids the same way.
+  after_create_commit :notify_workspace_created, if: -> { created_by.present? }
+
   validates :name, presence: true, length: { maximum: 255 }
   validates :logo,
     content_type: IMAGE_CONTENT_TYPES,
@@ -212,21 +225,40 @@ class Workspace < ApplicationRecord
   # are safe; nested calls join the surrounding transaction.
   # granted_by: audit provenance only (G) — the inviter, when an invitation
   # acceptance is what created the membership. Never affects admission logic.
+  # self_join: the open-link paths, where nobody granted anything — the joining
+  # user is the actor. Deliberately NOT expressed as `granted_by: user`: that
+  # would write the joiner into the membership.created audit row as their own
+  # granter, making a self-join read exactly like an admin grant. Separate flag,
+  # so "who granted this" and "who acted" can't be conflated.
   # on_existing: policy for a kept member showing up again. :raise preserves
   # the duplicate-accept error (reconciling the role first under :shared);
   # :adopt returns the membership untouched — for callers like project-invite
   # acceptance whose real work lies past workspace admission. Returns the
   # membership on every non-raising path.
-  def admit(user, role:, granted_by: nil, on_existing: :raise)
+  def admit(user, role:, granted_by: nil, self_join: false, on_existing: :raise)
+    Membership.reject_conflicting_provenance!(granted_by: granted_by, self_join: self_join)
     transaction do
       lock!
       raise NotAdmittableError unless admittable?
       existing = memberships.find_by(user: user)
       if existing&.discarded?
-        existing.undiscard!
+        existing.reactivate!(granted_by: granted_by, self_join: self_join)
         existing
       elsif existing
         raise AlreadyMember unless on_existing == :adopt || TenancyConfig.shared?
+        # EVERY in-memory instance of the row that saves inside this transaction
+        # must carry the provenance markers, because Rails — not us — picks
+        # which instance runs the commit callbacks: with
+        # run_commit_callbacks_on_first_saved_instances_in_transaction false it
+        # is the LAST one saved. `existing` is a second instance of a row the
+        # same transaction may have just INSERTed (the :shared placeholder from
+        # User#onboard_workspace, reconciled here by Invitation#accept! — both
+        # inside Signupable#commit_signup_atomically), so leaving it markerless
+        # silently dropped the actor rule: the granter got told about their own
+        # grant, and a self-joiner got told they had joined.
+        # Already validated at the top of this method — not re-checked here.
+        existing.granted_by = granted_by
+        existing.self_join = self_join
         if on_existing != :adopt && existing.role_id != role.id
           # Under :shared, the User#onboard_workspace callback pre-creates a
           # placeholder Member membership. Reconcile: adopt the new role
@@ -237,7 +269,7 @@ class Workspace < ApplicationRecord
         existing
       else
         raise AtCapacity if at_capacity?
-        memberships.create!(user: user, role: role, granted_by: granted_by)
+        memberships.create!(user: user, role: role, granted_by: granted_by, self_join: self_join)
       end
     end
   end
@@ -272,6 +304,7 @@ class Workspace < ApplicationRecord
   # Returns the possibly-invalid workspace — form callers render its errors.
   def self.create_owned(attrs, owner:)
     workspace = new(attrs)
+    workspace.created_by = owner
     transaction do
       if workspace.save
         workspace.memberships.create!(user: owner, role: Role.system_default!("owner"))
@@ -294,6 +327,10 @@ class Workspace < ApplicationRecord
   end
 
   private
+
+  def notify_workspace_created
+    WorkspaceCreatedNotifier.with(record: self, creator: created_by).deliver(nil)
+  end
 
   def personal_workspaces_are_invite_only
     return unless personal? && !invite?

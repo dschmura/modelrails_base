@@ -16,10 +16,44 @@ class Membership < ApplicationRecord
   # Non-persisted grant provenance for the creation audit entry (G): set by
   # Workspace#admit when an invitation acceptance created this membership.
   attr_accessor :granted_by
+
+  # Non-persisted marker for the self-join paths (Workspace#admit's
+  # `self_join:`, and User#join_shared_workspace). Kept apart from `granted_by`
+  # on purpose: nobody granted a self-join, so it must not reach the audit row's
+  # grant provenance — it only answers "who acted", and on those paths that is
+  # always `user`. Supplying both is refused — see .reject_conflicting_provenance!.
+  #
+  # Two grades, because "who acted" and "does the joiner need telling where they
+  # landed" are separate questions:
+  #   true        — a join the user chose (an open link). Earns the
+  #                 WorkspaceJoinedNotifier orientation notice.
+  #   :onboarding — auto-provisioned at signup under the :shared preset. Silent:
+  #                 WelcomeNotifier lands in the same second, and the :personal
+  #                 sibling path (User#create_personal_workspace) raises no
+  #                 workspace notification either.
+  attr_accessor :self_join
   belongs_to :role
+
+  # The closed grade set for self_join. A grade outside it is a typo, and the
+  # validation below is what makes it fail loud instead of silently reading as
+  # "a chosen self-join" (see chosen_self_join?).
+  SELF_JOIN_GRADES = [ nil, false, true, :onboarding ].freeze
+
+  CONFLICTING_PROVENANCE_MESSAGE =
+    "granted_by and self_join are mutually exclusive: a self-join has no granter"
 
   validates :user_id, uniqueness: { scope: :workspace_id }
   validate :workspace_has_member_capacity, on: :create
+
+  # The provenance rules as a MODEL invariant, not just an entry-point guard.
+  # .reject_conflicting_provenance! only sees callers that go through
+  # Workspace#admit or #reactivate!; User#join_shared_workspace creates a
+  # membership directly, and the actor-stance code smell is satisfied by EITHER
+  # marker, so a site naming both looks declared and reaches the row. Both
+  # layers are kept on purpose: the entry points raise ArgumentError at the
+  # caller's own line before any DB work, this catches every other path.
+  # Programmer-facing strings — no form can produce either message.
+  validate :provenance_markers_are_coherent
 
   # Capacity race-safety net: the pre-flight validator's workspace.lock! is
   # silently a no-op across SQLite connections, so this post-INSERT COUNT is the
@@ -40,6 +74,27 @@ class Membership < ApplicationRecord
   # first owner-membership) has nobody for whom the "new member joined" event
   # is actionable; firing there would produce a self-notification at best.
   after_create_commit :notify_member_added, if: :workspace_has_other_owners?
+
+  # Re-admission (Workspace#admit's undiscard branch, and #reactivate! from the
+  # members page) is an UPDATE, so the create callback above never saw it and a
+  # removed member came silently back — no in-app row, no welcome email. Hung
+  # on the undiscard rather than on either caller so both paths, and any future
+  # one, are covered by construction.
+  #
+  # Its own method name is load-bearing: the :commit chain dedups by filter, so
+  # registering :notify_member_added here would REPLACE the create callback
+  # above instead of adding to it.
+  after_update_commit :notify_member_readmitted, if: [ :just_reactivated?, :workspace_has_other_owners? ]
+
+  # The self-joiner's own orientation. They are the actor, so the callbacks
+  # above deliberately drop them from "someone joined" — this is what still
+  # tells them where they landed. Both shapes of a CHOSEN self-join are covered:
+  # a fresh membership and a removed member coming back through the same link.
+  # The :onboarding grade is deliberately silent (see self_join). Two distinct
+  # filter names for one body, for the :commit-chain dedup reason spelled out
+  # above notify_member_readmitted.
+  after_create_commit :notify_self_joined, if: :chosen_self_join?
+  after_update_commit :notify_self_rejoined, if: [ :just_reactivated?, :chosen_self_join? ]
 
   scope :filter_by_role, ->(role_slug) {
     return all if role_slug.blank?
@@ -65,6 +120,17 @@ class Membership < ApplicationRecord
       .filter_by_role(role)
       .filter_by_status(status)
   }
+
+  # `granted_by` and `self_join` answer different questions (see the accessors
+  # above) and are mutually exclusive: nobody granted a self-join. Supplying
+  # both silently let self_join win the actor selection while granted_by still
+  # landed in the membership.created audit row — a row naming a granter for
+  # something the same row records as ungranted. Refused at both entry points
+  # (Workspace#admit, #reactivate!) rather than documented.
+  def self.reject_conflicting_provenance!(granted_by:, self_join:)
+    return unless granted_by && self_join
+    raise ArgumentError, CONFLICTING_PROVENANCE_MESSAGE
+  end
 
   # Kept owner-role memberships in the workspace, excluding the given
   # membership id — "are there OTHER owners besides this one?".
@@ -109,7 +175,10 @@ class Membership < ApplicationRecord
   # existing member of an archived workspace is intentionally allowed: archived
   # stays accessible to existing members, and the admin doing this is actively
   # in the workspace. The pinning test in membership_spec locks this in.
-  def reactivate!
+  def reactivate!(granted_by: nil, self_join: false)
+    self.class.reject_conflicting_provenance!(granted_by: granted_by, self_join: self_join)
+    self.granted_by = granted_by
+    self.self_join = self_join
     undiscard!
   end
 
@@ -147,6 +216,15 @@ class Membership < ApplicationRecord
 
   def activity_workspace
     workspace
+  end
+
+  def provenance_markers_are_coherent
+    errors.add(:base, CONFLICTING_PROVENANCE_MESSAGE) if granted_by && self_join
+    return if SELF_JOIN_GRADES.include?(self_join)
+
+    errors.add(:base,
+      "self_join must be one of #{SELF_JOIN_GRADES.map(&:inspect).join(', ')}, " \
+      "got #{self_join.inspect}")
   end
 
   def workspace_has_member_capacity
@@ -206,6 +284,20 @@ class Membership < ApplicationRecord
     create_activity("membership.created", metadata.compact)
   end
 
+  # A re-admission is an UPDATE, so track_creation — the only writer of grant
+  # provenance — never sees it. The row recorded `changes: {discarded_at: …}`
+  # and nothing about who let the member back in; on the invitation-driven path
+  # its actor is Current.user, i.e. the invitee. Re-granting a previously
+  # removed member was therefore the one grant shape with no granter on record.
+  # Merged through Trackable's hook rather than written directly: this UPDATE
+  # does reach the concern's callbacks, so it has no claim on the
+  # bypass-the-concern exemption record_ownership_demotion holds.
+  def tracked_update_metadata(changes)
+    return super unless just_reactivated? && granted_by
+
+    super.merge("granted_by" => granted_by.id)
+  end
+
   # G (SEC-1 follow-up): the transfer's demote is a callback-skipping CAS
   # update_all (race-safety, by design — see transfer_ownership_to!), which
   # also skipped Trackable. A privilege demotion must still reach the audit
@@ -244,11 +336,38 @@ class Membership < ApplicationRecord
   end
 
   # Pass `nil` to deliver — the Notifier's class-level `recipients` block is
-  # responsible for resolving the (added user + owners) bucket and filtering by
-  # in-app preference.
+  # responsible for resolving the (added user + owners) bucket, dropping the
+  # actor, and filtering by in-app preference. The actor is handed over as a
+  # PARAM because both sources are non-persisted attr_accessors; the notifier
+  # must not read them back off the record.
+  #
+  # On a self-join the actor is the joiner — never `granted_by`, which stays
+  # nil there so the audit row doesn't claim they granted themselves access.
   def notify_member_added
     return if user.blank? || workspace.blank?
-    WorkspaceMemberAddedNotifier.with(record: self).deliver(nil)
+    WorkspaceMemberAddedNotifier.with(record: self, actor: self_join ? user : granted_by).deliver(nil)
+  end
+
+  alias_method :notify_member_readmitted, :notify_member_added
+
+  # `deliver(nil)` again: WorkspaceJoinedNotifier declares a `recipients` block
+  # so the in-app preference gate runs. An explicit recipient would skip it.
+  def notify_self_joined
+    return if user.blank? || workspace.blank?
+    WorkspaceJoinedNotifier.with(record: self).deliver(nil)
+  end
+
+  alias_method :notify_self_rejoined, :notify_self_joined
+
+  # Only a self-join the user CHOSE earns the orientation notice; the
+  # :onboarding grade answers "who acted" and nothing else. See self_join.
+  #
+  # Inclusion, not exclusion ("anything but :onboarding"): this runs in an
+  # after_create_commit, so on any path that skipped validation a grade nobody
+  # taught it about — a typo, a grade a fork adds later — used to read as
+  # "chosen" and mail the person. A new grade now has to opt in here.
+  def chosen_self_join?
+    self_join == true
   end
 
   # Self-exclusion is the contract: the very first owner being seeded
@@ -256,5 +375,11 @@ class Membership < ApplicationRecord
   def workspace_has_other_owners?
     return false if workspace_id.blank?
     Membership.other_kept_owners(workspace_id, excluding: id).exists?
+  end
+
+  # Discarded → kept. Direction matters: the same column change in the other
+  # direction is a removal.
+  def just_reactivated?
+    saved_change_to_discarded_at? && discarded_at.nil?
   end
 end

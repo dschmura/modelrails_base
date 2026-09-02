@@ -554,8 +554,10 @@ RSpec.describe Workspace, type: :model do
 
       expect(result).to eq(discarded)
       expect(discarded.reload).not_to be_discarded
-      # Reactivation preserves the original grant's provenance — granted_by is
-      # only written when a membership row is created, identical to :raise.
+      # Reactivation preserves the original grant's provenance: no new
+      # `membership.created` audit row, and admit never mutates the caller's
+      # instance. The granted_by admit sets on its OWN copy of the row is
+      # transient notifier provenance (actor exclusion), not a rewrite.
       expect(discarded.granted_by).to be_nil
     end
 
@@ -609,6 +611,68 @@ RSpec.describe Workspace, type: :model do
         it "no-ops when the role matches" do
           expect { workspace.admit(user, role: member_role) }.not_to raise_error
         end
+      end
+    end
+
+    # Rails runs a row's commit callbacks on the LAST instance of it saved in
+    # the transaction (run_commit_callbacks_on_first_saved_instances_in_transaction
+    # is false), so the reconciling instance — not the one that did the INSERT —
+    # is what the actor rule reads. The interleaving is real, not theoretical:
+    # Signupable#commit_signup_atomically runs `user.save!` (→ User#onboard_workspace
+    # → the :shared placeholder membership) and PendingClaims#claim! (→
+    # Invitation#accept! → #admit) inside ONE transaction.
+    context "when a second instance of the row saves in the same transaction" do
+      # NOTE: users are created before `shared?` is stubbed on purpose — the
+      # stub is scoped to admit's reconcile branch and must not reach
+      # User#onboard_workspace, which reads TenancyConfig.onboarding.
+      let!(:owner_a) { create(:user) }
+      let!(:owner_b) { create(:user) }
+      let!(:owner_a_membership) { workspace.memberships.create!(user: owner_a, role: owner_role) }
+      let!(:owner_b_membership) { workspace.memberships.create!(user: owner_b, role: owner_role) }
+
+      before do
+        allow(TenancyConfig).to receive(:shared?).and_return(true)
+        Noticed::Notification.delete_all
+        Noticed::Event.delete_all
+      end
+
+      def recipients_of(notifier)
+        Noticed::Notification.where(type: "#{notifier}::Notification").map(&:recipient)
+      end
+
+      it "keeps the granter out of the member-added fan-out" do
+        ActiveRecord::Base.transaction do
+          workspace.memberships.create!(user: user, role: member_role, self_join: :onboarding)
+          workspace.admit(user, role: owner_role, granted_by: owner_a)
+        end
+
+        expect(recipients_of(WorkspaceMemberAddedNotifier)).to contain_exactly(user, owner_b)
+      end
+
+      it "keeps a chosen self-join's joiner out of the fan-out and still orients them" do
+        ActiveRecord::Base.transaction do
+          workspace.memberships.create!(user: user, role: member_role, self_join: :onboarding)
+          workspace.admit(user, role: owner_role, self_join: true)
+        end
+
+        expect(recipients_of(WorkspaceMemberAddedNotifier)).to contain_exactly(owner_a, owner_b)
+        expect(recipients_of(WorkspaceJoinedNotifier)).to contain_exactly(user)
+      end
+
+      it "carries the granter onto the instance on_existing: :adopt returns" do
+        workspace.memberships.create!(user: user, role: member_role)
+
+        result = workspace.admit(user, role: member_role, granted_by: owner_a, on_existing: :adopt)
+
+        expect(result.granted_by).to eq(owner_a)
+      end
+
+      it "carries the self-join marker onto the instance on_existing: :adopt returns" do
+        workspace.memberships.create!(user: user, role: member_role)
+
+        result = workspace.admit(user, role: member_role, self_join: true, on_existing: :adopt)
+
+        expect(result.self_join).to be true
       end
     end
   end

@@ -190,6 +190,105 @@ RSpec.describe Membership, type: :model do
     end
   end
 
+  # `granted_by` and `self_join` are mutually exclusive: nobody granted a
+  # self-join. Before the guard, passing both silently let self_join win the
+  # actor selection while granted_by still landed in the membership.created
+  # audit row — a row naming a granter for something the same row records as
+  # ungranted. Both entry points refuse it.
+  describe "exclusive grant provenance" do
+    let(:workspace) { create(:workspace, personal: false) }
+    let(:granter) { create(:user) }
+    let(:member_role) do
+      Role.find_or_create_by!(slug: "member", workspace_id: nil) { |r| r.name = "Member" }
+    end
+
+    it "refuses a Workspace#admit claiming both a granter and a self-join" do
+      expect {
+        workspace.admit(create(:user), role: member_role, granted_by: granter, self_join: true)
+      }.to raise_error(ArgumentError, /mutually exclusive/)
+    end
+
+    it "refuses the same combination on #reactivate!" do
+      membership = create(:membership, workspace: workspace, role: member_role)
+      membership.discard!
+
+      expect {
+        membership.reactivate!(granted_by: granter, self_join: true)
+      }.to raise_error(ArgumentError, /mutually exclusive/)
+    end
+
+    it "creates nothing when it refuses" do
+      expect {
+        expect {
+          workspace.admit(create(:user), role: member_role, granted_by: granter, self_join: true)
+        }.to raise_error(ArgumentError)
+      }.not_to change(workspace.memberships, :count)
+    end
+
+    it "still accepts either one on its own" do
+      expect { workspace.admit(create(:user), role: member_role, granted_by: granter) }.not_to raise_error
+      expect { workspace.admit(create(:user), role: member_role, self_join: true) }.not_to raise_error
+    end
+
+    # The two entry-point guards only see callers that go through them.
+    # User#join_shared_workspace creates a membership directly, and the
+    # actor-stance fence is satisfied by EITHER marker — so a site naming both
+    # reads as "declared" and reaches the row. The rule belongs on the model,
+    # where no construction path can route around it.
+    context "as a model invariant" do
+      it "refuses both markers on a direct create!, which no entry-point guard sees" do
+        expect {
+          workspace.memberships.create!(
+            user: create(:user), role: member_role, granted_by: granter, self_join: true
+          )
+        }.to raise_error(ActiveRecord::RecordInvalid, /mutually exclusive/)
+      end
+
+      it "creates nothing when the direct create! is refused" do
+        expect {
+          expect {
+            workspace.memberships.create!(
+              user: create(:user), role: member_role, granted_by: granter, self_join: true
+            )
+          }.to raise_error(ActiveRecord::RecordInvalid)
+        }.not_to change(workspace.memberships, :count)
+      end
+
+      it "refuses a self_join grade outside the declared set" do
+        expect {
+          workspace.memberships.create!(user: create(:user), role: member_role, self_join: :onboard)
+        }.to raise_error(ActiveRecord::RecordInvalid, /self_join/)
+      end
+
+      it "accepts every declared grade" do
+        [ nil, false, true, :onboarding ].each do |grade|
+          membership = build(:membership, workspace: workspace, role: member_role, user: create(:user))
+          membership.self_join = grade
+
+          expect(membership).to be_valid, "grade #{grade.inspect} was rejected"
+        end
+      end
+    end
+
+    # chosen_self_join? gates the orientation notice, and it runs in an
+    # after_create_commit — i.e. on paths that skipped validation. Asking
+    # "is it the chosen grade" (inclusion) rather than "is it anything but
+    # :onboarding" (exclusion) means a grade nobody taught it about stays
+    # silent instead of mailing someone.
+    it "does not treat an unrecognised grade as a chosen self-join" do
+      create(:membership, :owner, workspace: workspace)
+      joiner = create(:user)
+      membership = workspace.memberships.build(user: joiner, role: member_role)
+      membership.self_join = :onboard
+      membership.save!(validate: false)
+
+      expect(
+        Noticed::Notification.where(recipient: joiner,
+                                    type: "WorkspaceJoinedNotifier::Notification").count
+      ).to eq 0
+    end
+  end
+
   describe "max_members enforcement" do
     it "prevents exceeding max_members" do
       # The workspace factory does not auto-create memberships.
@@ -443,6 +542,116 @@ RSpec.describe Membership, type: :model do
         expect {
           create(:membership, :owner, user: member, workspace: fresh_workspace)
         }.not_to change { Noticed::Event.where(type: "WorkspaceMemberAddedNotifier").count }
+      end
+
+      it "excludes the actor who performed the add" do
+        workspace.admit(member, role: Role.system_default!("member"), granted_by: owner)
+        event = Noticed::Event.where(type: "WorkspaceMemberAddedNotifier").last
+        expect(event.notifications.map(&:recipient)).to eq([ member ])
+      end
+    end
+
+    # Re-admission is an undiscard, not a create, so after_create_commit never
+    # fires — a previously removed member came silently back with zero
+    # notifications. Covered here rather than in the notifier spec because the
+    # bug was in the callback wiring.
+    describe "member re-admitted (after_update_commit)" do
+      include ActiveJob::TestHelper
+
+      let!(:membership) { create(:membership, user: member, workspace: workspace) }
+
+      before do
+        membership.deactivate!
+        Noticed::Notification.delete_all
+        Noticed::Event.delete_all
+        ActionMailer::Base.deliveries.clear
+        clear_enqueued_jobs
+      end
+
+      it "notifies the re-admitted member and the owners on Membership#reactivate!" do
+        expect {
+          membership.reactivate!
+        }.to change { Noticed::Event.where(type: "WorkspaceMemberAddedNotifier").count }.by(1)
+
+        event = Noticed::Event.where(type: "WorkspaceMemberAddedNotifier").last
+        expect(event.record).to eq(membership)
+        expect(event.notifications.map(&:recipient)).to contain_exactly(member, owner)
+      end
+
+      it "excludes the actor who performed the re-admission" do
+        membership.reactivate!(granted_by: owner)
+        event = Noticed::Event.where(type: "WorkspaceMemberAddedNotifier").last
+        expect(event.notifications.map(&:recipient)).to eq([ member ])
+      end
+
+      it "notifies through Workspace#admit's undiscard branch too, minus the actor" do
+        workspace.admit(member, role: Role.system_default!("member"), granted_by: owner)
+        event = Noticed::Event.where(type: "WorkspaceMemberAddedNotifier").last
+        expect(event).to be_present
+        expect(event.notifications.map(&:recipient)).to eq([ member ])
+      end
+
+      # WorkspaceMemberAddedNotifier's email, not WelcomeNotifier's — that one
+      # is the account's day-one notice and has no email leg at all.
+      it "sends the re-admitted member WorkspaceMemberAddedNotifier's email, as a fresh add would" do
+        perform_enqueued_jobs(only: Noticed::EventJob) { membership.reactivate! }
+        perform_enqueued_jobs(only: Noticed::DeliveryMethods::Email)
+        perform_enqueued_jobs(only: ActionMailer::MailDeliveryJob)
+
+        expect(ActionMailer::Base.deliveries.flat_map(&:to)).to eq([ member.email_address ])
+      end
+
+      it "does not notify on deactivation" do
+        membership.reactivate!
+        Noticed::Event.delete_all
+        expect {
+          membership.deactivate!
+        }.not_to change { Noticed::Event.where(type: "WorkspaceMemberAddedNotifier").count }
+      end
+
+      # track_creation is the only writer of grant provenance, and a
+      # re-admission is an UPDATE, so re-granting a previously removed member
+      # recorded who did it nowhere: `changes: {discarded_at: [...]}` and an
+      # actor that, on the invitation path, is the invitee themselves.
+      describe "grant provenance on the audit row" do
+        def reactivation_row
+          ActivityLog.where(action: "membership.updated", trackable: membership).last
+        end
+
+        before { ActivityLog.where(trackable: membership).delete_all }
+
+        it "records the granter on the re-admission row" do
+          membership.reactivate!(granted_by: owner)
+
+          expect(reactivation_row.metadata["granted_by"]).to eq(owner.id)
+        end
+
+        it "records the granter when the re-admission comes through Workspace#admit" do
+          workspace.admit(member, role: Role.system_default!("member"), granted_by: owner)
+
+          expect(reactivation_row.metadata["granted_by"]).to eq(owner.id)
+        end
+
+        it "still records the changed columns alongside it" do
+          membership.reactivate!(granted_by: owner)
+
+          expect(reactivation_row.metadata["changes"]).to have_key("discarded_at")
+        end
+
+        it "claims no granter for a re-admission that had none" do
+          membership.reactivate!
+
+          expect(reactivation_row.metadata).not_to have_key("granted_by")
+        end
+
+        it "claims no granter for an ordinary update that is not a re-admission" do
+          membership.reactivate!
+          ActivityLog.where(trackable: membership).delete_all
+          membership.granted_by = owner
+          membership.update!(role: Role.system_default!("admin"))
+
+          expect(reactivation_row.metadata).not_to have_key("granted_by")
+        end
       end
     end
 

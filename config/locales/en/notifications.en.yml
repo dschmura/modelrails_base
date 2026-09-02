@@ -107,6 +107,10 @@ en:
       message: "Your role in %{workspace} changed to %{new_role}"
     workspace_invitation_expiring_soon:
       message: "Your invitation expires in %{hours_remaining} hours"
+    workspace_created:
+      message: "You created %{workspace}."
+    workspace_joined:
+      message: "You joined %{workspace}."
     workspace_member_added:
       message: "%{added_user_name} joined %{workspace}"
     workspace_capacity_approaching:
@@ -121,6 +125,8 @@ en:
       message: "Your password was removed from your account, %{user_name}."
     sign_in_from_new_device:
       message: "We noticed a new sign-in from %{os}. If this wasn't you, please review your account."
+    welcome:
+      message: "Welcome, %{user_name}. Invitations, member changes and account activity land here. Choose what you hear about in your preferences."
     index:
       heading: "Notifications"
       filters_aria: "Filter notifications"

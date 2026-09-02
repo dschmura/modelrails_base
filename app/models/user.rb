@@ -361,7 +361,10 @@ class User < ApplicationRecord
     return unless workspace.admittable?
 
     member_role = Role.system_default!("member")
-    workspace.memberships.create!(user: self, role: member_role)
+    # `self_join: :onboarding` — nobody granted this, the new user is the actor
+    # (so the member-added fan-out excludes them), and the orientation notice
+    # is suppressed on this grade. See Membership#self_join.
+    workspace.memberships.create!(user: self, role: member_role, self_join: :onboarding)
   end
 
   def password_not_pwned

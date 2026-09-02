@@ -222,8 +222,9 @@ Navigate to `settings/connected_accounts`. Next to a verified provider, click **
    `Workspaces::JoinsController#show` is called. The `before_action :set_workspace_and_link` validates the workspace, link, and `workspace.open_join?`. On success the confirmation page renders.
    **Expect:** A confirmation page — not a join yet. The GET is intentionally read-only to prevent prefetch and link-unfurlers from triggering automatic admission.
 3. Click **Join** (the confirmation form submits `POST /workspaces/:slug/joins/:token`).
-   `admit_authenticated_user` calls `workspace.admit(Current.user, role: workspace.default_self_join_role)`.
+   `admit_authenticated_user` calls `workspace.admit(Current.user, role: workspace.default_self_join_role, self_join: true)`.
    **Expect:** Redirect to `workspace_path(@workspace)` with "joined" notice. You are now a member.
+   **Expect (notifications):** the workspace owners get "X joined"; you do not — you get your own "You joined …" instead (`WorkspaceJoinedNotifier`), because nobody is notified about their own action.
 
 **Walkthrough — unauthenticated visitor joins (Flow B):**
 

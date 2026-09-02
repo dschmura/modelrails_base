@@ -56,13 +56,21 @@ module Trackable
     changes = previous_changes.except("updated_at", "created_at")
     changes = changes.except(*SENSITIVE_ATTRIBUTES)
     return if changes.empty?
-    create_activity("#{model_name.param_key}.updated", changes: enrich_tracked_changes(changes))
+    create_activity("#{model_name.param_key}.updated", tracked_update_metadata(changes))
   end
 
   # Overridable so a model can make a specific event human-readable or
   # admin-only. Defaults preserve existing behavior for every other model.
   def enrich_tracked_changes(changes)
     changes
+  end
+
+  # Overridable so a model can attach provenance an update row needs beyond the
+  # changed columns — the create path has track_creation's metadata argument for
+  # that, the update path had nothing. Same best-effort guarantee: this is
+  # assembled inside create_activity's rescue, not a new writer.
+  def tracked_update_metadata(changes)
+    { changes: enrich_tracked_changes(changes) }
   end
 
   def activity_visibility(_action)
