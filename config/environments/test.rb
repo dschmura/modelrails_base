@@ -20,6 +20,15 @@ Rails.application.configure do
   # spec/eager_load_parity_spec.rb pins it.
   config.eager_load = true
 
+  # The pin above is only half of it. spec/tasks/* invoke rake tasks
+  # in-process, and Rails' `environment` task re-applies `eager_load =
+  # rake_eager_load` (default false) — on an already-booted app that runs
+  # immediately, flipping the flag for the rest of the worker. Every spec that
+  # runs after a task spec in that worker then runs a different program than
+  # CI, and the parity pin fails one seed in three (#923). Keeping the rake
+  # value equal to the pin closes the class for any future task spec.
+  config.rake_eager_load = true
+
   # Configure public file server for tests with cache-control for performance.
   config.public_file_server.headers = { "cache-control" => "public, max-age=3600" }
 

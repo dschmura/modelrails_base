@@ -103,6 +103,7 @@ end
 | `WorkspaceRoleChangedNotifier` | `account_access` | `info` | Owner changes a member's role |
 | `WorkspaceCreatedNotifier` | `workspace_activity` | `success` | Someone creates a workspace through `Workspace.create_owned` |
 | `WorkspaceMemberAddedNotifier` | `workspace_activity` | `success` | New member joins, or a removed one is re-admitted (fans out to all owners except whoever performed the add) |
+| `WorkspaceMemberRemovedNotifier` | `account_access` | `warning` | A membership is discarded — an owner removing someone, or a member leaving. In-app to the removed member and the owners (minus whoever acted); email to the removed member only |
 | `WorkspaceJoinedNotifier` | `workspace_activity` | `success` | Someone admits themselves through an open join link — the joiner's own orientation, since the actor rule drops them from `WorkspaceMemberAddedNotifier` |
 | `ProjectMembershipChangedNotifier` | `project_activity` | `info` | Project member role changed |
 | `WorkspaceCapacityApproachingNotifier` | `billing` | `warning` | Sweep job finds a workspace approaching its plan limit |
@@ -144,18 +145,21 @@ Genuinely per-notifier specifics:
 
 Recipient resolution drops whoever performed the action (the 37signals rule). An owner who adds a member hears nothing about their own add, and a self-joiner is never told, in the third person, that they joined.
 
-The actor travels as a **param** — `WorkspaceMemberAddedNotifier.with(record: membership, actor: …)` — and is never read back off the record inside the `recipients` block. Both sources of the actor are non-persisted `attr_accessor`s on `Membership`, so an exclusion keyed on `record.granted_by` would exclude nobody the moment recipient resolution stopped seeing the in-memory row: silently, with nothing failing.
+The actor travels as a **param** — `WorkspaceMemberAddedNotifier.with(record: membership, actor: …)` — and is never read back off the record inside the `recipients` block. Every source of the actor is a non-persisted `attr_accessor` on `Membership`, so an exclusion keyed on `record.granted_by` (or `record.removed_by`) would exclude nobody the moment recipient resolution stopped seeing the in-memory row: silently, with nothing failing.
 
-`Membership` carries **two** markers, and keeping them apart is the point:
+`Membership` carries **three** markers. Two of them describe how a membership arrived, and keeping *those* apart is the point:
 
 | Marker | Question it answers | Where it lands |
 |---|---|---|
 | `granted_by` | who granted this membership | the `membership.created` activity row's `granted_by` metadata, **and** the notification actor |
 | `self_join` | nobody granted it — the joining user acted | the notification actor only |
+| `removed_by` | who removed this member | the notification actor only |
 
-The tempting simplification is to collapse them, since a self-join is arguably "granted by the joiner". Don't: `granted_by` is audit provenance. Writing the joiner in as their own granter makes the audit row for a self-join **indistinguishable from an admin grant** — the one distinction that row exists to record. What ships records no granter for a self-join, which is both true and unambiguous.
+`removed_by` sits on the other transition entirely — it reaches the model as an argument to `Membership#deactivate!` and feeds `WorkspaceMemberRemovedNotifier`, where it decides both who is excluded and whether the row reads "was removed" or "left". It is unrelated to the pair below, and shares nothing with them but the actor-as-param discipline.
 
-They are also mutually exclusive, and refused rather than merely documented: `Membership.reject_conflicting_provenance!` raises `ArgumentError` when a caller hands both to `Workspace#admit` or `Membership#reactivate!`. Before that guard, `self_join` silently won the actor selection while `granted_by` still reached the audit row — a row naming a granter for something the same row records as ungranted.
+The tempting simplification is to collapse the arrival pair, since a self-join is arguably "granted by the joiner". Don't: `granted_by` is audit provenance. Writing the joiner in as their own granter makes the audit row for a self-join **indistinguishable from an admin grant** — the one distinction that row exists to record. What ships records no granter for a self-join, which is both true and unambiguous.
+
+`granted_by` and `self_join` are also mutually exclusive, and refused rather than merely documented: `Membership.reject_conflicting_provenance!` raises `ArgumentError` when a caller hands both to `Workspace#admit` or `Membership#reactivate!`. Before that guard, `self_join` silently won the actor selection while `granted_by` still reached the audit row — a row naming a granter for something the same row records as ungranted.
 
 `self_join` has two grades, because "who acted" and "does the joiner need telling where they landed" are separate questions:
 
@@ -166,7 +170,13 @@ A membership created with **neither** marker is not neutral. The actor resolves 
 
 ### Email gating and the `:digest` sentinel
 
-An email is one of three fates: deliver now, drop, or wait for `DigestMailerJob` to pick it up. Email `before_enqueue` guards call `deliver_email_now?`, which is strictly "send the instant email now" — it answers `false` both for an opt-out/DND drop and for the digest deferral, so the digest frequency choice can never be defeated by an accidental truthiness check. (`recipient_pref(:email)` still reports the tri-state — `true` / `false` / `:digest` — as an introspection surface.)
+An email is one of three fates: deliver now, drop, or wait for `DigestMailerJob` to pick it up. The gate is `deliver_email_now_for?(user)`, which is strictly "send the instant email to this user now" — it answers `false` both for an opt-out/DND drop and for the digest deferral, so the digest frequency choice can never be defeated by an accidental truthiness check. (`recipient_pref(:email)` still reports the tri-state — `true` / `false` / `:digest` — as an introspection surface.)
+
+`deliver_email_now?` is the one-argument shim for the common case: it is `deliver_email_now_for?(recipient)` and nothing else. Reach for it whenever the recipient is the user being asked about.
+
+Prefer the explicit form in a `before_enqueue` that has already narrowed the fan-out to one known user — typically with `throw(:abort) unless recipient_id == event.record.user_id`. At that point the surviving recipient *is* `event.record.user`, which the guard has already loaded, so asking about it directly is equivalent. It is not a query saving: an aborting guard loads `recipient` at most once either way, and both member notifiers' `EventJob` measures flat at four queries with two owners and with eight. What it avoids is Bullet — Noticed's `EventJob` iterates `event.notifications.each`, and a lazy `recipient` load off a member of that collection is a shape Bullet's N+1 heuristic raises on whether or not the load repeats.
+
+A notifier whose email leg has **no** narrowing guard is a different case: there the gate genuinely runs per recipient, loads each one and their preferences, and grows with the fan-out. `deliver_email_now_for?` cannot help — each recipient's own preferences are exactly what that gate needs.
 
 ### `render_safe_or_placeholder` — the deleted-record contract
 

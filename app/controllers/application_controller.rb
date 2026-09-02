@@ -102,7 +102,13 @@ class ApplicationController < ActionController::Base
 
   def user_not_authorized
     destination = if Current.workspace.present?
-      workspace_path(Current.workspace)
+      workspace_home = workspace_path(Current.workspace)
+      # #931: answering a refusal at the workspace's OWN path with that same
+      # path is a redirect loop, not an error page. GET, PATCH, PUT and DELETE
+      # all share `/workspaces/:slug`, so a refused workspace update or destroy
+      # lands on the index too — not only the GET this was written for. A
+      # refusal at any other path still lands on the workspace.
+      request.path == workspace_home ? workspaces_path : workspace_home
     else
       # url_from filters cross-origin referers (SEC-10): a forged Referer must
       # fall back to root, not make the error handler raise UnsafeRedirectError.

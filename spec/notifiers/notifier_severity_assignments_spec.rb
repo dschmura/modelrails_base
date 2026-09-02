@@ -12,6 +12,7 @@ RSpec.describe "Notifier severity assignments" do
     WorkspaceCreatedNotifier             => :success,
     WorkspaceJoinedNotifier              => :success,
     WorkspaceMemberAddedNotifier         => :success,
+    WorkspaceMemberRemovedNotifier       => :warning,
     WorkspaceInvitationAcceptedNotifier  => :success,
     WorkspaceInvitationDeclinedNotifier  => :info,
     ProjectMembershipChangedNotifier     => :info,

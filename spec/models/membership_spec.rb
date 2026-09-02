@@ -167,6 +167,70 @@ RSpec.describe Membership, type: :model do
     end
   end
 
+  # A replayed DELETE — a stale tab, the back button, a scripted retry — reaches
+  # MembersController#destroy with an already-discarded membership, because that
+  # action resolves through the UNSCOPED association on purpose (the members
+  # page shows removed people). Before this, Discardable#discard! moved
+  # discarded_at t1 -> t2 unconditionally, so the removed member got a second
+  # "was removed" row and a second email, and the audit trail grew a second
+  # removal that never happened. The one-minute idempotency bucket absorbs a
+  # rapid double-submit and nothing else.
+  describe "deactivation idempotency" do
+    let(:workspace) { create(:workspace) }
+    let(:owner) { create(:user) }
+    let(:membership) { create(:membership, workspace: workspace) }
+
+    before do
+      create(:membership, :owner, user: owner, workspace: workspace)
+      membership
+    end
+
+    def removal_events
+      Noticed::Event.where(type: "WorkspaceMemberRemovedNotifier")
+    end
+
+    def removal_audit_rows
+      ActivityLog.where(trackable: membership, action: "membership.updated")
+    end
+
+    it "records one removal and one notification however many times it is called" do
+      membership.deactivate!(removed_by: owner)
+      # Past the notifier's dedup bucket, so a second dispatch would be a real
+      # second event rather than a swallowed duplicate.
+      travel_to(2.minutes.from_now) { membership.deactivate!(removed_by: owner) }
+
+      expect(removal_events.count).to eq(1)
+      expect(removal_audit_rows.count).to eq(1)
+    end
+
+    it "leaves the removal timestamp where the first call put it" do
+      membership.deactivate!(removed_by: owner)
+      first_stamp = membership.reload.discarded_at
+
+      travel_to(2.minutes.from_now) { membership.deactivate!(removed_by: owner) }
+
+      expect(membership.reload.discarded_at).to eq(first_stamp)
+    end
+
+    it "returns from the second call without writing an audit row" do
+      membership.deactivate!(removed_by: owner)
+
+      expect {
+        travel_to(2.minutes.from_now) { membership.deactivate!(removed_by: owner) }
+      }.not_to change { ActivityLog.count }
+    end
+
+    # Belt to the return's braces: any other path that re-stamps discarded_at on
+    # an already-removed membership must not read as a fresh removal either.
+    it "does not treat a re-discard as a new removal" do
+      membership.deactivate!(removed_by: owner)
+
+      expect {
+        travel_to(2.minutes.from_now) { membership.discard! }
+      }.not_to change { removal_events.count }
+    end
+  end
+
   describe "reactivation" do
     let(:membership) { create(:membership) }
 
@@ -548,6 +612,50 @@ RSpec.describe Membership, type: :model do
         workspace.admit(member, role: Role.system_default!("member"), granted_by: owner)
         event = Noticed::Event.where(type: "WorkspaceMemberAddedNotifier").last
         expect(event.notifications.map(&:recipient)).to eq([ member ])
+      end
+    end
+
+    # #933: removal was the one membership transition that notified nobody.
+    # Covered here rather than in the notifier spec because these pin the
+    # CALLBACK wiring — the actor arriving as an argument, the direction of the
+    # discarded_at change, and the write surviving a broken notifier.
+    describe "member removed (after_update_commit)" do
+      let!(:membership) { create(:membership, user: member, workspace: workspace) }
+
+      it "hands the notifier the actor the caller named, without reading Current" do
+        membership.deactivate!(removed_by: owner)
+
+        event = Noticed::Event.where(type: "WorkspaceMemberRemovedNotifier").last
+        expect(event).to be_present
+        expect(event.record).to eq(membership)
+        expect(event.reload.params[:actor]).to eq(owner)
+      end
+
+      it "leaves the actor nil when the caller names none" do
+        membership.deactivate!
+
+        event = Noticed::Event.where(type: "WorkspaceMemberRemovedNotifier").last
+        expect(event.reload.params[:actor]).to be_nil
+      end
+
+      it "does not reuse an earlier actor when a later removal names none" do
+        membership.deactivate!(removed_by: owner)
+        membership.reactivate!(granted_by: owner)
+        # Past the one-minute idempotency bucket, so the second removal is a
+        # new event rather than a dedup drop of the first.
+        travel_to(2.minutes.from_now) { membership.deactivate! }
+
+        event = Noticed::Event.where(type: "WorkspaceMemberRemovedNotifier").order(:created_at).last
+        expect(event.reload.params[:actor]).to be_nil
+      end
+
+      # Same best-effort posture the rest of the notification wiring has: the
+      # business write is not hostage to the fan-out.
+      it "still removes the member when the notifier raises" do
+        allow(WorkspaceMemberRemovedNotifier).to receive(:with).and_raise(StandardError, "boom")
+
+        expect { membership.deactivate!(removed_by: owner) }.not_to raise_error
+        expect(membership.reload).to be_discarded
       end
     end
 
