@@ -10,9 +10,8 @@
 # record of that event is its ActivityLog row, kept by
 # ActivityLogRetentionSweepJob::SECURITY_RETENTION_FLOOR.
 #
-# Batched delete_all — SQLite serializes writers. Never pass `use_ranges: true`
-# here: it would let a row marked unread mid-batch be deleted. Why is in
-# /docs/developer/notifications (NotificationCleanupJob).
+# Batched delete_all in chunks of 100 so SQLite's writer lock is released
+# between rounds. See /docs/developer/notifications (NotificationCleanupJob).
 class NotificationCleanupJob < ApplicationJob
   queue_as :default
 
