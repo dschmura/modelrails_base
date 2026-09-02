@@ -108,6 +108,20 @@ RSpec.describe "Account Notifications", type: :request do
         expect(response.body).to include("we remove it 90 days later")
       end
 
+      # A value written around the value object (a fork widening
+      # ALLOWED_RETENTION_DAYS without adding a label, or a row that predates
+      # a label change) has no `retention_options.<n>` translation. The view
+      # must still say something plain rather than leak "translation missing".
+      it "falls back to a plain day count for a retention value with no label" do
+        user.create_preferences!
+        prefs = user.preferences.notification_preferences
+        user.preferences.update_column(:notification_preferences, prefs.merge("retention_days" => 45))
+
+        get settings_notifications_path
+
+        expect(response.body).to include("we remove it 45 days later")
+      end
+
       # Regression (Bullet unused-eager-loading). The index eager-loads
       # `event: :record` because ~10 of the 12 notifier `#message` impls read it
       # (workspace/invitation/password). SignInFromNewDevice's `#message` is

@@ -170,8 +170,8 @@ RSpec.describe "Notifications index page", type: :system do
 
       it "shows the hint on the empty state too" do
         # Sign-in dispatches a SignInFromNewDeviceNotifier (same clearing as
-        # notification_preferences_spec) — without it the list is never
-        # actually empty and this example proves nothing.
+        # spec/system/notification_preferences_spec.rb) — without it the list
+        # is never actually empty and this example proves nothing.
         user.notifications.destroy_all
 
         visit settings_notifications_path
@@ -182,8 +182,8 @@ RSpec.describe "Notifications index page", type: :system do
     end
 
     # axe-core WCAG 2.2 AAA, both themes, asserted here since the retention
-    # hint added this page's first text-interactive link — the class the
-    # members_table_spec canary explicitly does not cover for this surface.
+    # hint added this page's first text-interactive link; members_table_spec
+    # audits a different surface, so it is not a substitute for this check.
     it "passes automated accessibility checks with a populated list (light + dark)" do
       deliver_security_notification
       visit settings_notifications_path

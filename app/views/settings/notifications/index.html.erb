@@ -31,7 +31,8 @@
       the suite's 44px check exempts only display:inline links. %>
   <p class="text-xs text-text-muted mb-6">
     <%= t("notifications.index.retention_hint.text",
-          period: t("notifications.preferences.advanced.retention_options.#{@retention_days}")) %>
+          period: t("notifications.preferences.advanced.retention_options.#{@retention_days}",
+                    default: t("notifications.index.retention_hint.days", count: @retention_days))) %>
     <%= link_to t("notifications.index.retention_hint.change"),
           edit_settings_notification_preferences_path(anchor: "retention-days"),
           class: "text-interactive underline hover:no-underline focus-ring rounded" %>
