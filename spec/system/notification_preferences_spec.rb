@@ -115,11 +115,13 @@ RSpec.describe "Notification preferences", type: :system do
       quiet_hours_input = find("input[name='notification_preferences[quiet_hours][enabled]']", visible: :all)
       find("label[for='#{quiet_hours_input[:id]}']", match: :first, visible: :all).click
 
-      # Wait for the auto-submit round-trip to complete by polling DB state.
-      Timeout.timeout(5) do
-        sleep 0.1 until user.preferences.reload.notification_preferences.dig("quiet_hours", "enabled") == true
-      end
-      expect(user.preferences.notification_preferences.dig("quiet_hours", "enabled")).to eq(true)
+      # The PATCH response announces the save into the page-level live region
+      # (update.turbo_stream.erb). Waiting on that synchronizes with the round
+      # trip at the suite's budget and names what is missing when it fails;
+      # a stopwatch around a database poll did neither (#945).
+      expect(page).to have_css("#notifications-live",
+        text: I18n.t("notifications.preferences.update.saved_announcement"), visible: :all)
+      expect(user.preferences.reload.notification_preferences.dig("quiet_hours", "enabled")).to eq(true)
     end
   end
 
