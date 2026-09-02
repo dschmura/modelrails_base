@@ -137,11 +137,62 @@ RSpec.describe "Notifications index page", type: :system do
       end
     end
 
-    # axe-core WCAG 2.2 AAA on the populated index page is not asserted
-    # directly here — `members_table_spec.rb` audits the same workspace-
-    # branded surface stack with stricter `DEFERRED_AAA_EXCLUDES` (the
-    # durable two-variable `--ws-primary-light`/`--ws-primary-dark` scheme
-    # took `.text-interactive` and `.bg-interactive` out of the umbrella),
-    # making it the canary for any future cascade-induced surface drift.
+    describe "retention hint" do
+      def set_retention(someone, days)
+        someone.create_preferences! unless someone.preferences
+        prefs = someone.preferences.notification_preferences
+        someone.preferences.update!(notification_preferences: prefs.merge("retention_days" => days))
+      end
+
+      it "states the user's own retention in the same words the preferences page uses" do
+        set_retention(user, 365)
+
+        visit settings_notifications_path
+
+        expect(page).to have_text("Once you've read a notification, we remove it 1 year later.")
+        expect(page).to have_text("Unread notifications stay until you read them.")
+      end
+
+      it "states the default for a user who never opened preferences" do
+        expect(user.preferences).to be_nil
+
+        visit settings_notifications_path
+
+        expect(page).to have_text("we remove it 90 days later")
+      end
+
+      it "links straight to the retention control" do
+        visit settings_notifications_path
+        click_link "Change retention"
+
+        expect(page).to have_current_path(edit_settings_notification_preferences_path)
+        expect(page.current_url).to end_with("#retention-days")
+        expect(page).to have_css("select#retention-days", visible: true)
+      end
+
+      it "shows the hint on the empty state too" do
+        # Sign-in dispatches a SignInFromNewDeviceNotifier (same clearing as
+        # notification_preferences_spec) — without it the list is never
+        # actually empty and this example proves nothing.
+        user.notifications.destroy_all
+
+        visit settings_notifications_path
+
+        expect(page).to have_text(I18n.t("notifications.index.empty_all"))
+        expect(page).to have_link("Change retention")
+      end
+    end
+
+    # axe-core WCAG 2.2 AAA, both themes, asserted here since the retention
+    # hint added this page's first text-interactive link — the class the
+    # members_table_spec canary explicitly does not cover for this surface.
+    it "passes automated accessibility checks with a populated list (light + dark)" do
+      deliver_security_notification
+      visit settings_notifications_path
+      page.execute_script("document.querySelectorAll('[data-controller=\"toast-pill\"], [data-controller=\"toast-card\"]').forEach(el => el.remove())")
+
+      expect(axe_clean_in_both_themes?).to be(true),
+        "Accessibility violations found:\n#{axe_violations_in_both_themes.join("\n")}"
+    end
   end
 end
