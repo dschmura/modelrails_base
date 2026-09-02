@@ -735,4 +735,28 @@ RSpec.describe User, type: :model do
       expect(Invitation.exists?(sent.id)).to be(false)
     end
   end
+
+  describe "#destroy" do
+    include ActiveSupport::Testing::TimeHelpers
+
+    # Three deliveries, each in its own idempotency minute-bucket so noticed
+    # does not dedup them into one row.
+    def deliver_three_to(user)
+      3.times do |i|
+        travel_to(Time.current + (i + 1).minutes) do
+          PasswordChangedNotifier.with(record: user).deliver(user)
+        end
+      end
+      expect(user.notifications.count).to eq(3)
+    end
+
+    it "removes the user's notification rows with a single DELETE (#817)" do
+      user = create(:user)
+      deliver_three_to(user)
+
+      queries = count_queries_touching("noticed_notifications") { user.destroy! }
+
+      expect(queries).to eq(1)
+    end
+  end
 end

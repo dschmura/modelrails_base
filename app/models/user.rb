@@ -4,7 +4,13 @@ class User < ApplicationRecord
   has_many :sessions, dependent: :destroy
   has_many :authentications, dependent: :destroy
   has_one :preferences, class_name: "UserPreferences", dependent: :destroy
-  has_many :notifications, as: :recipient, dependent: :destroy, class_name: "Noticed::Notification"
+  # :delete_all, not :destroy (#817): one DELETE through the association scope,
+  # no row instantiation. The only callback this skips is noticed's counter
+  # cache on `noticed_events.notifications_count`, which every other deletion
+  # path in the app already bypasses and nothing reads. This line is the whole
+  # enforcement against orphaned notification rows — `noticed_notifications`
+  # carries no foreign key to users.
+  has_many :notifications, as: :recipient, dependent: :delete_all, class_name: "Noticed::Notification"
   has_one_attached :avatar
   has_one_attached :avatar_original
   has_many :memberships, dependent: :destroy

@@ -89,7 +89,7 @@ RSpec.describe "Notifications hardening", type: :request do
                           email: user.email_address, invited_by: invited_by)
       WorkspaceInvitationAcceptedNotifier.with(record: invitation).deliver(user)
 
-      user.destroy  # cascades notifications via the User#dependent: :destroy
+      user.destroy  # cascades notifications via the User#dependent: :delete_all
 
       expect { DigestMailerJob.perform_now }.not_to raise_error
     end
