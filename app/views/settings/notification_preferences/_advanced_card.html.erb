@@ -12,8 +12,7 @@
           class: "flex flex-wrap items-center gap-3" do |f| %>
       <%= f.select :retention_days,
             options_for_select(
-              [ 30, 60, 90, 180, 365 ].map { |days| [ t("notifications.preferences.advanced.retention_options.#{days}"), days ] } +
-                [ [ t("notifications.preferences.advanced.retention_options.never"), "" ] ],
+              NotificationPreferences::ALLOWED_RETENTION_DAYS.map { |days| [ t("notifications.preferences.advanced.retention_options.#{days}"), days ] },
               prefs_object.retention_days
             ),
             { label: t("notifications.preferences.advanced.retention_label") },
