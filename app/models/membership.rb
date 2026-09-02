@@ -352,9 +352,25 @@ class Membership < ApplicationRecord
     (action == "membership.updated" && saved_change_to_role_id?) ? "admin" : "workspace"
   end
 
+  # Shared best-effort wrapper for the notify_* callbacks below (#935): every
+  # one of them fires from an after_*_commit, so the triggering write has
+  # already committed by the time it runs. Letting a raising notifier
+  # propagate would turn that committed row into a 500 for whoever performed
+  # the write, with nothing to show for it on retry but "already a member" or
+  # "already removed". Same swallow-log-report posture as
+  # Trackable#create_activity and NotificationBroadcaster#safe_broadcast.
+  def notify_best_effort(action)
+    yield
+  rescue StandardError => e
+    Rails.logger.warn("Notification failed for Membership##{id} (#{action}): #{e.message}")
+    Rails.error.report(e, handled: true, context: { trackable: "Membership##{id}", action: action })
+  end
+
   def notify_role_changed
-    return if user.blank?
-    WorkspaceRoleChangedNotifier.with(record: self).deliver(user)
+    notify_best_effort("role_changed") do
+      next if user.blank?
+      WorkspaceRoleChangedNotifier.with(record: self).deliver(user)
+    end
   end
 
   # Pass `nil` to deliver — the Notifier's class-level `recipients` block is
@@ -366,8 +382,10 @@ class Membership < ApplicationRecord
   # On a self-join the actor is the joiner — never `granted_by`, which stays
   # nil there so the audit row doesn't claim they granted themselves access.
   def notify_member_added
-    return if user.blank? || workspace.blank?
-    WorkspaceMemberAddedNotifier.with(record: self, actor: self_join ? user : granted_by).deliver(nil)
+    notify_best_effort("member_added") do
+      next if user.blank? || workspace.blank?
+      WorkspaceMemberAddedNotifier.with(record: self, actor: self_join ? user : granted_by).deliver(nil)
+    end
   end
 
   alias_method :notify_member_readmitted, :notify_member_added
@@ -375,25 +393,20 @@ class Membership < ApplicationRecord
   # `deliver(nil)` and the actor-as-param for the same reasons as
   # notify_member_added above. Its own filter name, too: the :commit chain
   # dedups by name, so a shared one would replace a sibling rather than join it.
-  #
-  # Rescued, unlike its siblings: this runs after the discard has COMMITTED, so
-  # a raising notifier cannot undo the removal — it can only turn a completed
-  # removal into a 500 for the person who performed it. Same best-effort
-  # posture, and same swallow-log-report shape, as Trackable#create_activity
-  # and NotificationBroadcaster#safe_broadcast.
   def notify_member_removed
-    return if user.blank? || workspace.blank?
-    WorkspaceMemberRemovedNotifier.with(record: self, actor: removed_by).deliver(nil)
-  rescue StandardError => e
-    Rails.logger.warn("Removal notification failed for Membership##{id}: #{e.message}")
-    Rails.error.report(e, handled: true, context: { trackable: "Membership##{id}", action: "member_removed" })
+    notify_best_effort("member_removed") do
+      next if user.blank? || workspace.blank?
+      WorkspaceMemberRemovedNotifier.with(record: self, actor: removed_by).deliver(nil)
+    end
   end
 
   # `deliver(nil)` again: WorkspaceJoinedNotifier declares a `recipients` block
   # so the in-app preference gate runs. An explicit recipient would skip it.
   def notify_self_joined
-    return if user.blank? || workspace.blank?
-    WorkspaceJoinedNotifier.with(record: self).deliver(nil)
+    notify_best_effort("self_joined") do
+      next if user.blank? || workspace.blank?
+      WorkspaceJoinedNotifier.with(record: self).deliver(nil)
+    end
   end
 
   alias_method :notify_self_rejoined, :notify_self_joined
