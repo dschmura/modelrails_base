@@ -102,32 +102,21 @@ RSpec.describe "Notifications index page", type: :system do
         end
         expect(notification.reload.read_at).to be_nil
       end
-
-      it "deletes a row when Delete is clicked" do
-        notification = deliver_security_notification
-
-        visit settings_notifications_path
-        within "##{ActionView::RecordIdentifier.dom_id(notification)}" do
-          click_button I18n.t("notifications.index.item.delete")
-        end
-
-        expect(page).not_to have_css("##{ActionView::RecordIdentifier.dom_id(notification)}")
-      end
     end
 
-    describe "button styling (btn utilities)" do
-      it "renders neutral actions as secondary and destructive ones as outline-danger (#766)" do
+    describe "row controls" do
+      it "gives each row exactly one control and puts no destructive control on the page" do
         notification = deliver_security_notification
 
         visit settings_notifications_path
 
         expect(page).to have_css("button.btn-secondary", text: I18n.t("notifications.index.mark_all_read.action"))
-        expect(page).to have_css("button.btn-outline-danger", text: I18n.t("notifications.index.destroy_all_read.action"))
-        # One unread row -> mark_read (secondary) + delete (outline-danger).
         within "##{ActionView::RecordIdentifier.dom_id(notification)}" do
+          expect(page).to have_css("button[type='submit']", count: 1)
           expect(page).to have_css("button.btn-secondary[type='submit']", count: 1)
-          expect(page).to have_css("button.btn-outline-danger[type='submit']", count: 1)
         end
+        # Anchored by the positive assertions above (absence_assertions_are_anchored).
+        expect(page).not_to have_css("button.btn-outline-danger")
       end
     end
 
@@ -145,23 +134,6 @@ RSpec.describe "Notifications index page", type: :system do
         expect(page).to have_text(I18n.t("notifications.index.mark_all_read.success"))
         expect(unread_a.reload.read_at).to be_present
         expect(unread_b.reload.read_at).to be_present
-      end
-
-      it "deletes every read notification after confirming the bulk modal" do
-        read_a = deliver_security_notification
-        read_a.update!(read_at: Time.current)
-        read_b = deliver_security_notification
-        read_b.update!(read_at: Time.current)
-        read_ids = [ read_a.id, read_b.id ]
-
-        visit settings_notifications_path
-        click_button I18n.t("notifications.index.destroy_all_read.action")
-        within "dialog[open]" do
-          click_button I18n.t("notifications.index.destroy_all_read.action")
-        end
-
-        expect(page).to have_text(I18n.t("notifications.index.destroy_all_read.success"))
-        expect(Noticed::Notification.where(id: read_ids).count).to eq(0)
       end
     end
 

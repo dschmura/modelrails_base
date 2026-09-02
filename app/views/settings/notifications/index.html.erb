@@ -23,22 +23,6 @@
             confirm_method: :post,
             variant: :info %>
     </div>
-
-    <div data-controller="modal" class="inline-block">
-      <button type="button"
-              data-action="click->modal#open"
-              class="btn-outline-danger text-sm">
-        <%= t("notifications.index.destroy_all_read.action") %>
-      </button>
-
-      <%= render "shared/confirm_dialog",
-            title: t("notifications.index.destroy_all_read.title"),
-            message: t("notifications.index.destroy_all_read.confirm"),
-            confirm_text: t("notifications.index.destroy_all_read.action"),
-            confirm_url: destroy_all_read_settings_notifications_path,
-            confirm_method: :delete,
-            variant: :danger %>
-    </div>
   </div>
 
   <% if @notifications.empty? %>

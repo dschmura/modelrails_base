@@ -98,7 +98,6 @@ RSpec.describe "Mutating controller actions authorize or are allow-listed" do
     settings/connected_accounts#destroy
     settings/connected_accounts#resend_verification
     settings/email_confirmations#destroy
-    settings/notifications#destroy
     settings/notifications#update
     settings/other_sessions#destroy
     settings/passkeys#destroy

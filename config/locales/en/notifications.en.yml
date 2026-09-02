@@ -146,25 +146,16 @@ en:
       item:
         mark_read: "Mark as read"
         mark_unread: "Mark as unread"
-        delete: "Delete"
         status_unread: "Unread."
         status_read: "Read."
         time_ago: "%{time} ago"
         mark_read_aria: "Mark as read: %{summary}"
         mark_unread_aria: "Mark as unread: %{summary}"
-        delete_aria: "Delete notification: %{summary}"
       mark_all_read:
         action: "Mark all as read"
         title: "Mark all as read?"
         confirm: "Mark all your unread notifications as read?"
         success: "All notifications marked as read."
-      destroy_all_read:
-        action: "Delete all read"
-        title: "Delete all read notifications?"
-        confirm: "Delete all your read notifications?"
-        success: "Read notifications deleted."
-    destroy:
-      success: "Notification deleted."
   notification_mailer:
     digest:
       subject:

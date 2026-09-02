@@ -7,8 +7,8 @@ module Settings
   # PREFERENCES, which does carry the shell. Recorded in the
   # settings_layout_opt_in code-smell spec's rulings.
   class NotificationsController < ApplicationController
-    before_action :set_notification, only: [ :update, :destroy ]
-    before_action :authorize_notification, only: [ :update, :destroy ]
+    before_action :set_notification, only: [ :update ]
+    before_action :authorize_notification, only: [ :update ]
 
     def index
       authorize Noticed::Notification, :index?, policy_class: NotificationPolicy
@@ -53,17 +53,6 @@ module Settings
       end
     end
 
-    def destroy
-      # Capture read-state before destroy! so we can decide whether other
-      # tabs need a bell-button refresh. Destroying an unread notification
-      # drops the user's unread count; destroying a read one doesn't change
-      # the badge so we skip the broadcast to avoid pointless work.
-      was_unread = @notification.read_at.nil?
-      @notification.destroy!
-      broadcast_bell_refresh if was_unread
-      redirect_to settings_notifications_path, notice: t("notifications.destroy.success")
-    end
-
     def mark_all_read
       authorize Noticed::Notification, :mark_all_read?, policy_class: NotificationPolicy
       # Single atomic UPDATE: WHERE clause is evaluated once, rows un-marked
@@ -77,18 +66,6 @@ module Settings
       broadcast_bell_refresh
       redirect_to settings_notifications_path,
                   notice: t("notifications.index.mark_all_read.success")
-    end
-
-    def destroy_all_read
-      authorize Noticed::Notification, :destroy_all_read?, policy_class: NotificationPolicy
-      # delete_all (not destroy_all): Noticed::Notification has no
-      # destroy callbacks and no `dependent:` cascades pointing OUT from
-      # it (the only cascade is INTO it from noticed_events via the
-      # `dependent: :delete_all` on Noticed::Event#has_many :notifications).
-      # Single DELETE, no row instantiation, no callback overhead.
-      Current.user.notifications.where.not(read_at: nil).delete_all
-      redirect_to settings_notifications_path,
-                  notice: t("notifications.index.destroy_all_read.success")
     end
 
     private

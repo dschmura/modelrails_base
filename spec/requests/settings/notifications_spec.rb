@@ -44,11 +44,6 @@ RSpec.describe "Account Notifications", type: :request do
       post mark_all_read_settings_notifications_path
       expect(response).to redirect_to(new_session_path)
     end
-
-    it "redirects DELETE /account/notifications/destroy_all_read to sign in" do
-      delete destroy_all_read_settings_notifications_path
-      expect(response).to redirect_to(new_session_path)
-    end
   end
 
   context "authenticated" do
@@ -213,16 +208,6 @@ RSpec.describe "Account Notifications", type: :request do
           expect(response.body).to include(%Q(aria-label="#{expected}"))
         end
 
-        it "the Delete button includes the notification's message in its aria-label" do
-          notification = deliver_security_notification
-          get settings_notifications_path
-          expected = I18n.t(
-            "notifications.index.item.delete_aria",
-            summary: notification.message
-          )
-          expect(response.body).to include(%Q(aria-label="#{expected}"))
-        end
-
         it "the Mark-as-unread button includes the notification's message when the row is read" do
           notification = deliver_security_notification
           notification.update!(read_at: Time.current)
@@ -282,25 +267,6 @@ RSpec.describe "Account Notifications", type: :request do
       end
     end
 
-    describe "DELETE /account/notifications/:id" do
-      let!(:notification) { deliver_security_notification }
-
-      it "destroys the notification" do
-        expect {
-          delete settings_notification_path(notification)
-        }.to change { user.notifications.count }.by(-1)
-      end
-
-      it "redirects via the ApplicationController not-found rescue for another user's notification" do
-        foreign = deliver_security_notification(other_user)
-        expect {
-          delete settings_notification_path(foreign)
-        }.not_to change { other_user.notifications.count }
-        expect(response).to have_http_status(:redirect)
-        expect(flash[:alert]).to eq(I18n.t("errors.not_found"))
-      end
-    end
-
     describe "POST /account/notifications/mark_all_read" do
       it "marks ALL of the current user's unread notifications as read (250-row behavior assertion)" do
         # Build 250 unread notifications without going through the notifier
@@ -341,45 +307,6 @@ RSpec.describe "Account Notifications", type: :request do
         post mark_all_read_settings_notifications_path
         expect(response).to redirect_to(settings_notifications_path)
         expect(flash[:notice]).to eq(I18n.t("notifications.index.mark_all_read.success"))
-      end
-    end
-
-    describe "DELETE /account/notifications/destroy_all_read" do
-      it "destroys ALL of the current user's read notifications (250-row behavior assertion)" do
-        event = Noticed::Event.create!(type: "PasswordChangedNotifier", params: {}, record: user)
-        Array.new(250) do
-          Noticed::Notification.create!(
-            event: event,
-            recipient: user,
-            type: "PasswordChangedNotifier::Notification",
-            read_at: Time.current
-          )
-        end
-
-        expect {
-          delete destroy_all_read_settings_notifications_path
-        }.to change { user.notifications.count }.by(-250)
-        expect(user.notifications.where.not(read_at: nil).count).to eq(0)
-      end
-
-      it "leaves unread notifications intact" do
-        unread = deliver_security_notification
-        delete destroy_all_read_settings_notifications_path
-        expect { unread.reload }.not_to raise_error
-      end
-
-      it "does not affect other users' read notifications" do
-        foreign_event = Noticed::Event.create!(type: "PasswordChangedNotifier", params: {}, record: other_user)
-        foreign = Noticed::Notification.create!(
-          event: foreign_event,
-          recipient: other_user,
-          type: "PasswordChangedNotifier::Notification",
-          read_at: Time.current
-        )
-
-        delete destroy_all_read_settings_notifications_path
-
-        expect { foreign.reload }.not_to raise_error
       end
     end
 
@@ -496,26 +423,6 @@ RSpec.describe "Account Notifications", type: :request do
                 content: I18n.t("notifications.bell.read_state_announcement"))
 
         post mark_all_read_settings_notifications_path
-      end
-
-      it "broadcasts the v2 refresh trio on DELETE when notification was unread" do
-        # Deleting an unread notification drops the user's unread count, so
-        # other tabs need fresh avatar/hamburger/menu renders to update.
-        expect(notification.read_at).to be_nil
-
-        expect_v2_refresh_broadcasts
-
-        delete settings_notification_path(notification)
-      end
-
-      it "does NOT broadcast a bell refresh on DELETE when notification was already read" do
-        # Deleting a read notification doesn't change the unread count, so no
-        # broadcast is needed — the badge on other tabs is already correct.
-        notification.update!(read_at: 1.hour.ago)
-
-        expect(Turbo::StreamsChannel).not_to receive(:broadcast_update_to)
-
-        delete settings_notification_path(notification)
       end
     end
   end
