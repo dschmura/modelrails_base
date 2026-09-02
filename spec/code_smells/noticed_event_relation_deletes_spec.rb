@@ -12,7 +12,11 @@ require "rails_helper"
 # Scanned shape: `Noticed::Event` (optionally chained through scopes on the
 # same line) followed by delete_all / destroy_all / delete / destroy. A chain
 # broken across lines is not seen; widen the pattern rather than working
-# around it.
+# around it. The single-line shape is deliberate: `app/models/invitation_block.rb`
+# legitimately builds a subquery on `Noticed::Event` whose outer chain ends in
+# `.delete_all` on the notifications relation, and a pattern spanning lines
+# would flag it; if a multi-line event delete ever needs catching, widen the
+# pattern and register that model in `allowed_files` with this reason.
 #
 # Carve-out, pre-registered: the orphan-pruning job from #811, by class name,
 # when it exists. It must prune by NOT EXISTS against noticed_notifications,

@@ -25,13 +25,6 @@ RSpec.describe NotificationCleanupJob, type: :job do
     recipient.notifications.last
   end
 
-  def deliver_password_changed_at(time, recipient: user)
-    travel_to(time) do
-      PasswordChangedNotifier.with(record: recipient).deliver(recipient)
-    end
-    recipient.notifications.last
-  end
-
   describe "#perform" do
     context "user with retention_days = 90" do
       before do
