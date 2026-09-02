@@ -353,7 +353,7 @@ The `Trackable` concern logs workspace-domain model changes to `ActivityLog` on 
 
 **Account-security events are a separate, stricter tier.** Password set/change/removal, passkey enrollment/removal, and sign-in from a new device write rows named in `ActivityLog::SECURITY_ACTIONS`, through `ActivityLog.record_security_event!`. The credential events are written **in the same transaction as the mutation they record, with no rescue** — a failed audit write fails the credential write. Sign-in detection stays best-effort, because the `Session` row is already the primary record of a sign-in.
 
-These rows are retained on their own floor (`ActivityLogRetentionSweepJob::SECURITY_RETENTION_FLOOR`, 365 days) rather than the general 12-month window, and are readable by their owner on `/settings/sessions`. Full per-event table, including what corroborates each row: [Notifications § Security event audit coverage](/docs/developer/notifications).
+These rows are retained on their own floor (`ActivityLogRetentionSweepJob::SECURITY_RETENTION_FLOOR`, 365 days) rather than the general 12-month window, and are readable by their owner on `/settings/sessions`. Full per-event table, including what corroborates each row: [Notifications § Security event audit coverage](/docs/developer/notifications). The matching in-app notification carries no retention floor of its own — it is attention state on the user's clock. The `ActivityLog` row is the record.
 
 ### Image Processing (Active Storage + libvips)
 

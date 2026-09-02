@@ -287,7 +287,7 @@ Performance: the unread breakdown summary is computed ONCE at the top of `refres
 | Caller | When | Announcement key |
 |---|---|---|
 | `ApplicationNotifier#broadcast_notifications_arrival` (after_create_commit on the event) | New notification arrives | `arrival_announcement` |
-| `Settings::NotificationsController#broadcast_bell_refresh` (private) | Read-state mutation (`update`, `open`, `mark_all_read`, `destroy` when previously unread) | `read_state_announcement` |
+| `Settings::NotificationsController#broadcast_bell_refresh` (private), called from `update` and `mark_all_read`; `Settings::Notifications::ReadingsController#create` calls `NotificationBroadcaster.refresh_for` directly for the same reason | Read-state mutation | `read_state_announcement` |
 
 Both flow through `NotificationBroadcaster.refresh_for` — no duplicate broadcast code lives anywhere else. The fan-out in `broadcast_notifications_arrival` iterates `User.where(id: recipient_ids).find_each` so per-user broadcast failures are isolated (one bad user can't poison the rest).
 
@@ -310,7 +310,7 @@ One trap inside `notifications_menu_count_frame`: the Notifications-row link mus
 
 ### Cross-tab read-state sync
 
-The tab that performs a read-state mutation gets its own surfaces refreshed by the direct Turbo Stream response; the broadcasts exist to cover every OTHER tab the user has open. The contract, pinned by `spec/requests/settings/notifications_spec.rb`: every read-state mutation (`update`, `mark_all_read`, `open`, `destroy`-when-unread) must fire `broadcast_update_to` on the `[user, :notifications]` channel for all three frame targets — `notifications_indicator_avatar` (the dot + its severity), `notifications_indicator_hamburger` (its twin), and `notifications_menu_count_frame` (the count badge) — plus the `aria-live` announcement. Each frame is independent, so the surfaces update in isolation: the count badge re-renders even when a dot is already current. `open` on an already-read notification is an idempotent no-op — zero broadcasts.
+The tab that performs a read-state mutation gets its own surfaces refreshed by the direct Turbo Stream response; the broadcasts exist to cover every OTHER tab the user has open. The contract, pinned by `spec/requests/settings/notifications_spec.rb`: every read-state mutation (`update`, `mark_all_read`, `open` via the `readings` resource) must fire `broadcast_update_to` on the `[user, :notifications]` channel for all three frame targets — `notifications_indicator_avatar` (the dot + its severity), `notifications_indicator_hamburger` (its twin), and `notifications_menu_count_frame` (the count badge) — plus the `aria-live` announcement. Each frame is independent, so the surfaces update in isolation: the count badge re-renders even when a dot is already current. `open` on an already-read notification is an idempotent no-op — zero broadcasts.
 
 ## NotificationPreferences value object
 
@@ -342,7 +342,8 @@ Validates a partial-change hash (the shape the preferences form posts), coerces 
 
 | Controller | Routes | Notes |
 |---|---|---|
-| `Settings::NotificationsController` | `index`, `update` (read-state toggle), `destroy`, `open` (mark read + redirect), `mark_all_read`, `destroy_all_read` | Pundit-gated; calls `broadcast_bell_refresh` on every read-state mutation |
+| `Settings::NotificationsController` | `index`, `update` (read-state toggle), `mark_all_read` | Pundit-gated; calls `broadcast_bell_refresh` on every read-state mutation |
+| `Settings::Notifications::ReadingsController` | `create` (open-and-mark-read, POST-only via the nested `reading` resource) | Pundit-gated on `NotificationPolicy#open?`; the old mutating GET `:open` is gone (#686) |
 | `Settings::NotificationPreferencesController` | `edit`, `update` | Delegates validation to `NotificationPreferences#merge`; rescues `InvalidChange` → 422 |
 | `Settings::Preferences::TimezonesController` | `update` | Beacon-path returns 204; explicit-user path (`override=true`) returns Turbo Stream that closes the drawer + announces "Timezone updated" |
 
@@ -350,7 +351,7 @@ Validates a partial-change hash (the shape the preferences form posts), coerces 
 
 | Policy | Notes |
 |---|---|
-| `NotificationPolicy` | Per-record policy gates `update?`/`destroy?`/`open?` by `record.recipient_id == user.id`. `Scope` filters all of `Noticed::Notification` to the current user |
+| `NotificationPolicy` | Per-record policy gates `update?`/`open?` (both by `record.recipient_id == user.id`); collection-level `index?`/`mark_all_read?` require only a signed-in user. `Scope` filters all of `Noticed::Notification` to the current user |
 | `Settings::NotificationPreferencesPolicy` | Trivial — `edit?`/`update?` both return `user.present?` |
 | `Settings::ThemePreferencesPolicy` | Same shape |
 | `Settings::TimezonePolicy` | Same shape |
@@ -377,17 +378,21 @@ If quiet hours block delivery at the digest time, the digest is held until the w
 
 ### `NotificationCleanupJob`
 
-Per-user retention enforcement. For each user with non-`nil` `retention_days`:
+Per-user retention enforcement. For every user:
 
-1. Cutoff = `(retention_days + 2).days.ago` (2-day grace so cleanup never deletes today's reads)
-2. Delete `Noticed::Notification` where `recipient_id = user.id` AND `read_at < cutoff` AND `read_at IS NOT NULL`
-3. **Security floor exception** — notifications whose notifier carries `category :security` are kept for at least 365 days regardless of user retention preference. The floor is defined in `NotificationPreferences::RETENTION_FLOORS` and the job filters via `ApplicationNotifier.notification_types_for("security")`
+1. `days = ApplicationNotifier.preferences_for(user).retention_days` — the single owner of the missing-row fallback, so a user with no preferences row is swept at the schema default carried by `UserPreferences.new` (90, matching `DEFAULT_RETENTION_DAYS`), and a pre-migration explicit null reads as `NEVER_CAP_DAYS` (365).
+2. Cutoff = `(days + 2).days.ago` (2 days of slack against timezone drift; it only ever keeps a row longer).
+3. Delete `Noticed::Notification` where `recipient_id = user.id` AND `read_at < cutoff` AND `read_at IS NOT NULL`.
 
-**Unread is never deleted**, regardless of age: the user hasn't seen the item yet, so the retention clock effectively starts at `read_at`, not `created_at`. A `nil` `retention_days` means "Never" — the user opted out of auto-deletion and the job skips them entirely.
+**Unread is never deleted**, regardless of age: the retention clock starts at `read_at`, not `created_at`.
 
-**Batched deletion**: rows go out via `in_batches(of: 100, &:delete_all)`. SQLite serializes write transactions, so a 10k-row delete in one statement could block incoming notification writes for seconds; per-batch transactions release the write lock between rounds, capping any single block at roughly 10 ms.
+**No retention floor at this layer.** A security-category notification expires under the user's retention like any other row. The durable record of that event is its `ActivityLog` row, kept for at least `ActivityLogRetentionSweepJob::SECURITY_RETENTION_FLOOR` (365 days) — see [Security event audit coverage](#security-event-audit-coverage).
 
-Uses `delete_all` (not `destroy_all`) because `Noticed::Notification` has no destroy callbacks and no outgoing `dependent:` cascades (the only cascade is *inbound* from `noticed_events`) — `destroy_all` would instantiate every doomed row, fire nonexistent callbacks, and DELETE row-by-row: slower with no behavioral difference. Single DELETE per batch, no row instantiation. The `noticed_events` row remains; `Noticed::Event#has_many :notifications, dependent: :delete_all` handles cascade in the reverse direction.
+**Fault isolation**: each user's sweep runs under its own `rescue StandardError`, reported through `Rails.error` with the user id. That isolates a per-user data fault (a malformed preferences row). It does not isolate a systemic one — SQLite's writer lock is global — so a cycle in which every attempted user failed re-raises, and Solid Queue records a failure and retries.
+
+**Batched deletion**: rows go out via `in_batches(of: 100, &:delete_all)` so the writer lock is released between rounds. Each yielded batch is derived from the scoped relation, so its DELETE still carries `read_at IS NOT NULL AND read_at < cutoff` and a row marked unread between the id SELECT and the DELETE is not deleted. That holds in both of `in_batches`' modes (`activerecord-8.1.3.1/lib/active_record/relation/batches.rb:440` for the id-list `rewhere`, `:457-458` for the range mode's `apply_finish_limit` on the same relation). A partial batch is re-entrant: the next run recomputes the cutoff.
+
+`delete_all`, not `destroy_all`: `Noticed::Notification` has no callbacks worth running here. The one it has — noticed's counter cache on `noticed_events.notifications_count` — is bypassed by every deletion path in the app (this job, `Noticed::Event#has_many :notifications, dependent: :delete_all`, and `User#notifications, dependent: :delete_all`), so the counter is not a reliable signal; orphan-event pruning (#811) must use `NOT EXISTS`. `User#notifications, dependent: :delete_all` is also the *only* enforcement against orphaned notification rows: `noticed_notifications` carries no foreign key to users, so raw SQL or `User.delete_all` in a fork orphans them silently, and this job — which iterates `User.find_each` — never sees them again.
 
 ## Security event audit coverage
 
@@ -401,7 +406,7 @@ The three security notifiers above each pair with a row in `ActivityLog` — a s
 
 Passkey removal has no notifier of its own — only enrollment does, via `PasskeyAddedNotifier`; the ActivityLog row above is the only record that a passkey was removed.
 
-Retention for this tier is governed by `ActivityLogRetentionSweepJob::SECURITY_RETENTION_FLOOR` (365 days) rather than the job's 12-month `RETENTION_WINDOW`. **The two are numerically the same today** — `12.months.ago` and `365.days.ago` land on the same date in an ordinary year — so this is a *decoupling*, not an extension: security rows do not currently outlive ordinary ones. The floor only starts to bite if a fork shortens `RETENTION_WINDOW`, at which point credential-event history keeps its 365 days regardless. The sweep deletes security rows past the **earlier** of the two cutoffs, so the floor can only ever hold a row longer than the general window, never less (`12.months.ago` reaches one day further back than `365.days.ago` when the window spans a Feb 29 — without that guard the "floor" would invert for roughly one year in four). This ActivityLog row is now the durable record of these events; `NotificationPreferences::RETENTION_FLOORS` above still governs the separate `noticed_notifications` row today, but exists only to protect that UI-facing copy — a future change may retire it now that this floor covers the underlying event.
+Retention for this tier is governed by `ActivityLogRetentionSweepJob::SECURITY_RETENTION_FLOOR` (365 days) rather than the job's 12-month `RETENTION_WINDOW`. **The two are numerically the same today** — `12.months.ago` and `365.days.ago` land on the same date in an ordinary year — so this is a *decoupling*, not an extension: security rows do not currently outlive ordinary ones. The floor only starts to bite if a fork shortens `RETENTION_WINDOW`, at which point credential-event history keeps its 365 days regardless. The sweep deletes security rows past the **earlier** of the two cutoffs, so the floor can only ever hold a row longer than the general window, never less (`12.months.ago` reaches one day further back than `365.days.ago` when the window spans a Feb 29 — without that guard the "floor" would invert for roughly one year in four). This ActivityLog row is the durable record of these events. The `noticed_notifications` row has no floor of its own (PR 5).
 
 ## Record preloads (index N+1 prevention)
 
@@ -443,7 +448,7 @@ Watch for:
 
 ### Tuning
 
-- **Retention** is per-user via `notification_preferences.retention_days`. Floors are app-wide via `NotificationPreferences::RETENTION_FLOORS`. Bump the security floor by editing that constant.
+- **Retention** is per-user via `notification_preferences.retention_days` (choices in `NotificationPreferences::ALLOWED_RETENTION_DAYS`; absent-key and explicit-null defaults in `DEFAULT_RETENTION_DAYS` / `NEVER_CAP_DAYS`). The only retention floor is the audit sweep's `ActivityLogRetentionSweepJob::SECURITY_RETENTION_FLOOR`.
 - **Digest hour** is hardcoded at 8 AM local in `NotificationPreferences#digest_hour_local`. Per-user configuration was deliberately removed in the v2 redesign — IA simplification.
 - **Idempotency window** is 1 minute (the `minute_bucket` divisor). Increasing it widens the dedup horizon. Cross-minute retries by design land in distinct buckets and both succeed.
 

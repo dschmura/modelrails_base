@@ -102,32 +102,21 @@ RSpec.describe "Notifications index page", type: :system do
         end
         expect(notification.reload.read_at).to be_nil
       end
-
-      it "deletes a row when Delete is clicked" do
-        notification = deliver_security_notification
-
-        visit settings_notifications_path
-        within "##{ActionView::RecordIdentifier.dom_id(notification)}" do
-          click_button I18n.t("notifications.index.item.delete")
-        end
-
-        expect(page).not_to have_css("##{ActionView::RecordIdentifier.dom_id(notification)}")
-      end
     end
 
-    describe "button styling (btn utilities)" do
-      it "renders neutral actions as secondary and destructive ones as outline-danger (#766)" do
+    describe "row controls" do
+      it "gives each row exactly one control and puts no destructive control on the page" do
         notification = deliver_security_notification
 
         visit settings_notifications_path
 
         expect(page).to have_css("button.btn-secondary", text: I18n.t("notifications.index.mark_all_read.action"))
-        expect(page).to have_css("button.btn-outline-danger", text: I18n.t("notifications.index.destroy_all_read.action"))
-        # One unread row -> mark_read (secondary) + delete (outline-danger).
         within "##{ActionView::RecordIdentifier.dom_id(notification)}" do
+          expect(page).to have_css("button[type='submit']", count: 1)
           expect(page).to have_css("button.btn-secondary[type='submit']", count: 1)
-          expect(page).to have_css("button.btn-outline-danger[type='submit']", count: 1)
         end
+        # Anchored by the positive assertions above (absence_assertions_are_anchored).
+        expect(page).not_to have_css("button.btn-outline-danger")
       end
     end
 
@@ -146,30 +135,62 @@ RSpec.describe "Notifications index page", type: :system do
         expect(unread_a.reload.read_at).to be_present
         expect(unread_b.reload.read_at).to be_present
       end
+    end
 
-      it "deletes every read notification after confirming the bulk modal" do
-        read_a = deliver_security_notification
-        read_a.update!(read_at: Time.current)
-        read_b = deliver_security_notification
-        read_b.update!(read_at: Time.current)
-        read_ids = [ read_a.id, read_b.id ]
+    describe "retention hint" do
+      def set_retention(someone, days)
+        someone.create_preferences! unless someone.preferences
+        prefs = someone.preferences.notification_preferences
+        someone.preferences.update!(notification_preferences: prefs.merge("retention_days" => days))
+      end
+
+      it "states the user's own retention in the same words the preferences page uses" do
+        set_retention(user, 365)
 
         visit settings_notifications_path
-        click_button I18n.t("notifications.index.destroy_all_read.action")
-        within "dialog[open]" do
-          click_button I18n.t("notifications.index.destroy_all_read.action")
-        end
 
-        expect(page).to have_text(I18n.t("notifications.index.destroy_all_read.success"))
-        expect(Noticed::Notification.where(id: read_ids).count).to eq(0)
+        expect(page).to have_text("Once you've read a notification, we remove it 1 year later.")
+        expect(page).to have_text("Unread notifications stay until you read them.")
+      end
+
+      it "states the default for a user with untouched preferences" do
+        visit settings_notifications_path
+
+        expect(page).to have_text("we remove it 90 days later")
+      end
+
+      it "links straight to the retention control" do
+        visit settings_notifications_path
+        click_link "Change retention"
+
+        expect(page).to have_current_path(edit_settings_notification_preferences_path)
+        expect(page.current_url).to end_with("#retention-days")
+        expect(page).to have_css("select#retention-days", visible: true)
+      end
+
+      it "shows the hint on the empty state too" do
+        # Sign-in dispatches a SignInFromNewDeviceNotifier (same clearing as
+        # spec/system/notification_preferences_spec.rb) — without it the list
+        # is never actually empty and this example proves nothing.
+        user.notifications.destroy_all
+
+        visit settings_notifications_path
+
+        expect(page).to have_text(I18n.t("notifications.index.empty_all"))
+        expect(page).to have_link("Change retention")
       end
     end
 
-    # axe-core WCAG 2.2 AAA on the populated index page is not asserted
-    # directly here — `members_table_spec.rb` audits the same workspace-
-    # branded surface stack with stricter `DEFERRED_AAA_EXCLUDES` (the
-    # durable two-variable `--ws-primary-light`/`--ws-primary-dark` scheme
-    # took `.text-interactive` and `.bg-interactive` out of the umbrella),
-    # making it the canary for any future cascade-induced surface drift.
+    # axe-core WCAG 2.2 AAA, both themes, asserted here since the retention
+    # hint added this page's first text-interactive link; members_table_spec
+    # audits a different surface, so it is not a substitute for this check.
+    it "passes automated accessibility checks with a populated list (light + dark)" do
+      deliver_security_notification
+      visit settings_notifications_path
+      page.execute_script("document.querySelectorAll('[data-controller=\"toast-pill\"], [data-controller=\"toast-card\"]').forEach(el => el.remove())")
+
+      expect(axe_clean_in_both_themes?).to be(true),
+        "Accessibility violations found:\n#{axe_violations_in_both_themes.join("\n")}"
+    end
   end
 end

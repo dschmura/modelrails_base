@@ -71,7 +71,7 @@ Rails.application.routes.draw do
       end
     end
     resource :email_confirmation, only: [ :show, :destroy ]
-    resources :notifications, only: [ :index, :update, :destroy ] do
+    resources :notifications, only: [ :index, :update ] do
       # POST-only open-and-mark-read (#686): a GET here MUTATED (read_at), so
       # link prefetchers and mail scanners marked notifications read — the
       # same class of route the magic-link comment below refuses.
@@ -80,7 +80,6 @@ Rails.application.routes.draw do
       end
       collection do
         post :mark_all_read
-        delete :destroy_all_read
       end
     end
   end

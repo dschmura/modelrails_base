@@ -30,7 +30,6 @@ RSpec.describe "Flash messages are asserted, not just redirects" do
     "email_verification_resends.create.success",
     "email_verifications.show.invalid_or_expired",
     "magic_links.create.rate_limited",
-    "notifications.destroy.success",
     "omniauth_callbacks.create.already_linked",
     "omniauth_callbacks.create.collision_other_user",
     "omniauth_callbacks.create.linked",
