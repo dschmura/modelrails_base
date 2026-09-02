@@ -21,9 +21,6 @@ class NotificationPreferences
   # string comparisons.
   DAYS_OF_WEEK = %w[monday tuesday wednesday thursday friday saturday sunday].freeze
   SECURITY_CATEGORY = "security"
-  # NotificationCleanupJob enforces a 1-year retention floor on security
-  # notifications regardless of user preference.
-  RETENTION_FLOORS = { "security" => 365.days }.freeze
   # Validation constants used by #merge. Live on the value object (not the
   # controller) because they describe schema semantics.
   HH_MM_REGEX = /\A([01]\d|2[0-3]):([0-5]\d)\z/
