@@ -26,6 +26,21 @@ RSpec.describe User, type: :model do
       session = user.sessions.create!(user_agent: "test", ip_address: "127.0.0.1")
       expect(user.sessions).to include(session)
     end
+
+    # #931: #workspaces ran through every membership, so a removed member still
+    # reached the workspace through WorkspaceScoped and the switcher.
+    it "drops a workspace from #workspaces once the membership is deactivated" do
+      user = create(:user)
+      workspace = create(:workspace)
+      membership = create(:membership, user: user, workspace: workspace)
+
+      expect(user.workspaces.reload).to include(workspace)
+
+      membership.deactivate!
+
+      expect(user.workspaces.reload).not_to include(workspace)
+      expect(user.memberships.reload).to include(membership)
+    end
   end
 
   describe "personal workspace" do

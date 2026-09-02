@@ -8,7 +8,14 @@ class User < ApplicationRecord
   has_one_attached :avatar
   has_one_attached :avatar_original
   has_many :memberships, dependent: :destroy
-  has_many :workspaces, through: :memberships
+  # #931: `workspaces` runs through the KEPT memberships only. Every reader of
+  # this association (WorkspaceScoped's resolver, the header switcher) asks
+  # "which workspaces may this user enter" — routing it through every
+  # membership let a removed member resolve the workspace, get refused by the
+  # policy, and be redirected back to the page that refused them. `memberships`
+  # stays unscoped: it owns `dependent: :destroy` and the members-page history.
+  has_many :active_memberships, -> { kept }, class_name: "Membership", inverse_of: :user
+  has_many :workspaces, through: :active_memberships
   has_many :sent_invitations, class_name: "Invitation", foreign_key: :invited_by_id, dependent: :destroy
   # accepted_by_id is nullable but carries a real FK — without this, #816's
   # fix above merely unmasks InvalidForeignKey on destroy.
