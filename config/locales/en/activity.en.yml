@@ -4,6 +4,10 @@ en:
     empty: "No activity yet."
     system: "System"
     ago: "ago"
+    # Stand-in subject for a membership row whose membership has since been
+    # hard-deleted. The row outlives it (activity is immutable), so the sentence
+    # still has to name someone.
+    unknown_member: "a member"
     # Nested, never flat and dotted: I18n splits a requested key on "." and
     # walks the hash segment by segment, so a literal "membership.created" key
     # is unreachable and the renderer's `default:` silently humanizes instead
@@ -11,14 +15,21 @@ en:
     actions:
       workspace:
         updated: "updated workspace settings"
+      # The row's SUBJECT is its actor — Trackable writes `actor: Current.user`,
+      # i.e. whoever performed the change. So every membership string below
+      # names the affected member as the OBJECT; writing them in the passive
+      # ("was deactivated") attached the removal to the remover.
+      # `created` is the exception and stays subject-only: its actor IS the
+      # person who joined.
       membership:
         created: "joined the workspace"
-        updated: "had their role changed"
-        # A deactivation and a reactivation are both recorded as
+        updated: "changed %{member}'s role"
+        # A deactivation, a departure and a reactivation are all recorded as
         # `membership.updated`; ActivityLog#display_action picks between these
-        # three from the row's own `changes` metadata (#932).
-        deactivated: "was deactivated"
-        reactivated: "was reactivated"
+        # from the row's own `changes` metadata and its actor (#932).
+        deactivated: "deactivated %{member}"
+        reactivated: "reactivated %{member}"
+        left: "left the workspace"
       invitation:
         created: "sent an invitation"
         updated: "invitation was updated"

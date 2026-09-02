@@ -33,7 +33,7 @@ module Workspaces
 
     def show
       authorize @project
-      @activities = ActivityLog.for_project(@project).recent.includes(:actor)
+      @activities = ActivityLog.for_project(@project).recent.for_feed
     end
 
     def edit
