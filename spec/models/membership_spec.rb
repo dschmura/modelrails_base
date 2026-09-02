@@ -613,6 +613,22 @@ RSpec.describe Membership, type: :model do
         event = Noticed::Event.where(type: "WorkspaceMemberAddedNotifier").last
         expect(event.notifications.map(&:recipient)).to eq([ member ])
       end
+
+      # #935: this fan-out is best-effort — a raising notifier must not turn a
+      # committed membership into a 500.
+      it "still adds the member when the notifier raises" do
+        allow(WorkspaceMemberAddedNotifier).to receive(:with).and_raise(StandardError, "boom")
+        expect(Rails.error).to receive(:report).with(
+          kind_of(StandardError),
+          hash_including(handled: true, context: hash_including(action: "member_added"))
+        )
+
+        membership = nil
+        expect {
+          membership = create(:membership, user: member, workspace: workspace)
+        }.not_to raise_error
+        expect(membership.reload).to be_persisted
+      end
     end
 
     # #933: removal was the one membership transition that notified nobody.
@@ -717,6 +733,19 @@ RSpec.describe Membership, type: :model do
         }.not_to change { Noticed::Event.where(type: "WorkspaceMemberAddedNotifier").count }
       end
 
+      # #935: same best-effort posture as the fresh-add path above — it is the
+      # same underlying callback, reached through the undiscard branch.
+      it "still re-admits the member when the notifier raises" do
+        allow(WorkspaceMemberAddedNotifier).to receive(:with).and_raise(StandardError, "boom")
+        expect(Rails.error).to receive(:report).with(
+          kind_of(StandardError),
+          hash_including(handled: true, context: hash_including(action: "member_added"))
+        )
+
+        expect { membership.reactivate! }.not_to raise_error
+        expect(membership.reload).not_to be_discarded
+      end
+
       # track_creation is the only writer of grant provenance, and a
       # re-admission is an UPDATE, so re-granting a previously removed member
       # recorded who did it nowhere: `changes: {discarded_at: [...]}` and an
@@ -787,6 +816,53 @@ RSpec.describe Membership, type: :model do
         }.to change { Noticed::Event.where(type: "WorkspaceRoleChangedNotifier").count }.by(1)
         event = Noticed::Event.where(type: "WorkspaceRoleChangedNotifier").last
         expect(event.notifications.map(&:recipient)).to eq([ member ])
+      end
+
+      # #935: same best-effort posture as the rest of the notification wiring.
+      it "still changes the role when the notifier raises" do
+        allow(WorkspaceRoleChangedNotifier).to receive(:with).and_raise(StandardError, "boom")
+        expect(Rails.error).to receive(:report).with(
+          kind_of(StandardError),
+          hash_including(handled: true, context: hash_including(action: "role_changed"))
+        )
+
+        expect { membership.change_role!(admin_role) }.not_to raise_error
+        expect(membership.reload.role).to eq(admin_role)
+      end
+    end
+
+    # #935: the self-joiner's orientation notice is best-effort too — a
+    # raising notifier must not turn the join or the re-admission into a 500.
+    describe "self joined (after_create_commit)" do
+      it "still creates the membership when the notifier raises" do
+        allow(WorkspaceJoinedNotifier).to receive(:with).and_raise(StandardError, "boom")
+        expect(Rails.error).to receive(:report).with(
+          kind_of(StandardError),
+          hash_including(handled: true, context: hash_including(action: "self_joined"))
+        )
+
+        membership = nil
+        expect {
+          membership = create(:membership, user: member, workspace: workspace, self_join: true)
+        }.not_to raise_error
+        expect(membership.reload).to be_persisted
+      end
+    end
+
+    describe "self rejoined (after_update_commit)" do
+      let!(:membership) { create(:membership, user: member, workspace: workspace) }
+
+      before { membership.deactivate! }
+
+      it "still re-admits the member when the notifier raises" do
+        allow(WorkspaceJoinedNotifier).to receive(:with).and_raise(StandardError, "boom")
+        expect(Rails.error).to receive(:report).with(
+          kind_of(StandardError),
+          hash_including(handled: true, context: hash_including(action: "self_joined"))
+        )
+
+        expect { membership.reactivate!(self_join: true) }.not_to raise_error
+        expect(membership.reload).not_to be_discarded
       end
     end
   end
