@@ -263,20 +263,19 @@ RSpec.describe "Account profile — identity picker", type: :system do
       expect_color_picker_visible
       expect(page).to have_css("#identity-picker-hub a[aria-checked='true']",
         text: I18n.t("identity_picker.sources.initials.title"))
-
-      close_modal_before_axe_audit
     end
   end
 
   describe "file picker dismissal" do
     # Regression guard for a bug caught during characterization testing:
-    # when openFilePicker() calls fileInputTarget.click() inside a <dialog>
-    # and the user dismisses the OS file dialog (Escape on native picker),
-    # the browser fires a cancel event on the ancestor <dialog>. The modal
-    # controller's cancel handler would previously close the whole modal.
-    # The fix: identity_picker_controller sets a _filePickerOpen flag while
-    # the picker is open, and its cancel handler suppresses the close event
-    # (preventDefault + stopImmediatePropagation) so the user returns to hub.
+    # activating the "Upload new" label forwards a click to its file input
+    # inside a <dialog>, and when the user dismisses the OS file dialog
+    # (Escape on native picker), the browser fires a cancel event on the
+    # ancestor <dialog>. The modal controller's cancel handler would
+    # previously close the whole modal. The fix: identity_picker_controller
+    # sets a _filePickerOpen flag while the picker is open, and its cancel
+    # handler suppresses the close event (preventDefault +
+    # stopImmediatePropagation) so the user returns to hub.
     it "keeps the modal open on hub when a cancel event fires during file picker" do
       # Force a fast modal close animation so the dialog[open] assertion below
       # reliably reflects "this didn't close" rather than "this hasn't finished
@@ -288,9 +287,10 @@ RSpec.describe "Account profile — identity picker", type: :system do
 
       open_identity_picker
 
-      # Simulate the state right after openFilePicker() has been called:
-      # flag is true, then a cancel event arrives on the dialog (as the browser
-      # fires when the OS file dialog is dismissed without a selection).
+      # Simulate the state right after the "Upload new" label's forwarded
+      # click has armed the flag: flag is true, then a cancel event arrives
+      # on the dialog (as the browser fires when the OS file dialog is
+      # dismissed without a selection).
       page.execute_script(<<~JS)
         const el = document.querySelector("[data-controller~='identity-picker']")
         const ctrl = window.Stimulus.getControllerForElementAndIdentifier(el, "identity-picker")
@@ -320,8 +320,6 @@ RSpec.describe "Account profile — identity picker", type: :system do
         })()
       JS
       expect(flag_cleared).to eq(true)
-
-      close_modal_before_axe_audit
     end
   end
 
@@ -361,31 +359,45 @@ RSpec.describe "Account profile — identity picker", type: :system do
   end
 
   describe "keyboard access to the upload trigger" do
-    # The file input is sr-only and opened through a visible <label for>, so
-    # keyboard focus lands on a 1px box. The ring is painted on the label that
-    # stands for it (application.css, #912); this proves the paint.
-    it "shows the focus ring on the visible label when the file input has keyboard focus" do
+    # The file input is a DOM sibling immediately after its label (#912 —
+    # focus order matches visual order), so Tab reaches it right after the
+    # crop footer's own buttons, and the ring paints on that label
+    # (application.css). This proves both the order and the paint.
+    it "reaches the crop input right after the crop footer buttons, with the focus ring on its label" do
       open_identity_picker
       upload_photo(avatar_fixture)
 
-      input_id = "#{ActionView::RecordIdentifier.dom_id(user)}-identity-picker-file"
-      visible_label_outline = lambda do
+      input_id = "#{ActionView::RecordIdentifier.dom_id(user)}-identity-picker-file-crop"
+      label_outline = lambda do
         page.evaluate_script(<<~JS)
           (() => {
-            const label = [...document.querySelectorAll("label[for='#{input_id}']")]
-              .find(l => l.getBoundingClientRect().width > 0);
-            return label ? getComputedStyle(label).outlineStyle : "no visible label";
+            const input = document.getElementById("#{input_id}");
+            const label = input && input.previousElementSibling;
+            return label ? getComputedStyle(label).outlineStyle : "no label";
           })()
         JS
       end
-      expect(visible_label_outline.call).to eq("none")
+      expect(label_outline.call).to eq("none")
 
-      reached = 20.times.any? do
+      reached = false
+      previous_focus_tag = nil
+      previous_focus_text = nil
+      20.times do
+        previous_focus_tag = page.evaluate_script("document.activeElement.tagName")
+        previous_focus_text = page.evaluate_script("document.activeElement.textContent.trim()")
         cdp_press("Tab")
-        page.evaluate_script("document.activeElement.id") == input_id
+        if page.evaluate_script("document.activeElement.id") == input_id
+          reached = true
+          break
+        end
       end
-      expect(reached).to be(true), "Tab never reached the file input"
-      expect(visible_label_outline.call).to eq("solid")
+      expect(reached).to be(true), "Tab never reached the crop file input"
+      # The label isn't tabbable (native labels aren't in the tab order), so
+      # the stop right before the input is the last focusable element ahead
+      # of it — the crop footer's own "Save crop" button.
+      expect(previous_focus_tag).to eq("BUTTON")
+      expect(previous_focus_text).to eq(I18n.t("identity_picker.save_crop"))
+      expect(label_outline.call).to eq("solid")
     end
   end
 end

@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   static targets = [
-    "fileInput", "cropPreview", "cropSection",
+    "cropPreview", "cropSection",
     "colorField", "colorSlider", "colorHex",
     "initialsPreview", "hueSwatch", "gifWarning"
   ]
@@ -91,7 +91,6 @@ export default class extends Controller {
       const sourceName = activeSource.querySelector(".text-text-heading")?.textContent?.trim()
       if (sourceName) this._announce(sourceName)
     }
-    this._syncFileInput()
   }
 
   openCrop() {
@@ -263,7 +262,6 @@ export default class extends Controller {
       const titleEl = this._dialog.querySelector("[id$='-title']")
       if (titleEl) titleEl.textContent = this.cropTitleValue
     }
-    this._syncFileInput()
     this._manageFocus("crop")
   }
 
@@ -275,19 +273,6 @@ export default class extends Controller {
       hubFrame.hidden = false
       this.onHubLoad({ target: hubFrame })
     }
-  }
-
-  // Two labels point `for` at the file input (hub upload-source label,
-  // crop footer label) but only one is ever on screen. `hidden` (not
-  // disabled/aria-hidden) when neither is: it drops the input from
-  // layout, focus order, and the accessibility tree at once, which is
-  // also just honest — there's no upload trigger in this state (#912).
-  _syncFileInput() {
-    const hasVisibleLabel = Array.from(this.fileInputTarget.labels).some((label) => {
-      const rect = label.getBoundingClientRect()
-      return rect.width > 0 || rect.height > 0
-    })
-    this.fileInputTarget.hidden = !hasVisibleLabel
   }
 
   _manageFocus(mode) {

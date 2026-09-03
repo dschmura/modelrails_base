@@ -3,7 +3,7 @@
   identity = model.identity
   has_image = identity.image?
   original_url = url_for(identity.croppable_image) if has_image
-  file_input_id = "#{dom_id(model)}-identity-picker-file"
+  crop_file_input_id = "#{dom_id(model)}-identity-picker-file-crop"
 %>
 
 <div data-controller="identity-picker"
@@ -18,17 +18,6 @@
      data-identity-picker-color-announce-template-value="<%= t('identity_picker.js.color_announce') %>"
      data-identity-picker-color-names-value="<%= t('identity_picker.js.color_names') %>"
      data-identity-picker-original-url-value="<%= original_url %>">
-
-  <%# Opened via a native <label for> on whichever trigger is on screen
-      (hub upload-source label or crop footer label) — #912. Starts
-      `hidden`: no trigger is visible until the hub frame loads. %>
-  <input type="file"
-         id="<%= file_input_id %>"
-         accept="image/png,image/jpeg,image/gif,image/webp"
-         class="sr-only"
-         hidden
-         data-identity-picker-target="fileInput"
-         data-action="change->identity-picker#handleFileSelected click->identity-picker#markFilePickerOpen">
 
   <%# ARIA live region for announcements %>
   <div aria-live="polite" class="sr-only"></div>
@@ -70,7 +59,7 @@
       <%= render "shared/identity_picker/crop_viewport",
             has_image: has_image, original_url: original_url %>
       <%= render "shared/identity_picker/crop_controls" %>
-      <%= render "shared/identity_picker/crop_footer", form_url: form_url, file_input_id: file_input_id %>
+      <%= render "shared/identity_picker/crop_footer", form_url: form_url, file_input_id: crop_file_input_id %>
     </div>
   </div>
 </div>

@@ -119,9 +119,10 @@ body:has([data-biscuit-target="banner"]:not([hidden])) {
 }
 
 /* The identity picker opens its sr-only file input through a visible
-   <label for>. Keyboard focus lands on the 1px input, so the ring paints on
-   the label that stands for it (#912). */
-[data-controller~="identity-picker"]:has([data-identity-picker-target="fileInput"]:focus-visible) label[for$="-identity-picker-file"] {
+   <label for>, immediately followed by the input in the DOM. Keyboard
+   focus lands on the 1px input, so the ring paints on the label right
+   before it — an adjacency selector needs no id coupling (#912). */
+[data-controller~="identity-picker"] label:has(+ [data-identity-picker-target="fileInput"]:focus-visible) {
   outline: 2px solid var(--color-interactive-focus);
   outline-offset: 2px;
 }

@@ -2,7 +2,7 @@
 <%
   display_url = identity.image? ? url_for(identity.image) : nil
   gravatar_url = identity.gravatar_url
-  file_input_id = "#{dom_id(model)}-identity-picker-file"
+  file_input_id = "#{dom_id(model)}-identity-picker-file-hub"
 %>
 <turbo-frame id="identity-picker-hub">
 
@@ -59,14 +59,21 @@
   </div>
 
   <% if current_source == "upload" %>
-    <%# Manual fallback for the auto-file-picker below, which opens the OS
-        dialog automatically when there's no photo yet (#912). %>
+    <%# Input is the label's next sibling so Tab order matches visual order
+        (2.4.3, #912). Also the manual fallback for the auto-file-picker
+        below, which opens the OS dialog automatically with no photo yet. %>
     <div class="flex justify-center mb-2">
       <label for="<%= file_input_id %>"
              class="btn-text-icon btn-text-interactive text-sm px-2 inline-flex items-center min-h-11 cursor-pointer">
         <%= icon(:arrow_up_tray, size: :sm) %>
         <%= t("identity_picker.upload_new") %>
       </label>
+      <input type="file"
+             id="<%= file_input_id %>"
+             accept="image/png,image/jpeg,image/gif,image/webp"
+             class="sr-only"
+             data-identity-picker-target="fileInput"
+             data-action="change->identity-picker#handleFileSelected click->identity-picker#markFilePickerOpen">
     </div>
   <% end %>
 
