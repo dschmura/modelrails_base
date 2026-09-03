@@ -3,6 +3,7 @@ en:
     placeholder: "This notification refers to something that no longer exists."
     bell:
       arrival_announcement: "New notification"
+      arrival_announcement_with_severity: "New notification: %{phrase}"
       read_state_announcement: "Notifications updated"
     severity_phrase:
       danger: "a security alert"
