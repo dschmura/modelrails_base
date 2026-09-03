@@ -282,19 +282,21 @@ module AxeAccessibility
                                el.closest("[role=menu],[role=menubar],[role=listbox]");
             const floor = widgetItem ? 23.5 : 43.5;
             // Every visible label is a candidate target of its own (#912). A
-            // label that touches the control (wraps it, or abuts it) unions
-            // with it — that is the labelled row the SC measures. A label
-            // elsewhere on the page counts by its own box: the space between
-            // two separate regions is not a target, so unioning them made a
-            // phantom rectangle that passed a 1px control by spanning the
-            // page. Hidden labels (display:none, visibility:hidden, empty
-            // box) are not candidates at all.
+            // label that wraps the control or sits within the field's own
+            // label-to-control spacing (FormFieldComponent's `mt-3`, 12px)
+            // unions with it — that is the labelled field the SC measures. A
+            // label elsewhere on the page counts by its own box: the space
+            // between two separate regions is not a target, so unioning
+            // them made a phantom rectangle that passed a 1px control by
+            // spanning the page. Hidden labels (display:none,
+            // visibility:hidden, empty box) are not candidates at all.
+            const FIELD_GAP = 14;
             const unions = [ blurredRect ];
             for (const label of (el.labels || [])) {
               if (!visibleEl(label)) continue;
               const lr = label.getBoundingClientRect();
-              const touches = !(lr.right < blurredRect.left - 2 || lr.left > blurredRect.right + 2 ||
-                                lr.bottom < blurredRect.top - 2 || lr.top > blurredRect.bottom + 2);
+              const touches = !(lr.right < blurredRect.left - FIELD_GAP || lr.left > blurredRect.right + FIELD_GAP ||
+                                lr.bottom < blurredRect.top - FIELD_GAP || lr.top > blurredRect.bottom + FIELD_GAP);
               unions.push(touches
                 ? { width: Math.max(blurredRect.right, lr.right) - Math.min(blurredRect.left, lr.left),
                     height: Math.max(blurredRect.bottom, lr.bottom) - Math.min(blurredRect.top, lr.top) }
