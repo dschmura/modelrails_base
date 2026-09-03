@@ -159,8 +159,6 @@ en:
         success: "%{provider} unlinked."
         cannot_remove_last_verified: "You can't remove your last verified sign-in method."
       verify:
-        success: "%{provider} linked. You can sign in with it."
-        invalid_or_expired: "This confirmation link is invalid or expired. Sign in and request a new one from your connected accounts."
         email_mismatch: "Your email is verified, but that invitation was sent to a different address. Ask your workspace administrator to invite this email."
         join_link_at_capacity: "Your email is verified, but that workspace is full right now. Ask a workspace administrator to make room or send you an invitation."
       resend_verification:

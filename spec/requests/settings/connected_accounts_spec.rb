@@ -150,7 +150,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
 
     it "redirects with an invalid-or-expired alert for an unknown token" do
       get settings_connected_account_verification_path(token: "nonexistent")
-      expect(flash[:alert]).to include("invalid or expired")
+      expect(flash[:alert]).to eq(I18n.t("settings.connected_account_verifications.show.invalid_or_expired"))
     end
 
     it "renders via the legacy path-token route without verifying (#950/#916)" do
@@ -183,7 +183,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
         it "redirects to connected accounts with success and the in-document banner flash" do
           post settings_connected_account_verification_path, params: { token: auth.generate_token_for(:email_verification) }
           expect(response).to redirect_to(settings_connected_accounts_path)
-          expect(flash[:notice]).to include("linked")
+          expect(flash[:notice]).to eq(I18n.t("settings.connected_account_verifications.create.success", provider: auth.display_provider))
           expect(flash[:verified_email]).to eq(auth.email)
         end
       end
@@ -192,7 +192,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
         it "signs the user in and lands on the connected-accounts index (outcome is in-document, #950)" do
           post settings_connected_account_verification_path, params: { token: auth.generate_token_for(:email_verification) }
           expect(response).to redirect_to(settings_connected_accounts_path)
-          expect(flash[:notice]).to include("linked")
+          expect(flash[:notice]).to eq(I18n.t("settings.connected_account_verifications.create.success", provider: auth.display_provider))
           expect(flash[:verified_email]).to eq(auth.email)
         end
       end
@@ -212,14 +212,14 @@ RSpec.describe "Account Connected Accounts", type: :request do
         travel(Authentication::TOKEN_LIFETIME + 1.minute) do
           post settings_connected_account_verification_path, params: { token: token }
         end
-        expect(flash[:alert]).to include("invalid or expired")
+        expect(flash[:alert]).to eq(I18n.t("settings.connected_account_verifications.show.invalid_or_expired"))
       end
     end
 
     context "with an unknown token" do
       it "redirects with an invalid-or-expired alert" do
         post settings_connected_account_verification_path, params: { token: "nonexistent" }
-        expect(flash[:alert]).to include("invalid or expired")
+        expect(flash[:alert]).to eq(I18n.t("settings.connected_account_verifications.show.invalid_or_expired"))
       end
     end
 
@@ -234,7 +234,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
 
       it "redirects with an invalid-or-expired alert" do
         post settings_connected_account_verification_path, params: { token: original_token }
-        expect(flash[:alert]).to include("invalid or expired")
+        expect(flash[:alert]).to eq(I18n.t("settings.connected_account_verifications.show.invalid_or_expired"))
       end
     end
 
@@ -259,7 +259,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
       it "redirects with invalid_or_expired (does not leak that the token belongs to another user)" do
         post settings_connected_account_verification_path, params: { token: "other-token" }
         expect(response).to redirect_to(settings_connected_accounts_path)
-        expect(flash[:alert]).to include("invalid or expired")
+        expect(flash[:alert]).to eq(I18n.t("settings.connected_account_verifications.show.invalid_or_expired"))
       end
     end
   end
