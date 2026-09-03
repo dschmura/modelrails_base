@@ -56,6 +56,16 @@ RSpec.describe "PendingJoins", type: :request do
       expect(user.memberships.kept.where(workspace: workspace)).not_to exist
     end
 
+    it "reports the join as unavailable when the parked link expired in the meantime (#952)" do
+      travel_to 8.days.from_now do
+        post pending_join_path
+
+        expect(response).to redirect_to(root_path)
+        expect(flash[:alert]).to eq(I18n.t("pending_joins.create.unavailable"))
+        expect(user.memberships.kept.where(workspace: workspace)).not_to exist
+      end
+    end
+
     it "reports a generic failure when the workspace is at capacity" do
       workspace.update!(max_members: 1)
       create(:membership, workspace: workspace, user: create(:user))

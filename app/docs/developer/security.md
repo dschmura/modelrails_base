@@ -236,7 +236,7 @@ None of these five tokens is plaintext at rest. Magic-link and workspace-join-li
 
 - Both logs are Docker `json-file` logs on the single deploy host, capped at 10 MB each by Kamal's defaults (`--log-opt max-size=10m` for the app container, `log_max_size` for the proxy) when `config/deploy.yml` sets nothing. Nothing is shipped off the host. The app-container log is replaced on each deploy and pruned with the last five containers; the proxy log is long-lived and rolls on size only, so it is the copy that holds a token longest.
 - Reading either log needs `docker logs` over the deploy SSH key, which is root. Anyone who can read a token there can already read the database.
-- Token lifetimes cap what a copy is worth. Magic-link tokens expire in 15 minutes, are single-use, and are superseded by requesting a new link. Invitation tokens expire in 7 days, are single-use, and accept refuses an email mismatch. Email-verification tokens expire in 24 hours. **Workspace join links are the exception: they have no expiry and admit members until an admin revokes the link** ([#952](https://github.com/dschmura/modelrails_base/issues/952)).
+- Token lifetimes cap what a copy is worth. Magic-link tokens expire in 15 minutes, are single-use, and are superseded by requesting a new link. Invitation tokens expire in 7 days, are single-use, and accept refuses an email mismatch. Email-verification tokens expire in 24 hours. Workspace join links expire seven days after creation or rotation (`WorkspaceJoinLink::LIFETIME`), same as invitations, and an admin can also revoke one early ([#952](https://github.com/dschmura/modelrails_base/issues/952)).
 
 **Rule for new work.** A secret goes in the query string or the request body, never in a path segment; `spec/code_smells/no_new_bearer_tokens_in_route_paths_spec.rb` holds the existing routes to a named allow-list and fails on a new one. Existing routes move only when they are touched for another reason (verification first, [#950](https://github.com/dschmura/modelrails_base/issues/950)), with both route shapes live for one token lifetime; join links move by forced rotation.
 
@@ -287,6 +287,30 @@ is in `form-action` — **silently**: no server error, nothing in the logs,
 `config.x.oauth_providers` (#312) so a swapped provider can never be forgotten
 here; `fetch` raises at boot on a registry entry without a `form_action_host`.
 See [OAuth Security](#oauth-security) for the registry itself.
+
+### Cookie classification
+
+Every cookie the app sets is classified once, in
+`config/initializers/biscuit.rb` (`Rails.application.config.cookie_classification`),
+right beside Biscuit's own consent categories. The rule: a first-party cookie
+that stores a choice the user just made through a control, carries no
+identifier, and is read by no third party is `necessary` and needs no
+consent banner gate; anything that profiles, measures, or is read by a third
+party goes in its Biscuit category instead, and its write is gated on that
+category's consent. `spec/initializers/cookie_classification_spec.rb` holds
+the classification and this list together — a new cookie that lands in only
+one of the two fails the suite.
+
+| Cookie | Category | Reason |
+|---|---|---|
+| `session_id` | necessary | authentication session (the app's own signed cookie, `Authenticatable#start_new_session_for`) |
+| `_modelrails_base_session` (Rails' configured session-store key) | necessary | Rails' encrypted session cookie: CSRF token, flash messages, and short-lived flow state (pending join/invitation tokens, post-auth redirect target) |
+| `biscuit_consent` | necessary | the consent record itself |
+| `theme` | necessary | display choice made through a control; no identifier; first-party |
+| `sidebar_collapsed` | necessary | layout choice made through a control; no identifier; first-party |
+
+The next cookie goes in `config/initializers/biscuit.rb` and here; the spec
+fails otherwise.
 
 ### Password Security
 
