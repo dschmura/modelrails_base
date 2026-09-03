@@ -34,6 +34,14 @@ RSpec.describe "Toast notification system", type: :system do
       expect(page).to have_css("#toast-pills [data-controller='toast-pill']")
     end
 
+    # #901: the page-load flash is moved into the region after load, so it is
+    # a mutation the region announces; the carrier template removes itself.
+    it "reaches the live region as a mutation after load, not as initial content" do
+      sign_in_via_form(user)
+      expect(page).to have_css("#toast-pills [role='status']", text: I18n.t("magic_link_callbacks.show.signed_in"))
+      expect(page).to have_no_css("template[data-controller='toast-flash']", visible: :all)
+    end
+
     it "keeps role=status but no own live attrs — the container announces (#683)" do
       sign_in_via_form(user)
       pill = find("[data-controller='toast-pill']")

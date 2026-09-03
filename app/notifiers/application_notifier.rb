@@ -313,7 +313,8 @@ class ApplicationNotifier < Noticed::Event
     # swallow-log-report contract for adapter outages. Per-user iteration so one
     # bad broadcast doesn't poison the rest — each call is self-rescuing.
     User.where(id: recipient_ids).find_each do |user|
-      NotificationBroadcaster.refresh_for(user, announcement_key: "notifications.bell.arrival_announcement")
+      NotificationBroadcaster.refresh_for(user, announcement_key: "notifications.bell.arrival_announcement",
+                                          severity: self.class.severity_name)
     end
   end
 

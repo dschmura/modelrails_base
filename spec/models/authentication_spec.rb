@@ -396,4 +396,22 @@ RSpec.describe Authentication, type: :model do
       }.to have_broadcasted_to(stream_name)
     end
   end
+
+  describe "#verify!" do
+    it "verifies exactly once: the second caller gets false and nothing changes" do
+      auth = create(:authentication)              # pending (verified_at nil)
+      stale = Authentication.find(auth.id)         # a second in-memory copy, as a racing request would hold
+
+      expect(auth.verify!).to be(true)
+      expect(stale.verify!).to be(false)
+      expect(auth.reload.verified_at).to be_present
+      expect(stale.reload.verified_at).to eq(auth.verified_at)
+    end
+
+    it "broadcasts the change like an update would" do
+      auth = create(:authentication)
+      expect(auth).to receive(:broadcast_changes).once
+      auth.verify!
+    end
+  end
 end

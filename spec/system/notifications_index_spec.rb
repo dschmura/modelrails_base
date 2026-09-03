@@ -32,6 +32,62 @@ RSpec.describe "Notifications index page", type: :system do
     end
   end
 
+  # #919: every notifier defines a url and no in-app surface rendered it; the
+  # row now links its message there, and a deleted-record notification (the
+  # placeholder contract) renders plain text with no dead href.
+  describe "row link to the notification's destination (#919)" do
+    # The recipient is the inviter, a member of the workspace, as in the app;
+    # the members page the link lands on is workspace-scoped.
+    def deliver_resent_invitation
+      workspace = create(:workspace)
+      create(:membership, :owner, user: user, workspace: workspace)
+      invitation = create(:invitation, invitable: workspace, email: "invitee@example.com", invited_by: user)
+      @notification_offset ||= 0
+      @notification_offset += 5
+      travel_to(Time.current + @notification_offset.minutes) do
+        WorkspaceInvitationResentNotifier.with(record: invitation).deliver(user)
+      end
+      [ invitation, user.notifications.reload.last ]
+    end
+
+    it "links the message to the notifier's url and follows it" do
+      invitation, notification = deliver_resent_invitation
+
+      # The link text is the message; built from I18n here rather than by
+      # calling notification.message on the spec's own (un-preloaded) object,
+      # which Bullet would flag as the page's N+1.
+      message = I18n.t("notifications.workspace_invitation_resent.message",
+                       invitee_email: invitation.email, workspace: invitation.invitable.name)
+
+      visit settings_notifications_path
+      within("##{ActionView::RecordIdentifier.dom_id(notification)}") do
+        click_link message
+      end
+
+      # The resent notifier's url is the workspace's members page; the page
+      # renders it from preloaded records, so the row link is the only query.
+      expect(page).to have_current_path(workspace_members_path(invitation.invitable))
+    end
+
+    it "renders a deleted-record notification as placeholder text with no link" do
+      invitation, notification = deliver_resent_invitation
+      invitation.destroy
+
+      visit settings_notifications_path
+      within("##{ActionView::RecordIdentifier.dom_id(notification)}") do
+        expect(page).to have_text(I18n.t("notifications.placeholder"))
+        expect(page).to have_no_css("a[href]")
+      end
+    end
+
+    it "passes AAA in both themes with a linked row" do
+      _invitation, notification = deliver_resent_invitation
+      visit settings_notifications_path
+      expect(page).to have_css("##{ActionView::RecordIdentifier.dom_id(notification)} a[href]")
+      expect(axe_violations_in_both_themes).to be_empty
+    end
+  end
+
   describe "GET /account/notifications" do
     it "renders the heading and a list row containing each notification's message" do
       notification = deliver_security_notification
@@ -131,7 +187,9 @@ RSpec.describe "Notifications index page", type: :system do
           click_button I18n.t("notifications.index.mark_all_read.action")
         end
 
-        expect(page).to have_text(I18n.t("notifications.index.mark_all_read.success"))
+        # #941: the confirmation reaches the acting tab through the pill live
+        # region after the redirect (a mutation, per #901), not as page content.
+        expect(page).to have_css("#toast-pills [role='status']", text: I18n.t("notifications.index.mark_all_read.success"))
         expect(unread_a.reload.read_at).to be_present
         expect(unread_b.reload.read_at).to be_present
       end
@@ -139,9 +197,10 @@ RSpec.describe "Notifications index page", type: :system do
 
     describe "retention hint" do
       def set_retention(someone, days)
-        someone.create_preferences! unless someone.preferences
-        prefs = someone.preferences.notification_preferences
-        someone.preferences.update!(notification_preferences: prefs.merge("retention_days" => days))
+        # preferences! (#884): a plain create here raced the sign-in timezone
+        # beacon into a second row the page never read (#949).
+        row = someone.preferences!
+        row.update!(notification_preferences: row.notification_preferences.merge("retention_days" => days))
       end
 
       it "states the user's own retention in the same words the preferences page uses" do
