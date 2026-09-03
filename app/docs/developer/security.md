@@ -46,8 +46,18 @@ in supersedes per window before the victim's link becomes untouchable.
 
 ### Invitation blocks (decline-and-block)
 
-An invitee who declines an invitation can, in the same motion, stop that
-inviter's future invitations from reaching that address. An `InvitationBlock`
+An invitee can stop an inviter's future invitations from reaching their
+address. Since #951 the only way to do that is the **"Don't invite me again"
+link in the invitation email itself**: it carries a signed, stateless
+`generates_token_for :block_confirmation` token (payload `[status]`, so it dies
+on accept, decline, block, or revoke; lifetime seven days, the invitation's
+own) as a query parameter. The link opens a confirmation page
+(`GET /invitation_block?token=`, no side effects) whose one button performs
+`decline_and_block!` (`POST /invitation_block`) and renders the outcome in the
+document. Nothing reachable from a bearer invitation URL can block: the decline
+page only points at the email link, and the former `POST /invitations/:token/block`
+route is gone. Mailbox possession is the proof, the same proof accepting relies
+on through email verification. An `InvitationBlock`
 row means "invitations from inviter *I* to address *E* are not delivered".
 Blocks are **email-keyed and account-independent**: they work for a decliner
 with no account, survive the address later becoming a user, and do not follow
@@ -218,7 +228,7 @@ and its token travels as a query parameter, not a path segment ([#950](https://g
 
 ### Bearer Tokens in Request Logs
 
-Four flows carry a bearer token as a URL path segment: the magic-link callback (`/magic_link_callback/:token`), invitation accept, decline and block (`/invitations/:token/…`), and workspace join links (`/workspaces/:slug/joins/:token`). Connected-account email verification moved its token to the query string (`/settings/connected_accounts/verify?token=…`, [#950](https://github.com/dschmura/modelrails_base/issues/950)); a legacy path-token alias (`/settings/connected_accounts/verify/:token`) stays live for one token lifetime (24 hours) past the 2026-09 deploy so in-flight emails still land, then it is removed. Rails writes a path segment into every `Started GET …` line verbatim: `config.filter_parameters` reaches query strings and form fields, and `Rails::Rack::Logger` logs `request.filtered_path`, which filters the query string and passes path segments through. (Active Storage's direct-upload route carries a five-minute signed token the same way.)
+Four flows carry a bearer token as a URL path segment: the magic-link callback (`/magic_link_callback/:token`), invitation accept and decline (`/invitations/:token/…`; blocking moved behind a signed query-string link in the invitee's own email, #951), and workspace join links (`/workspaces/:slug/joins/:token`). Connected-account email verification moved its token to the query string (`/settings/connected_accounts/verify?token=…`, [#950](https://github.com/dschmura/modelrails_base/issues/950)); a legacy path-token alias (`/settings/connected_accounts/verify/:token`) stays live for one token lifetime (24 hours) past the 2026-09 deploy so in-flight emails still land, then it is removed. Rails writes a path segment into every `Started GET …` line verbatim: `config.filter_parameters` reaches query strings and form fields, and `Rails::Rack::Logger` logs `request.filtered_path`, which filters the query string and passes path segments through. (Active Storage's direct-upload route carries a five-minute signed token the same way.)
 
 None of these five tokens is plaintext at rest. Magic-link and workspace-join-link tokens are stored only as SHA-256 digests (see *Magic-Link Tokens*); connected-account email verification is Rails' stateless `generates_token_for` and stores nothing at all. Invitation tokens (`invitations.token`) and the parked invitation token from an unverified-email OAuth signup (`authentications.pending_invitation_token`) are deterministically encrypted rather than digested, because the expiring-soon reminder and the notification mailer rebuild the accept URL from the token days after creation — a digest, being one-way, cannot be turned back into a link (#953). What this section accepts is a token's momentary appearance in a request-log line, never its form at rest.
 
@@ -226,7 +236,7 @@ None of these five tokens is plaintext at rest. Magic-link and workspace-join-li
 
 - Both logs are Docker `json-file` logs on the single deploy host, capped at 10 MB each by Kamal's defaults (`--log-opt max-size=10m` for the app container, `log_max_size` for the proxy) when `config/deploy.yml` sets nothing. Nothing is shipped off the host. The app-container log is replaced on each deploy and pruned with the last five containers; the proxy log is long-lived and rolls on size only, so it is the copy that holds a token longest.
 - Reading either log needs `docker logs` over the deploy SSH key, which is root. Anyone who can read a token there can already read the database.
-- Token lifetimes cap what a copy is worth. Magic-link tokens expire in 15 minutes, are single-use, and are superseded by requesting a new link. Invitation tokens expire in 7 days, are single-use, and accept refuses an email mismatch. Email-verification tokens expire in 24 hours. **Workspace join links are the exception: they have no expiry and admit members until an admin revokes the link** ([#952](https://github.com/dschmura/modelrails_base/issues/952)).
+- Token lifetimes cap what a copy is worth. Magic-link tokens expire in 15 minutes, are single-use, and are superseded by requesting a new link. Invitation tokens expire in 7 days, are single-use, and accept refuses an email mismatch. Email-verification tokens expire in 24 hours. Workspace join links expire seven days after creation or rotation (`WorkspaceJoinLink::LIFETIME`), same as invitations, and an admin can also revoke one early ([#952](https://github.com/dschmura/modelrails_base/issues/952)).
 
 **Rule for new work.** A secret goes in the query string or the request body, never in a path segment; `spec/code_smells/no_new_bearer_tokens_in_route_paths_spec.rb` holds the existing routes to a named allow-list and fails on a new one. Existing routes move only when they are touched for another reason (verification first, [#950](https://github.com/dschmura/modelrails_base/issues/950)), with both route shapes live for one token lifetime; join links move by forced rotation.
 
@@ -277,6 +287,30 @@ is in `form-action` — **silently**: no server error, nothing in the logs,
 `config.x.oauth_providers` (#312) so a swapped provider can never be forgotten
 here; `fetch` raises at boot on a registry entry without a `form_action_host`.
 See [OAuth Security](#oauth-security) for the registry itself.
+
+### Cookie classification
+
+Every cookie the app sets is classified once, in
+`config/initializers/biscuit.rb` (`Rails.application.config.cookie_classification`),
+right beside Biscuit's own consent categories. The rule: a first-party cookie
+that stores a choice the user just made through a control, carries no
+identifier, and is read by no third party is `necessary` and needs no
+consent banner gate; anything that profiles, measures, or is read by a third
+party goes in its Biscuit category instead, and its write is gated on that
+category's consent. `spec/initializers/cookie_classification_spec.rb` holds
+the classification and this list together — a new cookie that lands in only
+one of the two fails the suite.
+
+| Cookie | Category | Reason |
+|---|---|---|
+| `session_id` | necessary | authentication session (the app's own signed cookie, `Authenticatable#start_new_session_for`) |
+| `_modelrails_base_session` (Rails' configured session-store key) | necessary | Rails' encrypted session cookie: CSRF token, flash messages, and short-lived flow state (pending join/invitation tokens, post-auth redirect target) |
+| `biscuit_consent` | necessary | the consent record itself |
+| `theme` | necessary | display choice made through a control; no identifier; first-party |
+| `sidebar_collapsed` | necessary | layout choice made through a control; no identifier; first-party |
+
+The next cookie goes in `config/initializers/biscuit.rb` and here; the spec
+fails otherwise.
 
 ### Password Security
 
