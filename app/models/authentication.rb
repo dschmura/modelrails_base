@@ -64,8 +64,17 @@ class Authentication < ApplicationRecord
     verified? && user.authentications.verified.count <= 1
   end
 
+  # Compare-and-swap, the MagicLinkToken#consume! shape (#950): the token payload
+  # already dies once verified_at is set, but two requests inside the same
+  # window both pass find_by_token_for; the WHERE is what makes the second lose.
+  # update_all fires no callbacks, so the Broadcastable update is sent by hand.
   def verify!
-    update!(verified_at: Time.current)
+    now = Time.current
+    return false unless self.class.where(id: id, verified_at: nil).update_all(verified_at: now, updated_at: now) == 1
+
+    reload
+    broadcast_changes
+    true
   end
 
   # One-shot claim of everything parked on this Authentication during the
