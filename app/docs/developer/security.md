@@ -75,7 +75,8 @@ Four invariants hold the design together:
   `guard_acceptable!` never look at `suppressed_at`. A redemption error would
   hand the blocked inviter a detection oracle, and the accept page is fresh,
   informed consent — so a suppressed invitation can still be accepted by
-  token.
+  token (stored encrypted, never plaintext — see *Bearer Tokens in Request
+  Logs*).
 - **No oracle in the inviter's surfaces.** A ghost is an ordinary pending row
   in the members index; resend produces the same confirmation as a live
   invitation; and no activity row the inviter can read is written by
@@ -219,6 +220,8 @@ and its token travels as a query parameter, not a path segment ([#950](https://g
 
 Four flows carry a bearer token as a URL path segment: the magic-link callback (`/magic_link_callback/:token`), invitation accept, decline and block (`/invitations/:token/…`), and workspace join links (`/workspaces/:slug/joins/:token`). Connected-account email verification moved its token to the query string (`/settings/connected_accounts/verify?token=…`, [#950](https://github.com/dschmura/modelrails_base/issues/950)); a legacy path-token alias (`/settings/connected_accounts/verify/:token`) stays live for one token lifetime (24 hours) past the 2026-09 deploy so in-flight emails still land, then it is removed. Rails writes a path segment into every `Started GET …` line verbatim: `config.filter_parameters` reaches query strings and form fields, and `Rails::Rack::Logger` logs `request.filtered_path`, which filters the query string and passes path segments through. (Active Storage's direct-upload route carries a five-minute signed token the same way.)
 
+None of these five tokens is plaintext at rest. Magic-link and workspace-join-link tokens are stored only as SHA-256 digests (see *Magic-Link Tokens*); connected-account email verification is Rails' stateless `generates_token_for` and stores nothing at all. Invitation tokens (`invitations.token`) and the parked invitation token from an unverified-email OAuth signup (`authentications.pending_invitation_token`) are deterministically encrypted rather than digested, because the expiring-soon reminder and the notification mailer rebuild the accept URL from the token days after creation — a digest, being one-way, cannot be turned back into a link (#953). What this section accepts is a token's momentary appearance in a request-log line, never its form at rest.
+
 **This is an accepted, recorded exposure, not an oversight** ([#916](https://github.com/dschmura/modelrails_base/issues/916), panel decision 2026-09-03). Redacting the Rails line would not change what is on the host: kamal-proxy writes its own JSON access log with the request `path` and the raw `query` for every request, so the same token lands on the same disk either way, and a token moved into the query string is logged there too. What bounds the exposure is topology, not redaction:
 
 - Both logs are Docker `json-file` logs on the single deploy host, capped at 10 MB each by Kamal's defaults (`--log-opt max-size=10m` for the app container, `log_max_size` for the proxy) when `config/deploy.yml` sets nothing. Nothing is shipped off the host. The app-container log is replaced on each deploy and pruned with the last five containers; the proxy log is long-lived and rolls on size only, so it is the copy that holds a token longest.
@@ -325,14 +328,23 @@ which is why the members page filters and sorts in Ruby (`WorkspaceRoster`).
 | `authentications.email`, `invitations.company_name`, `client_accesses.company_name` | non-deterministic | never looked up |
 
 `workspaces.name` stays plaintext deliberately: the slug is the name,
-parameterized, and sits in every URL. Two properties worth knowing: the
+parameterized, and sits in every URL. Three properties worth knowing: the
 deterministic columns for one address — `users.email_address` and the
 email-provider `authentications.uid` — hold identical bytes, so a leaked dump
-joins them; and the `deterministic_key` cannot be rotated (Rails raises on a
-key list), so it is backed up with the credentials key. Keys are generated per
-fork — see [Forking](/docs/developer/forking#bootstrap-secrets-and-configuration).
-Rows written before a column was encrypted are unreadable by this release;
-the template ships no conversion. Rails' own coexistence path
+joins them; the `deterministic_key` cannot be rotated (Rails raises on a
+key list), so it is backed up with the credentials key; and the two
+invitation-token columns are encrypted *differently* on purpose —
+`invitations.token` is deterministic (its `find_by` lookup and unique index
+need it) while `authentications.pending_invitation_token` is not (nothing
+looks it up by value), so the same token does not encrypt to identical bytes
+in both places. Keys are generated per fork — see
+[Forking](/docs/developer/forking#bootstrap-secrets-and-configuration).
+Rows written before a column was encrypted are unreadable by this release for
+the personal-data columns from #902 — the template ships no conversion for
+those. Invitation tokens are the exception: `invitations.token` and
+`authentications.pending_invitation_token` ship one
+(`db/migrate/20260903115906_encrypt_invitation_tokens_at_rest.rb`, #953),
+re-runnable and reversible. For everything else, Rails' own coexistence path
 (`support_unencrypted_data`, `extend_queries`, `record.encrypt`) is documented
 in the Active Record Encryption guide under "Migrating Existing Data".
 
@@ -518,7 +530,7 @@ config.ssl_options = { hsts: { subdomains: true, preload: true, expires: 1.year 
 Some vulnerabilities disclose anything readable by the app process — CVE-2026-66066 above is one. Upgrading closes the hole but does not undo an exfiltration that already happened. If your deployment ran an affected version while reachable by untrusted users, treat every secret the process could read as exposed and replace it:
 
 1. `secret_key_base` — rotating it signs out every user and invalidates encrypted and signed cookies, signed global IDs, and existing Active Storage URLs.
-2. The master key (`config/master.key` or `RAILS_MASTER_KEY`) and everything `config/credentials.yml.enc` decrypts. Re-encrypt under the new key with `bin/rails credentials:edit`. One entry inside the blob is different: `active_record_encryption.primary_key` rotates by listing the new key after the old one and re-saving records (Rails guide, "Rotating Keys"), but `deterministic_key` **cannot** rotate — Rails refuses a list. Replacing it means decrypting every deterministic column under the old key and re-writing under the new one in a one-off pass this template does not ship; until then, an exposed deterministic key means the addresses in `users.email_address`, `authentications.uid`, `invitations.email`, and `magic_link_tokens.email` are recoverable from any dump taken while it was in use.
+2. The master key (`config/master.key` or `RAILS_MASTER_KEY`) and everything `config/credentials.yml.enc` decrypts. Re-encrypt under the new key with `bin/rails credentials:edit`. One entry inside the blob is different: `active_record_encryption.primary_key` rotates by listing the new key after the old one and re-saving records (Rails guide, "Rotating Keys"), but `deterministic_key` **cannot** rotate — Rails refuses a list. Replacing it means decrypting every deterministic column under the old key and re-writing under the new one in a one-off pass this template does not ship; until then, an exposed deterministic key means the addresses in `users.email_address`, `authentications.uid`, `invitations.email`, and `magic_link_tokens.email` are recoverable from any dump taken while it was in use — as is `invitations.token` (also deterministic, for its `find_by` lookup and unique index), so working invitation accept/decline/block links are recoverable from that dump too, for as long as those invitations stay pending. `authentications.pending_invitation_token` (the parked copy of the same token, held non-deterministically because nothing looks it up by value) decrypts under the rotatable `primary_key` instead, so it isn't stuck the way the deterministic columns are — but until you actually rotate, it is exposed the same way everything else in this step is.
 3. Storage service credentials (S3, GCS, Azure) if you moved off the local disk service.
 4. Database credentials, if your database is not the bundled SQLite file.
 5. API tokens and keys for every third-party service the app calls — OAuth client secrets, mail provider keys, error reporting DSNs.
