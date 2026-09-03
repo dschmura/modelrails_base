@@ -276,6 +276,30 @@ is in `form-action` — **silently**: no server error, nothing in the logs,
 here; `fetch` raises at boot on a registry entry without a `form_action_host`.
 See [OAuth Security](#oauth-security) for the registry itself.
 
+### Cookie classification
+
+Every cookie the app sets is classified once, in
+`config/initializers/biscuit.rb` (`Rails.application.config.cookie_classification`),
+right beside Biscuit's own consent categories. The rule: a first-party cookie
+that stores a choice the user just made through a control, carries no
+identifier, and is read by no third party is `necessary` and needs no
+consent banner gate; anything that profiles, measures, or is read by a third
+party goes in its Biscuit category instead, and its write is gated on that
+category's consent. `spec/initializers/cookie_classification_spec.rb` holds
+the classification and this list together — a new cookie that lands in only
+one of the two fails the suite.
+
+| Cookie | Category | Reason |
+|---|---|---|
+| `session_id` | necessary | authentication session (the app's own signed cookie, `Authenticatable#start_new_session_for`) |
+| `_modelrails_base_session` (Rails' configured session-store key) | necessary | Rails' encrypted session cookie: CSRF token, flash messages, and short-lived flow state (pending join/invitation tokens, post-auth redirect target) |
+| `biscuit_consent` | necessary | the consent record itself |
+| `theme` | necessary | display choice made through a control; no identifier; first-party |
+| `sidebar_collapsed` | necessary | layout choice made through a control; no identifier; first-party |
+
+The next cookie goes in `config/initializers/biscuit.rb` and here; the spec
+fails otherwise.
+
 ### Password Security
 
 - 12-character minimum
