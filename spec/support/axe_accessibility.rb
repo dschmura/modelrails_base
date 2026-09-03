@@ -281,20 +281,25 @@ module AxeAccessibility
             const widgetItem = el.matches("[role=menuitem],[role=menuitemcheckbox],[role=menuitemradio],[role=option]") &&
                                el.closest("[role=menu],[role=menubar],[role=listbox]");
             const floor = widgetItem ? 23.5 : 43.5;
-            let r = blurredRect;
-            const label = el.labels && el.labels[0];
-            if (label) {
+            // Every rendered label counts, each on its own (#912): a control
+            // with one label per view (the identity picker's hub and crop
+            // "Upload new") is measured against the label on screen, and a
+            // hidden label's zero box is never unioned into a phantom
+            // rectangle reaching the page origin.
+            const unions = [ blurredRect ];
+            for (const label of (el.labels || [])) {
               const lr = label.getBoundingClientRect();
-              r = { width: Math.max(r.right, lr.right) - Math.min(r.left, lr.left),
-                    height: Math.max(r.bottom, lr.bottom) - Math.min(r.top, lr.top) };
+              if (lr.width === 0 && lr.height === 0) continue;
+              unions.push({ width: Math.max(blurredRect.right, lr.right) - Math.min(blurredRect.left, lr.left),
+                            height: Math.max(blurredRect.bottom, lr.bottom) - Math.min(blurredRect.top, lr.top) });
             }
             // Layout-box fallback: getBoundingClientRect shrinks under
             // transforms — an audit racing a dialog's 200ms close animation
             // (panel at scale .95) measured 44px buttons at 42. offsetWidth/
             // Height ignore transforms; persistent scale bugs are prevented
             // at the source (no scale-* rest classes on panels).
-            const w = Math.max(r.width, el.offsetWidth || 0);
-            const h = Math.max(r.height, el.offsetHeight || 0);
+            const boxes = unions.map(u => ({ w: Math.max(u.width, el.offsetWidth || 0), h: Math.max(u.height, el.offsetHeight || 0) }));
+            const { w, h } = boxes.reduce((a, b) => Math.min(b.w, b.h) > Math.min(a.w, a.h) ? b : a);
             if (w < floor || h < floor)
               tooSmall.push({ el, why: `target ${Math.round(w)}x${Math.round(h)} — floor is ${widgetItem ? "24x24 (2.5.8 AA, widget-item deviation)" : "44x44 (2.5.5)"}` });
           }
