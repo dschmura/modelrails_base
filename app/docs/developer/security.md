@@ -75,7 +75,8 @@ Four invariants hold the design together:
   `guard_acceptable!` never look at `suppressed_at`. A redemption error would
   hand the blocked inviter a detection oracle, and the accept page is fresh,
   informed consent — so a suppressed invitation can still be accepted by
-  token.
+  token (stored encrypted, never plaintext — see *Bearer Tokens in Request
+  Logs*).
 - **No oracle in the inviter's surfaces.** A ghost is an ordinary pending row
   in the members index; resend produces the same confirmation as a live
   invitation; and no activity row the inviter can read is written by
@@ -216,6 +217,8 @@ confirmation flow.
 ### Bearer Tokens in Request Logs
 
 Five flows carry a bearer token as a URL path segment: the magic-link callback (`/magic_link_callback/:token`), invitation accept, decline and block (`/invitations/:token/…`), workspace join links (`/workspaces/:slug/joins/:token`), and connected-account email verification (`/settings/connected_accounts/verify/:token`). Rails writes that path into every `Started GET …` line verbatim: `config.filter_parameters` reaches query strings and form fields, and `Rails::Rack::Logger` logs `request.filtered_path`, which filters the query string and passes path segments through. (Active Storage's direct-upload route carries a five-minute signed token the same way.)
+
+None of these five tokens is plaintext at rest. Magic-link and workspace-join-link tokens are stored only as SHA-256 digests (see *Magic-Link Tokens*); connected-account email verification is Rails' stateless `generates_token_for` and stores nothing at all. Invitation tokens (`invitations.token`) and the parked invitation token from an unverified-email OAuth signup (`authentications.pending_invitation_token`) are deterministically encrypted rather than digested, because the expiring-soon reminder and the notification mailer rebuild the accept URL from the token days after creation — a digest, being one-way, cannot be turned back into a link (#953). What this section accepts is a token's momentary appearance in a request-log line, never its form at rest.
 
 **This is an accepted, recorded exposure, not an oversight** ([#916](https://github.com/dschmura/modelrails_base/issues/916), panel decision 2026-09-03). Redacting the Rails line would not change what is on the host: kamal-proxy writes its own JSON access log with the request `path` and the raw `query` for every request, so the same token lands on the same disk either way, and a token moved into the query string is logged there too. What bounds the exposure is topology, not redaction:
 
