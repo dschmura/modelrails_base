@@ -33,6 +33,15 @@ class MagicLinkCallbacksController < ApplicationController
     user = token_record && User.find_by(email_address: token_record.email)
 
     unless user
+      if (replayed = replayed_sign_in)
+        # Not a failure: this browser is signed in as the address the token
+        # belongs to, so the POST that spent it is the one that signed them in.
+        # Answering "invalid or has expired" here tells a signed-in user the
+        # opposite of what just happened (#846).
+        redirect_to magic_link_return_path(replayed), notice: t("magic_link_callbacks.show.signed_in")
+        return
+      end
+
       redirect_to(authenticated? ? root_path : new_session_path, alert: t("magic_link_callbacks.show.invalid"))
       return
     end
@@ -95,6 +104,26 @@ class MagicLinkCallbacksController < ApplicationController
   end
 
   private
+
+  # The spent token this same browser already redeemed, or nil.
+  #
+  # A second POST of one token is ordinary: a double-clicked confirm button, a
+  # browser retrying a POST, a driver re-dispatching a click on a loaded CI
+  # shard. `consume!` is single-use, so the replay comes back nil and looks
+  # exactly like an expired link — except the session the first POST created is
+  # live, which no expiry and no superseding mint can produce.
+  #
+  # Matching on the address is the fence: only the owner may read a spent token
+  # as their own replay. A signed-in visitor holding somebody else's used link
+  # still gets the invalid alert, and no session is started either way.
+  def replayed_sign_in
+    return nil unless authenticated?
+
+    spent = MagicLinkToken.find_by(token_digest: MagicLinkToken.digest(params[:token]))
+    return nil if spent.nil? || spent.consumed_at.nil?
+
+    spent if spent.email == Current.user.email_address
+  end
 
   # Server-side intent → fixed path. Never trust a user-supplied URL here.
   def magic_link_return_path(token_record)

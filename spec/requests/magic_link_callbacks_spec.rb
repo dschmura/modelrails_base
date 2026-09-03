@@ -106,6 +106,57 @@ RSpec.describe "Magic Link Callbacks", type: :request do
       post magic_link_callback_sign_in_path(token: "nope")
       expect(response).to redirect_to(new_session_path)
     end
+
+    # #846. A second POST of the token that just signed this browser in — a
+    # double-click, a browser retry, a Capybara re-dispatch on a loaded shard.
+    # The token is spent, so `consume!` returns nil and the old code answered
+    # "This magic link is invalid or has expired" on the signed-in homepage:
+    # the user IS signed in, and is told the opposite. In CI that surfaced as
+    # `sign_in_via_form` failing inside an unrelated spec.
+    describe "a replayed sign-in POST" do
+      it "answers what the first POST answered, not an expiry alert" do
+        token = MagicLinkToken.create_for_email(user.email_address)
+        post magic_link_callback_sign_in_path(token: token)
+
+        post magic_link_callback_sign_in_path(token: token)
+
+        expect(response).to redirect_to(root_path)
+        expect(flash[:alert]).to be_blank
+        expect(flash[:notice]).to eq(I18n.t("magic_link_callbacks.show.signed_in"))
+      end
+
+      it "honors the spent token's intent, so a replay lands where the first POST did" do
+        token = MagicLinkToken.create_for_email(user.email_address, intent: "set_password")
+        post magic_link_callback_sign_in_path(token: token)
+
+        post magic_link_callback_sign_in_path(token: token)
+
+        expect(response).to redirect_to(edit_settings_password_path)
+      end
+
+      it "starts no second session" do
+        token = MagicLinkToken.create_for_email(user.email_address)
+        post magic_link_callback_sign_in_path(token: token)
+
+        expect { post magic_link_callback_sign_in_path(token: token) }
+          .not_to change { user.sessions.count }
+      end
+
+      # The fence. Only the address the token belongs to may read a spent
+      # token as its own replay — otherwise a signed-in visitor holding
+      # somebody else's used link would be told they are that person.
+      it "still rejects a spent token belonging to a different address" do
+        other = create(:user)
+        others_token = MagicLinkToken.create_for_email(other.email_address)
+        MagicLinkToken.consume!(others_token)
+
+        post magic_link_callback_sign_in_path(token: MagicLinkToken.create_for_email(user.email_address))
+        post magic_link_callback_sign_in_path(token: others_token)
+
+        expect(response).to redirect_to(root_path)
+        expect(flash[:alert]).to eq(I18n.t("magic_link_callbacks.show.invalid"))
+      end
+    end
   end
 
   describe "POST /magic_link_callback/:token/sign_in with no user for the address" do
