@@ -421,6 +421,16 @@ module AxeAccessibility
     @__axe_audit_memo[memo_key] = result
   end
 
+  # A Turbo visit still in flight at teardown is not a page state: Turbo sets
+  # aria-busy on <html> until the new body renders, and axe reports the
+  # attribute as an ARIA error (#948, CI shard 1: an example whose last action
+  # was a link click). Waits for the visit to settle so the audit sees the page
+  # the user lands on; false if it never did within the budget, in which case
+  # the audit runs anyway and its report says why.
+  def wait_for_turbo_visit_to_settle(wait: Capybara.default_max_wait_time)
+    page.has_no_css?("html[aria-busy='true']", wait: wait)
+  end
+
   # Real (non-memoized) audits this example has run — the observability handle
   # for axe_audit_memo_spec.
   def axe_audit_run_count
@@ -609,6 +619,8 @@ RSpec.configure do |config|
         AxeAccessibility::TEARDOWN_LEDGER[example.id] = :blank
         next
       end
+
+      wait_for_turbo_visit_to_settle
       # Prepare toasts for audit:
       # - Defeat in-progress animations (element opacity, transforms)
       # - Force a solid background so axe can reliably compute color contrast.
