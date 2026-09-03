@@ -211,11 +211,13 @@ limit. Clicking a magic link is a two-step GET→POST: the GET renders a
 "Sign in as x@y?" confirmation and never consumes the token or starts a session,
 so a mail scanner or prefetcher doing a bare GET can't burn the link; the POST
 (the visible button) runs the atomic consume and signs in. Mirrors the join-link
-confirmation flow.
+confirmation flow. Email verification (both the first-email flow and
+connected-account linking) follows the same GET-confirm / POST-verify shape,
+and its token travels as a query parameter, not a path segment ([#950](https://github.com/dschmura/modelrails_base/issues/950)).
 
 ### Bearer Tokens in Request Logs
 
-Five flows carry a bearer token as a URL path segment: the magic-link callback (`/magic_link_callback/:token`), invitation accept, decline and block (`/invitations/:token/…`), workspace join links (`/workspaces/:slug/joins/:token`), and connected-account email verification (`/settings/connected_accounts/verify/:token`). Rails writes that path into every `Started GET …` line verbatim: `config.filter_parameters` reaches query strings and form fields, and `Rails::Rack::Logger` logs `request.filtered_path`, which filters the query string and passes path segments through. (Active Storage's direct-upload route carries a five-minute signed token the same way.)
+Four flows carry a bearer token as a URL path segment: the magic-link callback (`/magic_link_callback/:token`), invitation accept, decline and block (`/invitations/:token/…`), and workspace join links (`/workspaces/:slug/joins/:token`). Connected-account email verification moved its token to the query string (`/settings/connected_accounts/verify?token=…`, [#950](https://github.com/dschmura/modelrails_base/issues/950)); a legacy path-token alias (`/settings/connected_accounts/verify/:token`) stays live for one token lifetime (24 hours) past the 2026-09 deploy so in-flight emails still land, then it is removed. Rails writes a path segment into every `Started GET …` line verbatim: `config.filter_parameters` reaches query strings and form fields, and `Rails::Rack::Logger` logs `request.filtered_path`, which filters the query string and passes path segments through. (Active Storage's direct-upload route carries a five-minute signed token the same way.)
 
 **This is an accepted, recorded exposure, not an oversight** ([#916](https://github.com/dschmura/modelrails_base/issues/916), panel decision 2026-09-03). Redacting the Rails line would not change what is on the host: kamal-proxy writes its own JSON access log with the request `path` and the raw `query` for every request, so the same token lands on the same disk either way, and a token moved into the query string is logged there too. What bounds the exposure is topology, not redaction:
 
