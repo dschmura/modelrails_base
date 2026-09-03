@@ -8,6 +8,7 @@ en:
       body: "%{inviter} has invited you to join a workspace on %{app_name} as a %{role}. The workspace is named on the page you land on when you accept or decline."
       accept_action: "Accept invitation"
       decline_action: "Decline invitation"
+      block_action: "Don't invite me again"
       expiry_note: "This invitation expires in 7 days."
   workspaces:
     invitations:

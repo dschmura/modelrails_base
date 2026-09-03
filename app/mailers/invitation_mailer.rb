@@ -16,6 +16,7 @@ class InvitationMailer < ApplicationMailer
 
     @accept_url = accept_invitation_url(token: invitation.token)
     @decline_url = decline_invitation_url(token: invitation.token)
+    @block_url = invitation_block_url(token: invitation.generate_token_for(:block_confirmation))
 
     mail(
       to: invitation.email,
@@ -31,6 +32,7 @@ class InvitationMailer < ApplicationMailer
     @workspace = @project.workspace
     @accept_url = accept_invitation_url(token: invitation.token)
     @decline_url = decline_invitation_url(token: invitation.token)
+    @block_url = invitation_block_url(token: invitation.generate_token_for(:block_confirmation))
 
     mail(
       to: invitation.email,
