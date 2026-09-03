@@ -334,24 +334,32 @@ module AxeAccessibility
             const bg = getComputedStyle(node).backgroundImage;
             return typeof bg === "string" && bg.includes("url(");
           };
-          const overMediaUnplated = (el) => {
+          // Returns the offending media node (not a boolean) so the report can
+          // name what overlapped the control: a CI-only occurrence on the
+          // workspace heading link could not be diagnosed from the control alone.
+          const mediaUnderControl = (el) => {
             const r = el.getBoundingClientRect();
             const stack = document.elementsFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-            if (!stack.includes(el)) return false; // center not on the control (covered/offscreen)
+            if (!stack.includes(el)) return null; // center not on the control (covered/offscreen)
             for (const node of stack) {
               const opaque = alphaOf(getComputedStyle(node).backgroundColor) >= 0.9;
               if (node === el || el.contains(node)) {
-                if (opaque) return false;
+                if (opaque) return null;
                 continue;
               }
-              if (opaque) return false;
-              if (isMedia(node)) return true;
+              if (opaque) return null;
+              if (isMedia(node)) return node;
             }
-            return false;
+            return null;
           };
           const seeThrough = focusables
-            .filter(overMediaUnplated)
-            .map(el => ({ el, why: "transparent control overlapping media — contrast is unknowable; add an opaque plate" }));
+            .map(el => ({ el, media: mediaUnderControl(el) }))
+            .filter(({ media }) => media)
+            .map(({ el, media }) => {
+              const mr = media.getBoundingClientRect();
+              const cr = el.getBoundingClientRect();
+              return { el, why: `transparent control overlapping media — contrast is unknowable; add an opaque plate. Media under the control's centre: ${describe(media)} at ${Math.round(mr.left)},${Math.round(mr.top)} ${Math.round(mr.width)}x${Math.round(mr.height)}; control at ${Math.round(cr.left)},${Math.round(cr.top)} ${Math.round(cr.width)}x${Math.round(cr.height)}` };
+            });
           pushCheck("mc-transparent-over-media", "Interactive elements over images/canvas/video need an opaque background", seeThrough);
 
           // WCAG 2.4.7 — deterministic CSSOM analysis, not focus mutation:
@@ -401,6 +409,51 @@ module AxeAccessibility
             .filter(el => matchesAny(el, suppressSelectors) && !anyAncestorFocusStyle(el))
             .map(el => ({ el, why: "outline suppressed by author CSS with no :focus/:focus-visible paint rule matching this element or an ancestor (WCAG 2.4.7)" }));
           pushCheck("mc-focus-indicator", "Focusable elements must show a visible focus indicator (WCAG 2.4.7)", noIndicator);
+
+          // A visually hidden focusable (sr-only: a 1px clipped box) keeps
+          // the UA outline, so the sweep above passes it while a keyboard
+          // user sees nothing (#947; the identity picker's file input was
+          // this). Such a control passes only if something VISIBLE paints on
+          // its focus. Rather than parse selector text (Tailwind's escaped
+          // class names contain the literal text ":focus-visible", which
+          // defeats any regex), the control is given a probe class and every
+          // focus rule is re-evaluated with its :focus* pseudo replaced by
+          // that class (:focus-within becomes :has(.probe)): whichever
+          // element then matches is what would paint on the control's focus.
+          // Covers `input:focus + label`, `.peer:focus-visible ~ .track`,
+          // `label:has(+ input:focus-visible)`, and `has-[:focus-visible]:`
+          // utilities alike. Bypass links stay exempt: they expand themselves
+          // on focus, which paints nothing PAINTS lists.
+          const PROBE = "__axe-focus-probe";
+          const UNESCAPED_FOCUS = /(?<!\\\\):focus/;
+          const focusRuleParts = [];
+          const collectFocusParts = (rules) => { for (const rule of rules) { try {
+            if (rule.cssRules && rule.cssRules.length) collectFocusParts(rule.cssRules);
+            const sel = rule.selectorText;
+            if (!sel || !rule.style || !UNESCAPED_FOCUS.test(sel)) continue;
+            if (!PAINTS.some(p => rule.style.getPropertyValue(p))) continue;
+            for (const part of sel.split(",")) if (UNESCAPED_FOCUS.test(part)) focusRuleParts.push(part.trim());
+          } catch (_) {} } };
+          for (const s of document.styleSheets) { try { collectFocusParts(s.cssRules); } catch (_) {} }
+          const paintsSomewhereVisible = (el) => {
+            el.classList.add(PROBE);
+            try {
+              return focusRuleParts.some(part => {
+                const probed = part
+                  .replace(/(?<!\\\\):focus-within/g, `:has(.${PROBE})`)
+                  .replace(/(?<!\\\\):focus-visible|(?<!\\\\):focus/g, `.${PROBE}`);
+                try { return [...document.querySelectorAll(probed)].some(node => node !== el && visibleEl(node)); }
+                catch (_) { return false; }
+              });
+            } finally { el.classList.remove(PROBE); }
+          };
+          const hiddenUnpainted = focusables.filter(el => {
+            const r = el.getBoundingClientRect();
+            if (r.width > 2 || r.height > 2) return false;
+            if (el.matches("a[href]") && getComputedStyle(el).position === "absolute") return false; // bypass link
+            return !paintsSomewhereVisible(el);
+          }).map(el => ({ el, why: "focus lands on a hidden box and nothing visible paints on its focus: add a :focus-visible rule on its label, an ancestor, or a counterpart via :has()/sibling (WCAG 2.4.7)" }));
+          pushCheck("mc-focus-indicator-hidden", "Visually hidden focusables need a visible element that paints on their focus (WCAG 2.4.7)", hiddenUnpainted);
 
           arguments[arguments.length - 1](JSON.stringify(results));
           } catch (__axeErr) {
@@ -619,7 +672,11 @@ RSpec.configure do |config|
       # disposed the session before this hook — and the after(:suite) gate
       # below fails the run for it. There is no per-example opt-out: a page a
       # preview must render deliberately wrong is fixed to be right instead.
-      if Capybara.current_session.current_url.start_with?("about:")
+      # Only a truly empty document is skipped: an about:blank whose body was
+      # written by the example (a mail template loaded for audit, #461) is a
+      # page state like any other.
+      if Capybara.current_session.current_url.start_with?("about:") &&
+         !Capybara.current_session.evaluate_script("!!(document.body && document.body.children.length)")
         AxeAccessibility::TEARDOWN_LEDGER[example.id] = :blank
         next
       end
@@ -686,6 +743,19 @@ RSpec.configure do |config|
       AxeAccessibility::TEARDOWN_LEDGER[example.id] = :audited
 
       formatted = violations.map { |v| "[#{v['themeContext'].upcase}] #{format_violation(v)}" }
+
+      # rspec-rails' failure screenshot runs before config-level after hooks,
+      # so a teardown-audit failure had no picture; take one here, named after
+      # the example, into the directory CI already uploads.
+      if violations.any?
+        shot = Rails.root.join("tmp/capybara", "axe_teardown_#{example.full_description.parameterize.first(120)}.png")
+        begin
+          page.save_screenshot(shot)
+          formatted << "[Screenshot Image]: #{shot}"
+        rescue StandardError
+          formatted << "[Screenshot unavailable]"
+        end
+      end
 
       expect(violations).to be_empty,
         "Accessibility violations found:#{formatted.join("\n")}"

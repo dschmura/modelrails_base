@@ -18,6 +18,16 @@ RSpec.describe AddExpiresAtToWorkspaceJoinLinks do
 
   before { ActiveRecord::Migration.suppress_messages { migration.down } }
 
+  # The per-example rollback restores the table, but not what the classes
+  # remember about it: WorkspaceJoinLink and the connection's schema cache
+  # saw the column-less table while this example ran, and a later spec in
+  # the same process then read expires_at through that stale picture (an
+  # Integer where a Time was expected, in the settings axe spec). Reset both.
+  after do
+    ActiveRecord::Base.connection.schema_cache.clear!
+    WorkspaceJoinLink.reset_column_information
+  end
+
   it "backfills a grace week for existing rows, then tightens the column to NOT NULL, and reverses" do
     link = raw_join_links.new(
       workspace_id: workspace.id, created_by_id: user.id,
@@ -27,6 +37,12 @@ RSpec.describe AddExpiresAtToWorkspaceJoinLinks do
 
     travel_to Time.zone.parse("2026-09-03 12:00") do
       ActiveRecord::Migration.suppress_messages { migration.up }
+      # Column cache: alone this example passed, but after any spec in the same
+      # process had touched workspace_join_links it read expires_at as nil —
+      # Active Record does not refresh a model's columns on DDL, and the
+      # shadow class had loaded them from the pre-`up` table. Reproduced with
+      # `rspec spec/models/workspace_join_link_spec.rb <this file> --order defined`.
+      raw_join_links.reset_column_information
 
       expect(raw_join_links.find(link.id).expires_at).to eq(Time.current + 7.days)
 
