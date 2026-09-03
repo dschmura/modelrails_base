@@ -402,6 +402,51 @@ module AxeAccessibility
             .map(el => ({ el, why: "outline suppressed by author CSS with no :focus/:focus-visible paint rule matching this element or an ancestor (WCAG 2.4.7)" }));
           pushCheck("mc-focus-indicator", "Focusable elements must show a visible focus indicator (WCAG 2.4.7)", noIndicator);
 
+          // A visually hidden focusable (sr-only: a 1px clipped box) keeps
+          // the UA outline, so the sweep above passes it while a keyboard
+          // user sees nothing (#947; the identity picker's file input was
+          // this). Such a control passes only if something VISIBLE paints on
+          // its focus. Rather than parse selector text (Tailwind's escaped
+          // class names contain the literal text ":focus-visible", which
+          // defeats any regex), the control is given a probe class and every
+          // focus rule is re-evaluated with its :focus* pseudo replaced by
+          // that class (:focus-within becomes :has(.probe)): whichever
+          // element then matches is what would paint on the control's focus.
+          // Covers `input:focus + label`, `.peer:focus-visible ~ .track`,
+          // `label:has(+ input:focus-visible)`, and `has-[:focus-visible]:`
+          // utilities alike. Bypass links stay exempt: they expand themselves
+          // on focus, which paints nothing PAINTS lists.
+          const PROBE = "__axe-focus-probe";
+          const UNESCAPED_FOCUS = /(?<!\\\\):focus/;
+          const focusRuleParts = [];
+          const collectFocusParts = (rules) => { for (const rule of rules) { try {
+            if (rule.cssRules && rule.cssRules.length) collectFocusParts(rule.cssRules);
+            const sel = rule.selectorText;
+            if (!sel || !rule.style || !UNESCAPED_FOCUS.test(sel)) continue;
+            if (!PAINTS.some(p => rule.style.getPropertyValue(p))) continue;
+            for (const part of sel.split(",")) if (UNESCAPED_FOCUS.test(part)) focusRuleParts.push(part.trim());
+          } catch (_) {} } };
+          for (const s of document.styleSheets) { try { collectFocusParts(s.cssRules); } catch (_) {} }
+          const paintsSomewhereVisible = (el) => {
+            el.classList.add(PROBE);
+            try {
+              return focusRuleParts.some(part => {
+                const probed = part
+                  .replace(/(?<!\\\\):focus-within/g, `:has(.${PROBE})`)
+                  .replace(/(?<!\\\\):focus-visible|(?<!\\\\):focus/g, `.${PROBE}`);
+                try { return [...document.querySelectorAll(probed)].some(node => node !== el && visibleEl(node)); }
+                catch (_) { return false; }
+              });
+            } finally { el.classList.remove(PROBE); }
+          };
+          const hiddenUnpainted = focusables.filter(el => {
+            const r = el.getBoundingClientRect();
+            if (r.width > 2 || r.height > 2) return false;
+            if (el.matches("a[href]") && getComputedStyle(el).position === "absolute") return false; // bypass link
+            return !paintsSomewhereVisible(el);
+          }).map(el => ({ el, why: "focus lands on a hidden box and nothing visible paints on its focus: add a :focus-visible rule on its label, an ancestor, or a counterpart via :has()/sibling (WCAG 2.4.7)" }));
+          pushCheck("mc-focus-indicator-hidden", "Visually hidden focusables need a visible element that paints on their focus (WCAG 2.4.7)", hiddenUnpainted);
+
           arguments[arguments.length - 1](JSON.stringify(results));
           } catch (__axeErr) {
             arguments[arguments.length - 1](JSON.stringify({
