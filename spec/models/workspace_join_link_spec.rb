@@ -177,4 +177,32 @@ RSpec.describe WorkspaceJoinLink, type: :model do
       expect(link.masked_token).not_to include(link.plaintext_token)
     end
   end
+
+  describe "expiry (#952)" do
+    it "expires seven days after creation" do
+      travel_to Time.zone.parse("2026-09-03 12:00") do
+        link = create(:workspace_join_link)
+        expect(link.expires_at).to eq(7.days.from_now)
+      end
+    end
+
+    it "is current until revoked, but active only until it expires" do
+      link = create(:workspace_join_link)
+      travel_to 8.days.from_now do
+        expect(WorkspaceJoinLink.current).to include(link)
+        expect(WorkspaceJoinLink.active).not_to include(link)
+        expect(WorkspaceJoinLink.find_active(link.plaintext_token)).to be_nil
+        expect(link).to be_expired
+        expect(link).not_to be_active
+      end
+    end
+
+    it "does not admit through an expired link" do
+      link = create(:workspace_join_link)
+      user = create(:user)
+      travel_to 8.days.from_now do
+        expect { link.admit(user) }.not_to change { link.workspace.memberships.count }
+      end
+    end
+  end
 end
