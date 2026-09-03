@@ -190,7 +190,7 @@ en:
         no_active_link: "No active link yet. Generate one to share."
         generate: "Generate link"
         rotate: "Rotate link"
-        rotate_confirm: "Rotating will invalidate the current link. Continue?"
+        rotate_confirm: "Rotating disables the current link and issues a new one valid for seven days. Continue?"
         revoke: "Revoke link"
         revoke_confirm: "Revoking will disable the current link. Continue?"
         copy: "Copy"
@@ -199,6 +199,9 @@ en:
         show_once_warning: "For security it is shown only once — you won't be able to see the full link again. Rotate the link anytime to generate a new one."
         masked_aria: "Join link (hidden for security)"
         masked_help: "For security, the full link is shown only once, when you generate or rotate it. Rotate to get a new link you can copy."
+        expires_on: "Expires %{date}"
+        expired: "Expired. Rotate to issue a new link."
+        rotate_help: "Rotating issues a new link valid for seven days and disables the current one."
       update:
         success: "Settings updated."
     brandings:
