@@ -30,11 +30,28 @@ RSpec.describe "AAA teardown audit is always on" do
       "before the audit and hands it about:blank (#912):\n  #{hits.join("\n  ")}"
   end
 
-  it "never sets SKIP_AXE in the CI workflow or the pre-push hooks" do
-    hits = %w[.github/workflows/ci.yml lefthook.yml].select do |path|
-      File.read(Rails.root.join(path)).include?("SKIP_AXE")
-    end
+  # The devcontainer workflow is a provisioning check ("does the container
+  # boot and run a spec"), not an accessibility run; it is the one place the
+  # escape hatch is set on purpose.
+  SKIP_AXE_ALLOWED = %w[.github/workflows/devcontainer.yml].freeze
+
+  it "never sets SKIP_AXE in any workflow that runs specs, or in the pre-push hooks" do
+    candidates = Dir.glob(Rails.root.join(".github/workflows/*.yml")) + [ Rails.root.join("lefthook.yml").to_s ]
+    hits = candidates.map { |path| Pathname(path).relative_path_from(Rails.root).to_s }
+      .reject { |path| SKIP_AXE_ALLOWED.include?(path) }
+      .select { |path| File.read(Rails.root.join(path)).include?("SKIP_AXE") }
 
     expect(hits).to be_empty, "SKIP_AXE is a local focused-loop escape hatch only: #{hits.join(", ")}"
+  end
+
+  it "keeps the per-example audit and the suite gate registered, behind nothing but the SKIP_AXE guard" do
+    source = without_comments(File.read(Rails.root.join("spec/support/axe_accessibility.rb")))
+    configure = source[/^RSpec\.configure do \|config\|.*\z/m]
+
+    expect(configure).to include("config.after(:each, type: :system) do |example|")
+    expect(configure).to include("config.after(:suite) do")
+    # Conditionals at the configure block's own indentation are the ones that
+    # can wrap a registration; the hook bodies' inner branches sit deeper.
+    expect(configure.scan(/^  (?:if|unless|case) .*$/)).to contain_exactly(a_string_including('unless ENV["SKIP_AXE"] == "1"'))
   end
 end

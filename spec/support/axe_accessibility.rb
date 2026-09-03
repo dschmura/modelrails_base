@@ -281,17 +281,24 @@ module AxeAccessibility
             const widgetItem = el.matches("[role=menuitem],[role=menuitemcheckbox],[role=menuitemradio],[role=option]") &&
                                el.closest("[role=menu],[role=menubar],[role=listbox]");
             const floor = widgetItem ? 23.5 : 43.5;
-            // Every rendered label counts, each on its own (#912): a control
-            // with one label per view (the identity picker's hub and crop
-            // "Upload new") is measured against the label on screen, and a
-            // hidden label's zero box is never unioned into a phantom
-            // rectangle reaching the page origin.
+            // Every visible label is a candidate target of its own (#912). A
+            // label that touches the control (wraps it, or abuts it) unions
+            // with it — that is the labelled row the SC measures. A label
+            // elsewhere on the page counts by its own box: the space between
+            // two separate regions is not a target, so unioning them made a
+            // phantom rectangle that passed a 1px control by spanning the
+            // page. Hidden labels (display:none, visibility:hidden, empty
+            // box) are not candidates at all.
             const unions = [ blurredRect ];
             for (const label of (el.labels || [])) {
+              if (!visibleEl(label)) continue;
               const lr = label.getBoundingClientRect();
-              if (lr.width === 0 && lr.height === 0) continue;
-              unions.push({ width: Math.max(blurredRect.right, lr.right) - Math.min(blurredRect.left, lr.left),
-                            height: Math.max(blurredRect.bottom, lr.bottom) - Math.min(blurredRect.top, lr.top) });
+              const touches = !(lr.right < blurredRect.left - 2 || lr.left > blurredRect.right + 2 ||
+                                lr.bottom < blurredRect.top - 2 || lr.top > blurredRect.bottom + 2);
+              unions.push(touches
+                ? { width: Math.max(blurredRect.right, lr.right) - Math.min(blurredRect.left, lr.left),
+                    height: Math.max(blurredRect.bottom, lr.bottom) - Math.min(blurredRect.top, lr.top) }
+                : { width: lr.width, height: lr.height });
             }
             // Layout-box fallback: getBoundingClientRect shrinks under
             // transforms — an audit racing a dialog's 200ms close animation

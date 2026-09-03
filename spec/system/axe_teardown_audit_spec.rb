@@ -6,8 +6,8 @@ require "rails_helper"
 # itself runs after every system example; what this file proves is the two
 # things the after(:suite) gate in spec/support/axe_accessibility.rb relies
 # on: the audit detects a planted violation, and the gate's bookkeeping sees
-# an example that navigated. The gate's own decision is a pure function,
-# checked below without a browser.
+# an example that navigated. The gate's decision itself is a pure function,
+# covered in spec/lib/axe_teardown_gate_spec.rb.
 RSpec.describe "AAA teardown audit", type: :system do
   it "catches a planted violation in both themes, and is clean again once it is gone" do
     visit root_path
@@ -30,14 +30,5 @@ RSpec.describe "AAA teardown audit", type: :system do
     visit root_path
 
     expect(AxeAccessibility::VISITED_EXAMPLES).to include(RSpec.current_example.id)
-  end
-
-  describe ".unaudited" do
-    it "flags an example that navigated and has no :audited entry, whatever else the ledger says" do
-      ledger  = { "a" => :audited, "b" => :blank, "c" => :blank }
-      visited = Set["a", "b", "d"]
-
-      expect(AxeAccessibility.unaudited(%w[a b c d], ledger: ledger, visited: visited)).to eq(%w[b d])
-    end
   end
 end
