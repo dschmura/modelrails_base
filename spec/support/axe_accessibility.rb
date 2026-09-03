@@ -54,6 +54,34 @@ module AxeAccessibility
   # 2.1/2.2 rule on every audit (backlog #10, found via the Load-360 button).
   AXE_TAG_SET = %w[wcag2a wcag2aa wcag2aaa wcag21a wcag21aa wcag22aa].freeze
 
+  # axe's `best-practice` tag is NOT a blocking tier, and #464 settled that it
+  # never becomes one wholesale. A reporting sweep of the entire system suite
+  # (2026-09-03, 169 spec files, both themes) returned 1,782 best-practice
+  # findings; 1,700 of them were `landmark-one-main`, `page-has-heading-one`
+  # and `region` on ViewComponent preview hosts and mail fragments — contexts
+  # whose page shape structurally cannot satisfy a page-shape rule, which is
+  # why the `include:` scoping doc above already treats them as out of scope.
+  #
+  # These three are the exception, and the reason a reporting-only tier was not
+  # built: in that same sweep they fired ONLY on real application pages — never
+  # once on a preview host or a mail fragment — and every finding was a genuine
+  # duplicate-landmark defect (a nested <main> on /docs/*, a repeated landmark
+  # name on /settings/notifications). A rule with no false-positive surface and
+  # a 100% real-defect rate does not need an advisory lane to graduate from; it
+  # needs to block.
+  #
+  # Widening this list is the failure mode to guard against — the panel's
+  # original worry was burying the team in findings. Add a rule only with sweep
+  # evidence that it too fires exclusively on real pages;
+  # spec/system/accessibility/promoted_best_practice_rules_spec.rb fences both
+  # directions.
+  BEST_PRACTICE_TAG = "best-practice"
+  PROMOTED_BEST_PRACTICE_RULES = %w[
+    landmark-unique
+    landmark-no-duplicate-main
+    landmark-main-is-top-level
+  ].freeze
+
   # target-size (2.5.8 AA, 24px) ships `enabled: false` in axe 4.x — the tag
   # alone never runs it. The 44px AAA floor (2.5.5) has NO axe rule at all;
   # the mc-target-size-44 custom check below covers it.
@@ -89,9 +117,14 @@ module AxeAccessibility
     # bypass. Narrowing coverage must not be something a caller can do by
     # accident; adding a tag is.
     options = options.symbolize_keys
+    # BEST_PRACTICE_TAG rides along so the promoted rules RUN; axe has no way
+    # to say "these tags plus these three rules", and everything the tag brings
+    # that is not promoted is dropped from the results below. Keep the two
+    # halves together: adding the tag without the filter turns every
+    # preview-host page-shape advisory into a blocking failure.
     options[:runOnly] = {
       type: "tag",
-      values: (AXE_TAG_SET | Array(options.dig(:runOnly, :values))).freeze
+      values: (AXE_TAG_SET | [ BEST_PRACTICE_TAG ] | Array(options.dig(:runOnly, :values))).freeze
     }
     options[:rules] = AXE_RULE_OVERRIDES.merge(options[:rules] || {})
 
@@ -468,6 +501,17 @@ module AxeAccessibility
     result = JSON.parse(raw)
     if result.is_a?(Hash) && result["__axe_error"]
       raise "axe-core audit failed in the browser: #{result["__axe_error"]}\n#{result["__axe_stack"]}"
+    end
+
+    # Drop what BEST_PRACTICE_TAG dragged in beyond the promoted rules. A
+    # violation survives if it carries any WCAG tag (the real gate) or is one
+    # of the three promoted rules. The custom mc-* checks pushed by the JS above
+    # carry no tags at all and are matched by neither clause, so they are named
+    # explicitly rather than surviving by accident.
+    result["violations"] = Array(result["violations"]).select do |v|
+      (Array(v["tags"]) & AXE_TAG_SET).any? ||
+        PROMOTED_BEST_PRACTICE_RULES.include?(v["id"]) ||
+        v["id"].to_s.start_with?("mc-")
     end
 
     @__axe_audit_run_count = axe_audit_run_count + 1

@@ -1,5 +1,10 @@
-<section aria-labelledby="notifications-heading"
-         class="page-container-wide">
+<%# A plain container, not a named region: this wraps everything inside <main>,
+    so a landmark here only duplicates main — and its name would be the h1's
+    "Notifications", which is already the toast pill stack's aria-label. Two
+    region landmarks with one name is what axe landmark-unique reports, and
+    what a screen-reader user meets as two identical entries in the landmark
+    list. The toast container keeps the name; it is the one that needs it. %>
+<div class="page-container-wide">
   <h1 id="notifications-heading"
       class="text-3xl font-bold text-text-heading mb-6">
     <%= t("notifications.index.heading") %>
@@ -47,4 +52,4 @@
       <%= render partial: "item", collection: @notifications, as: :notification %>
     <% end %>
   <% end %>
-</section>
+</div>
