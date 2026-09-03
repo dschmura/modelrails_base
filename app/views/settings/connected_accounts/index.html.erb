@@ -16,6 +16,17 @@
     <% end %>
   <% end %>
 
+  <%# Outcome in the document (#950): the verification POST redirects here with
+      flash[:verified_email] set, the same way confirming_email_for drives the
+      banner above. %>
+  <% if (verified_email = flash[:verified_email]) %>
+    <%= render UI::AlertComponent.new(tone: :success, class: "mt-6") do |alert| %>
+      <% alert.with_alert_description do %>
+        <%= t("settings.connected_accounts.index.verified_banner", email: verified_email) %>
+      <% end %>
+    <% end %>
+  <% end %>
+
   <% verified_count = @authentications.count(&:verified?) %>
   <ul role="list" class="mt-8 space-y-4">
     <% @authentications.each do |authentication| %>
