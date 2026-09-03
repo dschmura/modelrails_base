@@ -4,8 +4,7 @@ export default class extends Controller {
   static targets = [
     "fileInput", "cropPreview", "cropSection",
     "colorField", "colorSlider", "colorHex",
-    "initialsPreview", "hueSwatch", "gifWarning",
-    "hubUploadLabel", "cropUploadLabel"
+    "initialsPreview", "hueSwatch", "gifWarning"
   ]
 
   static values = {
@@ -92,7 +91,7 @@ export default class extends Controller {
       const sourceName = activeSource.querySelector(".text-text-heading")?.textContent?.trim()
       if (sourceName) this._announce(sourceName)
     }
-    this._syncFileLabel("hub")
+    this._syncFileInput()
   }
 
   openCrop() {
@@ -264,7 +263,7 @@ export default class extends Controller {
       const titleEl = this._dialog.querySelector("[id$='-title']")
       if (titleEl) titleEl.textContent = this.cropTitleValue
     }
-    this._syncFileLabel("crop")
+    this._syncFileInput()
     this._manageFocus("crop")
   }
 
@@ -278,38 +277,17 @@ export default class extends Controller {
     }
   }
 
-  // The file input (fileInput target) is shared by two visible triggers
-  // that are never on screen at the same time: the hub's upload-source
-  // label (hubUploadLabel, rendered only when that source is active) and
-  // the crop footer's upload label (cropUploadLabel, always in the DOM but
-  // hidden whenever the hub is showing). A native <label for> keeps its
-  // association in `input.labels` even while its ancestor is hidden — axe
-  // then measures a hidden, zero-size box (#912) — so `for` is wired onto
-  // whichever one is actually visible right now and stripped from the
-  // other. The rest of the time (e.g. the Gravatar/Initials hub sources,
-  // where there is no upload trigger at all) the input is both disabled
-  // AND aria-hidden: `disabled` alone satisfies the AAA target-size check
-  // (it excludes disabled elements), but axe's own "label" rule does not
-  // special-case disabled — a disabled-but-unlabelled input still fails it
-  // — so aria-hidden is what actually drops it out of the accessibility
-  // tree. Safe to pair the two: a disabled input is never focusable, so
-  // there's no "aria-hidden on a focusable element" conflict either.
-  _syncFileLabel(activeMode) {
-    if (this.hasCropUploadLabelTarget) this.cropUploadLabelTarget.removeAttribute("for")
-    if (this.hasHubUploadLabelTarget) this.hubUploadLabelTarget.removeAttribute("for")
-
-    const active = activeMode === "crop"
-      ? (this.hasCropUploadLabelTarget && this.cropUploadLabelTarget)
-      : (this.hasHubUploadLabelTarget && this.hubUploadLabelTarget)
-
-    if (active) {
-      active.setAttribute("for", this.fileInputTarget.id)
-      this.fileInputTarget.disabled = false
-      this.fileInputTarget.removeAttribute("aria-hidden")
-    } else {
-      this.fileInputTarget.disabled = true
-      this.fileInputTarget.setAttribute("aria-hidden", "true")
-    }
+  // Two labels point `for` at the file input (hub upload-source label,
+  // crop footer label) but only one is ever on screen. `hidden` (not
+  // disabled/aria-hidden) when neither is: it drops the input from
+  // layout, focus order, and the accessibility tree at once, which is
+  // also just honest — there's no upload trigger in this state (#912).
+  _syncFileInput() {
+    const hasVisibleLabel = Array.from(this.fileInputTarget.labels).some((label) => {
+      const rect = label.getBoundingClientRect()
+      return rect.width > 0 || rect.height > 0
+    })
+    this.fileInputTarget.hidden = !hasVisibleLabel
   }
 
   _manageFocus(mode) {

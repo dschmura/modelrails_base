@@ -22,6 +22,7 @@ module Settings
       render partial: "shared/identity_picker_hub",
         locals: {
           identity: identity,
+          model: @user,
           form_url: settings_avatar_path,
           hub_url: hub_settings_avatar_path,
           current_source: identity.resolve_source(params[:source])

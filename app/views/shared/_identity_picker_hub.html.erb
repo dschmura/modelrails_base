@@ -1,7 +1,8 @@
-<%# locals: (identity:, form_url:, hub_url:, current_source:) -%>
+<%# locals: (identity:, model:, form_url:, hub_url:, current_source:) -%>
 <%
   display_url = identity.image? ? url_for(identity.image) : nil
   gravatar_url = identity.gravatar_url
+  file_input_id = "#{dom_id(model)}-identity-picker-file"
 %>
 <turbo-frame id="identity-picker-hub">
 
@@ -58,15 +59,10 @@
   </div>
 
   <% if current_source == "upload" %>
-    <%# Real, always-visible trigger for the shared file input while this
-        source is showing (see identity_picker_controller.js
-        #_syncFileLabel — it wires `for` onto whichever of this label and
-        the crop footer's upload label is currently visible, since the
-        input can only ever have one genuinely-visible label at a time).
-        Also doubles as a manual fallback for the auto-file-picker below,
-        which opens the OS dialog automatically when there's no photo yet. %>
+    <%# Manual fallback for the auto-file-picker below, which opens the OS
+        dialog automatically when there's no photo yet (#912). %>
     <div class="flex justify-center mb-2">
-      <label data-identity-picker-target="hubUploadLabel"
+      <label for="<%= file_input_id %>"
              class="btn-text-icon btn-text-interactive text-sm px-2 inline-flex items-center min-h-11 cursor-pointer">
         <%= icon(:arrow_up_tray, size: :sm) %>
         <%= t("identity_picker.upload_new") %>

@@ -138,6 +138,24 @@ RSpec.describe "Account profile — identity picker", type: :system do
       expect(user.primary_color).to eq(120)
     end
 
+    # Regression guard (#912): onHubLoad's `data-action` binding must live on
+    # the persistent <turbo-frame> (_identity_picker.html.erb), not the hub
+    # partial's own frame tag — a real navigation never copies the response
+    # tag's own attributes onto the live element, so a binding declared
+    # there silently never fires. select_identity_source is a real
+    # turbo-frame navigation (not the crop round-trip, which calls
+    # onHubLoad manually), so this only passes if onHubLoad actually runs
+    # off that event.
+    it "announces the newly selected source via the live region" do
+      open_identity_picker
+      select_identity_source("Initials")
+
+      live_region_text = page.evaluate_script(
+        "document.querySelector(\"[data-controller~='identity-picker'] [aria-live='polite']\").textContent.trim()"
+      )
+      expect(live_region_text).to eq(I18n.t("identity_picker.sources.initials.title"))
+    end
+
     context "when user has a Gravatar" do
       before do
         user.update_columns(has_gravatar: true)
