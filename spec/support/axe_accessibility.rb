@@ -421,14 +421,18 @@ module AxeAccessibility
     @__axe_audit_memo[memo_key] = result
   end
 
-  # A Turbo visit still in flight at teardown is not a page state: Turbo sets
-  # aria-busy on <html> until the new body renders, and axe reports the
-  # attribute as an ARIA error (#948, CI shard 1: an example whose last action
-  # was a link click). Waits for the visit to settle so the audit sees the page
-  # the user lands on; false if it never did within the budget, in which case
+  # Turbo work still in flight at teardown is not a page state. Turbo marks
+  # whatever is busy with aria-busy="true": <html> for a visit, the <form>
+  # for a submission, a <turbo-frame> for a frame load (turbo-rails 8.0.23,
+  # turbo.js markAsBusy at 227, called at 993, 4384, 4787, 4808). axe reports
+  # the attribute on <html> as an ARIA error (#948, two CI shards). A form
+  # submission whose redirect visit has not started yet shows only on the
+  # form, which is why the wait covers every busy element and not just the
+  # document. Waits for all of it to clear so the audit sees the page the
+  # user lands on; false if it never did within the budget, in which case
   # the audit runs anyway and its report says why.
-  def wait_for_turbo_visit_to_settle(wait: Capybara.default_max_wait_time)
-    page.has_no_css?("html[aria-busy='true']", wait: wait)
+  def wait_for_turbo_to_settle(wait: Capybara.default_max_wait_time)
+    page.has_no_css?("[aria-busy='true']", wait: wait)
   end
 
   # Real (non-memoized) audits this example has run — the observability handle
@@ -620,7 +624,7 @@ RSpec.configure do |config|
         next
       end
 
-      wait_for_turbo_visit_to_settle
+      wait_for_turbo_to_settle
       # Prepare toasts for audit:
       # - Defeat in-progress animations (element opacity, transforms)
       # - Force a solid background so axe can reliably compute color contrast.

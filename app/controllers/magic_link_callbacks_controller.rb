@@ -26,11 +26,13 @@ class MagicLinkCallbacksController < ApplicationController
   end
 
   def sign_in
-    token_record = MagicLinkToken.find_valid(params[:token])
+    # Consume first, then branch: a sign-in POST for an address with no account
+    # is misuse (the confirm page sends unknown addresses to #create), so the
+    # token is spent either way (#954).
+    token_record = MagicLinkToken.consume!(params[:token])
     user = token_record && User.find_by(email_address: token_record.email)
 
-    # Atomic consume prevents double-spend from concurrent requests.
-    unless user && MagicLinkToken.consume!(params[:token])
+    unless user
       redirect_to(authenticated? ? root_path : new_session_path, alert: t("magic_link_callbacks.show.invalid"))
       return
     end
