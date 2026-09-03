@@ -30,6 +30,9 @@ class Invitation < ApplicationRecord
   # cipher.
   encrypts :email, deterministic: true, downcase: true
   encrypts :company_name
+  # Rebuilt into URLs later (reminder, notification mailer), so it can't be a
+  # digest; deterministic keeps find_by/the index working (#953). No downcase: base64.
+  encrypts :token, deterministic: true
   validates :email, format: { with: User::EMAIL_FORMAT }, allow_nil: true
 
   before_create :generate_token
@@ -276,9 +279,7 @@ class Invitation < ApplicationRecord
     decline!
   end
 
-  def acceptable?
-    pending? && !expired?
-  end
+  def acceptable? = pending? && !expired?
 
   def expired? = expires_at <= Time.current
 

@@ -24,6 +24,13 @@ class Authentication < ApplicationRecord
   # the address itself (#903). No downcase: provider ids are opaque.
   encrypts :email
   encrypts :uid, deterministic: true
+  # Parked invitation token: the same bearer credential as invitations.token,
+  # kept until email verification claims it (#953). Non-deterministic: the
+  # only index here is `WHERE … IS NOT NULL`, and nothing looks the column up
+  # by value (fix round 1) — determinism would only make it byte-identical to
+  # invitations.token for the same token, letting a leaked dump join a parked
+  # signup to its invitation.
+  encrypts :pending_invitation_token
 
   validates :provider, presence: true
   validates :uid, presence: true
