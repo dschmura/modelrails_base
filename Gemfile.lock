@@ -492,6 +492,7 @@ GEM
     regexp_parser (2.12.0)
     reline (0.7.0)
       io-console (~> 0.5)
+    resolv (0.7.2)
     rexml (3.4.4)
     rouge (4.7.0)
     rspec-core (3.13.6)
@@ -599,10 +600,10 @@ GEM
     terminal-table (4.0.0)
       unicode-display_width (>= 1.1.1, < 4)
     thor (1.5.0)
-    thruster (0.1.25)
-    thruster (0.1.25-aarch64-linux)
-    thruster (0.1.25-arm64-darwin)
-    thruster (0.1.25-x86_64-linux)
+    thruster (0.1.26)
+    thruster (0.1.26-aarch64-linux)
+    thruster (0.1.26-arm64-darwin)
+    thruster (0.1.26-x86_64-linux)
     timeout (0.6.1)
     tomlrb (2.0.4)
     tpm-key_attestation (0.14.1)
@@ -707,6 +708,7 @@ DEPENDENCIES
   pwned
   rails (~> 8.1.3, >= 8.1.3.1)
   rails-controller-testing
+  resolv (>= 0.7.2)
   rspec-rails
   rubocop-rails-omakase
   ruby-vips
@@ -903,6 +905,7 @@ CHECKSUMS
   redcarpet (3.6.1) sha256=d444910e6aa55480c6bcdc0cdb057626e8a32c054c29e793fa642ba2f155f445
   regexp_parser (2.12.0) sha256=35a916a1d63190ab5c9009457136ae5f3c0c7512d60291d0d1378ba18ce08ebb
   reline (0.7.0) sha256=5b012d8e55dbf9d450f12bde2cf7d15ff546ae80b3f8f3b30e570d431815583d
+  resolv (0.7.2) sha256=626d044d975ab2daac759bf898416f1b51e2cb8dcd6727c2b5b5b28b97ead2e1
   rexml (3.4.4) sha256=19e0a2c3425dfbf2d4fc1189747bdb2f849b6c5e74180401b15734bc97b5d142
   rouge (4.7.0) sha256=dba5896715c0325c362e895460a6d350803dbf6427454f49a47500f3193ea739
   rspec-core (3.13.6) sha256=a8823c6411667b60a8bca135364351dda34cd55e44ff94c4be4633b37d828b2d
@@ -946,10 +949,10 @@ CHECKSUMS
   tailwindcss-ruby (4.3.1-x86_64-linux-musl) sha256=1adcb5df5f9a6a85a81dc9e5102ce7e4f7a1415f477f1a6b22b52ee49c351ee6
   terminal-table (4.0.0) sha256=f504793203f8251b2ea7c7068333053f0beeea26093ec9962e62ea79f94301d2
   thor (1.5.0) sha256=e3a9e55fe857e44859ce104a84675ab6e8cd59c650a49106a05f55f136425e73
-  thruster (0.1.25) sha256=d97d704e91fa37d5858bc238dea6186f7310b633abfeea9f2ba814f252203716
-  thruster (0.1.25-aarch64-linux) sha256=495265b11fc3c3596ae0d70ed902b60db82dafb2a5b47a2c527d3176ee3cf311
-  thruster (0.1.25-arm64-darwin) sha256=20338360cce4035e787135ae154a10663f3d3d61b15bfa72df347fe9d982de57
-  thruster (0.1.25-x86_64-linux) sha256=e5586003b34dc2f4200f8412101e906621e276bb294d41d1b63a3c41e348503d
+  thruster (0.1.26) sha256=6e45e807086b29d51404841bd1ad493b67cd95892fd65dc5afcdd32e82e94ce8
+  thruster (0.1.26-aarch64-linux) sha256=2171cb34928c0250830008f535c4ab2ee57846cc3f5d3e96c3475f7b3de7a541
+  thruster (0.1.26-arm64-darwin) sha256=40676164c433abf31313422305d9e9e9210cf941b1befad88e2428b3b8dcc36c
+  thruster (0.1.26-x86_64-linux) sha256=3117a6ee430663f845a0457699fe9a05232dcc6c396e2cc83504de5a223c60e8
   timeout (0.6.1) sha256=78f57368a7e7bbadec56971f78a3f5ecbcfb59b7fcbb0a3ed6ddc08a5094accb
   tomlrb (2.0.4) sha256=262f77947ac3ac9b3366a0a5940ecd238300c553e2e14f22009e2afcd2181b99
   tpm-key_attestation (0.14.1) sha256=7fd4e4653a7afd0a386632ddfb05d10ecfdd47678299c5e69165bc9ae111193f
