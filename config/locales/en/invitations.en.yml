@@ -66,6 +66,7 @@ en:
       success: "Invitation declined."
       rate_limited: "Too many attempts. Open the link from your invitation email and try again in a few minutes."
   invitation_blocks:
+    invalid: "This link was already used, or the invitation has expired."
     show:
       title: "Block invitations from %{inviter}?"
       prompt: "This declines the invitation and stops future invitations from %{inviter} reaching %{email}. They will see that you declined, not that you blocked them."

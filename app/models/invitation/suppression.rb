@@ -9,7 +9,7 @@ module Invitation::Suppression
   extend ActiveSupport::Concern
 
   included do
-  scope :unsuppressed, -> { where(suppressed_at: nil) }
+    scope :unsuppressed, -> { where(suppressed_at: nil) }
   end
 
   def blocked_by_invitee?
