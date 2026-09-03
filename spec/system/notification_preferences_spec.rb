@@ -6,7 +6,7 @@ RSpec.describe "Notification preferences", type: :system do
 
   before do
     sign_in_via_form(user)
-    user.create_preferences!(timezone: "America/New_York") unless user.preferences
+    user.preferences!.update!(timezone: "America/New_York") # one row, never a racing second (#884)
     # Sign-in dispatches a SignInFromNewDeviceNotifier; clearing keeps the
     # bell-tooltip DND test deterministic about the unread count.
     user.notifications.destroy_all
@@ -205,7 +205,7 @@ RSpec.describe "Notification preferences", type: :system do
     # silently off — the toggle is misleading. A warning surfaces the
     # contradiction so the user can either re-check a day or disable QH.
     def set_quiet_hours(enabled:, active_days:)
-      user.preferences.update!(
+      user.preferences!.update!(
         notification_preferences: user.preferences.notification_preferences.merge(
           "quiet_hours" => { "enabled" => enabled, "active_days" => active_days }
         )
@@ -276,7 +276,7 @@ RSpec.describe "Notification preferences", type: :system do
     # have no signal the warning is tied to *this* fieldset — fix via
     # fieldset[aria-describedby] pointing at the warning's id.
     it "the Quiet Hours day-chip fieldset references the empty-days warning via aria-describedby" do
-      user.preferences.update!(
+      user.preferences!.update!(
         notification_preferences: user.preferences.notification_preferences.merge(
           "quiet_hours" => { "enabled" => true, "active_days" => [] }
         )
@@ -304,7 +304,7 @@ RSpec.describe "Notification preferences", type: :system do
     it "announces the empty-days warning via a stable live region, not by toggling the live region itself" do
       # Quiet hours disabled = warning hidden = the common case. The live
       # region must still be present and unhidden so a later reveal announces.
-      user.preferences.update!(
+      user.preferences!.update!(
         notification_preferences: user.preferences.notification_preferences.merge(
           "quiet_hours" => { "enabled" => false, "active_days" => [] }
         )

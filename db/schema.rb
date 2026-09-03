@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_03_143316) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_03_190000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -291,7 +291,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_143316) do
     t.datetime "updated_at", null: false
     t.integer "user_id", null: false
     t.index ["digest_next_due_at"], name: "index_user_preferences_on_digest_next_due_at", where: "digest_next_due_at IS NOT NULL"
-    t.index ["user_id"], name: "index_user_preferences_on_user_id"
+    t.index ["user_id"], name: "index_user_preferences_on_user_id", unique: true
   end
 
   create_table "users", force: :cascade do |t|
