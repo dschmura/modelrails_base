@@ -150,10 +150,9 @@ RSpec.describe "Account profile — identity picker", type: :system do
       open_identity_picker
       select_identity_source("Initials")
 
-      live_region_text = page.evaluate_script(
-        "document.querySelector(\"[data-controller~='identity-picker'] [aria-live='polite']\").textContent.trim()"
-      )
-      expect(live_region_text).to eq(I18n.t("identity_picker.sources.initials.title"))
+      within("[data-controller~='identity-picker']") do
+        expect(page).to have_css("[aria-live='polite']", text: I18n.t("identity_picker.sources.initials.title"), visible: :all)
+      end
     end
 
     context "when user has a Gravatar" do
@@ -358,6 +357,35 @@ RSpec.describe "Account profile — identity picker", type: :system do
       wait_for_hub_view
 
       expect(patch_count).to eq(1)
+    end
+  end
+
+  describe "keyboard access to the upload trigger" do
+    # The file input is sr-only and opened through a visible <label for>, so
+    # keyboard focus lands on a 1px box. The ring is painted on the label that
+    # stands for it (application.css, #912); this proves the paint.
+    it "shows the focus ring on the visible label when the file input has keyboard focus" do
+      open_identity_picker
+      upload_photo(avatar_fixture)
+
+      input_id = "#{ActionView::RecordIdentifier.dom_id(user)}-identity-picker-file"
+      visible_label_outline = lambda do
+        page.evaluate_script(<<~JS)
+          (() => {
+            const label = [...document.querySelectorAll("label[for='#{input_id}']")]
+              .find(l => l.getBoundingClientRect().width > 0);
+            return label ? getComputedStyle(label).outlineStyle : "no visible label";
+          })()
+        JS
+      end
+      expect(visible_label_outline.call).to eq("none")
+
+      reached = 20.times.any? do
+        cdp_press("Tab")
+        page.evaluate_script("document.activeElement.id") == input_id
+      end
+      expect(reached).to be(true), "Tab never reached the file input"
+      expect(visible_label_outline.call).to eq("solid")
     end
   end
 end
