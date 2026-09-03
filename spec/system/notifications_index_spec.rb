@@ -131,7 +131,9 @@ RSpec.describe "Notifications index page", type: :system do
           click_button I18n.t("notifications.index.mark_all_read.action")
         end
 
-        expect(page).to have_text(I18n.t("notifications.index.mark_all_read.success"))
+        # #941: the confirmation reaches the acting tab through the pill live
+        # region after the redirect (a mutation, per #901), not as page content.
+        expect(page).to have_css("#toast-pills [role='status']", text: I18n.t("notifications.index.mark_all_read.success"))
         expect(unread_a.reload.read_at).to be_present
         expect(unread_b.reload.read_at).to be_present
       end
