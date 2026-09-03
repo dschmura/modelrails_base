@@ -14,7 +14,7 @@ Rails.application.routes.draw do
   resource :draft_harness, only: %i[show create], controller: "draft_harness" if Rails.env.test?
 
   resource :session
-  resource :email_verification, only: [ :new, :show ]
+  resource :email_verification, only: [ :new, :show, :create ]
 
   namespace :passkeys do
     post "registration/options",   to: "registrations#options",   as: :registration_options
