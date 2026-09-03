@@ -33,12 +33,12 @@ RSpec.describe "AAA teardown audit is always on" do
   # The devcontainer workflow is a provisioning check ("does the container
   # boot and run a spec"), not an accessibility run; it is the one place the
   # escape hatch is set on purpose.
-  SKIP_AXE_ALLOWED = %w[.github/workflows/devcontainer.yml].freeze
+  skip_axe_allowed = %w[.github/workflows/devcontainer.yml].freeze
 
   it "never sets SKIP_AXE in any workflow that runs specs, or in the pre-push hooks" do
     candidates = Dir.glob(Rails.root.join(".github/workflows/*.yml")) + [ Rails.root.join("lefthook.yml").to_s ]
     hits = candidates.map { |path| Pathname(path).relative_path_from(Rails.root).to_s }
-      .reject { |path| SKIP_AXE_ALLOWED.include?(path) }
+      .reject { |path| skip_axe_allowed.include?(path) }
       .select { |path| File.read(Rails.root.join(path)).include?("SKIP_AXE") }
 
     expect(hits).to be_empty, "SKIP_AXE is a local focused-loop escape hatch only: #{hits.join(", ")}"
