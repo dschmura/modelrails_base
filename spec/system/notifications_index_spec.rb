@@ -197,9 +197,10 @@ RSpec.describe "Notifications index page", type: :system do
 
     describe "retention hint" do
       def set_retention(someone, days)
-        someone.create_preferences! unless someone.preferences
-        prefs = someone.preferences.notification_preferences
-        someone.preferences.update!(notification_preferences: prefs.merge("retention_days" => days))
+        # preferences! (#884): a plain create here raced the sign-in timezone
+        # beacon into a second row the page never read (#949).
+        row = someone.preferences!
+        row.update!(notification_preferences: row.notification_preferences.merge("retention_days" => days))
       end
 
       it "states the user's own retention in the same words the preferences page uses" do
