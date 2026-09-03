@@ -334,24 +334,32 @@ module AxeAccessibility
             const bg = getComputedStyle(node).backgroundImage;
             return typeof bg === "string" && bg.includes("url(");
           };
-          const overMediaUnplated = (el) => {
+          // Returns the offending media node (not a boolean) so the report can
+          // name what overlapped the control: a CI-only occurrence on the
+          // workspace heading link could not be diagnosed from the control alone.
+          const mediaUnderControl = (el) => {
             const r = el.getBoundingClientRect();
             const stack = document.elementsFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-            if (!stack.includes(el)) return false; // center not on the control (covered/offscreen)
+            if (!stack.includes(el)) return null; // center not on the control (covered/offscreen)
             for (const node of stack) {
               const opaque = alphaOf(getComputedStyle(node).backgroundColor) >= 0.9;
               if (node === el || el.contains(node)) {
-                if (opaque) return false;
+                if (opaque) return null;
                 continue;
               }
-              if (opaque) return false;
-              if (isMedia(node)) return true;
+              if (opaque) return null;
+              if (isMedia(node)) return node;
             }
-            return false;
+            return null;
           };
           const seeThrough = focusables
-            .filter(overMediaUnplated)
-            .map(el => ({ el, why: "transparent control overlapping media — contrast is unknowable; add an opaque plate" }));
+            .map(el => ({ el, media: mediaUnderControl(el) }))
+            .filter(({ media }) => media)
+            .map(({ el, media }) => {
+              const mr = media.getBoundingClientRect();
+              const cr = el.getBoundingClientRect();
+              return { el, why: `transparent control overlapping media — contrast is unknowable; add an opaque plate. Media under the control's centre: ${describe(media)} at ${Math.round(mr.left)},${Math.round(mr.top)} ${Math.round(mr.width)}x${Math.round(mr.height)}; control at ${Math.round(cr.left)},${Math.round(cr.top)} ${Math.round(cr.width)}x${Math.round(cr.height)}` };
+            });
           pushCheck("mc-transparent-over-media", "Interactive elements over images/canvas/video need an opaque background", seeThrough);
 
           // WCAG 2.4.7 — deterministic CSSOM analysis, not focus mutation:
@@ -735,6 +743,19 @@ RSpec.configure do |config|
       AxeAccessibility::TEARDOWN_LEDGER[example.id] = :audited
 
       formatted = violations.map { |v| "[#{v['themeContext'].upcase}] #{format_violation(v)}" }
+
+      # rspec-rails' failure screenshot runs before config-level after hooks,
+      # so a teardown-audit failure had no picture; take one here, named after
+      # the example, into the directory CI already uploads.
+      if violations.any?
+        shot = Rails.root.join("tmp/capybara", "axe_teardown_#{example.full_description.parameterize.first(120)}.png")
+        begin
+          page.save_screenshot(shot)
+          formatted << "[Screenshot Image]: #{shot}"
+        rescue StandardError
+          formatted << "[Screenshot unavailable]"
+        end
+      end
 
       expect(violations).to be_empty,
         "Accessibility violations found:#{formatted.join("\n")}"
