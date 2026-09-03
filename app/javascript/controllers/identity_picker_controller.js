@@ -4,7 +4,8 @@ export default class extends Controller {
   static targets = [
     "fileInput", "cropPreview", "cropSection",
     "colorField", "colorSlider", "colorHex",
-    "initialsPreview", "hueSwatch", "gifWarning"
+    "initialsPreview", "hueSwatch", "gifWarning",
+    "hubUploadLabel", "cropUploadLabel"
   ]
 
   static values = {
@@ -91,6 +92,7 @@ export default class extends Controller {
       const sourceName = activeSource.querySelector(".text-text-heading")?.textContent?.trim()
       if (sourceName) this._announce(sourceName)
     }
+    this._syncFileLabel("hub")
   }
 
   openCrop() {
@@ -114,9 +116,12 @@ export default class extends Controller {
     this._manageFocus("hub")
   }
 
-  openFilePicker() {
+  // The file input opens via a native <label for> now (accessible target
+  // size — see the crop footer partial), so this only needs to arm the
+  // cancel-suppression flag; label forwarding (or Enter/Space on the
+  // focused input) already dispatches the click that opens the dialog.
+  markFilePickerOpen() {
     this._filePickerOpen = true
-    this.fileInputTarget.click()
   }
 
   handleFileSelected(event) {
@@ -259,6 +264,7 @@ export default class extends Controller {
       const titleEl = this._dialog.querySelector("[id$='-title']")
       if (titleEl) titleEl.textContent = this.cropTitleValue
     }
+    this._syncFileLabel("crop")
     this._manageFocus("crop")
   }
 
@@ -269,6 +275,40 @@ export default class extends Controller {
     if (hubFrame) {
       hubFrame.hidden = false
       this.onHubLoad({ target: hubFrame })
+    }
+  }
+
+  // The file input (fileInput target) is shared by two visible triggers
+  // that are never on screen at the same time: the hub's upload-source
+  // label (hubUploadLabel, rendered only when that source is active) and
+  // the crop footer's upload label (cropUploadLabel, always in the DOM but
+  // hidden whenever the hub is showing). A native <label for> keeps its
+  // association in `input.labels` even while its ancestor is hidden — axe
+  // then measures a hidden, zero-size box (#912) — so `for` is wired onto
+  // whichever one is actually visible right now and stripped from the
+  // other. The rest of the time (e.g. the Gravatar/Initials hub sources,
+  // where there is no upload trigger at all) the input is both disabled
+  // AND aria-hidden: `disabled` alone satisfies the AAA target-size check
+  // (it excludes disabled elements), but axe's own "label" rule does not
+  // special-case disabled — a disabled-but-unlabelled input still fails it
+  // — so aria-hidden is what actually drops it out of the accessibility
+  // tree. Safe to pair the two: a disabled input is never focusable, so
+  // there's no "aria-hidden on a focusable element" conflict either.
+  _syncFileLabel(activeMode) {
+    if (this.hasCropUploadLabelTarget) this.cropUploadLabelTarget.removeAttribute("for")
+    if (this.hasHubUploadLabelTarget) this.hubUploadLabelTarget.removeAttribute("for")
+
+    const active = activeMode === "crop"
+      ? (this.hasCropUploadLabelTarget && this.cropUploadLabelTarget)
+      : (this.hasHubUploadLabelTarget && this.hubUploadLabelTarget)
+
+    if (active) {
+      active.setAttribute("for", this.fileInputTarget.id)
+      this.fileInputTarget.disabled = false
+      this.fileInputTarget.removeAttribute("aria-hidden")
+    } else {
+      this.fileInputTarget.disabled = true
+      this.fileInputTarget.setAttribute("aria-hidden", "true")
     }
   }
 

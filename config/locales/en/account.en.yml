@@ -171,7 +171,6 @@ en:
     last_updated: "Updated %{time} ago"
     choose_source: "Choose how you're represented"
     source_label: "Identity source"
-    select_file: "Select image file"
     save: "Save & apply"
     save_crop: "Save crop"
     crop_title: "Crop & adjust"

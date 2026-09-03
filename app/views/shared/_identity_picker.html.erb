@@ -3,6 +3,7 @@
   identity = model.identity
   has_image = identity.image?
   original_url = url_for(identity.croppable_image) if has_image
+  file_input_id = "#{dom_id(model)}-identity-picker-file"
 %>
 
 <div data-controller="identity-picker"
@@ -18,19 +19,42 @@
      data-identity-picker-color-names-value="<%= t('identity_picker.js.color_names') %>"
      data-identity-picker-original-url-value="<%= original_url %>">
 
-  <%# Hidden file input — triggered programmatically %>
+  <%# Hidden file input — opened via a "Upload new" <label for> (canonical
+      accessible file-upload pattern: a visible label's box unions with the
+      input's 1x1 box to satisfy the 44px target-size floor). The input is
+      shared by two different visible triggers (the hub's upload-source
+      label and the crop footer's upload label) that are never both on
+      screen at once, so the controller wires `for` onto whichever one is
+      currently visible and disables + aria-hides the input the rest of the
+      time — see _syncFileLabel in identity_picker_controller.js. Start
+      disabled + aria-hidden: with neither label wired yet, an
+      enabled-but-unlabelled 1x1 input would itself be an accessibility
+      defect for the instant before the hub frame loads. %>
   <input type="file"
+         id="<%= file_input_id %>"
          accept="image/png,image/jpeg,image/gif,image/webp"
          class="sr-only"
+         disabled
+         aria-hidden="true"
          data-identity-picker-target="fileInput"
-         data-action="change->identity-picker#handleFileSelected"
-         aria-label="<%= t('identity_picker.select_file') %>">
+         data-action="change->identity-picker#handleFileSelected click->identity-picker#markFilePickerOpen">
 
   <%# ARIA live region for announcements %>
   <div aria-live="polite" class="sr-only"></div>
 
-  <%# Hub view — lazy-loaded via Turbo Frame %>
-  <turbo-frame id="identity-picker-hub" src="<%= hub_url %>" loading="lazy">
+  <%# Hub view — lazy-loaded via Turbo Frame. `data-action` lives HERE, on
+      the persistent frame element, not on the hub partial's own
+      <turbo-frame> tag: a frame navigation only swaps this element's
+      children with the response's matching frame's children, it never
+      copies the response frame tag's own attributes onto this element
+      (same reason the controller reads hubTitleValue instead of a data
+      attribute — see onHubLoad). A binding declared on the response's own
+      tag would silently never fire for a real navigation (#912 — source
+      switches never re-synced the file-input label because of exactly
+      this), so it has to be declared on the element that survives every
+      reload. %>
+  <turbo-frame id="identity-picker-hub" src="<%= hub_url %>" loading="lazy"
+               data-action="turbo:frame-load->identity-picker#onHubLoad">
   </turbo-frame>
 
   <div data-identity-picker-target="cropSection" hidden>

@@ -13,12 +13,18 @@
     </button>
   </div>
   <div class="flex items-center justify-between">
-    <button type="button"
-            data-action="click->identity-picker#openFilePicker"
-            class="btn-text-icon btn-text-interactive text-sm px-2">
+    <%# Native label/input activation: clicking or Enter/Space-activating this
+        label forwards to the associated file input, which opens the OS file
+        dialog. No `for` here in markup and no .click() call needed — the
+        controller wires `for` onto whichever of this label and the hub's
+        upload label is currently visible (identity_picker_controller.js
+        #_syncFileLabel), since the shared file input can only ever have one
+        genuinely-visible <label> at a time. %>
+    <label data-identity-picker-target="cropUploadLabel"
+           class="btn-text-icon btn-text-interactive text-sm px-2 inline-flex items-center min-h-11 cursor-pointer">
       <%= icon(:arrow_up_tray, size: :sm) %>
       <%= t("identity_picker.upload_new") %>
-    </button>
+    </label>
     <%= button_to form_url,
           method: :delete,
           class: "btn-text-icon btn-text-danger text-sm px-2 bg-transparent border-0 cursor-pointer",
