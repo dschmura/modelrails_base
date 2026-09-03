@@ -213,6 +213,20 @@ so a mail scanner or prefetcher doing a bare GET can't burn the link; the POST
 (the visible button) runs the atomic consume and signs in. Mirrors the join-link
 confirmation flow.
 
+### Bearer Tokens in Request Logs
+
+Five flows carry a bearer token as a URL path segment: the magic-link callback (`/magic_link_callback/:token`), invitation accept, decline and block (`/invitations/:token/…`), workspace join links (`/workspaces/:slug/joins/:token`), and connected-account email verification (`/settings/connected_accounts/verify/:token`). Rails writes that path into every `Started GET …` line verbatim: `config.filter_parameters` reaches query strings and form fields, and `Rails::Rack::Logger` logs `request.filtered_path`, which filters the query string and passes path segments through. (Active Storage's direct-upload route carries a five-minute signed token the same way.)
+
+**This is an accepted, recorded exposure, not an oversight** ([#916](https://github.com/dschmura/modelrails_base/issues/916), panel decision 2026-09-03). Redacting the Rails line would not change what is on the host: kamal-proxy writes its own JSON access log with the request `path` and the raw `query` for every request, so the same token lands on the same disk either way, and a token moved into the query string is logged there too. What bounds the exposure is topology, not redaction:
+
+- Both logs are Docker `json-file` logs on the single deploy host, capped at 10 MB each by Kamal's defaults (`--log-opt max-size=10m` for the app container, `log_max_size` for the proxy) when `config/deploy.yml` sets nothing. Nothing is shipped off the host. The app-container log is replaced on each deploy and pruned with the last five containers; the proxy log is long-lived and rolls on size only, so it is the copy that holds a token longest.
+- Reading either log needs `docker logs` over the deploy SSH key, which is root. Anyone who can read a token there can already read the database.
+- Token lifetimes cap what a copy is worth. Magic-link tokens expire in 15 minutes, are single-use, and are superseded by requesting a new link. Invitation tokens expire in 7 days, are single-use, and accept refuses an email mismatch. Email-verification tokens expire in 24 hours. **Workspace join links are the exception: they have no expiry and admit members until an admin revokes the link** ([#952](https://github.com/dschmura/modelrails_base/issues/952)).
+
+**Rule for new work.** A secret goes in the query string or the request body, never in a path segment; `spec/code_smells/no_new_bearer_tokens_in_route_paths_spec.rb` holds the existing routes to a named allow-list and fails on a new one. Existing routes move only when they are touched for another reason (verification first, [#950](https://github.com/dschmura/modelrails_base/issues/950)), with both route shapes live for one token lifetime; join links move by forced rotation.
+
+**Reopen this decision when any of these becomes true:** logs are shipped off the host (a log driver, a sidecar, a hosted aggregator); an error-reporting or APM gem is added, because Rails hands them `request.filtered_path` in the `process_action.action_controller` payload and the path token goes to a third party with no log configuration change; someone other than the deploy user gets host access; or a flow gains a long-lived or high-privilege path token (audit with `bin/rails routes | grep -E "/:[a-z_]*token"`). When a trigger fires, the Rails line and the proxy log must be addressed together.
+
 ### Security Headers
 
 Configured in `config/initializers/security_headers.rb`:
@@ -506,5 +520,6 @@ Some vulnerabilities disclose anything readable by the app process — CVE-2026-
 3. Storage service credentials (S3, GCS, Azure) if you moved off the local disk service.
 4. Database credentials, if your database is not the bundled SQLite file.
 5. API tokens and keys for every third-party service the app calls — OAuth client secrets, mail provider keys, error reporting DSNs.
+6. Bearer tokens that may sit in the host's request logs (see *Bearer Tokens in Request Logs*): rotate every active workspace join link, and treat any magic-link, invitation, or verification token issued inside its lifetime as spent by requesting or sending a fresh one.
 
 Replace secrets outright. Keeping the old value as a rotation fallback is only an intermediate step; do not leave an exposed secret in the rotation list.
