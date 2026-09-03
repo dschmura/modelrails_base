@@ -122,6 +122,18 @@ export default class extends Controller {
     if (!this.element.contains(target)) this.close()
   }
 
+  // Focus leaving the widget dismisses it (APG combobox; #684). A pointer
+  // selection never gets here: keepFocus cancels the option's mousedown so the
+  // input keeps focus until the click lands.
+  closeOnFocusOut({ relatedTarget }) {
+    if (relatedTarget && this.element.contains(relatedTarget)) return
+    this.close()
+  }
+
+  keepFocus(event) {
+    event.preventDefault()
+  }
+
   // Promote options to stable ids so aria-activedescendant can reference them
   // (the markup ships role="option"; the id contract is applied here).
   // The host element's id is unique per instance; deriving the prefix from it keeps

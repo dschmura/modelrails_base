@@ -130,4 +130,31 @@ RSpec.describe InvitationMailer, type: :mailer do
       expect(ActivityLog.where(action: "invitation.delivery_suppressed").count).to eq(0)
     end
   end
+
+  describe "the \"Don't invite me again\" link (#951)" do
+    let(:invitation) { create(:invitation) }
+
+    it "puts a signed block-confirmation link in both parts of the invitation mail" do
+      mail = described_class.with(invitation: invitation).invite
+      html = mail.html_part.body.decoded
+      text = mail.text_part.body.decoded
+
+      # The apostrophe is entity-escaped in the HTML part.
+      expect(CGI.unescapeHTML(html)).to include(I18n.t("invitation_mailer.invite.block_action"))
+      expect(text).to include("#{I18n.t("invitation_mailer.invite.block_action")}: http")
+      url = text[%r{https?://\S+/invitation_block\?token=\S+}]
+      expect(url).to be_present
+      token = Rack::Utils.parse_query(URI.parse(url).query)["token"]
+      expect(Invitation.find_by_token_for(:block_confirmation, token)).to eq(invitation)
+    end
+
+    it "puts the same link in the client invitation mail" do
+      project = create(:project, clientside_enabled: true)
+      client = create(:invitation, :client, invitable: project, email: "dana@bigco.com")
+      mail = described_class.with(invitation: client).invite_client
+
+      expect(CGI.unescapeHTML(mail.html_part.body.decoded)).to include(I18n.t("invitation_mailer.invite_client.block_action"))
+      expect(mail.text_part.body.decoded).to match(%r{/invitation_block\?token=})
+    end
+  end
 end

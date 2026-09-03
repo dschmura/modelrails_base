@@ -248,7 +248,7 @@ RSpec.describe TailwindFormBuilder, type: :component do
       user.errors.add(:base, "is a duplicate")
       result = parse(builder.error_summary)
 
-      expect(result).to have_css("div[role='alert'][tabindex='-1'][autofocus]")
+      expect(result).to have_css("div[data-slot='error-summary'][tabindex='-1'][autofocus] div[role='alert']")
       expect(result).to have_css("li a[href='#user_first_name']", text: "First name can't be blank")
       expect(result).to have_css("li", text: "is a duplicate")
       expect(result).not_to have_css("li a[href='#user_base']")
