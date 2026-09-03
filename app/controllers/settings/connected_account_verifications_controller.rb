@@ -1,10 +1,5 @@
 module Settings
   class ConnectedAccountVerificationsController < ApplicationController
-    # The settings shell (sidebar + identity nav) is nil-user-safe (#562/#722/
-    # #723's consolidated fence, spec/code_smells/settings_layout_opt_in_spec.rb)
-    # and this page is reached both signed in (linking a new provider) and
-    # signed out (the deferred unverified-OAuth signup path).
-    layout "settings"
     allow_unauthenticated_access
 
     # Verification-time rendering of PendingClaims problems.
@@ -37,10 +32,6 @@ module Settings
     end
 
     def create
-      # Public auth-entry flow, like magic_link_callbacks#create: the token
-      # itself is the credential, and it may resolve to no signed-in user at
-      # all (the deferred unverified-OAuth signup path).
-      skip_authorization
       auth = Authentication.find_by_token_for(:email_verification, params[:token])
 
       if auth.nil?
