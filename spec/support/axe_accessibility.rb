@@ -283,8 +283,9 @@ module AxeAccessibility
             const floor = widgetItem ? 23.5 : 43.5;
             // Every visible label is a candidate target of its own (#912). A
             // label that wraps the control or sits within the field's own
-            // label-to-control spacing (FormFieldComponent's `mt-3`, 12px)
-            // unions with it — that is the labelled field the SC measures. A
+            // label-to-control spacing unions with it — that is the labelled
+            // field the SC measures. FIELD_GAP is FormFieldComponent's `mt-3`
+            // (12px) plus 2px of sub-pixel slack for rounded rects. A
             // label elsewhere on the page counts by its own box: the space
             // between two separate regions is not a target, so unioning
             // them made a phantom rectangle that passed a 1px control by

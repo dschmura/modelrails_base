@@ -50,8 +50,9 @@ RSpec.describe "AAA teardown audit is always on" do
 
     expect(configure).to include("config.after(:each, type: :system) do |example|")
     expect(configure).to include("config.after(:suite) do")
-    # Conditionals at the configure block's own indentation are the ones that
-    # can wrap a registration; the hook bodies' inner branches sit deeper.
-    expect(configure.scan(/^  (?:if|unless|case) .*$/)).to contain_exactly(a_string_including('unless ENV["SKIP_AXE"] == "1"'))
+    # A registration can be wrapped at the configure block's indentation or
+    # one level in (inside the SKIP_AXE guard); both are scanned. The hook
+    # bodies' own branches sit deeper and are not registrations.
+    expect(configure.scan(/^ {2,4}(?:if|unless|case) .*$/)).to contain_exactly(a_string_including('unless ENV["SKIP_AXE"] == "1"'))
   end
 end
