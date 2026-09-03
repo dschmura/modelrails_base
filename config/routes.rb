@@ -14,7 +14,7 @@ Rails.application.routes.draw do
   resource :draft_harness, only: %i[show create], controller: "draft_harness" if Rails.env.test?
 
   resource :session
-  resource :email_verification, only: [ :new, :show ]
+  resource :email_verification, only: [ :new, :show, :create ]
 
   namespace :passkeys do
     post "registration/options",   to: "registrations#options",   as: :registration_options
@@ -66,10 +66,12 @@ Rails.application.routes.draw do
       member do
         post :resend_verification
       end
-      collection do
-        get "verify/:token", action: :verify, as: :verify
-      end
     end
+    resource :connected_account_verification, only: [ :show, :create ], path: "connected_accounts/verify"
+    # Legacy path-token route, kept for one token lifetime (24 h) after the
+    # 2026-09 deploy so in-flight verification emails still land; remove after
+    # that deploy plus one day. Renders the confirmation only (#950/#916).
+    get "connected_accounts/verify/:token", to: "connected_account_verifications#show", as: :legacy_verify_settings_connected_accounts
     resource :email_confirmation, only: [ :show, :destroy ]
     resources :notifications, only: [ :index, :update ] do
       # POST-only open-and-mark-read (#686): a GET here MUTATED (read_at), so
@@ -140,7 +142,9 @@ Rails.application.routes.draw do
   post "invitations/:token/accept", to: "invitation_accepts#create"
   get "invitations/:token/decline", to: "invitation_declines#show", as: :decline_invitation
   post "invitations/:token/decline", to: "invitation_declines#create"
-  post "invitations/:token/block", to: "invitation_blocks#create", as: :block_invitation
+  # Blocking an inviter is reached only from the signed link in the invitee's
+  # own invitation email; the token travels as a query parameter (#951/#916).
+  resource :invitation_block, only: [ :show, :create ]
 
   resource :onboarding, only: %i[show update]
   namespace :onboarding do
