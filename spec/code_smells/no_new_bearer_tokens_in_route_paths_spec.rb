@@ -16,7 +16,6 @@ RSpec.describe "No new bearer tokens in route paths" do
     "/magic_link_callback/:token/sign_in(.:format)"             => "#916: same token, consuming POST",
     "/invitations/:token/accept(.:format)"                      => "#916: 7-day single-use token, email-matched on accept",
     "/invitations/:token/decline(.:format)"                     => "#916: 7-day token; identity guard tracked in #951",
-    "/invitations/:token/block(.:format)"                       => "#916: 7-day token; identity guard tracked in #951",
     "/workspaces/:workspace_slug/joins/:token(.:format)"        => "#916: shareable by design; expiry tracked in #952",
     "/settings/connected_accounts/verify/:token(.:format)"      => "#950: legacy alias, remove after the 2026-09 deploy plus one day",
     "/rails/active_storage/disk/:encoded_token(.:format)"       => "Active Storage engine: 5-minute signed direct-upload token"

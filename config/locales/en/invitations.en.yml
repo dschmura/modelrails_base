@@ -61,15 +61,21 @@ en:
       body: "Are you sure you want to decline the invitation to %{workspace} from %{inviter}?"
       client_body: "Are you sure you want to decline %{inviter}'s invitation to the project %{project}?"
       confirm: "Decline invitation"
-      block_trigger: "Decline and block invitations from %{inviter}"
-      block_title: "Block invitations from %{inviter}?"
-      block_message: "This declines the invitation and stops future invitations from %{inviter} reaching %{email}. They'll still see that you declined. Other people can still invite you. Only this app's operators can undo a block."
-      block_confirm: "Decline and block"
+      block_hint: "To stop future invitations from %{inviter}, use the “Don't invite me again” link in your invitation email."
     create:
       success: "Invitation declined."
       rate_limited: "Too many attempts. Open the link from your invitation email and try again in a few minutes."
   invitation_blocks:
+    show:
+      title: "Block invitations from %{inviter}?"
+      prompt: "This declines the invitation and stops future invitations from %{inviter} reaching %{email}. They will see that you declined, not that you blocked them."
+      button: "Block invitations from %{inviter}"
+      cancel: "Cancel"
     create:
-      success: "Invitation declined. You won't receive more invitations from this sender."
-      already_processed: "This invitation was already handled. You won't receive more invitations from this sender."
+      blocked_title: "Invitations from %{inviter} are blocked"
+      blocked_body: "The invitation was declined, and future invitations from this sender won't reach %{email}."
+      done: "Back to the home page"
       rate_limited: "Too many attempts. Open the link from your invitation email and try again in a few minutes."
+    already_processed:
+      title: "This invitation was already handled"
+      body: "You won't receive more invitations from this sender."
