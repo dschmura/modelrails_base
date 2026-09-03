@@ -15,6 +15,17 @@ class Invitation < ApplicationRecord
   include Broadcastable
   include Invitation::Suppression
 
+  # Signed, stateless proof that the holder read the invitation email: the
+  # only place this token exists is the "Don't invite me again" link in that
+  # mail (#951). Payload [status] kills it on accept, decline, block, or
+  # revoke; a resend rotates the bearer token, not the invitation, so it
+  # survives one. Lifetime matches the invitation's own seven days.
+  BLOCK_TOKEN_LIFETIME = 7.days
+
+  generates_token_for :block_confirmation, expires_in: BLOCK_TOKEN_LIFETIME do
+    status
+  end
+
   enum :status, { pending: "pending", accepted: "accepted", declined: "declined", revoked: "revoked" }, default: "pending"
 
   validates :role, presence: true, unless: :client_invite?
