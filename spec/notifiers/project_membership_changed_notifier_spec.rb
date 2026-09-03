@@ -142,4 +142,17 @@ RSpec.describe ProjectMembershipChangedNotifier, type: :notifier do
       }.not_to change { Noticed::Event.where(type: described_class.name).count }
     end
   end
+
+  # #919 exposed this: no in-app surface rendered a notifier url before, and
+  # this one called a route helper that never existed.
+  describe "#url" do
+    it "points at the project under its workspace" do
+      described_class.with(record: project_membership).deliver(user)
+      notification = user.notifications.reload.last
+
+      expect(notification.url).to eq(
+        Rails.application.routes.url_helpers.workspace_project_path(project.workspace, project)
+      )
+    end
+  end
 end
