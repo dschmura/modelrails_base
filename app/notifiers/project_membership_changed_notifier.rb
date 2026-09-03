@@ -3,7 +3,7 @@
 class ProjectMembershipChangedNotifier < ApplicationNotifier
   category :project_activity
   severity :info
-  record_preloads :project
+  record_preloads project: :workspace
 
   notification_methods do
     def message
@@ -18,7 +18,11 @@ class ProjectMembershipChangedNotifier < ApplicationNotifier
     end
 
     def url
-      Rails.application.routes.url_helpers.project_path(event.record.project)
+      # Projects are nested under their workspace; a bare project_path never
+      # existed. Nothing rendered a notifier url in-app before #919, which is
+      # how this stayed hidden.
+      project = event.record.project
+      Rails.application.routes.url_helpers.workspace_project_path(project.workspace, project)
     end
   end
 end
