@@ -22,20 +22,26 @@ RSpec.describe "Invitation blocks", type: :request do
     it "shows the shared invalid message for a bad token" do
       get invitation_block_path(token: "nope")
       expect(response).to redirect_to(root_path)
-      expect(flash[:alert]).to eq(I18n.t("invitation_declines.invalid"))
+      expect(flash[:alert]).to eq(I18n.t("invitation_blocks.invalid"))
     end
 
     it "refuses a magic-link invitation the same way" do
       bearer = create(:invitation, :magic_link)
       get invitation_block_path(token: bearer.generate_token_for(:block_confirmation))
-      expect(flash[:alert]).to eq(I18n.t("invitation_declines.invalid"))
+      expect(flash[:alert]).to eq(I18n.t("invitation_blocks.invalid"))
+    end
+
+    it "refuses an expired invitation, in step with the decline flow" do
+      expired = create(:invitation, :expired)
+      get invitation_block_path(token: expired.generate_token_for(:block_confirmation))
+      expect(flash[:alert]).to eq(I18n.t("invitation_blocks.invalid"))
     end
 
     it "shows the shared invalid message once the invitation was accepted (the token died with the status)" do
       spent = token
       invitation.accept!(create(:user))
       get invitation_block_path(token: spent)
-      expect(flash[:alert]).to eq(I18n.t("invitation_declines.invalid"))
+      expect(flash[:alert]).to eq(I18n.t("invitation_blocks.invalid"))
     end
   end
 
@@ -56,7 +62,7 @@ RSpec.describe "Invitation blocks", type: :request do
       post invitation_block_path, params: { token: spent }
 
       expect(response).to redirect_to(root_path)
-      expect(flash[:alert]).to eq(I18n.t("invitation_declines.invalid"))
+      expect(flash[:alert]).to eq(I18n.t("invitation_blocks.invalid"))
       expect(InvitationBlock.where(inviter_id: invitation.invited_by_id, email: invitation.email).count).to eq(1)
     end
 
@@ -73,6 +79,14 @@ RSpec.describe "Invitation blocks", type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.body).to include(I18n.t("invitation_blocks.already_processed.title"))
       expect(InvitationBlock.exists?(inviter_id: invitation.invited_by_id, email: invitation.email)).to be(true)
+    end
+
+    it "refuses a magic-link invitation on the mutating verb too: nothing to block for" do
+      bearer = create(:invitation, :magic_link)
+      post invitation_block_path, params: { token: bearer.generate_token_for(:block_confirmation) }
+      expect(flash[:alert]).to eq(I18n.t("invitation_blocks.invalid"))
+      expect(InvitationBlock.count).to eq(0)
+      expect(bearer.reload).to be_pending
     end
 
     it "rate limits via the cache counter (T18)" do
