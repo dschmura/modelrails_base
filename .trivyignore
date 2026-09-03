@@ -29,7 +29,10 @@ CVE-2026-42246
 # action available to us regardless. (The 0.1.22-era CVE-2026-39822 entry
 # that previously lived here was cleared by the 0.1.23 rebuild on go1.26.5
 # — its Revisit trigger — and removed.)
-# Revisit: on the next thruster release (> 0.1.25), or 2026-09-15.
+# 0.1.26 (2026-09-03, this bump) clears the golang.org/x/crypto critical
+# (CVE-2026-56854) the scan reported on 0.1.25; whether it also moved past
+# go1.26.5 cannot be read from the scan, because ignored findings are not
+# printed. Revisit: on the next thruster release (> 0.1.26), or 2026-10-15.
 CVE-2026-33818
 CVE-2026-39821
 CVE-2026-46600
@@ -38,3 +41,9 @@ CVE-2026-56858
 CVE-2026-56859
 CVE-2026-56860
 CVE-2026-56862
+
+# resolv 0.7.0 ships with Ruby 4.0.6 (default gem); the Gemfile pins the fixed
+# resolv (>= 0.7.2) and Bundler activates it at runtime, so the vulnerable
+# copy is dormant. Same Ruby-patch dependency as json and net-imap above.
+# Revisit: on the next Ruby 4.0.x patch (bump .tool-versions), or 2026-10-15.
+CVE-2026-80212
