@@ -22,25 +22,10 @@
         class: "btn-outline-danger mt-8 w-full" %>
 
   <% if @invitation.has_invitee? %>
-    <%# Sibling form to the button_to above — the dialog's confirm button_to
-        renders its OWN form; never nest them. %>
-    <div data-controller="modal" class="mt-4">
-      <button type="button"
-              class="btn-touch-target btn-text btn-text-danger text-sm focus-ring max-w-full text-center wrap-anywhere"
-              data-action="click->modal#open">
-        <%= t("invitation_declines.show.block_trigger",
-              inviter: @invitation.invited_by.email_address) %>
-      </button>
-      <%= render "shared/confirm_dialog",
-            title: t("invitation_declines.show.block_title",
-                     inviter: @invitation.invited_by.email_address),
-            message: t("invitation_declines.show.block_message",
-                       inviter: @invitation.invited_by.email_address,
-                       email: @invitation.email),
-            confirm_text: t("invitation_declines.show.block_confirm"),
-            confirm_url: block_invitation_path(token: @invitation.token),
-            confirm_method: :post,
-            variant: :danger %>
-    </div>
+    <%# Blocking moved behind the signed link in the invitation email (#951):
+        nothing reachable from a bearer URL can block. %>
+    <p class="mt-6 text-sm text-text-body">
+      <%= t("invitation_declines.show.block_hint", inviter: @invitation.invited_by.email_address) %>
+    </p>
   <% end %>
 </div>

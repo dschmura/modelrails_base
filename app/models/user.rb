@@ -4,6 +4,14 @@ class User < ApplicationRecord
   has_many :sessions, dependent: :destroy
   has_many :authentications, dependent: :destroy
   has_one :preferences, class_name: "UserPreferences", dependent: :destroy
+
+  # The one path to a user's preferences row (#884). The unique index on
+  # user_preferences.user_id makes a racing insert lose with RecordNotUnique,
+  # which create_or_find_by! turns into the row the other writer made; the
+  # association target is set so the next `preferences` read needs no query.
+  def preferences!
+    preferences || UserPreferences.create_or_find_by!(user: self).tap { |row| association(:preferences).target = row }
+  end
   # :delete_all, not :destroy (#817): one DELETE through the association scope,
   # no row instantiation. The only callback this skips is noticed's counter
   # cache on `noticed_events.notifications_count`, which every other deletion

@@ -108,6 +108,18 @@ RSpec.describe "Magic Link Callbacks", type: :request do
     end
   end
 
+  describe "POST /magic_link_callback/:token/sign_in with no user for the address" do
+    it "spends the token and refuses" do
+      token = MagicLinkToken.create_for_email("nobody@example.com")
+
+      post magic_link_callback_sign_in_path(token: token)
+
+      expect(response).to redirect_to(new_session_path)
+      expect(flash[:alert]).to eq(I18n.t("magic_link_callbacks.show.invalid"))
+      expect(MagicLinkToken.find_valid(token)).to be_nil
+    end
+  end
+
   describe "POST /magic_link_callback/:token" do
     context "valid token and valid user params" do
       before { allow(Rails.configuration.x.signup).to receive(:mode).and_return(:open) }

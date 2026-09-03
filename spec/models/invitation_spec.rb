@@ -1184,4 +1184,32 @@ RSpec.describe Invitation, type: :model do
       Current.workspace = nil
     end
   end
+
+  describe "block confirmation token (#951)" do
+    let(:invitation) { create(:invitation) }
+
+    it "round-trips while the invitation is pending" do
+      token = invitation.generate_token_for(:block_confirmation)
+      expect(Invitation.find_by_token_for(:block_confirmation, token)).to eq(invitation)
+    end
+
+    it "dies when the status changes, however it changes" do
+      token = invitation.generate_token_for(:block_confirmation)
+      invitation.decline!
+      expect(Invitation.find_by_token_for(:block_confirmation, token)).to be_nil
+    end
+
+    it "survives a resend, which rotates the invitation token but not the invitation" do
+      token = invitation.generate_token_for(:block_confirmation)
+      invitation.resend!
+      expect(Invitation.find_by_token_for(:block_confirmation, token)).to eq(invitation)
+    end
+
+    it "expires with the invitation's own lifetime" do
+      token = invitation.generate_token_for(:block_confirmation)
+      travel_to(Invitation::BLOCK_TOKEN_LIFETIME.from_now + 1.minute) do
+        expect(Invitation.find_by_token_for(:block_confirmation, token)).to be_nil
+      end
+    end
+  end
 end
