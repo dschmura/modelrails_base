@@ -123,9 +123,17 @@ module UI
 
     def list_id = "#{@id}-list"
 
+    # The empty-state status message is a SIBLING of the listbox, not a
+    # child: `role="listbox"` only permits `role="option"`/group children
+    # (aria-required-children), so a `role="status"` div inside it is an
+    # ARIA violation regardless of the `hidden` toggle. It still lives
+    # inside the same panel so it visually occupies the dropdown.
     def dropdown
-      content_tag(:div, listbox, data: { combobox_target: "panel" }, hidden: true,
-        style: "position-anchor: --#{@id}", class: PANEL)
+      content_tag(:div, data: { combobox_target: "panel" }, hidden: true,
+        style: "position-anchor: --#{@id}", class: PANEL) do
+        concat listbox
+        concat empty_state
+      end
     end
 
     def listbox
@@ -135,14 +143,17 @@ module UI
         "aria-label": accessible_name,
         class: LIST,
         data: { combobox_target: "list" }) do
-        concat options_list
-        concat content_tag(:div,
-          I18n.t("modelrails_ui.combobox.empty", default: "No results found."),
-          class: EMPTY,
-          role: "status",
-          data: { combobox_target: "empty" },
-          hidden: true)
+        options_list
       end
+    end
+
+    def empty_state
+      content_tag(:div,
+        I18n.t("modelrails_ui.combobox.empty", default: "No results found."),
+        class: EMPTY,
+        role: "status",
+        data: { combobox_target: "empty" },
+        hidden: true)
     end
 
     def options_list
