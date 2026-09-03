@@ -26,13 +26,18 @@ class InvitationBlocksController < ApplicationController
 
   private
 
-  # Absolute key: this filter serves both #show and #create. The has_invitee?
-  # refusal is this endpoint's own: nothing to block for on a magic link.
+  # Absolute key: this filter serves both #show and #create. `expired?` keeps
+  # this endpoint in step with the decline flow (an expired invitation is not
+  # declined-and-blocked, so no decline notification fires for a lapsed one);
+  # the has_invitee? refusal is this endpoint's own: nothing to block for on a
+  # magic link, and decline_and_block! raises on one. The copy is this flow's
+  # own because a spent link (a refresh after a successful block) lands here
+  # too, and "invalid" would be untrue of it.
   def find_blockable_invitation
     invitation = Invitation.find_by_token_for(:block_confirmation, params[:token])
 
-    if invitation.nil? || !invitation.pending? || !invitation.has_invitee?
-      redirect_to root_path, alert: t("invitation_declines.invalid")
+    if invitation.nil? || !invitation.pending? || invitation.expired? || !invitation.has_invitee?
+      redirect_to root_path, alert: t("invitation_blocks.invalid")
       return nil
     end
 

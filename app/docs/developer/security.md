@@ -54,7 +54,10 @@ on accept, decline, block, or revoke; lifetime seven days, the invitation's
 own) as a query parameter. The link opens a confirmation page
 (`GET /invitation_block?token=`, no side effects) whose one button performs
 `decline_and_block!` (`POST /invitation_block`) and renders the outcome in the
-document. Nothing reachable from a bearer invitation URL can block: the decline
+document. A refresh after that re-posts a spent token and lands on the home page
+with "This link was already used, or the invitation has expired"; the
+"already handled" page is reached only when a decline races the block. Nothing
+reachable from a bearer invitation URL can block: the decline
 page only points at the email link, and the former `POST /invitations/:token/block`
 route is gone. Mailbox possession is the proof, the same proof accepting relies
 on through email verification. An `InvitationBlock`
