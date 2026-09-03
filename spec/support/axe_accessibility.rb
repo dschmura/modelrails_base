@@ -664,7 +664,11 @@ RSpec.configure do |config|
       # disposed the session before this hook — and the after(:suite) gate
       # below fails the run for it. There is no per-example opt-out: a page a
       # preview must render deliberately wrong is fixed to be right instead.
-      if Capybara.current_session.current_url.start_with?("about:")
+      # Only a truly empty document is skipped: an about:blank whose body was
+      # written by the example (a mail template loaded for audit, #461) is a
+      # page state like any other.
+      if Capybara.current_session.current_url.start_with?("about:") &&
+         !Capybara.current_session.evaluate_script("!!(document.body && document.body.children.length)")
         AxeAccessibility::TEARDOWN_LEDGER[example.id] = :blank
         next
       end
