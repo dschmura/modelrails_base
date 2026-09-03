@@ -113,6 +113,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Security
 
+- **Bearer tokens in request-log paths are an accepted, documented exposure** ([#916](https://github.com/dschmura/modelrails_base/issues/916)). The security doc records the five flows, why Rails filtering cannot reach a path segment, that the proxy logs the path and query regardless, the host-only readership and 10 MB caps, each token's lifetime, and the triggers that reopen the decision; a code-smell fence holds the route set to that list so a new secret goes in the query string or the body. Four behavioural findings from the same review are tracked separately (#950–#954).
 - `first_name`, `last_name`, and `company_name` are filtered from request logs and `#inspect`, alongside the `email` partial match Rails already ships.
 - Password create, change and removal now share a rate limit (10 / 3 min), matching every sibling settings endpoint; each mutation writes an audit row retained under the security floor, so the endpoint has a durable side effect per request (#819).
 
