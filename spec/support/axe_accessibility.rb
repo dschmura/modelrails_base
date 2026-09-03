@@ -21,6 +21,33 @@ module AxeAccessibility
     ".highlight"
   ].freeze
 
+  # Ledger for the teardown audit (#912). The after(:each) hook at the bottom
+  # of this file writes one entry per system example: :audited, or :blank when
+  # the example ended with no page. VisitTracking records which examples
+  # navigated at all. `unaudited` reads the two against each other for the
+  # after(:suite) gate: an example that navigated and was not audited is a
+  # hole in the AAA invariant, whatever left the hole. The hook once sat inert
+  # for months because a second `reset_sessions!` after-hook ran ahead of it
+  # and it skipped every example as blank; this is what makes that loud.
+  TEARDOWN_LEDGER = {}
+  VISITED_EXAMPLES = Set.new
+
+  def self.unaudited(example_ids, ledger: TEARDOWN_LEDGER, visited: VISITED_EXAMPLES)
+    example_ids.reject do |id|
+      ledger[id] == :audited || (ledger[id] == :blank && !visited.include?(id))
+    end
+  end
+
+  # Prepended to system examples so the gate knows which ones navigated.
+  # Covers the DSL `visit`; a bare `page.visit` is outside it, as it is for
+  # StimulusReady.
+  module VisitTracking
+    def visit(*args, **kwargs)
+      VISITED_EXAMPLES << RSpec.current_example.id if RSpec.current_example
+      super
+    end
+  end
+
   # WCAG 2.2 AAA conformance is CUMULATIVE (2.0 + 2.1 + 2.2 at A/AA/AAA,
   # WCAG §5) — but axe tags each version separately (wcag2a ≠ wcag21a ≠
   # wcag22aa). Filtering on the 2.0-era tags alone silently skipped every
@@ -557,15 +584,16 @@ RSpec.configure do |config|
   # the default has to be the safe one, or this regresses to CI-only by habit.
   unless ENV["SKIP_AXE"] == "1"
     config.after(:each, type: :system) do |example|
-      # Deliberate-violation examples (component previews that DOCUMENT an
-      # anti-pattern) opt out explicitly — tag with `skip_axe_hook: true`
-      # and say why at the tag site.
-      next if example.metadata[:skip_axe_hook]
-
-      # Multi-session examples can end with an about:blank window current —
-      # auditing an empty document only produces a bogus document-title
-      # violation.
-      next if Capybara.current_session.current_url.start_with?("about:")
+      # No page, nothing to audit: an example that never navigated (a
+      # request-level check under type: :system, or one that failed in setup).
+      # An example that DID navigate and still ends here is #912 — something
+      # disposed the session before this hook — and the after(:suite) gate
+      # below fails the run for it. There is no per-example opt-out: a page a
+      # preview must render deliberately wrong is fixed to be right instead.
+      if Capybara.current_session.current_url.start_with?("about:")
+        AxeAccessibility::TEARDOWN_LEDGER[example.id] = :blank
+        next
+      end
       # Prepare toasts for audit:
       # - Defeat in-progress animations (element opacity, transforms)
       # - Force a solid background so axe can reliably compute color contrast.
@@ -624,10 +652,36 @@ RSpec.configure do |config|
         (results["violations"] || []).map { |v| v.merge("themeContext" => theme) }
       end
 
+      AxeAccessibility::TEARDOWN_LEDGER[example.id] = :audited
+
       formatted = violations.map { |v| "[#{v['themeContext'].upcase}] #{format_violation(v)}" }
 
       expect(violations).to be_empty,
         "Accessibility violations found:#{formatted.join("\n")}"
+    end
+
+    config.prepend AxeAccessibility::VisitTracking, type: :system
+
+    # The gate that keeps the hook above from going quiet again (#912): every
+    # system example that navigated must have an :audited entry. Raising here
+    # fails the run as a suite-level error; each parallel worker checks its
+    # own examples.
+    config.after(:suite) do
+      ran = RSpec.world.all_examples.select do |ex|
+        ex.metadata[:type] == :system && ex.execution_result.started_at &&
+          ex.execution_result.status != :pending
+      end
+      missing = AxeAccessibility.unaudited(ran.map(&:id))
+      next if missing.empty?
+
+      raise "The AAA teardown audit did not run for #{missing.size} system " \
+            "example(s) that navigated — the audit is not optional:\n  " \
+            "#{missing.join("\n  ")}"
+    end
+  else
+    config.before(:suite) do
+      warn "\n*** SKIP_AXE=1: the WCAG 2.2 AAA teardown audit is OFF for this run. " \
+           "A focused local loop only — never in CI or before a push. ***\n"
     end
   end
 end
