@@ -9,6 +9,11 @@ ruby file: ".tool-versions"
 # drop the floor — spec/code_smells/template_invariants_spec.rb fails if the
 # requirement ever admits a vulnerable release again.
 gem "rails", "~> 8.1.3", ">= 8.1.3.1"
+# resolv 0.7.0 ships inside Ruby 4.0.6 as a default gem with CVE-2026-80212
+# (denial of service via uncontrolled recursion); pinning the fixed release
+# makes Bundler activate it at runtime. The dormant default copy stays in the
+# image and is accepted in .trivyignore with a revisit trigger.
+gem "resolv", ">= 0.7.2"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
 # Use sqlite3 as the database for Active Record
