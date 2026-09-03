@@ -322,4 +322,31 @@ RSpec.describe "Notification preferences", type: :system do
         "the live region wrapper must stay in the a11y tree (never hidden) so revealing the warning is announced"
     end
   end
+
+  # #940: the retention select auto-saves. Arrowing through options fires
+  # `change` per step in some browser and reader pairs, so a keyboard user
+  # would write every intermediate value. The form debounces its submit, so
+  # a run of changes settles into one save of the final value.
+  describe "retention select settles before saving (#940)" do
+    def preference_patches
+      cdp_browser.network.traffic.count do |exchange|
+        request = exchange.request
+        # form_with method: :patch submits as POST with a _method override.
+        request && %w[POST PATCH].include?(request.method) && request.url.include?(settings_notification_preferences_path)
+      end
+    end
+
+    it "saves once, with the final value, after a quick run of changes" do
+      visit edit_settings_notification_preferences_path
+      options = NotificationPreferences::ALLOWED_RETENTION_DAYS
+      labels = options.map { |days| I18n.t("notifications.preferences.advanced.retention_options.#{days}") }
+      before = preference_patches
+
+      labels.first(3).each { |label| select label, from: "retention-days" }
+
+      expect(page).to have_css("#notifications-live", text: I18n.t("notifications.preferences.update.saved_announcement"), visible: :all)
+      expect(user.preferences.reload.notification_preferences["retention_days"]).to eq(options[2])
+      expect(preference_patches - before).to eq(1)
+    end
+  end
 end
