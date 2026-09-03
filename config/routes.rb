@@ -142,7 +142,9 @@ Rails.application.routes.draw do
   post "invitations/:token/accept", to: "invitation_accepts#create"
   get "invitations/:token/decline", to: "invitation_declines#show", as: :decline_invitation
   post "invitations/:token/decline", to: "invitation_declines#create"
-  post "invitations/:token/block", to: "invitation_blocks#create", as: :block_invitation
+  # Blocking an inviter is reached only from the signed link in the invitee's
+  # own invitation email; the token travels as a query parameter (#951/#916).
+  resource :invitation_block, only: [ :show, :create ]
 
   resource :onboarding, only: %i[show update]
   namespace :onboarding do

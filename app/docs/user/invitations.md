@@ -40,7 +40,7 @@ The one exception: **magic-link invitations** (a shareable URL that an admin cop
 
 Every invitation email in the table above includes a **Decline** link. Clicking it marks the invitation as declined — no account or membership is created. (The "expiring soon" reminder is a different email and links only to **Accept** — decline from the original invitation email.)
 
-The decline page offers a second choice: **Decline and block**. That declines the invitation and also stops future invitations from that sender to your address. Blocking is per-sender and per-address — it needs no account, it covers only invitations that one sender addresses to you, and it does not follow you if you later switch to a different address. The sender is told nothing beyond the ordinary "invitation declined" notice.
+Every invitation email also carries a **Don't invite me again** link. It opens a page that asks you to confirm; confirming declines the invitation and stops future invitations from that sender to your address. Only that link can do this: it exists in your email and nowhere else, which is how the app knows it is really you. Blocking is per-sender and per-address, and it needs no account. The decline page reminds you where the link is.
 
 A block stops **delivery only**. It does not cancel or invalidate anything: an invitation link you already have still works while that invitation is valid, and blocking does not stop that person creating invitations or reaching you any other way.
 

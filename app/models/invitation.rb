@@ -13,6 +13,18 @@ class Invitation < ApplicationRecord
 
   include Trackable
   include Broadcastable
+  include Invitation::Suppression
+
+  # Signed, stateless proof that the holder read the invitation email: the
+  # only place this token exists is the "Don't invite me again" link in that
+  # mail (#951). Payload [status] kills it on accept, decline, block, or
+  # revoke; a resend rotates the bearer token, not the invitation, so it
+  # survives one. Lifetime matches the invitation's own seven days.
+  BLOCK_TOKEN_LIFETIME = 7.days
+
+  generates_token_for :block_confirmation, expires_in: BLOCK_TOKEN_LIFETIME do
+    status
+  end
 
   enum :status, { pending: "pending", accepted: "accepted", declined: "declined", revoked: "revoked" }, default: "pending"
 
@@ -52,7 +64,6 @@ class Invitation < ApplicationRecord
   # enum's `pending` is left alone; the extra constraint lives under its own name.
   scope :acceptable, -> { where(status: "pending").where("expires_at > ?", Time.current) }
   scope :expired, -> { where(status: "pending").where("expires_at <= ?", Time.current) }
-  scope :unsuppressed, -> { where(suppressed_at: nil) }
 
   # The SQL half of the members page (WorkspaceRoster does search and sort in
   # Ruby). Pending invitations are excluded entirely when the status filter
@@ -289,22 +300,6 @@ class Invitation < ApplicationRecord
   # future magic-link mailer must not read it as one (PR 4 spec §2).
   def has_invitee? = !magic_link?
 
-  def blocked_by_invitee?
-    has_invitee? && InvitationBlock.exists?(inviter_id: invited_by_id, email: email)
-  end
-
-  def deliverable? = has_invitee? && !blocked_by_invitee?
-
-  def suppressed? = suppressed_at.present?
-
-  # One suppressed mailer-delivery attempt: stamp (idempotent, collision-safe),
-  # then record. Unexpected errors propagate BEFORE any audit row — the mailer
-  # job retries and re-enters the guard (PR 4 spec §6.3).
-  def suppress_delivery!(mailer_action:)
-    stamp_suppression
-    record_suppressed_delivery(mailer_action)
-  end
-
   # Hours remaining until expiry, ceiled to the next whole hour. Single source
   # of truth for the user-facing "expires in N hours" copy in both the
   # WorkspaceInvitationExpiringSoonNotifier message and the matching mailer.
@@ -386,35 +381,6 @@ class Invitation < ApplicationRecord
 
   def generate_token
     self.token = SecureRandom.urlsafe_base64(32)
-  end
-
-  # Callback-free on purpose: Trackable#track_update would publish this stamp
-  # into the workspace activity feed as "Invitation updated" — a block oracle
-  # (PR 4 spec §3, Departure 1 / invariant I4).
-  def stamp_suppression
-    update_column(:suppressed_at, Time.current) unless suppressed?
-  rescue ActiveRecord::RecordNotUnique
-    # A sibling ghost already holds the suppressed slot — correct end state
-    # (Aaron V-1). update_columns wrote the cast value into @attributes and
-    # cleared the dirty flag BEFORE the DB refused, so there is no recorded
-    # change left to restore_attributes; reload takes value and clean state
-    # back from the row, which is still live.
-    reload
-  end
-
-  # Best-effort, admin-visibility, outside Trackable's callbacks — the same
-  # shape as Membership#record_ownership_demotion; Trackable's header names
-  # this writer. Metadata never carries the address (unencrypted JSON).
-  def record_suppressed_delivery(mailer_action)
-    ActivityLog.create!(
-      actor: nil, action: "invitation.delivery_suppressed", trackable: self,
-      workspace: resolved_workspace, visibility: "admin",
-      metadata: { "mailer_action" => mailer_action.to_s }
-    )
-  rescue StandardError => e
-    Rails.logger.warn("Activity tracking failed for Invitation##{id} (delivery_suppressed): #{e.message}")
-    Rails.error.report(e, handled: true,
-      context: { trackable: "Invitation##{id}", action: "invitation.delivery_suppressed" })
   end
 
   # Attribute activity to the invitation's own workspace context, never the

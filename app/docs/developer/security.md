@@ -46,8 +46,18 @@ in supersedes per window before the victim's link becomes untouchable.
 
 ### Invitation blocks (decline-and-block)
 
-An invitee who declines an invitation can, in the same motion, stop that
-inviter's future invitations from reaching that address. An `InvitationBlock`
+An invitee can stop an inviter's future invitations from reaching their
+address. Since #951 the only way to do that is the **"Don't invite me again"
+link in the invitation email itself**: it carries a signed, stateless
+`generates_token_for :block_confirmation` token (payload `[status]`, so it dies
+on accept, decline, block, or revoke; lifetime seven days, the invitation's
+own) as a query parameter. The link opens a confirmation page
+(`GET /invitation_block?token=`, no side effects) whose one button performs
+`decline_and_block!` (`POST /invitation_block`) and renders the outcome in the
+document. Nothing reachable from a bearer invitation URL can block: the decline
+page only points at the email link, and the former `POST /invitations/:token/block`
+route is gone. Mailbox possession is the proof, the same proof accepting relies
+on through email verification. An `InvitationBlock`
 row means "invitations from inviter *I* to address *E* are not delivered".
 Blocks are **email-keyed and account-independent**: they work for a decliner
 with no account, survive the address later becoming a user, and do not follow
@@ -218,7 +228,7 @@ and its token travels as a query parameter, not a path segment ([#950](https://g
 
 ### Bearer Tokens in Request Logs
 
-Four flows carry a bearer token as a URL path segment: the magic-link callback (`/magic_link_callback/:token`), invitation accept, decline and block (`/invitations/:token/…`), and workspace join links (`/workspaces/:slug/joins/:token`). Connected-account email verification moved its token to the query string (`/settings/connected_accounts/verify?token=…`, [#950](https://github.com/dschmura/modelrails_base/issues/950)); a legacy path-token alias (`/settings/connected_accounts/verify/:token`) stays live for one token lifetime (24 hours) past the 2026-09 deploy so in-flight emails still land, then it is removed. Rails writes a path segment into every `Started GET …` line verbatim: `config.filter_parameters` reaches query strings and form fields, and `Rails::Rack::Logger` logs `request.filtered_path`, which filters the query string and passes path segments through. (Active Storage's direct-upload route carries a five-minute signed token the same way.)
+Four flows carry a bearer token as a URL path segment: the magic-link callback (`/magic_link_callback/:token`), invitation accept and decline (`/invitations/:token/…`; blocking moved behind a signed query-string link in the invitee's own email, #951), and workspace join links (`/workspaces/:slug/joins/:token`). Connected-account email verification moved its token to the query string (`/settings/connected_accounts/verify?token=…`, [#950](https://github.com/dschmura/modelrails_base/issues/950)); a legacy path-token alias (`/settings/connected_accounts/verify/:token`) stays live for one token lifetime (24 hours) past the 2026-09 deploy so in-flight emails still land, then it is removed. Rails writes a path segment into every `Started GET …` line verbatim: `config.filter_parameters` reaches query strings and form fields, and `Rails::Rack::Logger` logs `request.filtered_path`, which filters the query string and passes path segments through. (Active Storage's direct-upload route carries a five-minute signed token the same way.)
 
 None of these five tokens is plaintext at rest. Magic-link and workspace-join-link tokens are stored only as SHA-256 digests (see *Magic-Link Tokens*); connected-account email verification is Rails' stateless `generates_token_for` and stores nothing at all. Invitation tokens (`invitations.token`) and the parked invitation token from an unverified-email OAuth signup (`authentications.pending_invitation_token`) are deterministically encrypted rather than digested, because the expiring-soon reminder and the notification mailer rebuild the accept URL from the token days after creation — a digest, being one-way, cannot be turned back into a link (#953). What this section accepts is a token's momentary appearance in a request-log line, never its form at rest.
 

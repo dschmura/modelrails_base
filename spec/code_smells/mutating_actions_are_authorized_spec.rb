@@ -78,6 +78,9 @@ RSpec.describe "Mutating controller actions authorize or are allow-listed" do
     # and #sign_in below.
     "email_verifications#create",
     "invitation_accepts#create",
+    # The signed block-confirmation token from the invitee's own invitation
+    # email is the authorization; the action acts only on the invitation the
+    # token names (#951).
     "invitation_blocks#create",
     "invitation_declines#create",
     "magic_link_callbacks#create",
