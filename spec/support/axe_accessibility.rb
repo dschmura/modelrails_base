@@ -21,6 +21,33 @@ module AxeAccessibility
     ".highlight"
   ].freeze
 
+  # Ledger for the teardown audit (#912). The after(:each) hook at the bottom
+  # of this file writes one entry per system example: :audited, or :blank when
+  # the example ended with no page. VisitTracking records which examples
+  # navigated at all. `unaudited` reads the two against each other for the
+  # after(:suite) gate: an example that navigated and was not audited is a
+  # hole in the AAA invariant, whatever left the hole. The hook once sat inert
+  # for months because a second `reset_sessions!` after-hook ran ahead of it
+  # and it skipped every example as blank; this is what makes that loud.
+  TEARDOWN_LEDGER = {}
+  VISITED_EXAMPLES = Set.new
+
+  def self.unaudited(example_ids, ledger: TEARDOWN_LEDGER, visited: VISITED_EXAMPLES)
+    example_ids.reject do |id|
+      ledger[id] == :audited || (ledger[id] == :blank && !visited.include?(id))
+    end
+  end
+
+  # Prepended to system examples so the gate knows which ones navigated.
+  # Covers the DSL `visit`; a bare `page.visit` is outside it, as it is for
+  # StimulusReady.
+  module VisitTracking
+    def visit(*args, **kwargs)
+      VISITED_EXAMPLES << RSpec.current_example.id if RSpec.current_example
+      super
+    end
+  end
+
   # WCAG 2.2 AAA conformance is CUMULATIVE (2.0 + 2.1 + 2.2 at A/AA/AAA,
   # WCAG §5) — but axe tags each version separately (wcag2a ≠ wcag21a ≠
   # wcag22aa). Filtering on the 2.0-era tags alone silently skipped every
@@ -254,20 +281,35 @@ module AxeAccessibility
             const widgetItem = el.matches("[role=menuitem],[role=menuitemcheckbox],[role=menuitemradio],[role=option]") &&
                                el.closest("[role=menu],[role=menubar],[role=listbox]");
             const floor = widgetItem ? 23.5 : 43.5;
-            let r = blurredRect;
-            const label = el.labels && el.labels[0];
-            if (label) {
+            // Every visible label is a candidate target of its own (#912). A
+            // label that wraps the control or sits within the field's own
+            // label-to-control spacing unions with it — that is the labelled
+            // field the SC measures. FIELD_GAP is FormFieldComponent's `mt-3`
+            // (12px) plus 2px of sub-pixel slack for rounded rects. A
+            // label elsewhere on the page counts by its own box: the space
+            // between two separate regions is not a target, so unioning
+            // them made a phantom rectangle that passed a 1px control by
+            // spanning the page. Hidden labels (display:none,
+            // visibility:hidden, empty box) are not candidates at all.
+            const FIELD_GAP = 14;
+            const unions = [ blurredRect ];
+            for (const label of (el.labels || [])) {
+              if (!visibleEl(label)) continue;
               const lr = label.getBoundingClientRect();
-              r = { width: Math.max(r.right, lr.right) - Math.min(r.left, lr.left),
-                    height: Math.max(r.bottom, lr.bottom) - Math.min(r.top, lr.top) };
+              const touches = !(lr.right < blurredRect.left - FIELD_GAP || lr.left > blurredRect.right + FIELD_GAP ||
+                                lr.bottom < blurredRect.top - FIELD_GAP || lr.top > blurredRect.bottom + FIELD_GAP);
+              unions.push(touches
+                ? { width: Math.max(blurredRect.right, lr.right) - Math.min(blurredRect.left, lr.left),
+                    height: Math.max(blurredRect.bottom, lr.bottom) - Math.min(blurredRect.top, lr.top) }
+                : { width: lr.width, height: lr.height });
             }
             // Layout-box fallback: getBoundingClientRect shrinks under
             // transforms — an audit racing a dialog's 200ms close animation
             // (panel at scale .95) measured 44px buttons at 42. offsetWidth/
             // Height ignore transforms; persistent scale bugs are prevented
             // at the source (no scale-* rest classes on panels).
-            const w = Math.max(r.width, el.offsetWidth || 0);
-            const h = Math.max(r.height, el.offsetHeight || 0);
+            const boxes = unions.map(u => ({ w: Math.max(u.width, el.offsetWidth || 0), h: Math.max(u.height, el.offsetHeight || 0) }));
+            const { w, h } = boxes.reduce((a, b) => Math.min(b.w, b.h) > Math.min(a.w, a.h) ? b : a);
             if (w < floor || h < floor)
               tooSmall.push({ el, why: `target ${Math.round(w)}x${Math.round(h)} — floor is ${widgetItem ? "24x24 (2.5.8 AA, widget-item deviation)" : "44x44 (2.5.5)"}` });
           }
@@ -377,6 +419,16 @@ module AxeAccessibility
 
     @__axe_audit_run_count = axe_audit_run_count + 1
     @__axe_audit_memo[memo_key] = result
+  end
+
+  # A Turbo visit still in flight at teardown is not a page state: Turbo sets
+  # aria-busy on <html> until the new body renders, and axe reports the
+  # attribute as an ARIA error (#948, CI shard 1: an example whose last action
+  # was a link click). Waits for the visit to settle so the audit sees the page
+  # the user lands on; false if it never did within the budget, in which case
+  # the audit runs anyway and its report says why.
+  def wait_for_turbo_visit_to_settle(wait: Capybara.default_max_wait_time)
+    page.has_no_css?("html[aria-busy='true']", wait: wait)
   end
 
   # Real (non-memoized) audits this example has run — the observability handle
@@ -557,15 +609,18 @@ RSpec.configure do |config|
   # the default has to be the safe one, or this regresses to CI-only by habit.
   unless ENV["SKIP_AXE"] == "1"
     config.after(:each, type: :system) do |example|
-      # Deliberate-violation examples (component previews that DOCUMENT an
-      # anti-pattern) opt out explicitly — tag with `skip_axe_hook: true`
-      # and say why at the tag site.
-      next if example.metadata[:skip_axe_hook]
+      # No page, nothing to audit: an example that never navigated (a
+      # request-level check under type: :system, or one that failed in setup).
+      # An example that DID navigate and still ends here is #912 — something
+      # disposed the session before this hook — and the after(:suite) gate
+      # below fails the run for it. There is no per-example opt-out: a page a
+      # preview must render deliberately wrong is fixed to be right instead.
+      if Capybara.current_session.current_url.start_with?("about:")
+        AxeAccessibility::TEARDOWN_LEDGER[example.id] = :blank
+        next
+      end
 
-      # Multi-session examples can end with an about:blank window current —
-      # auditing an empty document only produces a bogus document-title
-      # violation.
-      next if Capybara.current_session.current_url.start_with?("about:")
+      wait_for_turbo_visit_to_settle
       # Prepare toasts for audit:
       # - Defeat in-progress animations (element opacity, transforms)
       # - Force a solid background so axe can reliably compute color contrast.
@@ -624,10 +679,36 @@ RSpec.configure do |config|
         (results["violations"] || []).map { |v| v.merge("themeContext" => theme) }
       end
 
+      AxeAccessibility::TEARDOWN_LEDGER[example.id] = :audited
+
       formatted = violations.map { |v| "[#{v['themeContext'].upcase}] #{format_violation(v)}" }
 
       expect(violations).to be_empty,
         "Accessibility violations found:#{formatted.join("\n")}"
+    end
+
+    config.prepend AxeAccessibility::VisitTracking, type: :system
+
+    # The gate that keeps the hook above from going quiet again (#912): every
+    # system example that navigated must have an :audited entry. Raising here
+    # fails the run as a suite-level error; each parallel worker checks its
+    # own examples.
+    config.after(:suite) do
+      ran = RSpec.world.all_examples.select do |ex|
+        ex.metadata[:type] == :system && ex.execution_result.started_at &&
+          ex.execution_result.status != :pending
+      end
+      missing = AxeAccessibility.unaudited(ran.map(&:id))
+      next if missing.empty?
+
+      raise "The AAA teardown audit did not run for #{missing.size} system " \
+            "example(s) that navigated — the audit is not optional:\n  " \
+            "#{missing.join("\n  ")}"
+    end
+  else
+    config.before(:suite) do
+      warn "\n*** SKIP_AXE=1: the WCAG 2.2 AAA teardown audit is OFF for this run. " \
+           "A focused local loop only — never in CI or before a push. ***\n"
     end
   end
 end

@@ -137,6 +137,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Fixed
 
+- **The WCAG 2.2 AAA teardown audit is live again and cannot be switched off silently.** A redundant session reset had left it skipping every system example; an after-suite gate now fails the run for any navigating example it did not audit, a code-smell fence refuses the ways of disabling it, and the 17 real violations it had been hiding (identity-picker file input without a label, 17px error-summary links, a status element inside a listbox, 30–36px menu-panel links) are fixed in markup. ([#912](https://github.com/dschmura/modelrails_base/issues/912))
 - Membership notification callbacks are best-effort: a raising role-change, add, re-admit, or self-join notifier no longer 500s a committed membership — it reports and moves on, matching the removal notifier's existing posture (#935).
 - Removing a member is idempotent: a replayed DELETE on an already-removed membership no longer re-stamps the removal timestamp, no longer writes a second audit row, and no longer sends the removed member a second notification and email.
 - The workspace activity feed renders its written English again — every key under `activity.actions` was flat and dotted, which I18n's nested lookup never finds, so each row silently degraded to a humanized column value (#911).

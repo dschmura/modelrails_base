@@ -24,10 +24,9 @@ RSpec.describe "Invitation decline and block", type: :system do
       I18n.t("invitation_declines.show.block_message",
              inviter: inviter.email_address, email: invitation.email)
     )
-    # The dialog deliberately stays OPEN to the end (PR 4 spec §9 / T21), and
-    # the AAA gate is asserted HERE: the suite's teardown audit never sees this
-    # state, because `spec/support/capybara.rb` registers `reset_sessions!`
-    # after the axe hook, so it runs first and the audit bails on about:blank.
+    # The dialog deliberately stays OPEN to the end (PR 4 spec §9 / T21), so
+    # the teardown audit sees it too. Asserting here as well names this state
+    # in the failure instead of "the file's end state".
     expect(axe_violations_in_both_themes).to be_empty
   end
 
@@ -44,10 +43,9 @@ RSpec.describe "Invitation decline and block", type: :system do
 
   # Scoped: `with_viewport`'s ensure restores the suite default, so a leaked
   # narrow viewport can't reframe later specs in this parallel worker. The axe
-  # assertion lives INSIDE the block for the same reason — the suite-wide hook
-  # runs after the restore and would audit the desktop DOM, leaving the 320px
-  # state the one unaudited page state here.
-  it "reflows at 320px with no horizontal scroll (T21c)", skip_axe_hook: true do
+  # assertion INSIDE the block covers the 320px state; the teardown audit then
+  # covers the same page at the restored desktop width.
+  it "reflows at 320px with no horizontal scroll (T21c)" do
     with_viewport(320, 800) do
       visit decline_invitation_path(token: invitation.token)
       expect(page.evaluate_script(

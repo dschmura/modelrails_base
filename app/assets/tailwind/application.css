@@ -118,6 +118,15 @@ body:has([data-biscuit-target="banner"]:not([hidden])) {
   }
 }
 
+/* The identity picker opens its sr-only file input through a visible
+   <label for>, immediately followed by the input in the DOM. Keyboard
+   focus lands on the 1px input, so the ring paints on the label right
+   before it — an adjacency selector needs no id coupling (#912). */
+[data-controller~="identity-picker"] label:has(+ [data-identity-picker-target="fileInput"]:focus-visible) {
+  outline: 2px solid var(--color-interactive-focus);
+  outline-offset: 2px;
+}
+
 /* Composite-widget target sizing (WCAG 2.5.5 deviation — see
    app/docs/developer/accessibility.md): menu and listbox interiors keep
    desktop density (2.5.5 not claimed for them on fine pointers; the 24px
