@@ -154,6 +154,7 @@ en:
         resend_action_aria_label: "Resend confirmation for %{provider}"
         cancel_action_aria_label: "Cancel %{provider} link"
         disconnect_action_aria_label: "Unlink %{provider}"
+        verified_banner: "%{email} is verified."
       destroy:
         success: "%{provider} unlinked."
         cannot_remove_last_verified: "You can't remove your last verified sign-in method."
@@ -166,6 +167,15 @@ en:
         resent: "We sent a fresh confirmation link to %{email}."
         already_verified: "That sign-in method is already verified."
         rate_limited: "Please wait a moment before requesting another confirmation email."
+    connected_account_verifications:
+      show:
+        title: "Verify connected account"
+        prompt: "Confirm that %{email} is yours to finish connecting %{provider}."
+        button: "Verify %{email} for %{provider}"
+        cancel: "Not you? Cancel"
+        invalid_or_expired: "This confirmation link is invalid or expired. Sign in and request a new one from your connected accounts."
+      create:
+        success: "%{provider} linked. You can sign in with it."
   identity_picker:
     preview: "Preview"
     last_updated: "Updated %{time} ago"

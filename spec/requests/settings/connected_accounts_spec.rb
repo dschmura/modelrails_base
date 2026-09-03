@@ -38,6 +38,25 @@ RSpec.describe "Account Connected Accounts", type: :request do
       end
     end
 
+    describe "GET /account/connected_accounts (verified banner)" do
+      it "shows an in-document success alert naming the address after verification" do
+        auth = user.authentications.create!(
+          provider: "google", uid: "uid-banner", email: "banner@example.com", verified_at: nil
+        )
+
+        # The verification POST redirects here with flash[:verified_email] set;
+        # follow_redirect! exercises the flash hand-off end-to-end.
+        post settings_connected_account_verification_path,
+          params: { token: auth.generate_token_for(:email_verification) }
+        follow_redirect!
+
+        banner_text = I18n.t("settings.connected_accounts.index.verified_banner", email: "banner@example.com")
+        expect(response.body).to include(banner_text)
+        html = Capybara.string(response.body)
+        expect(html).to have_css("[role='status']", text: banner_text)
+      end
+    end
+
     describe "GET /account/connected_accounts (email label reflects password)" do
       it "labels the email method 'Email and password' when the user has a password" do
         with_pw = create(:user)
@@ -112,7 +131,36 @@ RSpec.describe "Account Connected Accounts", type: :request do
     end
   end
 
-  describe "GET /account/connected_accounts/verify/:token" do
+  describe "GET /account/connected_accounts/verify (confirmation only)" do
+    let(:user) { create(:user, :no_authentications) }
+    let(:auth) do
+      user.authentications.create!(
+        provider: "google",
+        uid: "uid-1",
+        email: "alice.work@gmail.com",
+        verified_at: nil
+      )
+    end
+
+    it "renders the confirmation and verifies nothing" do
+      get settings_connected_account_verification_path(token: auth.generate_token_for(:email_verification))
+      expect(response).to have_http_status(:ok)
+      expect(auth.reload.verified_at).to be_nil
+    end
+
+    it "redirects with an invalid-or-expired alert for an unknown token" do
+      get settings_connected_account_verification_path(token: "nonexistent")
+      expect(flash[:alert]).to include("invalid or expired")
+    end
+
+    it "renders via the legacy path-token route without verifying (#950/#916)" do
+      get settings_legacy_verify_settings_connected_accounts_path(token: auth.generate_token_for(:email_verification))
+      expect(response).to have_http_status(:ok)
+      expect(auth.reload.verified_at).to be_nil
+    end
+  end
+
+  describe "POST /account/connected_accounts/verify" do
     let(:user) { create(:user, :no_authentications) }
     let(:auth) do
       user.authentications.create!(
@@ -125,25 +173,27 @@ RSpec.describe "Account Connected Accounts", type: :request do
 
     context "with a valid, unexpired token" do
       it "marks the authentication verified" do
-        get verify_settings_connected_accounts_path(token: auth.generate_token_for(:email_verification))
+        post settings_connected_account_verification_path, params: { token: auth.generate_token_for(:email_verification) }
         expect(auth.reload.verified_at).to be_present
       end
 
       context "when the user is signed in" do
         before { sign_in(user) }
 
-        it "redirects to connected accounts with success" do
-          get verify_settings_connected_accounts_path(token: auth.generate_token_for(:email_verification))
+        it "redirects to connected accounts with success and the in-document banner flash" do
+          post settings_connected_account_verification_path, params: { token: auth.generate_token_for(:email_verification) }
           expect(response).to redirect_to(settings_connected_accounts_path)
           expect(flash[:notice]).to include("linked")
+          expect(flash[:verified_email]).to eq(auth.email)
         end
       end
 
       context "when the user is signed out" do
-        it "signs the user in and redirects to root" do
-          get verify_settings_connected_accounts_path(token: auth.generate_token_for(:email_verification))
-          expect(response).to redirect_to(root_path)
+        it "signs the user in and lands on the connected-accounts index (outcome is in-document, #950)" do
+          post settings_connected_account_verification_path, params: { token: auth.generate_token_for(:email_verification) }
+          expect(response).to redirect_to(settings_connected_accounts_path)
           expect(flash[:notice]).to include("linked")
+          expect(flash[:verified_email]).to eq(auth.email)
         end
       end
     end
@@ -152,7 +202,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
       it "does not mark the authentication verified" do
         token = auth.generate_token_for(:email_verification)
         travel(Authentication::TOKEN_LIFETIME + 1.minute) do
-          get verify_settings_connected_accounts_path(token: token)
+          post settings_connected_account_verification_path, params: { token: token }
         end
         expect(auth.reload.verified_at).to be_nil
       end
@@ -160,7 +210,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
       it "redirects with an invalid-or-expired alert" do
         token = auth.generate_token_for(:email_verification)
         travel(Authentication::TOKEN_LIFETIME + 1.minute) do
-          get verify_settings_connected_accounts_path(token: token)
+          post settings_connected_account_verification_path, params: { token: token }
         end
         expect(flash[:alert]).to include("invalid or expired")
       end
@@ -168,7 +218,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
 
     context "with an unknown token" do
       it "redirects with an invalid-or-expired alert" do
-        get verify_settings_connected_accounts_path(token: "nonexistent")
+        post settings_connected_account_verification_path, params: { token: "nonexistent" }
         expect(flash[:alert]).to include("invalid or expired")
       end
     end
@@ -183,7 +233,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
       end
 
       it "redirects with an invalid-or-expired alert" do
-        get verify_settings_connected_accounts_path(token: original_token)
+        post settings_connected_account_verification_path, params: { token: original_token }
         expect(flash[:alert]).to include("invalid or expired")
       end
     end
@@ -202,12 +252,12 @@ RSpec.describe "Account Connected Accounts", type: :request do
       before { sign_in(user) }
 
       it "does not verify the other user's authentication" do
-        get verify_settings_connected_accounts_path(token: "other-token")
+        post settings_connected_account_verification_path, params: { token: "other-token" }
         expect(other_auth.reload.verified_at).to be_nil
       end
 
       it "redirects with invalid_or_expired (does not leak that the token belongs to another user)" do
-        get verify_settings_connected_accounts_path(token: "other-token")
+        post settings_connected_account_verification_path, params: { token: "other-token" }
         expect(response).to redirect_to(settings_connected_accounts_path)
         expect(flash[:alert]).to include("invalid or expired")
       end
@@ -420,7 +470,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
     end
   end
 
-  describe "GET verify (new user with pending invitation)" do
+  describe "POST verify (new user with pending invitation)" do
     let(:workspace) { create(:workspace) }
     let(:invitation) { create(:invitation, invitable: workspace, email: "needsverify@example.com") }
     let(:user) { create(:user, :no_authentications, email_address: "needsverify@example.com") }
@@ -438,7 +488,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
 
     it "verifies the auth, signs in the user, claims the invitation, and grants workspace membership" do
       token = pending_auth.generate_token_for(:email_verification)
-      get verify_settings_connected_accounts_path(token: token)
+      post settings_connected_account_verification_path, params: { token: token }
 
       expect(pending_auth.reload.verified_at).to be_present
       expect(invitation.reload).to be_accepted
@@ -450,7 +500,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
       invitation.update!(status: "accepted", accepted_at: 1.minute.ago)
 
       token = pending_auth.generate_token_for(:email_verification)
-      get verify_settings_connected_accounts_path(token: token)
+      post settings_connected_account_verification_path, params: { token: token }
 
       expect(pending_auth.reload.verified_at).to be_present
       expect(flash[:alert]).to include(I18n.t("registrations.create.invitation_consumed"))
@@ -460,13 +510,13 @@ RSpec.describe "Account Connected Accounts", type: :request do
       invitation.update!(status: "accepted", accepted_at: 1.minute.ago)
 
       token = pending_auth.generate_token_for(:email_verification)
-      get verify_settings_connected_accounts_path(token: token)
+      post settings_connected_account_verification_path, params: { token: token }
 
       expect(pending_auth.reload.verified_at).to be_present
     end
   end
 
-  describe "GET verify (pending invitation addressed to a different email)" do
+  describe "POST verify (pending invitation addressed to a different email)" do
     let(:workspace) { create(:workspace) }
     let(:invitation) { create(:invitation, invitable: workspace, email: "invited@example.com") }
     let(:user) { create(:user, :no_authentications, email_address: "different@example.com") }
@@ -483,7 +533,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
     end
 
     it "verifies the auth but refuses the mismatched invitation and explains why" do
-      get verify_settings_connected_accounts_path(token: pending_auth.generate_token_for(:email_verification))
+      post settings_connected_account_verification_path, params: { token: pending_auth.generate_token_for(:email_verification) }
 
       expect(pending_auth.reload.verified_at).to be_present
       expect(invitation.reload).to be_pending
@@ -493,7 +543,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
     end
   end
 
-  describe "GET verify (new user with pending join link)" do
+  describe "POST verify (new user with pending join link)" do
     let(:workspace) { create(:workspace, personal: false, join_policy: "open_link") }
     let!(:member_role) do
       Role.find_or_create_by!(slug: "member", workspace_id: nil) { |r| r.name = "Member" }
@@ -519,7 +569,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
       it "verifies and signs in without surfacing the raw 'already a member' error" do
         workspace.admit(user, role: member_role)
 
-        get verify_settings_connected_accounts_path(token: pending_auth.generate_token_for(:email_verification))
+        post settings_connected_account_verification_path, params: { token: pending_auth.generate_token_for(:email_verification) }
 
         expect(pending_auth.reload.verified_at).to be_present
         # Benign duplicate: the success notice covers it, nothing alarming.
@@ -533,7 +583,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
         workspace.update!(max_members: 1)
         create(:membership, workspace: workspace, user: create(:user), role: member_role)
 
-        get verify_settings_connected_accounts_path(token: pending_auth.generate_token_for(:email_verification))
+        post settings_connected_account_verification_path, params: { token: pending_auth.generate_token_for(:email_verification) }
 
         expect(pending_auth.reload.verified_at).to be_present
         expect(flash[:alert]).to eq(I18n.t("settings.connected_accounts.verify.join_link_at_capacity"))
@@ -544,15 +594,16 @@ RSpec.describe "Account Connected Accounts", type: :request do
 
     context "with a valid active link (happy path)" do
       it "verifies, signs in, admits the user as Member, and clears the token" do
-        get verify_settings_connected_accounts_path(token: pending_auth.generate_token_for(:email_verification))
+        post settings_connected_account_verification_path, params: { token: pending_auth.generate_token_for(:email_verification) }
 
         expect(pending_auth.reload.verified_at).to be_present
         expect(user.reload.workspaces).to include(workspace)
         expect(workspace.memberships.find_by!(user: user).role.slug).to eq("member")
         expect(pending_auth.reload.pending_join_link_digest).to be_nil
         expect(flash[:alert]).to be_blank
-        # Unauthenticated caller is signed in once their email is proven.
-        expect(response).to redirect_to(root_path)
+        # Unauthenticated caller is signed in once their email is proven; the
+        # outcome is shown in-document on the connected-accounts index (#950).
+        expect(response).to redirect_to(settings_connected_accounts_path)
       end
     end
 
@@ -560,7 +611,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
       it "silently no-ops: verifies, clears the token, grants no membership" do
         link.revoke!
 
-        get verify_settings_connected_accounts_path(token: pending_auth.generate_token_for(:email_verification))
+        post settings_connected_account_verification_path, params: { token: pending_auth.generate_token_for(:email_verification) }
 
         expect(pending_auth.reload.verified_at).to be_present
         expect(user.reload.workspaces).not_to include(workspace)
@@ -576,7 +627,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
       it "silently no-ops: verifies, clears the token, grants no membership" do
         workspace.suspend!
 
-        get verify_settings_connected_accounts_path(token: pending_auth.generate_token_for(:email_verification))
+        post settings_connected_account_verification_path, params: { token: pending_auth.generate_token_for(:email_verification) }
 
         expect(pending_auth.reload.verified_at).to be_present
         expect(user.reload.workspaces).not_to include(workspace)
@@ -596,7 +647,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
         it "silently no-ops: verifies, clears the token, grants no membership" do
           workspace.public_send("#{lifecycle_action}!")
 
-          get verify_settings_connected_accounts_path(token: pending_auth.generate_token_for(:email_verification))
+          post settings_connected_account_verification_path, params: { token: pending_auth.generate_token_for(:email_verification) }
 
           expect(pending_auth.reload.verified_at).to be_present
           expect(user.reload.workspaces).not_to include(workspace)
@@ -611,7 +662,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
       it "silently no-ops: verifies, clears the token, grants no membership" do
         workspace.update!(join_policy: "invite")
 
-        get verify_settings_connected_accounts_path(token: pending_auth.generate_token_for(:email_verification))
+        post settings_connected_account_verification_path, params: { token: pending_auth.generate_token_for(:email_verification) }
 
         expect(pending_auth.reload.verified_at).to be_present
         expect(user.reload.workspaces).not_to include(workspace)
