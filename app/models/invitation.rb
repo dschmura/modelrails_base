@@ -30,6 +30,10 @@ class Invitation < ApplicationRecord
   # cipher.
   encrypts :email, deterministic: true, downcase: true
   encrypts :company_name
+  # Bearer credential rebuilt into URLs after creation (reminder, notification
+  # mailer), so a digest would break those links; deterministic so find_by
+  # and the unique index keep working (#953). Never downcase: base64.
+  encrypts :token, deterministic: true
   validates :email, format: { with: User::EMAIL_FORMAT }, allow_nil: true
 
   before_create :generate_token
