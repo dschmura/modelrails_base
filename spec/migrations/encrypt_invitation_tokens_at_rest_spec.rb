@@ -15,6 +15,11 @@ RSpec.describe EncryptInvitationTokensAtRest do
     authentication = create(:authentication)
     raw_authentications.where(id: authentication.id).update_all(pending_invitation_token: plaintext)
 
+    # Fix round 1, item 1: prove the setup really bypassed encryption, so this
+    # example cannot pass on a row `up` merely (correctly) skips as already-encrypted.
+    expect(raw_invitations.find(invitation.id).token).to eq(plaintext)
+    expect(raw_authentications.find(authentication.id).pending_invitation_token).to eq(plaintext)
+
     ActiveRecord::Migration.suppress_messages { migration.up }
 
     expect(raw_invitations.find(invitation.id).token).not_to eq(plaintext)
@@ -28,5 +33,22 @@ RSpec.describe EncryptInvitationTokensAtRest do
     ActiveRecord::Migration.suppress_messages { migration.down }
     expect(raw_invitations.find(invitation.id).token).to eq(plaintext)
     expect(raw_authentications.find(authentication.id).pending_invitation_token).to eq(plaintext)
+  end
+
+  # Fix round 1, item 6: with support_unencrypted_data on, a plaintext row
+  # "decrypts" without raising (Rails hands the plaintext back), so `decrypts?`
+  # would misread every never-migrated row as already-encrypted and `up` would
+  # silently skip it — reporting success while leaving bearer tokens in the
+  # clear. `up` must refuse to run in that configuration instead.
+  it "refuses to run under support_unencrypted_data, before touching any row" do
+    invitation = create(:invitation)
+    plaintext = invitation.token
+    raw_invitations.where(id: invitation.id).update_all(token: plaintext)
+    allow(ActiveRecord::Encryption.config).to receive(:support_unencrypted_data).and_return(true)
+
+    expect { ActiveRecord::Migration.suppress_messages { migration.up } }
+      .to raise_error(/support_unencrypted_data must be off/)
+
+    expect(raw_invitations.find(invitation.id).token).to eq(plaintext) # untouched
   end
 end

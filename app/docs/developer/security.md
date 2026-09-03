@@ -326,14 +326,23 @@ which is why the members page filters and sorts in Ruby (`WorkspaceRoster`).
 | `authentications.email`, `invitations.company_name`, `client_accesses.company_name` | non-deterministic | never looked up |
 
 `workspaces.name` stays plaintext deliberately: the slug is the name,
-parameterized, and sits in every URL. Two properties worth knowing: the
+parameterized, and sits in every URL. Three properties worth knowing: the
 deterministic columns for one address — `users.email_address` and the
 email-provider `authentications.uid` — hold identical bytes, so a leaked dump
-joins them; and the `deterministic_key` cannot be rotated (Rails raises on a
-key list), so it is backed up with the credentials key. Keys are generated per
-fork — see [Forking](/docs/developer/forking#bootstrap-secrets-and-configuration).
-Rows written before a column was encrypted are unreadable by this release;
-the template ships no conversion. Rails' own coexistence path
+joins them; the `deterministic_key` cannot be rotated (Rails raises on a
+key list), so it is backed up with the credentials key; and the two
+invitation-token columns are encrypted *differently* on purpose —
+`invitations.token` is deterministic (its `find_by` lookup and unique index
+need it) while `authentications.pending_invitation_token` is not (nothing
+looks it up by value), so the same token does not encrypt to identical bytes
+in both places. Keys are generated per fork — see
+[Forking](/docs/developer/forking#bootstrap-secrets-and-configuration).
+Rows written before a column was encrypted are unreadable by this release for
+the personal-data columns from #902 — the template ships no conversion for
+those. Invitation tokens are the exception: `invitations.token` and
+`authentications.pending_invitation_token` ship one
+(`db/migrate/20260903115906_encrypt_invitation_tokens_at_rest.rb`, #953),
+re-runnable and reversible. For everything else, Rails' own coexistence path
 (`support_unencrypted_data`, `extend_queries`, `record.encrypt`) is documented
 in the Active Record Encryption guide under "Migrating Existing Data".
 
@@ -519,7 +528,7 @@ config.ssl_options = { hsts: { subdomains: true, preload: true, expires: 1.year 
 Some vulnerabilities disclose anything readable by the app process — CVE-2026-66066 above is one. Upgrading closes the hole but does not undo an exfiltration that already happened. If your deployment ran an affected version while reachable by untrusted users, treat every secret the process could read as exposed and replace it:
 
 1. `secret_key_base` — rotating it signs out every user and invalidates encrypted and signed cookies, signed global IDs, and existing Active Storage URLs.
-2. The master key (`config/master.key` or `RAILS_MASTER_KEY`) and everything `config/credentials.yml.enc` decrypts. Re-encrypt under the new key with `bin/rails credentials:edit`. One entry inside the blob is different: `active_record_encryption.primary_key` rotates by listing the new key after the old one and re-saving records (Rails guide, "Rotating Keys"), but `deterministic_key` **cannot** rotate — Rails refuses a list. Replacing it means decrypting every deterministic column under the old key and re-writing under the new one in a one-off pass this template does not ship; until then, an exposed deterministic key means the addresses in `users.email_address`, `authentications.uid`, `invitations.email`, and `magic_link_tokens.email` are recoverable from any dump taken while it was in use.
+2. The master key (`config/master.key` or `RAILS_MASTER_KEY`) and everything `config/credentials.yml.enc` decrypts. Re-encrypt under the new key with `bin/rails credentials:edit`. One entry inside the blob is different: `active_record_encryption.primary_key` rotates by listing the new key after the old one and re-saving records (Rails guide, "Rotating Keys"), but `deterministic_key` **cannot** rotate — Rails refuses a list. Replacing it means decrypting every deterministic column under the old key and re-writing under the new one in a one-off pass this template does not ship; until then, an exposed deterministic key means the addresses in `users.email_address`, `authentications.uid`, `invitations.email`, and `magic_link_tokens.email` are recoverable from any dump taken while it was in use — as is `invitations.token` (also deterministic, for its `find_by` lookup and unique index), so working invitation accept/decline/block links are recoverable from that dump too, for as long as those invitations stay pending. `authentications.pending_invitation_token` (the parked copy of the same token, held non-deterministically because nothing looks it up by value) decrypts under the rotatable `primary_key` instead, so it isn't stuck the way the deterministic columns are — but until you actually rotate, it is exposed the same way everything else in this step is.
 3. Storage service credentials (S3, GCS, Azure) if you moved off the local disk service.
 4. Database credentials, if your database is not the bundled SQLite file.
 5. API tokens and keys for every third-party service the app calls — OAuth client secrets, mail provider keys, error reporting DSNs.

@@ -15,6 +15,14 @@ class EncryptInvitationTokensAtRest < ActiveRecord::Migration[8.1]
   end
 
   def up
+    # Fix round 1, item 6: with support_unencrypted_data on, a plaintext value
+    # deserializes without raising (Rails returns it as-is), so `decrypts?`
+    # below would misread every never-migrated row as already-encrypted and
+    # silently skip it — a green migration that leaves tokens in the clear.
+    if ActiveRecord::Encryption.config.support_unencrypted_data
+      raise "support_unencrypted_data must be off: plaintext rows would be skipped as already-encrypted"
+    end
+
     rewrite(RawInvitation, :token, Invitation.type_for_attribute("token")) { |type, value| type.serialize(value) }
     rewrite(RawAuthentication, :pending_invitation_token,
             Authentication.type_for_attribute("pending_invitation_token")) { |type, value| type.serialize(value) }

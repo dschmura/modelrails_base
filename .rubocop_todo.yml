@@ -6,15 +6,6 @@
 # Note that changes in the inspected code, or installation of new
 # versions of RuboCop, may require this file to be generated again.
 
-# Offense count: 1
-# Configuration parameters: CountComments, Max, CountAsOne.
-# #953: the new `encrypts :token` declaration (+ its rationale comment) pushed
-# this file one line past the class-length cap; the class itself isn't newly
-# too big.
-Metrics/ClassLength:
-  Exclude:
-    - 'app/models/invitation.rb'
-
 # Offense count: 10
 # Configuration parameters: CountComments, Max, CountAsOne, AllowedMethods, AllowedPatterns.
 Metrics/MethodLength:
