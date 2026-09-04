@@ -21,8 +21,15 @@ class ProjectMembershipChangedNotifier < ApplicationNotifier
       # Projects are nested under their workspace; a bare project_path never
       # existed. Nothing rendered a notifier url in-app before #919, which is
       # how this stayed hidden.
-      project = event.record.project
-      Rails.application.routes.url_helpers.workspace_project_path(project.workspace, project)
+      #
+      # Two hops, so two guards: the project can be gone while the row remains,
+      # and the workspace can be gone while the project row remains.
+      render_safe_or_placeholder do
+        project = present_or_gone!(event.record.project)
+        Rails.application.routes.url_helpers.workspace_project_path(
+          present_or_gone!(project.workspace), project
+        )
+      end
     end
   end
 end
