@@ -35,6 +35,24 @@ RSpec.describe "Invitation decline and block", type: :system do
     end
   end
 
+  # The T21c reflow assertion above is data-dependent: it renders the inviter's
+  # email, and the factory generates addresses of varying length, so it caught
+  # this only when the generated one happened to be long enough. It failed twice
+  # on main that way. This pins the same property with the length made explicit,
+  # so the defect cannot go back to being intermittent.
+  it "reflows at 320px even when the inviter's email is long (T21c)" do
+    long_inviter = create(:user, email_address: "verylongfirstname.verylonglastname@some-quite-long-company-domain.example.com")
+    long_invitation = create(:invitation, invited_by: long_inviter)
+
+    with_viewport(320, 800) do
+      visit decline_invitation_path(token: long_invitation.token)
+      overflow = page.evaluate_script(
+        "document.documentElement.scrollWidth - document.documentElement.clientWidth"
+      )
+      expect(overflow).to be <= 0, "page overflows its 320px viewport by #{overflow}px"
+    end
+  end
+
   it "offers no block hint on a magic-link invitation (anchored absence)" do
     bearer = create(:invitation, :magic_link, invited_by: inviter)
     visit decline_invitation_path(token: bearer.token)

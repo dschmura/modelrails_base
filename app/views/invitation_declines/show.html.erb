@@ -4,7 +4,7 @@
     <%= t("invitation_declines.show.title") %>
   </h1>
 
-  <p class="mt-4 text-text-muted">
+  <p class="mt-4 text-text-muted break-words">
     <% if @invitation.client_invite? %>
       <%= t("invitation_declines.show.client_body",
             inviter: @invitation.invited_by.email_address,
@@ -24,7 +24,7 @@
   <% if @invitation.has_invitee? %>
     <%# Blocking moved behind the signed link in the invitation email (#951):
         nothing reachable from a bearer URL can block. %>
-    <p class="mt-6 text-sm text-text-body">
+    <p class="mt-6 text-sm text-text-body break-words">
       <%= t("invitation_declines.show.block_hint", inviter: @invitation.invited_by.email_address) %>
     </p>
   <% end %>
