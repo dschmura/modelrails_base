@@ -504,6 +504,7 @@ RSpec.describe Workspace, type: :model do
   describe "#admit" do
     let(:workspace) { create(:workspace, max_members: 3, personal: false) }
     let(:user) { create(:user) }
+
     let!(:owner_role) {
       Role.find_or_create_by!(slug: "owner", workspace_id: nil) { |r|
         r.name = "Owner"
@@ -738,6 +739,47 @@ RSpec.describe Workspace, type: :model do
 
       expect(workspace).not_to be_persisted
       expect(workspace.errors[:name]).to be_present
+    end
+  end
+  # #921. Every tracked write in a workspace leaves an activity_logs row
+  # pointing at it, and the FK refuses the DELETE. Before this, the only
+  # workspaces that could be hard-destroyed were ones nobody had ever done
+  # anything in — and "Delete permanently" is a user-facing action.
+  describe "hard destroy with an audit trail" do
+    let(:workspace) { create(:workspace) }
+    let(:user) { create(:user) }
+
+    # Trackable reads Current for the actor and the workspace; set both the way
+    # the request cycle does, then put them back.
+    def with_current(user, workspace)
+      Current.session = user.sessions.create!(user_agent: "test", ip_address: "127.0.0.1")
+      Current.workspace = workspace
+      yield
+    ensure
+      Current.session = nil
+      Current.workspace = nil
+    end
+
+    it "destroys the workspace's own activity trail with it" do
+      with_current(user, workspace) { create(:membership, user: user, workspace: workspace) }
+      expect(ActivityLog.for_workspace(workspace)).to be_any
+
+      expect { workspace.destroy! }.not_to raise_error
+      expect(ActivityLog.where(workspace_id: workspace.id)).to be_empty
+    end
+
+    # The retention floor's rows are written by ActivityLog.record_security_event!,
+    # which hardcodes `workspace_id: nil` and is the single writer for every
+    # SECURITY_ACTIONS row in both tiers. So no security row is workspace-scoped
+    # and a workspace destroy cannot reach one. This pins that, because the day
+    # a security row gains a workspace_id is the day `dependent: :destroy`
+    # starts eating credential evidence silently.
+    it "leaves account-security rows alone, since none of them are workspace-scoped" do
+      ActivityLog.record_security_event!(action: "user.password_changed", user: user)
+      with_current(user, workspace) { create(:membership, user: user, workspace: workspace) }
+
+      expect { workspace.destroy! }.not_to raise_error
+      expect(ActivityLog.where(action: "user.password_changed").count).to eq(1)
     end
   end
 end

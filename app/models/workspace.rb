@@ -32,6 +32,24 @@ class Workspace < ApplicationRecord
   has_many :invitations, as: :invitable, dependent: :destroy
   has_many :projects, dependent: :destroy
 
+  # The workspace's own audit trail dies with it (#921). Without a `dependent:`
+  # the FK refused the DELETE, so the only workspaces that could be hard-
+  # destroyed were ones nobody had ever done anything in — and "Delete
+  # permanently" is a user-facing action.
+  #
+  # `:delete_all`, not `:destroy`, for a reason that is not performance:
+  # `ActivityLog#readonly?` is `persisted?`, so instance-level destroy raises
+  # ReadOnlyRecord by design. Relation-level deletion is the only door, and it
+  # is the same one ActivityLogRetentionSweepJob uses — registered as a
+  # reviewed bypass in spec/code_smells/activity_log_immutability_spec.rb
+  # rather than disabled inline.
+  #
+  # This cannot reach the security retention floor: every SECURITY_ACTIONS row
+  # is written by ActivityLog.record_security_event!, which hardcodes
+  # `workspace_id: nil`. No security row is workspace-scoped, so none is in
+  # this association's scope — pinned in workspace_spec.
+  has_many :activity_logs, dependent: :delete_all
+
   enum :plan, { free: "free", pro: "pro", enterprise: "enterprise" }
 
   # Per-workspace join policy. Composes with the instance-level
