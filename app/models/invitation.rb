@@ -13,14 +13,6 @@ class Invitation < ApplicationRecord
   include Invitation::Suppression
   include Invitation::Sending
 
-  # Payload is `status`, so accept/decline/block/revoke kill the token; a resend rotates the bearer token, not this (#951).
-  # See /docs/developer/security (Invitation blocks).
-  BLOCK_TOKEN_LIFETIME = 7.days
-
-  generates_token_for :block_confirmation, expires_in: BLOCK_TOKEN_LIFETIME do
-    status
-  end
-
   enum :status, { pending: "pending", accepted: "accepted", declined: "declined", revoked: "revoked" }, default: "pending"
 
   validates :role, presence: true, unless: :client_invite?
@@ -125,15 +117,6 @@ class Invitation < ApplicationRecord
         expires_at: 7.days.from_now
       )
     end
-  end
-
-  def decline_and_block!
-    # ArgumentError, deliberately never rescued: the controller pre-checks
-    # has_invitee?; reaching this raise is a programmer error (PR 4 spec §6.2).
-    raise ArgumentError, "magic-link invitations have no invitee to block for" unless has_invitee?
-    # Block commits first, so a lost decline race still records the block; nested, both roll back together.
-    InvitationBlock.block!(inviter: invited_by, email: email)
-    decline!
   end
 
   def acceptable? = pending? && !expired?
