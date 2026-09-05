@@ -2,13 +2,14 @@
 
 require "rails_helper"
 
-RSpec.describe "Passkeys::Registrations", type: :request do
+# A WebAuthn ceremony is two creates on two nouns (#1007): the challenge, then the credential it earns.
+RSpec.describe "Passkeys registration ceremony", type: :request do
   let(:user) { create(:user) }
   let(:client) { WebAuthn::FakeClient.new(Passkeys.origin) }
 
   describe "unauthenticated access" do
     it "redirects POST /passkeys/registration/options to sign in" do
-      post passkeys_registration_options_path
+      post passkeys_registration_challenge_path
       expect(response).to redirect_to(new_session_path)
     end
   end
@@ -16,9 +17,9 @@ RSpec.describe "Passkeys::Registrations", type: :request do
   context "authenticated" do
     before { sign_in(user) }
 
-    describe "POST /passkeys/registration/options" do
+    describe "POST /passkeys/registration/challenge" do
       it "returns creation options with a challenge" do
-        post passkeys_registration_options_path
+        post passkeys_registration_challenge_path
         expect(response).to have_http_status(:ok)
         body = response.parsed_body
         expect(body["challenge"]).to be_present
@@ -41,14 +42,14 @@ RSpec.describe "Passkeys::Registrations", type: :request do
       it "still requires a fresh factor for enrollment when reauth_enabled is false" do
         user.sessions.last.update!(reauthenticated_at: 20.minutes.ago)
 
-        post passkeys_registration_options_path, headers: { "ACCEPT" => "application/json" }
+        post passkeys_registration_challenge_path, headers: { "ACCEPT" => "application/json" }
 
         expect(response).to have_http_status(:forbidden)
         expect(response.parsed_body["reauth_required"]).to be(true)
       end
 
       it "allows enrollment within the reauth window even with the flag off" do
-        post passkeys_registration_options_path
+        post passkeys_registration_challenge_path
         expect(response).to have_http_status(:ok)
       end
 
@@ -57,38 +58,38 @@ RSpec.describe "Passkeys::Registrations", type: :request do
       # that method would vanish silently. Anything else must surface.
       it "does not swallow unexpected errors while storing the return path" do
         user.sessions.last.update!(reauthenticated_at: 20.minutes.ago)
-        allow_any_instance_of(Passkeys::RegistrationsController)
+        allow_any_instance_of(Passkeys::Registration::ChallengesController)
           .to receive(:url_from).and_raise(NoMethodError, "boom")
 
         expect {
-          post passkeys_registration_options_path, headers: { "ACCEPT" => "application/json" }
+          post passkeys_registration_challenge_path, headers: { "ACCEPT" => "application/json" }
         }.to raise_error(NoMethodError, /boom/)
       end
     end
 
-    describe "POST /passkeys/registration/verify" do
+    describe "POST /passkeys/registration/credential" do
       it "notifies the account that a passkey was added" do
-        post passkeys_registration_options_path
+        post passkeys_registration_challenge_path
         challenge = WebauthnChallenge.where(purpose: "registration").last.challenge
         credential = client.create(challenge: challenge)
 
         expect {
-          post passkeys_registration_verify_path,
+          post passkeys_registration_credential_path,
                params: credential.merge(nickname: "My Key").to_json,
                headers: { "CONTENT_TYPE" => "application/json" }
         }.to change { Noticed::Event.where(type: "PasskeyAddedNotifier").count }.by(1)
       end
 
       it "does not notify when verification fails (replayed credential)" do
-        post passkeys_registration_options_path
+        post passkeys_registration_challenge_path
         challenge = WebauthnChallenge.where(purpose: "registration").last.challenge
         credential = client.create(challenge: challenge)
-        post passkeys_registration_verify_path,
+        post passkeys_registration_credential_path,
              params: credential.merge(nickname: "My Key").to_json,
              headers: { "CONTENT_TYPE" => "application/json" }
 
         expect {
-          post passkeys_registration_verify_path,
+          post passkeys_registration_credential_path,
                params: credential.merge(nickname: "My Key").to_json,
                headers: { "CONTENT_TYPE" => "application/json" }
         }.not_to change { Noticed::Event.where(type: "PasskeyAddedNotifier").count }
@@ -96,12 +97,12 @@ RSpec.describe "Passkeys::Registrations", type: :request do
       end
 
       it "creates a passkey and returns 201" do
-        post passkeys_registration_options_path
+        post passkeys_registration_challenge_path
         challenge = WebauthnChallenge.where(purpose: "registration").last.challenge
         credential = client.create(challenge: challenge)
 
         expect {
-          post passkeys_registration_verify_path,
+          post passkeys_registration_credential_path,
                params: credential.merge(nickname: "My Key").to_json,
                headers: { "CONTENT_TYPE" => "application/json" }
         }.to change { user.webauthn_credentials.count }.by(1)
@@ -110,18 +111,18 @@ RSpec.describe "Passkeys::Registrations", type: :request do
       end
 
       it "returns 422 for a replayed credential (consumed challenge)" do
-        post passkeys_registration_options_path
+        post passkeys_registration_challenge_path
         challenge = WebauthnChallenge.where(purpose: "registration").last.challenge
         credential = client.create(challenge: challenge)
 
         # First verify succeeds
-        post passkeys_registration_verify_path,
+        post passkeys_registration_credential_path,
              params: credential.merge(nickname: "My Key").to_json,
              headers: { "CONTENT_TYPE" => "application/json" }
         expect(response).to have_http_status(:created)
 
         # Replay with same credential payload (challenge already consumed) → 422
-        post passkeys_registration_verify_path,
+        post passkeys_registration_credential_path,
              params: credential.merge(nickname: "My Key").to_json,
              headers: { "CONTENT_TYPE" => "application/json" }
         expect(response).to have_http_status(:unprocessable_content)
@@ -131,9 +132,9 @@ RSpec.describe "Passkeys::Registrations", type: :request do
       it "returns 422 for a malformed/unverifiable credential payload" do
         # Exercises the Passkeys::Error / ArgumentError → 422 path for any
         # ceremony failure (bad base64, invalid attestation, etc.)
-        post passkeys_registration_options_path
+        post passkeys_registration_challenge_path
 
-        post passkeys_registration_verify_path,
+        post passkeys_registration_credential_path,
              params: { id: "bad", rawId: "bad", type: "public-key",
                        response: { clientDataJSON: "notbase64!", attestationObject: "notbase64!" } }.to_json,
              headers: { "CONTENT_TYPE" => "application/json" }
@@ -151,8 +152,8 @@ RSpec.describe "Passkeys::Registrations", type: :request do
         # Now stub the ceremony to simulate the duplicate error path through the endpoint
         allow(Passkeys::RegisterCeremony).to receive(:verify).and_raise(Passkeys::CredentialAlreadyRegistered)
 
-        post passkeys_registration_options_path
-        post passkeys_registration_verify_path,
+        post passkeys_registration_challenge_path
+        post passkeys_registration_credential_path,
              params: { nickname: "dup" }.to_json,
              headers: { "CONTENT_TYPE" => "application/json" }
 
