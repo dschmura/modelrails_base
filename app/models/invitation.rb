@@ -11,7 +11,7 @@ class Invitation < ApplicationRecord
   include Trackable
   include Broadcastable
   include Suppression
-  include Sending
+  include Issuance
   include Acceptance
 
   enum :status, { pending: "pending", accepted: "accepted", declined: "declined", revoked: "revoked" }, default: "pending"
