@@ -2,7 +2,7 @@ class Membership < ApplicationRecord
   # A membership announces its own transitions to the people they affect: role
   # changes, arrivals, re-admissions, removals, and the self-joiner's orientation.
   # Actor semantics: /docs/developer/notifications (The actor rule).
-  module Notifications
+  module Announcements
     extend ActiveSupport::Concern
 
     included do

@@ -7,7 +7,7 @@ class Membership < ApplicationRecord
   include Broadcastable
   include Provenance
   include Ownership
-  include Notifications
+  include Announcements
 
   belongs_to :user
   belongs_to :workspace
