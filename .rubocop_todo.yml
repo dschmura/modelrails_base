@@ -15,7 +15,8 @@ Metrics/MethodLength:
     - 'app/controllers/omniauth_callbacks_controller.rb'
     - 'app/controllers/settings/connected_accounts_controller.rb'
     - 'app/lib/notification_broadcaster.rb'
-    - 'app/models/invitation.rb'
+    # bulk_invite! carried this exemption on invitation.rb; it moved with the method, not newly added.
+    - 'app/models/invitation/sending.rb'
     # Vendored/regenerable (rails g modelrails_ui:add form_builder) — never
     # hand-edit to shrink; see app/form_builders/tailwind_form_builder.rb's
     # class comment.
