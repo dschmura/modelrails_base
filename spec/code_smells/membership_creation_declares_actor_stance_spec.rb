@@ -38,7 +38,7 @@ RSpec.describe "Code smell: membership creation declares its actor stance" do
   # example in spec/notifiers/workspace_joined_notifier_spec.rb, so this
   # exemption stays falsifiable rather than merely asserted.
   allowed_without_stance = {
-    "app/models/user.rb#create_personal_workspace" =>
+    "app/models/user/onboarding.rb#create_personal_workspace" =>
       "seeds the very first owner of a just-created personal workspace",
     "app/models/workspace.rb#create_owned" =>
       "seeds the very first owner of a just-created workspace"
