@@ -286,28 +286,29 @@ RSpec.describe "Project Resources", type: :request do
       end
     end
 
-    describe "PATCH reposition" do
+    # Reordering is the update of a position nested under the resource (#1007).
+    describe "PATCH /workspaces/:slug/projects/:slug/resources/:id/position" do
       let!(:resource) { create(:resource, project: project, created_by: user, position: 0) }
       let!(:resource2) { create(:resource, project: project, created_by: user, position: 1) }
       let!(:resource3) { create(:resource, project: project, created_by: user, position: 2) }
       let!(:resource4) { create(:resource, project: project, created_by: user, position: 3) }
 
       it "updates the resource position" do
-        patch reposition_workspace_project_resource_path(workspace, project, resource), params: {
+        patch workspace_project_resource_position_path(workspace, project, resource), params: {
           resource: { position: 3 }
         }
         expect(resource.reload.position).to eq(3)
       end
 
       it "clamps negative position to 0" do
-        patch reposition_workspace_project_resource_path(workspace, project, resource), params: {
+        patch workspace_project_resource_position_path(workspace, project, resource), params: {
           resource: { position: -5 }
         }
         expect(resource.reload.position).to eq(0)
       end
     end
 
-    describe "PATCH reposition denied for viewer" do
+    describe "PATCH position denied for viewer" do
       let(:viewer) { create(:user) }
       let!(:viewer_ws) { create(:membership, user: viewer, workspace: workspace) }
       let!(:viewer_pm) { create(:project_membership, :viewer, project: project, user: viewer) }
@@ -315,7 +316,7 @@ RSpec.describe "Project Resources", type: :request do
 
       it "denies viewer from repositioning" do
         sign_in(viewer)
-        patch reposition_workspace_project_resource_path(workspace, project, resource), params: {
+        patch workspace_project_resource_position_path(workspace, project, resource), params: {
           resource: { position: 5 }
         }
         expect(resource.reload.position).to eq(0)

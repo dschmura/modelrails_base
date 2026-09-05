@@ -291,7 +291,7 @@ Performance: the unread breakdown summary is computed ONCE at the top of `refres
 | Caller | When | Announcement key |
 |---|---|---|
 | `ApplicationNotifier#broadcast_notifications_arrival` (after_create_commit on the event) | New notification arrives | `arrival_announcement` |
-| `Settings::NotificationsController#broadcast_bell_refresh` (private), called from `update` and `mark_all_read`; `Settings::Notifications::ReadingsController#create` calls `NotificationBroadcaster.refresh_for` directly for the same reason | Read-state mutation | `read_state_announcement` |
+| `Settings::NotificationsController#broadcast_bell_refresh` (private), called from `update`; `Settings::NotificationReadingsController#create` (mark all read) and `Settings::Notifications::ReadingsController#create` calls `NotificationBroadcaster.refresh_for` directly for the same reason | Read-state mutation | `read_state_announcement` |
 
 Both flow through `NotificationBroadcaster.refresh_for` — no duplicate broadcast code lives anywhere else. The fan-out in `broadcast_notifications_arrival` iterates `User.where(id: recipient_ids).find_each` so per-user broadcast failures are isolated (one bad user can't poison the rest).
 
@@ -346,7 +346,8 @@ Validates a partial-change hash (the shape the preferences form posts), coerces 
 
 | Controller | Routes | Notes |
 |---|---|---|
-| `Settings::NotificationsController` | `index`, `update` (read-state toggle), `mark_all_read` | Pundit-gated; calls `broadcast_bell_refresh` on every read-state mutation |
+| `Settings::NotificationsController` | `index`, `update` (read-state toggle) | Pundit-gated; calls `broadcast_bell_refresh` on every read-state mutation |
+| `Settings::NotificationReadingsController` | `create` (mark all read) | Pundit-gated (`mark_all_read?`); one atomic `update_all`, then `NotificationBroadcaster.refresh_for` |
 | `Settings::Notifications::ReadingsController` | `create` (open-and-mark-read, POST-only via the nested `reading` resource) | Pundit-gated on `NotificationPolicy#open?`; the old mutating GET `:open` is gone (#686) |
 | `Settings::NotificationPreferencesController` | `edit`, `update` | Delegates validation to `NotificationPreferences#merge`; rescues `InvalidChange` → 422 |
 | `Settings::Preferences::TimezonesController` | `update` | Beacon-path returns 204; explicit-user path (`override=true`) returns Turbo Stream that closes the drawer + announces "Timezone updated" |

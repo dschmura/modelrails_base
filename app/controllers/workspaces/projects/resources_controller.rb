@@ -5,7 +5,7 @@ module Workspaces
       include ProjectScoped
       include EnforcesProjectTool
       enforces_tool :docs
-      before_action :set_resource, only: [ :show, :edit, :update, :destroy, :reposition ]
+      before_action :set_resource, only: [ :show, :edit, :update, :destroy ]
       # The allowlist check is what makes the later constantize safe — declared
       # as a filter so an action can't forget it; it halts by redirecting.
       before_action :validate_resource_type, only: [ :new, :create ]
@@ -81,14 +81,6 @@ module Workspaces
         authorize @resource
         @resource.discard!
         redirect_to workspace_project_resources_path(@workspace, @project), notice: t(".success")
-      end
-
-      def reposition
-        authorize @resource
-        max_position = @project.resources.kept.count - 1
-        new_position = params[:resource][:position].to_i.clamp(0, [ max_position, 0 ].max)
-        @resource.update!(position: new_position)
-        head :ok
       end
 
       private

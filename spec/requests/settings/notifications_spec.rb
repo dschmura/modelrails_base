@@ -40,8 +40,8 @@ RSpec.describe "Account Notifications", type: :request do
       expect(response).to redirect_to(new_session_path)
     end
 
-    it "redirects POST /account/notifications/mark_all_read to sign in" do
-      post mark_all_read_settings_notifications_path
+    it "redirects POST /account/notification_readings (mark all read) to sign in" do
+      post settings_notification_readings_path
       expect(response).to redirect_to(new_session_path)
     end
   end
@@ -294,7 +294,9 @@ RSpec.describe "Account Notifications", type: :request do
       end
     end
 
-    describe "POST /account/notifications/mark_all_read" do
+    # Marking everything read is the create of readings for all notifications (#1007),
+    # the bulk twin of Settings::Notifications::ReadingsController.
+    describe "POST /account/notification_readings" do
       it "marks ALL of the current user's unread notifications as read (250-row behavior assertion)" do
         # Build 250 unread notifications without going through the notifier
         # (faster + avoids idempotency collisions). We assert the OUTCOME —
@@ -309,7 +311,7 @@ RSpec.describe "Account Notifications", type: :request do
           )
         end
 
-        post mark_all_read_settings_notifications_path
+        post settings_notification_readings_path
 
         unread_remaining = user.notifications.where(read_at: nil).count
         expect(unread_remaining).to eq(0)
@@ -325,15 +327,15 @@ RSpec.describe "Account Notifications", type: :request do
           type: "PasswordChangedNotifier::Notification"
         )
 
-        post mark_all_read_settings_notifications_path
+        post settings_notification_readings_path
 
         expect(foreign.reload.read_at).to be_nil
       end
 
       it "redirects with a success notice" do
-        post mark_all_read_settings_notifications_path
+        post settings_notification_readings_path
         expect(response).to redirect_to(settings_notifications_path)
-        expect(flash[:notice]).to eq(I18n.t("notifications.index.mark_all_read.success"))
+        expect(flash[:notice]).to eq(I18n.t("settings.notification_readings.create.success"))
       end
     end
 
@@ -368,11 +370,11 @@ RSpec.describe "Account Notifications", type: :request do
         patch settings_notification_path(notification), params: { read_at: "now" }
       end
 
-      it "broadcasts the v2 refresh trio on POST mark_all_read" do
+      it "broadcasts the v2 refresh trio on POST notification_readings (mark all read)" do
         notification
         expect_v2_refresh_broadcasts
 
-        post mark_all_read_settings_notifications_path
+        post settings_notification_readings_path
       end
 
       # #686: open-and-mark-read is a POST-only resource (reading) — the old
@@ -440,7 +442,7 @@ RSpec.describe "Account Notifications", type: :request do
         patch settings_notification_path(notification), params: { read_at: "now" }
       end
 
-      it "broadcasts a read-state aria-live announcement on POST mark_all_read" do
+      it "broadcasts a read-state aria-live announcement on POST notification_readings (mark all read)" do
         notification
 
         allow(Turbo::StreamsChannel).to receive(:broadcast_update_to)
@@ -449,7 +451,7 @@ RSpec.describe "Account Notifications", type: :request do
                 target: "notifications-live",
                 content: I18n.t("notifications.bell.read_state_announcement"))
 
-        post mark_all_read_settings_notifications_path
+        post settings_notification_readings_path
       end
     end
   end

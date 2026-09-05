@@ -31,11 +31,12 @@ en:
         magic_link_created: "Magic link created."
       destroy:
         revoked: "Invitation revoked."
-      resend:
-        resent: "Invitation resent."
-        recently_sent: "We already resent this within the last minute."
-        magic_link_refreshed: "Magic link refreshed."
-        rate_limited: "Too many requests. Please try again later."
+      resends:
+        create:
+          resent: "Invitation resent."
+          recently_sent: "We already resent this within the last minute."
+          magic_link_refreshed: "Magic link refreshed."
+          rate_limited: "Too many requests. Please try again later."
   invitation_accepts:
     # Outside show:/create: on purpose — the shared `find_valid_invitation`
     # filter emits these for both actions and looks them up absolutely.

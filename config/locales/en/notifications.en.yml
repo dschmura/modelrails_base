@@ -156,7 +156,6 @@ en:
         action: "Mark all as read"
         title: "Mark all as read?"
         confirm: "Mark all your unread notifications as read?"
-        success: "All notifications marked as read."
       retention_hint:
         text: "Once you've read a notification, we remove it %{period} later. Unread notifications stay until you read them."
         change: "Change retention"

@@ -92,6 +92,7 @@ data:
     - ['settings.connected_accounts.*', 'config/locales/%{locale}/account.%{locale}.yml']
     - ['settings.email_confirmations.*', 'config/locales/%{locale}/account.%{locale}.yml']
     - ['settings.notification_preferences.*', 'config/locales/%{locale}/account.%{locale}.yml']
+    - ['settings.notification_readings.*', 'config/locales/%{locale}/account.%{locale}.yml']
     - ['settings.other_sessions.*', 'config/locales/%{locale}/account.%{locale}.yml']
     - ['settings.passkeys.*', 'config/locales/%{locale}/account.%{locale}.yml']
     - ['settings.passwords.*', 'config/locales/%{locale}/account.%{locale}.yml']
@@ -205,8 +206,8 @@ ignore_unused:
   # the working proof of use.
   - navigation.profile
   - settings.sidebar.items.invitations
-  - workspaces.invitations.resend.recently_sent
-  - workspaces.invitations.resend.resent
+  - workspaces.invitations.resends.create.recently_sent
+  - workspaces.invitations.resends.create.resent
   # Resolved dynamically at runtime, so no static call site exists.
   - notification_mailer.digest.subject.*
   # Rendered via t(error.i18n_key) — each Passkeys::Error subclass derives its
