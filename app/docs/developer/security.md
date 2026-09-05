@@ -322,7 +322,7 @@ fails otherwise.
 ### Password Security
 
 - 12-character minimum
-- Pwned password check (Have I Been Pwned API)
+- Pwned password check (Have I Been Pwned range API), run before `save` and outside the write transaction (see [Architecture § Concurrency](/docs/developer/architecture)). It is **fail-open**: a network failure allows the password rather than blocking registration on an external service.
 - Account recovery issues a single-use `MagicLinkToken` (`set_password` intent, 15-minute expiry), not a stateless reset token
 
 ### Canonical Email Keys

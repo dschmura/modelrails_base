@@ -2,8 +2,10 @@
 
 require "rails_helper"
 
+# User::KnownDevices is a concern, so the messages go to a User and the
+# describe names User; the file path and these doc strings name the trait.
 RSpec.describe User, type: :model do
-  describe "last_known_browsers column" do
+  describe "known devices: the last_known_browsers column" do
     it "exists on the users table with a JSON default of []" do
       expect(User.column_names).to include("last_known_browsers")
       column = User.columns_hash["last_known_browsers"]
@@ -13,7 +15,7 @@ RSpec.describe User, type: :model do
     end
   end
 
-  describe ".browser_digest (single source of truth)" do
+  describe ".browser_digest — the known-devices fingerprint, shared with SignInFromNewDeviceNotifier" do
     it "produces a deterministic SHA256 of the version-stripped UA and os" do
       expected = Digest::SHA256.hexdigest("agent macos")
       expect(User.browser_digest("agent", "macos")).to eq expected
@@ -34,7 +36,7 @@ RSpec.describe User, type: :model do
     end
   end
 
-  describe "#seen_browser? and #record_browser!" do
+  describe "#seen_browser? / #record_browser! — the known-devices record-and-recognize round trip" do
     let(:user) { create(:user) }
     let(:user_agent) { "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_2) AppleWebKit/605.1.15" }
     let(:os) { "Macintosh" }
@@ -61,17 +63,17 @@ RSpec.describe User, type: :model do
     end
 
     it "caps the list at MAX_KNOWN_BROWSERS, evicting the least recently seen" do
-      (1..User::MAX_KNOWN_BROWSERS + 1).each do |i|
+      (1..User::KnownDevices::MAX_KNOWN_BROWSERS + 1).each do |i|
         travel_to(Time.zone.parse("2026-01-01") + i.hours) do
           user.record_browser!("Browser-Alpha-#{"x" * i}", os)
         end
       end
 
       browsers = user.reload.last_known_browsers
-      expect(browsers.size).to eq(User::MAX_KNOWN_BROWSERS)
+      expect(browsers.size).to eq(User::KnownDevices::MAX_KNOWN_BROWSERS)
       oldest_digest = User.browser_digest("Browser-Alpha-x", os)
       expect(browsers.map { |e| e["digest"] }).not_to include(oldest_digest)
-      newest_digest = User.browser_digest("Browser-Alpha-#{"x" * (User::MAX_KNOWN_BROWSERS + 1)}", os)
+      newest_digest = User.browser_digest("Browser-Alpha-#{"x" * (User::KnownDevices::MAX_KNOWN_BROWSERS + 1)}", os)
       expect(browsers.map { |e| e["digest"] }).to include(newest_digest)
     end
 

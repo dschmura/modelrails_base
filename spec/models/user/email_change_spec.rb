@@ -1,7 +1,8 @@
 require "rails_helper"
 
-# Extracted from user_spec.rb when the email-change state machine moved off
-# User (DES-1). Behavior is unchanged; only the call surface differs.
+# The email-change state machine is a PORO nested under User; the pending
+# fields and their validations stay on the record. A real class with an
+# initializer, so the describe names it (unlike the concern traits).
 RSpec.describe User::EmailChange, type: :model do
   describe "#initiate!" do
     let(:user) { create(:user) }
@@ -39,7 +40,7 @@ RSpec.describe User::EmailChange, type: :model do
     end
 
     it "works for a passwordless user (SEC-2b: no password required)" do
-      oauth_user = create(:user, password: nil, password_digest: nil)
+      oauth_user = create(:user, :passwordless)
       result = described_class.new(oauth_user).initiate!("new@example.com")
       expect(result).to be true
       expect(oauth_user.reload.pending_email).to eq("new@example.com")
@@ -99,10 +100,11 @@ RSpec.describe User::EmailChange, type: :model do
     end
 
     it "does not touch OAuth authentications" do
-      oauth_auth = user.authentications.create!(provider: "google", uid: "google123", verified_at: Time.current)
+      oauth_auth = create(:authentication, :google, :verified, user: user)
+      oauth_uid = oauth_auth.uid
       token = user.pending_email_token
       described_class.new(user).confirm!(token)
-      expect(oauth_auth.reload.uid).to eq("google123")
+      expect(oauth_auth.reload.uid).to eq(oauth_uid)
     end
 
     it "clears pending fields" do

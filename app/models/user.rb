@@ -1,5 +1,6 @@
 class User < ApplicationRecord
-  # Include order is callback registration order: onboarding's after_create runs before the avatar's.
+  # Include order is callback registration order, kept as it was before the traits existed (Onboarding's
+  # after_create ahead of Avatar's). No current callback depends on it; reorder with that in mind.
   include Onboarding
   include Avatar
   include Password
@@ -8,11 +9,6 @@ class User < ApplicationRecord
   has_many :sessions, dependent: :destroy
   has_many :authentications, dependent: :destroy
   has_one :preferences, class_name: "UserPreferences", dependent: :destroy
-
-  # create_or_find_by!: a racing insert loses on the unique index and returns the winner's row (#884).
-  def preferences!
-    preferences || UserPreferences.create_or_find_by!(user: self).tap { |row| association(:preferences).target = row }
-  end
   # delete_all, not destroy (#817): no FK backs this, so this line is the whole guard against orphan notification rows.
   has_many :notifications, as: :recipient, dependent: :delete_all, class_name: "Noticed::Notification"
   has_many :memberships, dependent: :destroy
@@ -60,6 +56,11 @@ class User < ApplicationRecord
 
   def email_verification_pending?
     authentications.email.pending.exists?
+  end
+
+  # create_or_find_by!: a racing insert loses on the unique index and returns the winner's row (#884).
+  def preferences!
+    preferences || UserPreferences.create_or_find_by!(user: self).tap { |row| association(:preferences).target = row }
   end
 
   # Proven addresses only: every verified_at writer must be in spec/requests/can_invite_gate_spec.rb's inventory.

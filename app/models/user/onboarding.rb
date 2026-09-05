@@ -36,8 +36,7 @@ class User < ApplicationRecord
 
     private
 
-    # Dispatches to the right onboarding strategy based on the tenancy preset.
-    # See app/docs/developer/presets.md for the contract.
+    # The contract per preset: /docs/developer/presets.
     def onboard_workspace
       case TenancyConfig.onboarding
       when :personal then create_personal_workspace
