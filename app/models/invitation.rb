@@ -1,9 +1,6 @@
 class Invitation < ApplicationRecord
   class NotAcceptable < StandardError; end
-  # Raised when an invitation addressed to a specific email is consumed by a
-  # caller whose proven email differs. Subclasses NotAcceptable so existing
-  # boundary rescues keep working, while callers that care can distinguish a
-  # wrong-address attempt from a stale/used invitation for messaging.
+  # Subclasses NotAcceptable so boundary rescues keep working; callers that care can still tell a wrong address apart.
   class EmailMismatch < NotAcceptable; end
 
   belongs_to :invitable, polymorphic: true
@@ -15,11 +12,8 @@ class Invitation < ApplicationRecord
   include Broadcastable
   include Invitation::Suppression
 
-  # Signed, stateless proof that the holder read the invitation email: the
-  # only place this token exists is the "Don't invite me again" link in that
-  # mail (#951). Payload [status] kills it on accept, decline, block, or
-  # revoke; a resend rotates the bearer token, not the invitation, so it
-  # survives one. Lifetime matches the invitation's own seven days.
+  # Payload is `status`, so accept/decline/block/revoke kill the token; a resend rotates the bearer token, not this (#951).
+  # See /docs/developer/security (Invitation blocks).
   BLOCK_TOKEN_LIFETIME = 7.days
 
   generates_token_for :block_confirmation, expires_in: BLOCK_TOKEN_LIFETIME do
@@ -33,13 +27,9 @@ class Invitation < ApplicationRecord
   validates :invited_by, presence: true
   validates :expires_at, presence: true
   validates :project_role, inclusion: { in: %w[editor viewer] }, allow_nil: true
-  # A blank string stays blank (and fails the format check) rather than
-  # becoming nil: nil means a bearer magic-link invitation, and normalization
-  # must never turn a user's empty field into one.
+  # `|| e`: a blank string must fail the format check, never become nil — nil means a bearer magic-link invitation.
   normalizes :email, with: ->(e) { EmailNormalizer.normalize(e) || e }
-  # Encrypted at rest (#902): email deterministic for the pending-invite
-  # unique index that bulk_invite! leans on; company_name takes the stronger
-  # cipher.
+  # Encrypted at rest (#902); deterministic because the pending-live unique index and bulk_invite! look up by email.
   encrypts :email, deterministic: true, downcase: true
   encrypts :company_name
   # Rebuilt into URLs later (reminder, notification mailer), so it can't be a
@@ -49,25 +39,15 @@ class Invitation < ApplicationRecord
 
   before_create :generate_token
 
-  # Notifier triggers: fire on the accepted/declined transitions only.
-  # `<attr>_previously_changed?` is true exclusively in the after_update_commit
-  # phase of the update that wrote the new value, so we get one notification
-  # per state transition (never on subsequent unrelated updates).
+  # `_previously_changed?` is true only in the writing update's commit phase — one notification per transition.
   after_update_commit :notify_accepted, if: :just_accepted?
   after_update_commit :notify_declined, if: :just_declined?
 
-  # Named for the `acceptable?` predicate it mirrors, NOT `pending`. The enum
-  # generates both a `pending` scope and a `pending?` predicate; overriding only
-  # the scope to also require an unexpired `expires_at` made the pair disagree —
-  # an expired invitation was `pending?` yet absent from `Invitation.pending`,
-  # a trap for anyone reasoning "in the scope iff the predicate" (#452). The
-  # enum's `pending` is left alone; the extra constraint lives under its own name.
+  # Not named `pending` (#452): overriding the enum's scope desyncs it from the `pending?` predicate.
   scope :acceptable, -> { where(status: "pending").where("expires_at > ?", Time.current) }
   scope :expired, -> { where(status: "pending").where("expires_at <= ?", Time.current) }
 
-  # The SQL half of the members page (WorkspaceRoster does search and sort in
-  # Ruby). Pending invitations are excluded entirely when the status filter
-  # selects a membership-only state (active or deactivated).
+  # Mirror of Membership.for_members_index; the two split one status filter — keep them in sync.
   scope :for_members_index, ->(role:, status:) {
     return none if %w[active deactivated].include?(status)
 
@@ -78,18 +58,8 @@ class Invitation < ApplicationRecord
 
   def client_invite? = company_name.present?
 
-  # The single-create paths' duplicate rule. A live pending row from ANY inviter
-  # refuses a second invite — exactly `index_invitations_pending_live`'s
-  # predicate; so does THIS inviter's own row, live or ghost. The ghost half is
-  # invariant I3: a stamped row vacates the live slot, so without it a blocked
-  # re-invite quietly succeeds where an unblocked one is refused, and that
-  # difference is readable as a block. A *different* inviter's ghost still
-  # doesn't refuse (T16).
-  #
-  # `pending`, NOT `acceptable`: that index is expiry-blind, so a still-pending
-  # expired row goes on holding the live slot. Narrowing this to `acceptable`
-  # reopens the same oracle about seven days after any blocked invite, and
-  # nothing re-statuses an expired pending row, so it never heals.
+  # `pending`, not `acceptable`: narrowing it reopens a blocked-vs-unblocked oracle (invariant I3).
+  # See /docs/developer/security (Invitation blocks).
   def self.already_invited?(invitable:, email:, invited_by:)
     existing = invitable.invitations.pending.where(email: normalize_value_for(:email, email))
     existing.unsuppressed.exists? || existing.where(invited_by: invited_by).exists?
@@ -112,25 +82,13 @@ class Invitation < ApplicationRecord
     invitation
   end
 
-  # One invite submission fans out to N emails at addresses the sender chose,
-  # so the list is bounded per submission (D13). The controller's rate_limit
-  # bounds how often someone may submit; this bounds how much one submission
-  # can do. Both layers, because either alone leaves the other's gap open.
   MAX_EMAILS_PER_SUBMISSION = 20
 
-  # Returned rather than a bare Array so the cap cannot be applied silently:
-  # a caller that ignores over_limit? truncates the sender's list without
-  # telling them, which in onboarding means teammates that were typed in
-  # simply never get invited and nobody finds out.
   ParsedEmailList = Data.define(:emails, :over_limit) do
     def over_limit? = over_limit
     def empty? = emails.empty?
   end
 
-  # Parse a raw invite-form string ("a@x.com, b@y.com\nc@z.com") into a clean,
-  # capped address list. bulk_invite! applies it to whatever it's given, so the
-  # invite forms hand the textarea value over verbatim instead of each
-  # duplicating the split/strip.
   def self.parse_email_list(emails)
     all = Array(emails).flat_map { |chunk| chunk.to_s.split(/[\n,]/) }.map(&:strip).reject(&:blank?)
 
@@ -140,9 +98,7 @@ class Invitation < ApplicationRecord
     )
   end
 
-  # `sent` means records created — delivery is asynchronous and may be
-  # suppressed; this method has never known whether mail arrived, on the
-  # blocked path or any other (PR 4 spec §6.4).
+  # `sent` counts records created; delivery is asynchronous and may be suppressed.
   def self.bulk_invite!(workspace:, emails:, role:, invited_by:)
     parsed = parse_email_list(emails)
     emails = parsed.emails
@@ -178,15 +134,8 @@ class Invitation < ApplicationRecord
           suppressed_at: (Time.current if blocked.include?(normalized))
         )
       rescue ActiveRecord::RecordNotUnique
-        # Two ways here — a collision into this inviter's existing ghost, and a
-        # concurrent request that won the live slot — and both count `skipped`,
-        # because neither created a record and "sent" means created (see above).
-        # For the ghost that is also the deliberate call on invariant I3: now
-        # that `existing_invites` excludes ghosts via `.unsuppressed` (T16),
-        # counting it `sent` would make "pending in the members index, yet
-        # sent:1" an oracle that fires only for a blocked address. Controller-
-        # ruled override of PR 4 spec §6.4's "collision counts sent" text
-        # (task-6 fix round 1).
+        # Both collision shapes count `skipped`: neither created a record, and counting a ghost as
+        # sent is the blocked-address oracle. See /docs/developer/security (Invitation blocks).
         skipped += 1
         next
       end
@@ -198,25 +147,16 @@ class Invitation < ApplicationRecord
     { sent: sent, skipped: skipped, over_limit: parsed.over_limit? }
   end
 
-  # Shared consumption core for both signup acceptance paths: the session-based
-  # one (PendingClaims#claim!, signup-time) and the column-based one
-  # (Authentication#claim_pending!, verification-time). Centralizing it keeps both flows
-  # on identical acceptance semantics. Returns the invitation on success, or nil
-  # when the token is blank or matches nothing. Propagates Invitation::NotAcceptable
-  # when the invitation exists but is no longer acceptable, so callers can surface
-  # the race; #accept! still owns the pessimistic lock and state transition.
+  # Both signup acceptance paths (PendingClaims#claim!, Authentication#claim_pending!) funnel here so their
+  # semantics can't diverge: nil when the token matches nothing, NotAcceptable when it does but can't be accepted.
   def self.consume!(token:, user:, expected_email: nil)
     return if token.blank?
 
     invitation = find_by(token: token)
     return if invitation.nil?
 
-    # Email-match guard: when an invitation is addressed to a specific email,
-    # only consume it for a caller whose proven email matches. This is what
-    # closes bearer-token redemption — combined with deferring consumption to
-    # email verification, a leaked link can't be claimed from a different
-    # (even verified) address. Magic-link invitations (nil email) stay bearer
-    # by design; direct callers that pass no expected_email skip the check.
+    # Address-bound redemption: a leaked link can't be claimed from a different proven address;
+    # nil-email magic links stay bearer by design. See /docs/developer/security.
     if invitation.email.present? && expected_email.present? &&
         !EmailNormalizer.equivalent?(invitation.email, expected_email)
       raise EmailMismatch
@@ -246,12 +186,8 @@ class Invitation < ApplicationRecord
     end
   end
 
-  # decline!/revoke!/resend! share accept!'s transaction + lock! shape (#675):
-  # lock! reloads the row inside BEGIN IMMEDIATE (the FOR UPDATE clause is a
-  # SQLite no-op, but the immediate transaction serializes writers and the
-  # reload is the real re-check), so a stale in-memory pending? can never
-  # overwrite a committed acceptance — and resend! can no longer rotate the
-  # token on an accepted/revoked row, which would destroy audit correlation.
+  # lock! reloads inside BEGIN IMMEDIATE, so a stale pending? can't overwrite a committed acceptance (#675).
+  # See /docs/developer/architecture (Concurrency).
   def decline!
     transaction do
       lock!
@@ -283,9 +219,7 @@ class Invitation < ApplicationRecord
     # ArgumentError, deliberately never rescued: the controller pre-checks
     # has_invitee?; reaching this raise is a programmer error (PR 4 spec §6.2).
     raise ArgumentError, "magic-link invitations have no invitee to block for" unless has_invitee?
-    # Block commits first, so a lost decline race still records the block —
-    # true when called outside a caller transaction (the controller's case).
-    # Nested, `block!` joins that transaction and both roll back together.
+    # Block commits first, so a lost decline race still records the block; nested, both roll back together.
     InvitationBlock.block!(inviter: invited_by, email: email)
     decline!
   end
@@ -300,20 +234,12 @@ class Invitation < ApplicationRecord
   # future magic-link mailer must not read it as one (PR 4 spec §2).
   def has_invitee? = !magic_link?
 
-  # Hours remaining until expiry, ceiled to the next whole hour. Single source
-  # of truth for the user-facing "expires in N hours" copy in both the
-  # WorkspaceInvitationExpiringSoonNotifier message and the matching mailer.
-  # Ceil (not round/floor) so T-30min reads as "1 hour" not "0 hours" — the
-  # message is hours-remaining, and rounding down to zero is misleading UX.
+  # Ceil, not round: T-30min must read "1 hour". Single source for the notifier and its mailer.
   def expires_in_hours
     return 0 if expires_at <= Time.current
     ((expires_at - Time.current) / 1.hour).ceil
   end
 
-  # Resolves the workspace context for a polymorphic invitation. An invitation
-  # may target a Workspace directly or a Project — in the latter case the
-  # workspace context comes from the project. Single source of truth shared by
-  # the notifiers (Accepted / Declined / ExpiringSoon) and NotificationMailer.
   def resolved_workspace
     case invitable
     when Workspace then invitable
@@ -323,9 +249,7 @@ class Invitation < ApplicationRecord
 
   private
 
-  # Single choke point: every acceptance path funnels through accept!, so the
-  # workspace-admittability gate here closes them all at once — with the same
-  # generic copy as invalid/expired, so an invitee never learns a workspace is locked.
+  # One choke point, one generic message on all three refusals — an invitee must not learn a workspace is locked.
   def guard_acceptable!
     raise NotAcceptable, "Invitation no longer acceptable" unless pending?
     raise NotAcceptable, "Invitation no longer acceptable" if expired?
@@ -355,24 +279,14 @@ class Invitation < ApplicationRecord
   end
 
   def accept_workspace_invitation!(user)
-    # Delegate to the single membership-grant entry point. Locking, capacity,
-    # discarded-reactivation, and :shared-posture role reconciliation all live
-    # in Workspace#admit so the open-link self-join flow (Reshape 2) shares
-    # identical semantics.
     invitable.admit(user, role: role, granted_by: invited_by)
   end
 
   def accept_project_invitation!(user)
-    # A discarded project is unacceptable — the same generic NotAcceptable the
-    # workspace and client paths raise. Checked first so a dead project never
-    # grants a workspace membership as a side effect.
+    # Checked first so a dead project never grants a workspace membership as a side effect.
     raise NotAcceptable, "Invitation no longer acceptable" unless invitable.kept?
 
-    # Same single membership-grant entry point as the workspace path — lock,
-    # locked admittability re-check, capacity, discarded-reactivation, and
-    # granted_by provenance all live in Workspace#admit. :adopt because a
-    # project invite must TOLERATE an existing workspace member (just add them
-    # to the project) — see the "already a project member" spec.
+    # :adopt — a project invite must tolerate an existing workspace member (see the "already a project member" spec).
     invitable.workspace.admit(user, role: role, granted_by: invited_by, on_existing: :adopt)
 
     raise ActiveRecord::RecordInvalid.new(self), "User is already a project member" if invitable.project_memberships.exists?(user: user)
@@ -383,9 +297,7 @@ class Invitation < ApplicationRecord
     self.token = SecureRandom.urlsafe_base64(32)
   end
 
-  # Attribute activity to the invitation's own workspace context, never the
-  # ambient Current.workspace (an invitation can be created/accepted from a
-  # different workspace's page).
+  # Never the ambient Current.workspace — acceptance can happen from another workspace's page.
   def activity_workspace
     resolved_workspace
   end
@@ -404,11 +316,7 @@ class Invitation < ApplicationRecord
     WorkspaceInvitationAcceptedNotifier.with(record: self).deliver(invited_by)
   end
 
-  # Mirror of notify_accepted's self-recipient guard. Decline has no accepted_by
-  # column (declines come from email/magic-link, not a signed-in user), so the
-  # check is "did the inviter decline their own invitation?" — compared via
-  # EmailNormalizer.equivalent? to absorb case / Unicode-NFC / IDN punycode
-  # variation between the stored invitation email and the inviter's address.
+  # Decline has no accepted_by; compare addresses with EmailNormalizer.equivalent? to absorb case/NFC/punycode variation.
   def notify_declined
     return if invited_by.blank?
     return if EmailNormalizer.equivalent?(email, invited_by.email_address)

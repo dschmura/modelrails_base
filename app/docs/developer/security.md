@@ -44,6 +44,10 @@ matches the 15-minute token expiry: a throttled-out user is never stranded
 longer than their newest link's lifetime, and an attacker gets at most the cap
 in supersedes per window before the victim's link becomes untouchable.
 
+### Verified addresses gate invitations
+
+Sending an invitation requires a **proven** address: `User#can_invite?` is true only when the user holds an authentication whose `verified_at` is set. Every writer of that column got there by demonstrating control of the mailbox — clicking a signed link sent to it (`Authentication#verify!`, the magic-link callback) or a provider vouching for it (`OauthLink`, gated on `identity.email_verified?`). One writer used to prove nothing: `Settings::PasswordsController#create` stamped `verified_at` on a freshly minted email authentication, and setting a password demonstrates control of the *session*, not of the address. That stamp is gone, which is what lets the predicate stay a simple existence check. The gate is only as strong as the weakest path that sets the column: if you add a `verified_at` writer, add it to the inventory in `spec/requests/can_invite_gate_spec.rb`.
+
 ### Invitation blocks (decline-and-block)
 
 An invitee can stop an inviter's future invitations from reaching their
