@@ -25,7 +25,7 @@ Email changes use a **two-email verification flow** to prevent account hijacking
 
 You can cancel a pending email change from the profile page at any time. If the token expires, simply request the change again.
 
-**Model method:** `Users::EmailChange#initiate!(new_email)` sets the pending fields; the controller dispatches both mailers.
+**Model method:** `User::EmailChange#initiate!(new_email)` sets the pending fields; the controller dispatches both mailers.
 
 ## Passwords
 

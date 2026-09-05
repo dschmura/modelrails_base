@@ -467,7 +467,7 @@ Clients can only see resources that are **both** published and explicitly shared
 
 ### Client invitation bearer-token protection
 
-Client invitations use the same bearer-token invitation system as workspace invitations. `Invitation.consume!` enforces an `EmailMismatch` guard: if the invitation was addressed to a specific email and the redeeming user's proven email does not match, redemption is refused with `Invitation::EmailMismatch`. This prevents a leaked invite link from being claimed by a different email address (`app/models/invitation.rb`). Additionally, `accept_client_invitation!` re-checks `clientside_enabled?` at acceptance time, so an invite cannot be redeemed after clientside has been turned off for the project.
+Client invitations use the same bearer-token invitation system as workspace invitations. `Invitation.consume!` enforces an `EmailMismatch` guard: if the invitation was addressed to a specific email and the redeeming user's proven email does not match, redemption is refused with `Invitation::EmailMismatch`. This prevents a leaked invite link from being claimed by a different email address (`app/models/invitation/acceptance.rb`). Additionally, `accept_client_invitation!` re-checks `clientside_enabled?` at acceptance time, so an invite cannot be redeemed after clientside has been turned off for the project.
 
 ## Production Recommendations
 
