@@ -1,4 +1,5 @@
 class User < ApplicationRecord
+  include Avatar
   include KnownDevices
 
   has_secure_password validations: false
@@ -13,8 +14,6 @@ class User < ApplicationRecord
   end
   # delete_all, not destroy (#817): no FK backs this, so this line is the whole guard against orphan notification rows.
   has_many :notifications, as: :recipient, dependent: :delete_all, class_name: "Noticed::Notification"
-  has_one_attached :avatar
-  has_one_attached :avatar_original
   has_many :memberships, dependent: :destroy
   # Kept memberships only (#931): a removed member must not resolve a workspace; `memberships` stays unscoped.
   # See /docs/developer/membership-lifecycle.
@@ -31,8 +30,6 @@ class User < ApplicationRecord
   has_many :webauthn_credentials, dependent: :destroy
 
   after_create :onboard_workspace
-  after_create :check_gravatar_later
-  after_update_commit :check_gravatar_later, if: :saved_change_to_email_address?
   # Model-level so every digest-touching path notifies (settings change, reset,
   # removal) — the behavior app/docs/developer/notifications.md documents.
   after_update_commit :notify_password_changed, if: :saved_change_to_password_digest?
@@ -60,14 +57,6 @@ class User < ApplicationRecord
 
   validates :pending_email, format: { with: EMAIL_FORMAT }, allow_blank: true
   validate :pending_email_not_taken, if: -> { pending_email.present? }
-  validates :avatar_source, inclusion: { in: %w[upload gravatar initials] }
-  validates :avatar,
-    content_type: IMAGE_CONTENT_TYPES,
-    size: { less_than: 5.megabytes }
-  validates :avatar_original,
-    content_type: IMAGE_CONTENT_TYPES,
-    size: { less_than: 10.megabytes }
-  validates :primary_color, inclusion: { in: 0..360 }, allow_nil: true
 
   MAX_FAILED_ATTEMPTS = 5
   LOCK_DURATION = 1.hour
@@ -146,19 +135,6 @@ class User < ApplicationRecord
     authentications.where.not(verified_at: nil).exists?
   end
 
-  def gravatar_url(size: 128)
-    return nil if email_address.blank?
-
-    hash = Digest::SHA256.hexdigest(EmailNormalizer.normalize(email_address))
-    "https://www.gravatar.com/avatar/#{hash}?s=#{size}&d=404"
-  end
-
-  def available_avatar_sources
-    sources = %w[upload initials]
-    sources << "gravatar" if has_gravatar?
-    sources
-  end
-
   def identity
     UserIdentity.new(self)
   end
@@ -212,10 +188,6 @@ class User < ApplicationRecord
   end
 
   private
-
-  def check_gravatar_later
-    CheckGravatarJob.perform_later(self)
-  end
 
   def audit_password_digest_change
     ActivityLog.record_security_event!(
