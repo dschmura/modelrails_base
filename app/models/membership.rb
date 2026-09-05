@@ -5,35 +5,15 @@ class Membership < ApplicationRecord
   include Discardable
   include Trackable
   include Broadcastable
+  include Provenance
   include Notifications
 
   belongs_to :user
   belongs_to :workspace
-
-  # Non-persisted grant provenance for the creation audit entry (G): set by
-  # Workspace#admit when an invitation acceptance created this membership.
-  attr_accessor :granted_by
-
-  # Non-persisted self-join marker. Grades, and why it is kept apart from granted_by:
-  # /docs/developer/notifications (The actor rule).
-  attr_accessor :self_join
-
-  # Non-persisted removal actor (#933), an argument to #deactivate! — the model never reads Current.
-  # See /docs/developer/notifications (The actor rule).
-  attr_accessor :removed_by
   belongs_to :role
-
-  SELF_JOIN_GRADES = [ nil, false, true, :onboarding ].freeze
-
-  CONFLICTING_PROVENANCE_MESSAGE =
-    "granted_by and self_join are mutually exclusive: a self-join has no granter"
 
   validates :user_id, uniqueness: { scope: :workspace_id }
   validate :workspace_has_member_capacity, on: :create
-
-  # Model invariant, not only the entry-point guard: direct creates (User#join_shared_workspace) never
-  # see .reject_conflicting_provenance!. See /docs/developer/membership-lifecycle.
-  validate :provenance_markers_are_coherent
 
   # The real capacity guard is post-INSERT; the pre-flight lock! is a no-op across SQLite connections.
   # See /docs/developer/architecture (Concurrency).
@@ -60,12 +40,6 @@ class Membership < ApplicationRecord
       .filter_by_role(role)
       .filter_by_status(status)
   }
-
-  # Mutually exclusive, and refused rather than documented. See /docs/developer/notifications (The actor rule).
-  def self.reject_conflicting_provenance!(granted_by:, self_join:)
-    return unless granted_by && self_join
-    raise ArgumentError, CONFLICTING_PROVENANCE_MESSAGE
-  end
 
   # Kept owner-role memberships in the workspace, excluding the given
   # membership id — "are there OTHER owners besides this one?".
@@ -145,15 +119,6 @@ class Membership < ApplicationRecord
 
   def activity_workspace
     workspace
-  end
-
-  def provenance_markers_are_coherent
-    errors.add(:base, CONFLICTING_PROVENANCE_MESSAGE) if granted_by && self_join
-    return if SELF_JOIN_GRADES.include?(self_join)
-
-    errors.add(:base,
-      "self_join must be one of #{SELF_JOIN_GRADES.map(&:inspect).join(', ')}, " \
-      "got #{self_join.inspect}")
   end
 
   def workspace_has_member_capacity
@@ -240,11 +205,6 @@ class Membership < ApplicationRecord
 
   def activity_visibility(action)
     (action == "membership.updated" && saved_change_to_role_id?) ? "admin" : "workspace"
-  end
-
-  # Inclusion, not `!= :onboarding`: an unvalidated new grade must not read as "chosen" and mail someone.
-  def chosen_self_join?
-    self_join == true
   end
 
   # Self-exclusion is the contract: the very first owner being seeded
