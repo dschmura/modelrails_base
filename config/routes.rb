@@ -54,7 +54,8 @@ Rails.application.routes.draw do
   post "magic_link_callback/:token", to: "magic_link_callbacks#create"
 
   get "/auth/:provider/callback", to: "omniauth_callbacks#create"
-  get "/auth/failure", to: "omniauth_callbacks#failure"
+  # OmniAuth fixes this path (on_failure); the page is its own controller's show (#1007).
+  get "/auth/failure", to: "omniauth_failures#show", as: :omniauth_failure
 
   resource :passkey_prompt, only: [ :update ]
 

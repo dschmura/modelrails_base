@@ -130,7 +130,7 @@ RSpec.describe "Static pages", type: :system do
   end
 
   describe "about page" do
-    before { visit about_path }
+    before { visit page_path(:about) }
 
     it "displays the page title" do
       expect(page).to have_text(I18n.t("pages.about.hero.title"))
@@ -146,7 +146,7 @@ RSpec.describe "Static pages", type: :system do
   end
 
   describe "privacy page" do
-    before { visit privacy_path }
+    before { visit page_path(:privacy) }
 
     it "displays the page title" do
       expect(page).to have_text(I18n.t("pages.privacy.title"))
@@ -160,7 +160,7 @@ RSpec.describe "Static pages", type: :system do
   end
 
   describe "contact page" do
-    before { visit contact_path }
+    before { visit page_path(:contact) }
 
     it "displays the page title" do
       expect(page).to have_text(I18n.t("pages.contact.hero.title"))
@@ -174,7 +174,7 @@ RSpec.describe "Static pages", type: :system do
   %w[about privacy contact].each do |page_name|
     describe "#{page_name} page" do
       it "renders with 200 status" do
-        visit send(:"#{page_name}_path")
+        visit page_path(page_name)
         expect(page).to have_text(I18n.t("pages.#{page_name}.title", default: I18n.t("pages.#{page_name}.hero.title", default: page_name.titleize)))
       end
     end
@@ -187,7 +187,7 @@ RSpec.describe "Static pages", type: :system do
 
     %w[home about privacy contact].each do |page_name|
       it "#{page_name} page passes automated accessibility checks (light + dark)" do
-        path = page_name == "home" ? root_path : send(:"#{page_name}_path")
+        path = page_name == "home" ? root_path : page_path(page_name)
         visit path
         expect(axe_clean_in_both_themes?(axe_options)).to be(true),
           "Accessibility violations found:\n#{axe_violations_in_both_themes(axe_options).join("\n")}"

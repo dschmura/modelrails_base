@@ -1,15 +1,14 @@
+# Static pages as one resource, keyed by name. The templates under
+# app/views/pages are the allowlist; the route constraint in
+# config/routes/app.rb is the first fence and PAGES the second.
 class PagesController < ApplicationController
   allow_unauthenticated_access
 
-  def home
-  end
+  PAGES = %w[home about privacy contact].freeze
 
-  def about
-  end
+  def show
+    raise ActionController::RoutingError, "No page #{params[:id].inspect}" unless PAGES.include?(params[:id])
 
-  def privacy
-  end
-
-  def contact
+    render params[:id]
   end
 end

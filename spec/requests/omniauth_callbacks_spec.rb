@@ -101,6 +101,8 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
     end
   end
 
+  # OmniAuth's on_failure lands on /auth/failure; that page is
+  # OmniauthFailuresController#show (#1007).
   describe "OAuth failure" do
     it "redirects with error" do
       get "/auth/failure", params: { message: "invalid_credentials" }

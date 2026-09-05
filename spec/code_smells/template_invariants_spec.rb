@@ -1083,7 +1083,7 @@ RSpec.describe "Template invariants" do
       app_routes_path = Rails.root.join("config/routes/app.rb")
       expect(File.exist?(app_routes_path)).to be(true),
         "expected config/routes/app.rb — the fork-owned home of product routes (see /docs/developer/forking)"
-      expect(File.read(app_routes_path)).to include('root "pages#home"'),
+      expect(File.read(app_routes_path)).to match(/^root /),
         "expected the root route in config/routes/app.rb — it moved there from config/routes.rb (see /docs/developer/forking)"
     end
 
