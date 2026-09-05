@@ -3,7 +3,7 @@
   <% if @project.archived? %>
     <%= render "shared/archived_banner",
           message: t("workspaces.projects.archived_banner"),
-          restore_path: unarchive_workspace_project_path(@workspace, @project) %>
+          restore_path: workspace_project_archival_path(@workspace, @project) %>
   <% end %>
   <h1 class="text-3xl font-bold text-text-heading">
     <%= t("workspaces.projects.edit.title") %>
@@ -44,8 +44,8 @@
                 title: t("workspaces.projects.archive.title"),
                 message: t("workspaces.projects.archive.confirm"),
                 confirm_text: t("workspaces.projects.archive.confirm_action"),
-                confirm_url: archive_workspace_project_path(@workspace, @project),
-                confirm_method: :patch,
+                confirm_url: workspace_project_archival_path(@workspace, @project),
+                confirm_method: :post,
                 variant: :default %>
         </div>
 

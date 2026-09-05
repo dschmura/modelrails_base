@@ -55,18 +55,6 @@ module Workspaces
       redirect_to workspace_projects_path(@workspace), notice: t(".success")
     end
 
-    def archive
-      authorize @project
-      @project.archive!
-      redirect_to workspace_projects_path(@workspace), notice: t(".success")
-    end
-
-    def unarchive
-      authorize @project
-      @project.unarchive!
-      redirect_to workspace_project_path(@workspace, @project), notice: t(".success")
-    end
-
     private
 
     def project_params

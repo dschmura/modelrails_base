@@ -43,8 +43,8 @@
               <p class="font-medium text-text-heading truncate"><%= project.name %></p>
               <p class="text-sm text-text-muted"><%= lifecycle_status_label(project) %></p>
             </div>
-            <%= button_to t("lifecycle.restore"), unarchive_workspace_project_path(@workspace, project),
-                  method: :patch,
+            <%= button_to t("lifecycle.restore"), workspace_project_archival_path(@workspace, project),
+                  method: :delete,
                   class: "btn-touch-target btn-text btn-text-interactive text-sm shrink-0" %>
           <% end %>
         <% end %>

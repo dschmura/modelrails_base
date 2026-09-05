@@ -193,22 +193,7 @@ RSpec.describe "Workspace Projects", type: :request do
       end
     end
 
-    describe "PATCH archive/unarchive" do
-      let(:project) { create(:project, workspace: workspace, created_by: user) }
-
-      it "archives the project and redirects to the projects index" do
-        patch archive_workspace_project_path(workspace, project)
-        expect(project.reload).to be_archived
-        expect(response).to redirect_to(workspace_projects_path(workspace))
-      end
-
-      it "restores an archived project and redirects to it" do
-        project.archive!
-        patch unarchive_workspace_project_path(workspace, project)
-        expect(project.reload).not_to be_archived
-        expect(response).to redirect_to(workspace_project_path(workspace, project))
-      end
-    end
+    # Archive/restore moved to spec/requests/workspaces/projects/archivals_spec.rb with the resource (#1007).
 
     describe "GET /workspaces/:workspace_slug/projects/:slug/edit" do
       let(:project) { create(:project, workspace: workspace, created_by: user) }

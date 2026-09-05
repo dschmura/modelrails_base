@@ -167,7 +167,7 @@ Every workspace is **Active** by default. An owner (anyone with `manage_workspac
 
 ### Archive (reversible)
 
-**Route:** `PATCH /workspaces/:slug/archive` · `PATCH /workspaces/:slug/unarchive`  
+**Route:** `POST /workspaces/:slug/archival` (archive) · `DELETE /workspaces/:slug/archival` (restore)  
 **Permission:** `manage_workspace` (Owner)
 
 Archiving moves a workspace out of your active list without deleting anything — "it'll move out of your active list; you can bring it back anytime from the **Archived** section." Archived workspaces stay fully readable to their existing members (and to external clients on shared projects — see [Clientside](/docs/user/clientside)); they just don't clutter the workbench. **Restore** returns it to Active at any time.

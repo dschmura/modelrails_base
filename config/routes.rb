@@ -89,10 +89,10 @@ Rails.application.routes.draw do
   resources :workspaces, param: :slug do
     member do
       get :identity_picker_hub
-      patch :archive
-      patch :unarchive
     end
     scope module: :workspaces do
+      # Archived is a state, so it is a singular resource: POST archives, DELETE restores (#1007).
+      resource :archival, only: [ :create, :destroy ]
       resources :members, only: [ :index, :edit, :update, :destroy ] do
         member do
           patch :reactivate
@@ -112,11 +112,8 @@ Rails.application.routes.draw do
       post "joins/:token", to: "joins#create"
       resource :settings, only: [ :edit, :update ]
       resources :projects, param: :slug do
-        member do
-          patch :archive
-          patch :unarchive
-        end
         scope module: :projects do
+          resource :archival, only: [ :create, :destroy ]
           # Singular end-state resource for MY pin on this project (#686):
           # create/destroy are idempotent where the old PATCH :toggle_pin
           # flipped state on every retry. Hangs off the project (not a

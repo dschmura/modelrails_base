@@ -24,7 +24,7 @@ RSpec.describe "Projects index archived section", type: :system do
   it "restores from the Archived section" do
     visit workspace_projects_path(workspace)
     within("[data-test='archived-projects']") { click_button I18n.t("lifecycle.restore") }
-    expect(page).to have_text(I18n.t("workspaces.projects.unarchive.success"))
+    expect(page).to have_text(I18n.t("workspaces.projects.archivals.destroy.success"))
     expect(archived_project.reload).not_to be_archived
   end
 
@@ -34,7 +34,7 @@ RSpec.describe "Projects index archived section", type: :system do
       expect(page).to have_text(I18n.t("workspaces.projects.archived_banner"))
       click_button I18n.t("lifecycle.restore")
     end
-    expect(page).to have_text(I18n.t("workspaces.projects.unarchive.success"))
+    expect(page).to have_text(I18n.t("workspaces.projects.archivals.destroy.success"))
     expect(archived_project.reload).not_to be_archived
   end
 

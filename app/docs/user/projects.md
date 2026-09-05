@@ -154,7 +154,7 @@ Like workspaces, projects are **Active** by default and can be **Archived** (rev
 
 ### Archive (reversible)
 
-**Route:** `PATCH /workspaces/:workspace_slug/projects/:slug/archive` · `PATCH .../unarchive`
+**Route:** `POST /workspaces/:workspace_slug/projects/:slug/archival` (archive) · `DELETE .../archival` (restore)
 
 Archiving moves a project out of the active list — "you can bring it back anytime from the **Archived** section." An archived project stays readable to its members and to external clients on shared resources (see [Clientside](/docs/user/clientside)). **Restore** returns it to Active.
 

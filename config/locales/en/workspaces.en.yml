@@ -102,13 +102,15 @@ en:
       confirm: "This can't be undone. The workspace and everything in it will be gone."
       confirm_action: "Delete forever"
     archive:
-      success: "Workspace archived. You can restore it anytime from the Archived section."
       trigger: "Archive workspace"
       title: "Archive this workspace?"
       confirm: "It'll move out of your active list. You can bring it back anytime from the Archived section."
       confirm_action: "Archive"
-    unarchive:
-      success: "Workspace restored."
+    archivals:
+      create:
+        success: "Workspace archived. You can restore it anytime from the Archived section."
+      destroy:
+        success: "Workspace restored."
     members:
       index:
         title: "Members"

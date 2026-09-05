@@ -18,7 +18,7 @@ RSpec.describe "Project edit danger zone", type: :system do
       within("dialog[open]") { click_button I18n.t("workspaces.projects.archive.confirm_action") }
 
       expect(page).to have_current_path(workspace_projects_path(project.workspace))
-      expect(page).to have_text(I18n.t("workspaces.projects.archive.success"))
+      expect(page).to have_text(I18n.t("workspaces.projects.archivals.create.success"))
       expect(project.reload).to be_archived
       expect(project.reload).not_to be_discarded
     end
