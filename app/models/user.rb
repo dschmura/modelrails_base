@@ -5,29 +5,17 @@ class User < ApplicationRecord
   has_many :authentications, dependent: :destroy
   has_one :preferences, class_name: "UserPreferences", dependent: :destroy
 
-  # The one path to a user's preferences row (#884). The unique index on
-  # user_preferences.user_id makes a racing insert lose with RecordNotUnique,
-  # which create_or_find_by! turns into the row the other writer made; the
-  # association target is set so the next `preferences` read needs no query.
+  # create_or_find_by!: a racing insert loses on the unique index and returns the winner's row (#884).
   def preferences!
     preferences || UserPreferences.create_or_find_by!(user: self).tap { |row| association(:preferences).target = row }
   end
-  # :delete_all, not :destroy (#817): one DELETE through the association scope,
-  # no row instantiation. The only callback this skips is noticed's counter
-  # cache on `noticed_events.notifications_count`, which every other deletion
-  # path in the app already bypasses and nothing reads. This line is the whole
-  # enforcement against orphaned notification rows — `noticed_notifications`
-  # carries no foreign key to users.
+  # delete_all, not destroy (#817): no FK backs this, so this line is the whole guard against orphan notification rows.
   has_many :notifications, as: :recipient, dependent: :delete_all, class_name: "Noticed::Notification"
   has_one_attached :avatar
   has_one_attached :avatar_original
   has_many :memberships, dependent: :destroy
-  # #931: `workspaces` runs through the KEPT memberships only. Every reader of
-  # this association (WorkspaceScoped's resolver, the header switcher) asks
-  # "which workspaces may this user enter" — routing it through every
-  # membership let a removed member resolve the workspace, get refused by the
-  # policy, and be redirected back to the page that refused them. `memberships`
-  # stays unscoped: it owns `dependent: :destroy` and the members-page history.
+  # Kept memberships only (#931): a removed member must not resolve a workspace; `memberships` stays unscoped.
+  # See /docs/developer/membership-lifecycle.
   has_many :active_memberships, -> { kept }, class_name: "Membership", inverse_of: :user
   has_many :workspaces, through: :active_memberships
   has_many :sent_invitations, class_name: "Invitation", foreign_key: :invited_by_id, dependent: :destroy
@@ -46,25 +34,15 @@ class User < ApplicationRecord
   # Model-level so every digest-touching path notifies (settings change, reset,
   # removal) — the behavior app/docs/developer/notifications.md documents.
   after_update_commit :notify_password_changed, if: :saved_change_to_password_digest?
-  # Strict tier (notifications lifecycle arc): the audit row commits or the
-  # credential write doesn't — deliberate evidence-over-availability trade
-  # (a rollback here also leaves other sessions alive; they die with the
-  # retried rotation). notify_password_changed above stays after_update_COMMIT
-  # — it enqueues into the Solid Queue SQLite file, and pulling that inside
-  # the primary write lock is a cross-database lock-ordering hazard against
-  # queue workers.
+  # Strict tier: after_update, not _commit, so the audit row commits with the credential write.
+  # See /docs/developer/architecture (Activity Tracking).
   after_update :audit_password_digest_change, if: :saved_change_to_password_digest?
 
-  # Canonical email storage and lookup: NFC + downcase + strip via EmailNormalizer.
-  # Rails 7.1+ also applies these normalizers to `find_by(email_address:)` and
-  # `find_by(pending_email:)` lookup values, so callsites passing user input
-  # directly into find_by automatically benefit from the same normalization.
+  # Rails applies `normalizes` to find_by values too, so lookups get canonical matching for free.
   normalizes :email_address, with: ->(e) { EmailNormalizer.normalize(e) }
   normalizes :pending_email, with: ->(e) { EmailNormalizer.normalize(e) }
-  # Encrypted at rest (#902). Deterministic only where a finder or the unique
-  # index names the column; `downcase:` stays beside `normalizes` on purpose
-  # (each covers a hole the other leaves). Declared after `normalizes` so the
-  # cipher wraps the normalized value.
+  # Encrypted at rest (#902). Declared after `normalizes` so the cipher wraps the normalized value;
+  # `downcase:` covers the hole `normalizes` leaves, not a redundancy.
   encrypts :email_address, deterministic: true, downcase: true
   encrypts :pending_email, :first_name, :last_name
 
@@ -93,14 +71,8 @@ class User < ApplicationRecord
   LOCK_DURATION = 1.hour
   MAX_KNOWN_BROWSERS = 20
 
-  # Single source of truth for the (user_agent, os) -> digest formula used by
-  # the new-device sign-in detector. Public so SignInFromNewDeviceNotifier's
-  # `populate_idempotency_key` override can reuse the same formula — keeping
-  # the User-side fingerprint and the Notifier-side dedup key in lockstep.
-  # Version segments are stripped before hashing so routine browser updates
-  # (Chrome/126 -> 127, iOS 17_5 -> 17_5_1) don't re-fire the detector — the
-  # goal is "alert on an unfamiliar device", and a device that auto-updated
-  # its browser is not unfamiliar. See #seen_browser?.
+  # Version-stripped on purpose (a browser update is not a new device);
+  # SignInFromNewDeviceNotifier's dedup key reuses this exact formula.
   def self.browser_digest(user_agent, os)
     Digest::SHA256.hexdigest("#{user_agent.to_s.gsub(/[\d_.]+/, "")} #{os}")
   end
@@ -115,9 +87,6 @@ class User < ApplicationRecord
     parts.map { |p| p[0].upcase }.join
   end
 
-  # True iff the user has an email sign-in awaiting verification. Existence
-  # check (Authentication's own email/pending scopes) so the layout banner
-  # that renders on every authenticated page doesn't instantiate a record.
   def email_verification_pending?
     authentications.email.pending.exists?
   end
@@ -126,9 +95,7 @@ class User < ApplicationRecord
     onboarded_at.present?
   end
 
-  # First-run wizard helpers (:none posture). The step is derived from data —
-  # the only persisted state is onboarded_at — so dispatcher, guard, and step
-  # controllers all read it from one place instead of re-deriving it.
+  # The step is derived from data; only onboarded_at persists. See /docs/developer/presets.
   def onboarding_workspace
     workspaces.kept.first
   end
@@ -158,31 +125,15 @@ class User < ApplicationRecord
     update!(failed_login_attempts: 0, locked_at: nil)
   end
 
-  # Tears down password authentication as one unit: email authentications, the
-  # digest itself, and whatever the caller needs committed with them (session
-  # revocation). Returns whether this caller performed the removal.
-  #
-  # The reload is the concurrency guard (#826). A second request that loaded
-  # this user before the first removal committed still holds the old digest in
-  # memory, so its update! issues a real UPDATE, satisfies
-  # saved_change_to_password_digest?, and writes a second user.password_removed
-  # row. Re-reading inside the transaction — where the write lock is already
-  # held, so the read is current — makes the second caller a no-op instead.
-  #
-  # update! rather than update_columns: the strict audit callback and the
-  # post-commit notifier both have to fire, and update_columns silently skipped
-  # both (#813).
+  # The reload is the idempotence guard (#826): a stale digest would otherwise write a second audit row.
+  # See /docs/developer/accounts-and-identity (Password lifecycle).
   def remove_password!
     transaction do
       reload
       next false if password_digest.nil?
 
       authentications.email.destroy_all
-      # save! rather than update!: validate: false drops full-record
-      # validation, so a record that drifted invalid for reasons unrelated to
-      # credentials (an attachment allowlist tightening, say) cannot hold the
-      # removal hostage. Callbacks still run — the strict audit row and the
-      # post-commit notifier are the point of using the callback path (#820).
+      # save!(validate: false): an unrelated validation failure must not block removal; callbacks still run (#820).
       self.password_digest = nil
       save!(validate: false)
       yield if block_given?
@@ -194,19 +145,8 @@ class User < ApplicationRecord
     password_digest.present?
   end
 
-  # Sending invitations requires a PROVEN address. Every authentication whose
-  # verified_at is set got there by demonstrating control of the mailbox —
-  # clicking a signed link sent to it (Authentication#verify!, magic-link
-  # callback) or a provider vouching for it (OauthLink, gated on
-  # identity.email_verified?). The one writer that proved nothing was
-  # Settings::PasswordsController#create, which stamped verified_at on a
-  # freshly-minted email authentication: setting a password demonstrates
-  # control of the SESSION, not of the address. That stamp is gone, which is
-  # what lets this predicate stay a simple existence check.
-  #
-  # If you add a verified_at writer, add it to the inventory in
-  # spec/requests/can_invite_gate_spec.rb — the gate is only as strong as the
-  # weakest path that sets the column.
+  # Proven addresses only: every verified_at writer must be in spec/requests/can_invite_gate_spec.rb's inventory.
+  # See /docs/developer/security (Verified addresses gate invitations).
   def can_invite?
     authentications.where.not(verified_at: nil).exists?
   end
@@ -228,9 +168,6 @@ class User < ApplicationRecord
     UserIdentity.new(self)
   end
 
-  # Factors this user can prove for re-authentication. The interstitial view
-  # and the reauthentication controller both read this so they can't diverge on
-  # which factors are on offer. Email is always available as the fallback.
   def available_reauth_factors
     factors = []
     factors << :password if has_password?
@@ -239,20 +176,11 @@ class User < ApplicationRecord
     factors
   end
 
-  # Browser-fingerprint heuristic for the new-device sign-in detector.
-  # Digest is intentionally coarse (version-stripped — see .browser_digest) so
-  # the same browser/OS combo across UA version bumps still matches "seen".
-  # The goal is "alert on unfamiliar device", not forensic device tracking.
   def seen_browser?(user_agent, os)
     digest = self.class.browser_digest(user_agent, os)
     last_known_browsers.any? { |entry| entry["digest"] == digest }
   end
 
-  # Records or refreshes a (ua, os) fingerprint on the user. New entries get a
-  # `first_seen_at`; subsequent records of the same digest only bump
-  # `last_seen_at`. Persists via update_column to bypass validation/touch on a
-  # post-sign-in hot path. Times are stored as ISO-8601 strings for stable
-  # serialization round-trips through the JSON column.
   def record_browser!(user_agent, os)
     digest = self.class.browser_digest(user_agent, os)
     now = Time.current
@@ -274,17 +202,12 @@ class User < ApplicationRecord
     update_column(:last_known_browsers, browsers)
   end
 
-  # Resolves the user's personal workspace via the denormalized FK column
-  # (users.personal_workspace_id), backed by a unique partial index that
-  # enforces "at most one personal workspace per user" at the database level.
-  # Returns nil if the FK is unset or the referenced workspace was discarded.
+  # Read side of the unique partial index that enforces at most one personal workspace per user.
   def personal_workspace
     return nil if personal_workspace_id.nil?
     Workspace.kept.find_by(id: personal_workspace_id)
   end
 
-  # Returns { notifier_class_name => unread_count, ... } for the user.
-  # Used by UnreadNotificationSummary to compute count and severity in one DB hit.
   def unread_notification_breakdown
     notifications
       .where(read_at: nil)
@@ -297,8 +220,6 @@ class User < ApplicationRecord
     client_accesses.kept.exists?(project: project)
   end
 
-  # True iff the one-time passkey enrollment banner should appear.
-  # Clears once the user dismisses the banner OR registers a passkey.
   def passkey_prompt_eligible?
     passkey_prompt_seen_at.nil? && webauthn_credentials.kept.none?
   end
@@ -313,12 +234,8 @@ class User < ApplicationRecord
     reload.webauthn_handle
   end
 
-  # Runs the HIBP range check NOW — outside any transaction — and memoizes the
-  # result per password value; the validation then consumes the memo instead of
-  # doing network I/O inside BEGIN IMMEDIATE (SQLite's database-wide write
-  # lock — #674). Controllers that accept a password call this between
-  # assign_attributes and save. An unprechecked save still checks live as a
-  # fallback, bounded by the initializer timeouts.
+  # Call between assign_attributes and save: the HIBP check must not run inside BEGIN IMMEDIATE (#674).
+  # See /docs/developer/architecture (Concurrency).
   def precheck_password_pwned!
     return if password.blank?
     @pwned_precheck = [ password, password_pwned_now? ]
@@ -368,23 +285,15 @@ class User < ApplicationRecord
     update_column(:personal_workspace_id, workspace.id)
   end
 
-  # :shared posture: every new user joins the configured shared workspace as
-  # a Member. No personal workspace is created. Owners + Admins are seeded
-  # separately (see db/seeds.rb), so :member is the safe self-onboarding role.
+  # :member is the safe self-onboarding role; owners and admins are seeded separately (db/seeds.rb).
   def join_shared_workspace
     workspace = TenancyConfig.shared_workspace
     raise "Shared workspace #{TenancyConfig.shared_workspace_slug.inspect} not found — has the tenancy seed run?" unless workspace
-    # A non-admittable shared workspace (suspended = instance maintenance/hold;
-    # archived/deleted shouldn't happen to the shared home workspace, but
-    # admittable? fails closed regardless) — the account still creates (this
-    # runs in the after_create transaction; a raise would roll back
-    # registration), the user simply joins nothing and lands on the empty index.
+    # Return, never raise: this runs inside the after_create transaction and a raise would roll back registration.
     return unless workspace.admittable?
 
     member_role = Role.system_default!("member")
-    # `self_join: :onboarding` — nobody granted this, the new user is the actor
-    # (so the member-added fan-out excludes them), and the orientation notice
-    # is suppressed on this grade. See Membership#self_join.
+    # self_join: :onboarding — see Membership#self_join and /docs/developer/notifications (The actor rule).
     workspace.memberships.create!(user: self, role: member_role, self_join: :onboarding)
   end
 
