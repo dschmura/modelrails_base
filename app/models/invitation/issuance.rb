@@ -1,7 +1,7 @@
 class Invitation < ApplicationRecord
-  # The send side of an invitation: the single-create paths, the bulk form's
+  # Issuing an invitation: the single-create paths, the bulk form's
   # parsing and cap, and the duplicate rule they all share.
-  module Sending
+  module Issuance
     extend ActiveSupport::Concern
 
     MAX_EMAILS_PER_SUBMISSION = 20
