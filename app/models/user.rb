@@ -1,8 +1,7 @@
 class User < ApplicationRecord
   include Avatar
+  include Password
   include KnownDevices
-
-  has_secure_password validations: false
 
   has_many :sessions, dependent: :destroy
   has_many :authentications, dependent: :destroy
@@ -30,12 +29,6 @@ class User < ApplicationRecord
   has_many :webauthn_credentials, dependent: :destroy
 
   after_create :onboard_workspace
-  # Model-level so every digest-touching path notifies (settings change, reset,
-  # removal) — the behavior app/docs/developer/notifications.md documents.
-  after_update_commit :notify_password_changed, if: :saved_change_to_password_digest?
-  # Strict tier: after_update, not _commit, so the audit row commits with the credential write.
-  # See /docs/developer/architecture (Activity Tracking).
-  after_update :audit_password_digest_change, if: :saved_change_to_password_digest?
 
   # Rails applies `normalizes` to find_by values too, so lookups get canonical matching for free.
   normalizes :email_address, with: ->(e) { EmailNormalizer.normalize(e) }
@@ -51,15 +44,9 @@ class User < ApplicationRecord
                             format: { with: EMAIL_FORMAT }
   validates :first_name, presence: true, length: { maximum: 100 }
   validates :last_name, presence: true, length: { maximum: 100 }
-  validates :password, length: { minimum: 12 }, if: -> { password.present? && (password_digest_changed? || new_record?) }
-  validates :password, confirmation: true, if: -> { password.present? }
-  validate :password_not_pwned, if: -> { password.present? && (password_digest_changed? || new_record?) }
 
   validates :pending_email, format: { with: EMAIL_FORMAT }, allow_blank: true
   validate :pending_email_not_taken, if: -> { pending_email.present? }
-
-  MAX_FAILED_ATTEMPTS = 5
-  LOCK_DURATION = 1.hour
 
   def full_name
     "#{first_name} #{last_name}"
@@ -93,40 +80,6 @@ class User < ApplicationRecord
     else
       :team
     end
-  end
-
-  def locked?
-    return false if locked_at.nil?
-    locked_at > LOCK_DURATION.ago
-  end
-
-  def register_failed_login!
-    increment!(:failed_login_attempts)
-    update!(locked_at: Time.current) if failed_login_attempts >= MAX_FAILED_ATTEMPTS
-  end
-
-  def register_successful_login!
-    update!(failed_login_attempts: 0, locked_at: nil)
-  end
-
-  # The reload is the idempotence guard (#826): a stale digest would otherwise write a second audit row.
-  # See /docs/developer/accounts-and-identity (Password lifecycle).
-  def remove_password!
-    transaction do
-      reload
-      next false if password_digest.nil?
-
-      authentications.email.destroy_all
-      # save!(validate: false): an unrelated validation failure must not block removal; callbacks still run (#820).
-      self.password_digest = nil
-      save!(validate: false)
-      yield if block_given?
-      true
-    end
-  end
-
-  def has_password?
-    password_digest.present?
   end
 
   # Proven addresses only: every verified_at writer must be in spec/requests/can_invite_gate_spec.rb's inventory.
@@ -179,30 +132,7 @@ class User < ApplicationRecord
     reload.webauthn_handle
   end
 
-  # Call between assign_attributes and save: the HIBP check must not run inside BEGIN IMMEDIATE (#674).
-  # See /docs/developer/architecture (Concurrency).
-  def precheck_password_pwned!
-    return if password.blank?
-    @pwned_precheck = [ password, password_pwned_now? ]
-    nil
-  end
-
   private
-
-  def audit_password_digest_change
-    ActivityLog.record_security_event!(
-      action: password_digest.nil? ? "user.password_removed" : "user.password_changed",
-      user: self
-    )
-  end
-
-  # Best-effort: the security alert must never fail the credential write
-  # itself (same contract as the new-device hook in Authenticatable).
-  def notify_password_changed
-    PasswordChangedNotifier.with(record: self, removed: password_digest.nil?).deliver(self)
-  rescue ActiveRecord::ActiveRecordError => e
-    Rails.logger.warn("[password-changed] swallowed error for user=#{id}: #{e.class}: #{e.message}")
-  end
 
   # Dispatches to the right onboarding strategy based on the tenancy preset.
   # See app/docs/developer/presets.md for the contract.
@@ -236,24 +166,6 @@ class User < ApplicationRecord
     member_role = Role.system_default!("member")
     # self_join: :onboarding — see Membership#self_join and /docs/developer/notifications (The actor rule).
     workspace.memberships.create!(user: self, role: member_role, self_join: :onboarding)
-  end
-
-  def password_not_pwned
-    return if password.blank?
-    pwned =
-      if @pwned_precheck && @pwned_precheck[0] == password
-        @pwned_precheck[1]
-      else
-        password_pwned_now?
-      end
-    errors.add(:password, :pwned) if pwned
-  end
-
-  def password_pwned_now?
-    Pwned::Password.new(password).pwned?
-  rescue Pwned::Error
-    # Network error — allow password (don't block registration on external service failure)
-    false
   end
 
   def pending_email_not_taken
