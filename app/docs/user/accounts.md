@@ -60,7 +60,7 @@ You confirm with whatever you have — your password, a passkey, or a one-time c
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| GET | `/account/avatar/hub` | Identity picker modal content |
+| GET | `/account/avatar` | Identity picker modal content (the picker hub) |
 | PATCH | `/account/avatar` | Upload or change avatar |
 | DELETE | `/account/avatar` | Remove photo, revert to initials |
 

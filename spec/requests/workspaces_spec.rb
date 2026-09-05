@@ -303,23 +303,7 @@ RSpec.describe "Workspaces", type: :request do
       end
     end
 
-    describe "GET /workspaces/:slug/identity_picker_hub" do
-      let(:workspace) { create(:workspace) }
-      let!(:membership) { create(:membership, :owner, user: user, workspace: workspace) }
-
-      it "renders the hub partial" do
-        get identity_picker_hub_workspace_path(workspace, source: "initials"),
-            headers: { "Turbo-Frame" => "identity-picker-hub" }
-        expect(response).to have_http_status(:ok)
-        expect(response.body).to include("identity-picker-hub")
-      end
-
-      it "falls back to the current logo source for an invalid source param" do
-        get identity_picker_hub_workspace_path(workspace, source: "gravatar"),
-            headers: { "Turbo-Frame" => "identity-picker-hub" }
-        expect(response).to have_http_status(:ok)
-      end
-    end
+    # The logo picker hub moved to spec/requests/workspaces/logos_spec.rb with the resource (#1007).
 
     describe "DELETE /workspaces/:slug" do
       let(:workspace) { create(:workspace) }

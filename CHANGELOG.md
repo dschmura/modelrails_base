@@ -6,6 +6,15 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Breaking
 
+- **Fork invariant — the identity picker hubs are resource shows.** `GET /account/avatar/hub` (`Settings::AvatarsController#hub`) is now `GET /account/avatar` (`#show`; `Settings::AvatarPolicy#show?` added). `GET /workspaces/:slug/identity_picker_hub` (`WorkspacesController#identity_picker_hub`) is now `GET /workspaces/:slug/logo` (`Workspaces::LogosController#show`, authorized by the new `Workspaces::LogoPolicy#show?`; `Workspaces::ProfilePolicy#identity_picker_hub?` is removed). The `shared/identity_picker_hub` partial and its locals are unchanged; only `hub_url` values change. `WorkspaceNavHelper::WORKSPACE_SETTINGS_ENDPOINTS` names `workspaces/logos` instead of the old action. Second of the three PRs closing #1007.
+
+  | Failure in your fork | Remedy |
+  |---|---|
+  | `NoMethodError: undefined method 'hub_settings_avatar_path'` | `settings_avatar_path` |
+  | `NoMethodError: undefined method 'identity_picker_hub_workspace_path'` | `workspace_logo_path(workspace)` |
+  | `NoMethodError: undefined method 'identity_picker_hub?' for Workspaces::ProfilePolicy` | Authorize with `Workspaces::LogoPolicy` (`show?`) |
+  | A fork's own picker route reusing `hub_url:` with a custom action | Give it a `show` on a singular resource; the partial does not care |
+
 - **Fork invariant — archive and restore are a resource, not member actions.** `PATCH /workspaces/:slug/archive` and `/unarchive` are now `POST` and `DELETE /workspaces/:slug/archival` (`Workspaces::ArchivalsController`); the same for projects under `.../projects/:slug/archival` (`Workspaces::Projects::ArchivalsController`). `WorkspacesController#archive/#unarchive` and `Workspaces::ProjectsController#archive/#unarchive` are gone, with their route helpers. The policy predicates (`archive?`, `unarchive?`) and the models' `archive!`/`unarchive!` are unchanged; the `shared/archived_banner` partial's restore button now submits `DELETE`. Flash keys moved to the controller scope: `workspaces.archivals.{create,destroy}.success`, `workspaces.projects.archivals.{create,destroy}.success`. First of the three PRs closing #1007 (REST with no cited exceptions).
 
   | Failure in your fork | Remedy |
