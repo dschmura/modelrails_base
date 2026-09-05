@@ -7,6 +7,7 @@ class Workspace < ApplicationRecord
   # `name` stays plaintext while other personal data is encrypted (#902,
   # ruling R3): the slug is the name parameterized, and sits in every URL.
   include Sluggable
+  include Branding
 
   # Defense in depth behind WorkspacePolicy — covers console/direct-call paths the policy never sees.
   HomeWorkspaceProtectedError = Class.new(StandardError)
@@ -18,8 +19,6 @@ class Workspace < ApplicationRecord
   AlreadyMember = Class.new(StandardError)
   AtCapacity = Class.new(StandardError)
 
-  has_one_attached :logo
-  has_one_attached :logo_original
   has_many :memberships, dependent: :destroy
   has_many :users, through: :memberships
   has_many :roles, dependent: :destroy
@@ -45,17 +44,9 @@ class Workspace < ApplicationRecord
   after_create_commit :notify_workspace_created, if: -> { created_by.present? }
 
   validates :name, presence: true, length: { maximum: 255 }
-  validates :logo,
-    content_type: IMAGE_CONTENT_TYPES,
-    size: { less_than: 5.megabytes }
-  validates :logo_original,
-    content_type: IMAGE_CONTENT_TYPES,
-    size: { less_than: 10.megabytes }
   validates :slug, presence: true, uniqueness: true
   validates :max_members, numericality: { greater_than: 0 }
   validates :max_projects, numericality: { greater_than: 0 }
-  validates :primary_color, inclusion: { in: 0..360 }, allow_nil: true
-  validates :logo_source, inclusion: { in: %w[upload initials] }
   validate :personal_workspaces_are_invite_only
   validate :join_policy_must_be_permitted_by_instance
 
@@ -119,10 +110,6 @@ class Workspace < ApplicationRecord
     slug
   end
 
-  def initials
-    name.split.map(&:first).take(2).join.upcase
-  end
-
   def owner
     # detect over preloaded memberships, no per-row query in lists. See /docs/developer/architecture (Owner Lookup).
     ms = memberships.loaded? ? memberships : memberships.includes(:role, :user)
@@ -137,10 +124,6 @@ class Workspace < ApplicationRecord
       .includes(:user)
       .map(&:user)
       .compact
-  end
-
-  def available_logo_sources
-    %w[upload initials]
   end
 
   def identity
