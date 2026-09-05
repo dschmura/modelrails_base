@@ -2,7 +2,7 @@ require "rails_helper"
 
 # Extracted from user_spec.rb when the email-change state machine moved off
 # User (DES-1). Behavior is unchanged; only the call surface differs.
-RSpec.describe Users::EmailChange, type: :model do
+RSpec.describe User::EmailChange, type: :model do
   describe "#initiate!" do
     let(:user) { create(:user) }
 

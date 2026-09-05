@@ -1,4 +1,4 @@
-module Users
+class User < ApplicationRecord
   # The email-change state machine, extracted off User (DES-1): initiate a
   # change, confirm it with the emailed token, or cancel it. The pending state
   # (pending_email / pending_email_token / pending_email_sent_at) and its
