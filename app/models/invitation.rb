@@ -11,19 +11,12 @@ class Invitation < ApplicationRecord
   include Trackable
   include Broadcastable
   include Invitation::Suppression
-
-  # Payload is `status`, so accept/decline/block/revoke kill the token; a resend rotates the bearer token, not this (#951).
-  # See /docs/developer/security (Invitation blocks).
-  BLOCK_TOKEN_LIFETIME = 7.days
-
-  generates_token_for :block_confirmation, expires_in: BLOCK_TOKEN_LIFETIME do
-    status
-  end
+  include Invitation::Sending
+  include Invitation::Acceptance
 
   enum :status, { pending: "pending", accepted: "accepted", declined: "declined", revoked: "revoked" }, default: "pending"
 
   validates :role, presence: true, unless: :client_invite?
-  validate :client_invite_targets_a_project
   validates :invited_by, presence: true
   validates :expires_at, presence: true
   validates :project_role, inclusion: { in: %w[editor viewer] }, allow_nil: true
@@ -56,172 +49,21 @@ class Invitation < ApplicationRecord
     scope
   }
 
-  def client_invite? = company_name.present?
-
-  # `pending`, not `acceptable`: narrowing it reopens a blocked-vs-unblocked oracle (invariant I3).
-  # See /docs/developer/security (Invitation blocks).
-  def self.already_invited?(invitable:, email:, invited_by:)
-    existing = invitable.invitations.pending.where(email: normalize_value_for(:email, email))
-    existing.unsuppressed.exists? || existing.where(invited_by: invited_by).exists?
-  end
-
-  def self.invite_client!(project:, email:, company_name:, invited_by:)
-    # The same signal the `pending_live` index raises, so the pre-check and a
-    # lost race land on the controller's one rescue and one flash.
-    raise ActiveRecord::RecordNotUnique, "pending invitation already exists" if
-      already_invited?(invitable: project, email: email, invited_by: invited_by)
-
-    invitation = create!(
-      invitable: project,
-      email: email,
-      company_name: company_name,
-      invited_by: invited_by,
-      expires_at: 7.days.from_now
-    )
-    InvitationMailer.with(invitation: invitation).invite_client.deliver_later
-    invitation
-  end
-
-  MAX_EMAILS_PER_SUBMISSION = 20
-
-  ParsedEmailList = Data.define(:emails, :over_limit) do
-    def over_limit? = over_limit
-    def empty? = emails.empty?
-  end
-
-  def self.parse_email_list(emails)
-    all = Array(emails).flat_map { |chunk| chunk.to_s.split(/[\n,]/) }.map(&:strip).reject(&:blank?)
-
-    ParsedEmailList.new(
-      emails: all.first(MAX_EMAILS_PER_SUBMISSION),
-      over_limit: all.size > MAX_EMAILS_PER_SUBMISSION
-    )
-  end
-
-  # `sent` counts records created; delivery is asynchronous and may be suppressed.
-  def self.bulk_invite!(workspace:, emails:, role:, invited_by:)
-    parsed = parse_email_list(emails)
-    emails = parsed.emails
-    sent = 0
-    skipped = 0
-
-    existing_members = workspace.memberships.kept.joins(:user).pluck(:email_address).to_set
-    # unsuppressed: a ghost must not make an unblocked admin skip the address.
-    existing_invites = workspace.invitations.acceptable.unsuppressed.where.not(email: nil).pluck(:email).to_set
-    # Bounded to this submission (≤ MAX_EMAILS_PER_SUBMISSION); `normalizes`
-    # applies to the finder values, so raw input matches stored rows.
-    blocked = InvitationBlock.where(inviter: invited_by, email: emails).pluck(:email).to_set
-
-    emails.each do |email|
-      normalized = normalize_value_for(:email, email)
-
-      unless normalized.to_s.match?(User::EMAIL_FORMAT)
-        skipped += 1
-        next
-      end
-
-      if existing_members.include?(normalized) || existing_invites.include?(normalized)
-        skipped += 1
-        next
-      end
-
-      begin
-        invitation = workspace.invitations.create!(
-          email: normalized,
-          role: role,
-          invited_by: invited_by,
-          expires_at: 7.days.from_now,
-          suppressed_at: (Time.current if blocked.include?(normalized))
-        )
-      rescue ActiveRecord::RecordNotUnique
-        # Both collision shapes count `skipped`: neither created a record, and counting a ghost as
-        # sent is the blocked-address oracle. See /docs/developer/security (Invitation blocks).
-        skipped += 1
-        next
-      end
-      existing_invites.add(normalized)
-      InvitationMailer.with(invitation: invitation).invite.deliver_later
-      sent += 1
-    end
-
-    { sent: sent, skipped: skipped, over_limit: parsed.over_limit? }
-  end
-
-  # Both signup acceptance paths (PendingClaims#claim!, Authentication#claim_pending!) funnel here so their
-  # semantics can't diverge: nil when the token matches nothing, NotAcceptable when it does but can't be accepted.
-  def self.consume!(token:, user:, expected_email: nil)
-    return if token.blank?
-
-    invitation = find_by(token: token)
-    return if invitation.nil?
-
-    # Address-bound redemption: a leaked link can't be claimed from a different proven address;
-    # nil-email magic links stay bearer by design. See /docs/developer/security.
-    if invitation.email.present? && expected_email.present? &&
-        !EmailNormalizer.equivalent?(invitation.email, expected_email)
-      raise EmailMismatch
-    end
-
-    invitation.accept!(user)
-    invitation
-  end
-
-  def accept!(user)
-    transaction do
-      lock!
-      guard_acceptable!
-      if client_invite?
-        accept_client_invitation!(user)
-      elsif invitable_type == "Project"
-        accept_project_invitation!(user)
-      else
-        accept_workspace_invitation!(user)
-      end
-
-      update!(
-        status: "accepted",
-        accepted_by: user,
-        accepted_at: Time.current
-      )
-    end
-  end
-
-  # lock! reloads inside BEGIN IMMEDIATE, so a stale pending? can't overwrite a committed acceptance (#675).
-  # See /docs/developer/architecture (Concurrency).
   def decline!
-    transaction do
-      lock!
-      raise ActiveRecord::RecordInvalid.new(self), "Invitation already processed" unless pending?
-      update!(status: "declined", declined_at: Time.current)
-    end
+    with_pending_lock { update!(status: "declined", declined_at: Time.current) }
   end
 
   def revoke!
-    transaction do
-      lock!
-      raise ActiveRecord::RecordInvalid.new(self), "Invitation already processed" unless pending?
-      update!(status: "revoked", revoked_at: Time.current)
-    end
+    with_pending_lock { update!(status: "revoked", revoked_at: Time.current) }
   end
 
   def resend!
-    transaction do
-      lock!
-      raise ActiveRecord::RecordInvalid.new(self), "Invitation already processed" unless pending?
+    with_pending_lock do
       update!(
         token: SecureRandom.urlsafe_base64(32),
         expires_at: 7.days.from_now
       )
     end
-  end
-
-  def decline_and_block!
-    # ArgumentError, deliberately never rescued: the controller pre-checks
-    # has_invitee?; reaching this raise is a programmer error (PR 4 spec §6.2).
-    raise ArgumentError, "magic-link invitations have no invitee to block for" unless has_invitee?
-    # Block commits first, so a lost decline race still records the block; nested, both roll back together.
-    InvitationBlock.block!(inviter: invited_by, email: email)
-    decline!
   end
 
   def acceptable? = pending? && !expired?
@@ -249,48 +91,18 @@ class Invitation < ApplicationRecord
 
   private
 
-  # One choke point, one generic message on all three refusals — an invitee must not learn a workspace is locked.
-  def guard_acceptable!
-    raise NotAcceptable, "Invitation no longer acceptable" unless pending?
-    raise NotAcceptable, "Invitation no longer acceptable" if expired?
-    raise NotAcceptable, "Invitation no longer acceptable" unless resolved_workspace&.admittable?
+  # lock! reloads inside BEGIN IMMEDIATE, so a stale pending? can't overwrite a committed acceptance (#675).
+  # See /docs/developer/architecture (Concurrency).
+  def with_pending_lock
+    transaction do
+      lock!
+      raise ActiveRecord::RecordInvalid.new(self), "Invitation already processed" unless pending?
+      yield
+    end
   end
 
   def broadcast_target
     resolved_workspace
-  end
-
-  def accept_client_invitation!(user)
-    raise NotAcceptable, "Invitation no longer acceptable" unless invitable.kept?
-    raise NotAcceptable, "Clientside is disabled for this project" unless invitable.clientside_enabled?
-
-    access = invitable.client_accesses.find_by(user: user)
-    if access&.discarded?
-      access.undiscard!
-    elsif access.nil?
-      invitable.client_accesses.create!(user: user, company_name: company_name)
-    end
-    user.update!(onboarded_at: Time.current) unless user.onboarded?
-  end
-
-  def client_invite_targets_a_project
-    return unless client_invite?
-    errors.add(:base, :client_requires_project) if invitable_type != "Project"
-  end
-
-  def accept_workspace_invitation!(user)
-    invitable.admit(user, role: role, granted_by: invited_by)
-  end
-
-  def accept_project_invitation!(user)
-    # Checked first so a dead project never grants a workspace membership as a side effect.
-    raise NotAcceptable, "Invitation no longer acceptable" unless invitable.kept?
-
-    # :adopt — a project invite must tolerate an existing workspace member (see the "already a project member" spec).
-    invitable.workspace.admit(user, role: role, granted_by: invited_by, on_existing: :adopt)
-
-    raise ActiveRecord::RecordInvalid.new(self), "User is already a project member" if invitable.project_memberships.exists?(user: user)
-    invitable.project_memberships.create!(user: user, role: project_role || "editor")
   end
 
   def generate_token
