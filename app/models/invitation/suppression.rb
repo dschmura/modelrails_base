@@ -8,8 +8,16 @@
 module Invitation::Suppression
   extend ActiveSupport::Concern
 
+  # Payload is `status`, so accept/decline/block/revoke kill the token; a resend rotates the bearer token, not this (#951).
+  # See /docs/developer/security (Invitation blocks).
+  BLOCK_TOKEN_LIFETIME = 7.days
+
   included do
     scope :unsuppressed, -> { where(suppressed_at: nil) }
+
+    generates_token_for :block_confirmation, expires_in: BLOCK_TOKEN_LIFETIME do
+      status
+    end
   end
 
   def blocked_by_invitee?
@@ -26,6 +34,15 @@ module Invitation::Suppression
   def suppress_delivery!(mailer_action:)
     stamp_suppression
     record_suppressed_delivery(mailer_action)
+  end
+
+  def decline_and_block!
+    # ArgumentError, deliberately never rescued: the controller pre-checks
+    # has_invitee?; reaching this raise is a programmer error (PR 4 spec §6.2).
+    raise ArgumentError, "magic-link invitations have no invitee to block for" unless has_invitee?
+    # Block commits first, so a lost decline race still records the block; nested, both roll back together.
+    InvitationBlock.block!(inviter: invited_by, email: email)
+    decline!
   end
 
   private
