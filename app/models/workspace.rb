@@ -8,19 +8,13 @@ class Workspace < ApplicationRecord
   # ruling R3): the slug is the name parameterized, and sits in every URL.
   include Sluggable
 
-  # Raised when an owner tries to archive/delete a home workspace (personal or
-  # the :shared instance workspace). Defense in depth behind WorkspacePolicy —
-  # covers console/direct-call paths the policy never sees.
+  # Defense in depth behind WorkspacePolicy — covers console/direct-call paths the policy never sees.
   HomeWorkspaceProtectedError = Class.new(StandardError)
 
-  # Raised by #admit when a workspace won't accept new members (archived,
-  # suspended, or deleted). Distinct from Suspendable::SuspendedError so its
-  # rescue can map to GENERIC, non-disclosing copy — an outsider following a
-  # join link/invitation must not learn which lifecycle state blocked them.
+  # Non-disclosing by contract: an outsider must not learn which lifecycle state blocked them.
+  # See /docs/developer/architecture (Key Concepts).
   NotAdmittableError = Class.new(StandardError)
-  # Typed outcomes of #admit — callers rescue these instead of matching the
-  # humanized validation string (which breaks on any locale edit). Sibling of
-  # the passkeys typed-error hierarchy.
+  # Typed so callers never match the humanized validation string (locale edits break it).
   AlreadyMember = Class.new(StandardError)
   AtCapacity = Class.new(StandardError)
 
@@ -32,44 +26,22 @@ class Workspace < ApplicationRecord
   has_many :invitations, as: :invitable, dependent: :destroy
   has_many :projects, dependent: :destroy
 
-  # The workspace's own audit trail dies with it (#921). Without a `dependent:`
-  # the FK refused the DELETE, so the only workspaces that could be hard-
-  # destroyed were ones nobody had ever done anything in — and "Delete
-  # permanently" is a user-facing action.
-  #
-  # `:delete_all`, not `:destroy`, for a reason that is not performance:
-  # `ActivityLog#readonly?` is `persisted?`, so instance-level destroy raises
-  # ReadOnlyRecord by design. Relation-level deletion is the only door, and it
-  # is the same one ActivityLogRetentionSweepJob uses — registered as a
-  # reviewed bypass in spec/code_smells/activity_log_immutability_spec.rb
-  # rather than disabled inline.
-  #
-  # This cannot reach the security retention floor: every SECURITY_ACTIONS row
-  # is written by ActivityLog.record_security_event!, which hardcodes
-  # `workspace_id: nil`. No security row is workspace-scoped, so none is in
-  # this association's scope — pinned in workspace_spec.
+  # :delete_all because ActivityLog#readonly? refuses instance destroy — a reviewed bypass (#921).
+  # See /docs/developer/architecture (Activity Tracking).
   has_many :activity_logs, dependent: :delete_all
 
   enum :plan, { free: "free", pro: "pro", enterprise: "enterprise" }
 
-  # Per-workspace join policy. Composes with the instance-level
-  # SignupPolicy.permits_strategy? allowlist. See app/docs/developer/presets.md
-  # and docs/reshape-2-per-workspace-join-policy-spec.md.
+  # Composes with the instance-level SignupPolicy.permits_strategy? allowlist. See /docs/developer/presets.
   enum :join_policy, { invite: "invite", open_link: "open_link" }, default: "invite"
 
   has_many :join_links, class_name: "WorkspaceJoinLink", dependent: :destroy
 
-  # Non-persisted creator provenance, set by `.create_owned` — the ONE path a
-  # person creates a workspace through. Gating the notification on it (rather
-  # than on every INSERT) keeps seeds, fixtures and the signup-time personal
-  # workspace silent; a fork adding a creation site opts in by setting it.
+  # Gate for the created notification: .create_owned sets it; seeds, fixtures and signup-time creation stay silent.
+  # See /docs/developer/notifications (The actor rule).
   attr_accessor :created_by
 
-  # after_create_COMMIT, not after_create: `User#create_personal_workspace`
-  # runs inside the registration transaction, and enqueueing into Solid
-  # Queue's separate SQLite file under the primary write lock is the
-  # cross-database lock-ordering hazard User#notify_password_changed already
-  # avoids the same way.
+  # _commit, not after_create: enqueuing into Solid Queue's SQLite under the primary write lock is a lock-ordering hazard.
   after_create_commit :notify_workspace_created, if: -> { created_by.present? }
 
   validates :name, presence: true, length: { maximum: 255 }
@@ -91,11 +63,8 @@ class Workspace < ApplicationRecord
     [ :update ]
   end
 
-  # Lifecycle status with explicit precedence — the single authoritative
-  # answer to "what state is this record in". Display goes through
-  # LifecycleHelper#lifecycle_status_label, never status.to_s.
-  # NB: Time === ActiveSupport::TimeWithZone is true (ActiveSupport
-  # special-cases case-equality) — don't "fix" the Time patterns.
+  # Time === ActiveSupport::TimeWithZone is true (case-equality is special-cased) — don't "fix" the Time patterns.
+  # Display goes through LifecycleHelper#lifecycle_status_label, never status.to_s.
   def status
     case [ discarded_at, suspended_at, archived_at ]
     in [ Time, * ]     then :discarded
@@ -105,28 +74,17 @@ class Workspace < ApplicationRecord
     end
   end
 
-  # A "home" workspace is the user's personal workspace or, under the :shared
-  # posture, the instance's single shared workspace. Home workspaces are
-  # exempt from owner archive/delete (there's nowhere for the user to land).
-  # Compared by slug — never a query or AR identity — so it stays correct
-  # regardless of the workspace's own lifecycle state (see design finding #5).
+  # Compared by slug, never a query, so it stays correct whatever the workspace's own lifecycle state.
   def home?
     personal? || (TenancyConfig.shared? && slug == TenancyConfig.shared_workspace_slug)
   end
 
-  # A workspace accepts NEW members (via join link, invitation, or signup
-  # claim) only while active. Existing-member management is separate — see
-  # Membership#reactivate!. Derived from `status` (not a hand-rolled
-  # conjunction) so a future lifecycle state fails CLOSED here automatically
-  # instead of silently admitting — the exact bug class this guard exists for.
+  # Derived from `status` so a future lifecycle state fails CLOSED here instead of silently admitting.
   def admittable?
     status == :active
   end
 
-  # Guarded lifecycle mutators. `transaction do` opens BEGIN IMMEDIATE on the
-  # SQLite adapter, making lock!-then-guard atomic check-then-act; `next` (not
-  # `return`) exits early by committing rather than rolling back.
-  # See /docs/developer/architecture (Concurrency).
+  # `next`, not `return`: an early exit commits nothing. See /docs/developer/architecture (Concurrency).
   def archive!
     transaction do
       lock!
@@ -166,24 +124,12 @@ class Workspace < ApplicationRecord
   end
 
   def owner
-    # Uses detect (not joins + find_by) so it works from preloaded
-    # memberships without firing a per-row query in list views. When nothing
-    # is preloaded, load roles and users alongside so neither the detect nor
-    # the `.user` read N+1s (Bullet — :role first seen via the personal-
-    # workspace icon fallback, :user via the workspace identity bar once the
-    # global Membership safelist entry was retired for the record_preloads
-    # pipeline). The unused-:user legs on non-owner rows are covered by the
-    # intentionally-pessimistic safelist in lib/bullet_safelists.rb.
+    # detect over preloaded memberships, no per-row query in lists. See /docs/developer/architecture (Owner Lookup).
     ms = memberships.loaded? ? memberships : memberships.includes(:role, :user)
     ms.detect(&:owner?)&.user
   end
 
-  # All Users holding an owner-role kept membership — ALWAYS a fresh query,
-  # even when `memberships` is already loaded, so notifier recipient
-  # resolution never reads a stale roster. Render paths that only need an
-  # existence check use Membership.other_kept_owners instead (one indexed
-  # EXISTS — see MembershipPolicy#destroy?).
-  # See /docs/developer/architecture (Owner Lookup).
+  # Always a fresh query, even when memberships is loaded. See /docs/developer/architecture (Owner Lookup).
   def owners
     memberships.kept
       .joins(:role)
@@ -205,54 +151,28 @@ class Workspace < ApplicationRecord
     Role.where(workspace_id: [ nil, id ])
   end
 
-  # True iff this workspace exposes a shareable join link AND personal
-  # workspaces are excluded (hard guard) AND the instance allowlist permits
-  # :open_link. Composes the three layers so callers don't have to.
   def open_join?
     open_link? && !personal? && SignupPolicy.permits_strategy?(:open_link)
   end
 
-  # Whether an active open-link join can be admitted right now: the join policy
-  # is open AND the workspace is in an admittable state (not archived/suspended/
-  # deleted). The single home for the "open_join? && admittable?" rule the join
-  # claim/resolution sites share. (SignupPolicy's gate deliberately checks only
-  # open_join? — admittable? is re-checked here at claim time.)
+  # SignupPolicy's gate checks open_join? only; admittable? is re-checked here at claim time.
   def accepting_open_joins?
     open_join? && admittable?
   end
 
-  # The seat-capacity rule, in one place: full when kept memberships have
-  # reached max_members. Always a fresh COUNT — callers that need locked
-  # semantics (Workspace#admit) take the row lock first and rely on this
-  # querying, never caching.
+  # `>=` here vs the after-create net's strict `>` — both deliberate. See /docs/developer/architecture (Concurrency).
   def at_capacity?
     memberships.kept.count >= max_members
   end
 
-  # Role granted to users self-joining via an open-link. Pinned to the
-  # lowest-privilege system role for safety (Reshape 1 reasoning); per-link
-  # or per-workspace role customization is deferred until requested.
+  # Pinned to the lowest-privilege system role; per-link role customization is deliberately deferred.
   def default_self_join_role
     Role.find_by!(slug: "member", workspace_id: nil)
   end
 
-  # Single membership-grant entry point. Both the Invitation flow and the
-  # open-link self-join flow (Reshape 2) call this — keeping the lock,
-  # capacity check, discarded-reactivation, and :shared-posture role
-  # reconciliation in one place. Wrapped in a transaction so direct callers
-  # are safe; nested calls join the surrounding transaction.
-  # granted_by: audit provenance only (G) — the inviter, when an invitation
-  # acceptance is what created the membership. Never affects admission logic.
-  # self_join: the open-link paths, where nobody granted anything — the joining
-  # user is the actor. Deliberately NOT expressed as `granted_by: user`: that
-  # would write the joiner into the membership.created audit row as their own
-  # granter, making a self-join read exactly like an admin grant. Separate flag,
-  # so "who granted this" and "who acted" can't be conflated.
-  # on_existing: policy for a kept member showing up again. :raise preserves
-  # the duplicate-accept error (reconciling the role first under :shared);
-  # :adopt returns the membership untouched — for callers like project-invite
-  # acceptance whose real work lies past workspace admission. Returns the
-  # membership on every non-raising path.
+  # The one membership-grant entry point (invitations and open-link self-joins). granted_by: audit
+  # provenance only; self_join: the joiner acted; on_existing: :raise or :adopt.
+  # See /docs/developer/notifications (The actor rule) and /docs/developer/architecture (Authorization).
   def admit(user, role:, granted_by: nil, self_join: false, on_existing: :raise)
     Membership.reject_conflicting_provenance!(granted_by: granted_by, self_join: self_join)
     transaction do
@@ -264,24 +184,12 @@ class Workspace < ApplicationRecord
         existing
       elsif existing
         raise AlreadyMember unless on_existing == :adopt || TenancyConfig.shared?
-        # EVERY in-memory instance of the row that saves inside this transaction
-        # must carry the provenance markers, because Rails — not us — picks
-        # which instance runs the commit callbacks: with
-        # run_commit_callbacks_on_first_saved_instances_in_transaction false it
-        # is the LAST one saved. `existing` is a second instance of a row the
-        # same transaction may have just INSERTed (the :shared placeholder from
-        # User#onboard_workspace, reconciled here by Invitation#accept! — both
-        # inside Signupable#commit_signup_atomically), so leaving it markerless
-        # silently dropped the actor rule: the granter got told about their own
-        # grant, and a self-joiner got told they had joined.
-        # Already validated at the top of this method — not re-checked here.
+        # Rails runs commit callbacks on the LAST saved instance, so this second instance must carry
+        # the markers too. See /docs/developer/notifications (The actor rule).
         existing.granted_by = granted_by
         existing.self_join = self_join
         if on_existing != :adopt && existing.role_id != role.id
-          # Under :shared, the User#onboard_workspace callback pre-creates a
-          # placeholder Member membership. Reconcile: adopt the new role
-          # rather than treating it as duplicate-accept. Solo-default
-          # (:personal) semantics are preserved exactly.
+          # :shared placeholder reconciliation — see /docs/developer/presets.
           existing.update!(role: role)
         end
         existing
@@ -292,34 +200,8 @@ class Workspace < ApplicationRecord
     end
   end
 
-  # Single project-creation entry point — both create sites (workspace projects
-  # UI and onboarding) call this. The project INSERT and the creator membership
-  # commit or roll back together; previously the membership was created outside
-  # any transaction, so a failed insert left a committed project invisible and
-  # un-editable to its own creator (ProjectPolicy#show?/update? key off the
-  # membership) while permanently consuming a max_projects slot. Suspension is
-  # guarded here (not per-controller) in the guarded-lifecycle-mutator shape
-  # above. Returns the possibly-invalid project — form callers render its
-  # errors; there is deliberately no bang twin until a non-form caller exists.
-  #
-  # Lifecycle semantics, decided and pinned (#688):
-  # - ARCHIVED workspaces ACCEPT new projects — archive means "no new people,
-  #   existing work continues" (docs/user/workspaces.md), so only suspended?
-  #   is guarded here.
-  # - DISCARDED parent: this model path still creates (HTTP is guarded by
-  #   workspaces.kept scoping); jobs/console callers own that check.
-  # - Disclosure: SuspendedError here (members already inside the workspace
-  #   may know it is locked) vs admit's non-disclosing NotAdmittableError
-  #   (outsiders must not learn which lifecycle state blocked them) —
-  #   the distinctness is the contract, not an inconsistency.
-  # Atomic workspace + owner-membership creation (#676) — the class-level twin
-  # of #create_project below, closing the same bug class one level up: the
-  # two-write controller shape committed the workspace, then resolved the
-  # owner role outside any transaction, so an unseeded fork stranded a
-  # committed, OWNERLESS workspace (no membership → unreachable and
-  # undeletable through the UI). Role resolution is the self-healing
-  # Role.system_default!, and the two writes commit or roll back together.
-  # Returns the possibly-invalid workspace — form callers render its errors.
+  # Atomic workspace + owner-membership creation (#676): the class-level twin of #create_project.
+  # See /docs/developer/architecture (Concurrency).
   def self.create_owned(attrs, owner:)
     workspace = new(attrs)
     workspace.created_by = owner
@@ -331,6 +213,8 @@ class Workspace < ApplicationRecord
     workspace
   end
 
+  # The one project-creation entry point; only suspended? is guarded — archived workspaces accept new
+  # projects (#688). See /docs/developer/architecture (Key Concepts, Concurrency).
   def create_project(attrs, creator:)
     transaction do
       lock!
