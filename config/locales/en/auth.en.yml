@@ -14,9 +14,9 @@ en:
       locked: "Your account has been locked due to too many failed attempts. Please try again later."
       rate_limited: "Too many attempts. Please try again later."
       oauth_failure: "Authentication failed. Please try again."
-    lookup:
-      invalid_email: "Please enter a valid email address."
-      password_prompt: "Enter your password to sign in."
+    lookups:
+      create:
+        invalid_email: "Please enter a valid email address."
     check_email:
       title: "Check your email"
       description: "We sent a sign-in link to %{email}. Click the link in your email to continue."

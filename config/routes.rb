@@ -13,7 +13,14 @@ Rails.application.routes.draw do
   # adoption forms are text-only). Controller lives in spec/support/harness.
   resource :draft_harness, only: %i[show create], controller: "draft_harness" if Rails.env.test?
 
-  resource :session
+  resource :session do
+    scope module: :sessions do
+      # The two steps of email-first sign-in (#1007): the lookup sends the right
+      # link and renders the next step; the password step's form posts to sessions#create.
+      resource :lookup, only: [ :create ]
+      resource :password, only: [ :new ]
+    end
+  end
   resource :email_verification, only: [ :new, :show, :create ]
 
   namespace :passkeys do
@@ -29,13 +36,13 @@ Rails.application.routes.draw do
 
   resource :magic_link, only: [ :create ]
   resource :password_reset, only: [ :create ]
-  get "magic_link_callback/:token", to: "magic_link_callbacks#show", as: :magic_link_callback
+  # GET only renders a confirmation; the session is a nested resource whose
+  # create is the POST, so a mail scanner or prefetch can't burn the token or
+  # sign anyone in (SEC-5). Registration keeps its POST on the callback itself.
+  resources :magic_link_callbacks, param: :token, path: "magic_link_callback", only: [ :show ] do
+    resource :session, only: [ :create ], module: :magic_link_callbacks
+  end
   post "magic_link_callback/:token", to: "magic_link_callbacks#create"
-  # Existing-user sign-in is a POST so a GET (mail scanner / prefetch) can't
-  # burn the token or establish a session — the GET only renders a confirmation.
-  post "magic_link_callback/:token/sign_in", to: "magic_link_callbacks#sign_in", as: :magic_link_callback_sign_in
-  post "session/lookup", to: "sessions#lookup", as: :session_lookup
-  get  "session/password", to: "sessions#password_form", as: :session_password_form
 
   get "/auth/:provider/callback", to: "omniauth_callbacks#create"
   get "/auth/failure", to: "omniauth_callbacks#failure"
@@ -49,9 +56,8 @@ Rails.application.routes.draw do
   namespace :settings do
     resource :profile, only: [ :edit, :update ]
     resource :password, only: [ :new, :create, :edit, :update, :destroy ]
-    resource :avatar, only: [ :update, :destroy ] do
-      get :hub
-    end
+    # show is the picker hub the profile page lazy-loads (#1007).
+    resource :avatar, only: [ :show, :update, :destroy ]
     resource :theme_preference, only: [ :edit, :update ]
     resource :notification_preferences, only: [ :edit, :update ]
     namespace :preferences do
@@ -87,12 +93,11 @@ Rails.application.routes.draw do
   end
 
   resources :workspaces, param: :slug do
-    member do
-      get :identity_picker_hub
-    end
     scope module: :workspaces do
       # Archived is a state, so it is a singular resource: POST archives, DELETE restores (#1007).
       resource :archival, only: [ :create, :destroy ]
+      # The logo picker hub; saves post to workspaces#update, where the logo lives (#1007).
+      resource :logo, only: [ :show ]
       resources :members, only: [ :index, :edit, :update, :destroy ] do
         member do
           patch :reactivate

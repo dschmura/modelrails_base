@@ -1,6 +1,6 @@
 require "rails_helper"
 
-RSpec.describe "sessions/check_email", type: :view do
+RSpec.describe "sessions/lookups/check_email", type: :view do
   before do
     assign(:email_address, "alice@example.com")
   end
