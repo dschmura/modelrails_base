@@ -31,7 +31,7 @@ RSpec.describe "Code smell: security events route through record_security_event!
     "app/models/concerns/trackable.rb" =>
       "the best-effort, workspace-domain write shape itself — the concern this " \
       "whole tier distinction is documented on",
-    "app/models/membership.rb" =>
+    "app/models/membership/ownership.rb" =>
       "record_ownership_demotion, reached from a callback-skipping CAS " \
       "update_all, so the concern's callbacks cannot fire for it",
     "app/controllers/application_controller.rb" =>
