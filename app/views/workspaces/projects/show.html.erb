@@ -3,7 +3,7 @@
   <% if @project.archived? %>
     <%= render "shared/archived_banner",
           message: t("workspaces.projects.archived_banner"),
-          restore_path: unarchive_workspace_project_path(@workspace, @project) %>
+          restore_path: workspace_project_archival_path(@workspace, @project) %>
   <% end %>
   <%= turbo_stream_from @project %>
   <div class="flex items-center gap-4">
