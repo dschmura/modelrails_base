@@ -1,4 +1,6 @@
 class User < ApplicationRecord
+  include KnownDevices
+
   has_secure_password validations: false
 
   has_many :sessions, dependent: :destroy
@@ -69,13 +71,6 @@ class User < ApplicationRecord
 
   MAX_FAILED_ATTEMPTS = 5
   LOCK_DURATION = 1.hour
-  MAX_KNOWN_BROWSERS = 20
-
-  # Version-stripped on purpose (a browser update is not a new device);
-  # SignInFromNewDeviceNotifier's dedup key reuses this exact formula.
-  def self.browser_digest(user_agent, os)
-    Digest::SHA256.hexdigest("#{user_agent.to_s.gsub(/[\d_.]+/, "")} #{os}")
-  end
 
   def full_name
     "#{first_name} #{last_name}"
@@ -174,32 +169,6 @@ class User < ApplicationRecord
     factors << :passkey if webauthn_credentials.kept.any?
     factors << :email
     factors
-  end
-
-  def seen_browser?(user_agent, os)
-    digest = self.class.browser_digest(user_agent, os)
-    last_known_browsers.any? { |entry| entry["digest"] == digest }
-  end
-
-  def record_browser!(user_agent, os)
-    digest = self.class.browser_digest(user_agent, os)
-    now = Time.current
-    browsers = last_known_browsers.dup
-    if (entry = browsers.find { |e| e["digest"] == digest })
-      entry["last_seen_at"] = now.iso8601
-    else
-      browsers << {
-        "digest" => digest,
-        "first_seen_at" => now.iso8601,
-        "last_seen_at" => now.iso8601
-      }
-      # Bounded: this JSON column is read and rewritten on the sign-in hot
-      # path (SQLite single writer), so it must not grow with UA churn.
-      if browsers.size > MAX_KNOWN_BROWSERS
-        browsers = browsers.sort_by { |e| e["last_seen_at"] }.last(MAX_KNOWN_BROWSERS)
-      end
-    end
-    update_column(:last_known_browsers, browsers)
   end
 
   # Read side of the unique partial index that enforces at most one personal workspace per user.
