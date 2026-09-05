@@ -97,22 +97,6 @@ class WorkspacesController < ApplicationController
     end
   end
 
-  # Lazy-loaded identity picker hub partial for the Profile page.
-  def identity_picker_hub
-    authorize @workspace, policy_class: Workspaces::ProfilePolicy
-    identity = @workspace.identity
-
-    render partial: "shared/identity_picker_hub",
-      locals: {
-        identity: identity,
-        model: @workspace,
-        form_url: workspace_path(@workspace),
-        hub_url: identity_picker_hub_workspace_path(@workspace),
-        current_source: identity.resolve_source(params[:source])
-      },
-      layout: false
-  end
-
   def destroy
     authorize @workspace
     @workspace.discard!

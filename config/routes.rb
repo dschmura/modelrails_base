@@ -49,9 +49,8 @@ Rails.application.routes.draw do
   namespace :settings do
     resource :profile, only: [ :edit, :update ]
     resource :password, only: [ :new, :create, :edit, :update, :destroy ]
-    resource :avatar, only: [ :update, :destroy ] do
-      get :hub
-    end
+    # show is the picker hub the profile page lazy-loads (#1007).
+    resource :avatar, only: [ :show, :update, :destroy ]
     resource :theme_preference, only: [ :edit, :update ]
     resource :notification_preferences, only: [ :edit, :update ]
     namespace :preferences do
@@ -87,12 +86,11 @@ Rails.application.routes.draw do
   end
 
   resources :workspaces, param: :slug do
-    member do
-      get :identity_picker_hub
-    end
     scope module: :workspaces do
       # Archived is a state, so it is a singular resource: POST archives, DELETE restores (#1007).
       resource :archival, only: [ :create, :destroy ]
+      # The logo picker hub; saves post to workspaces#update, where the logo lives (#1007).
+      resource :logo, only: [ :show ]
       resources :members, only: [ :index, :edit, :update, :destroy ] do
         member do
           patch :reactivate
