@@ -5,52 +5,20 @@ class Membership < ApplicationRecord
   include Discardable
   include Trackable
   include Broadcastable
+  include Provenance
+  include Ownership
+  include Notifications
 
   belongs_to :user
   belongs_to :workspace
-
-  # Non-persisted grant provenance for the creation audit entry (G): set by
-  # Workspace#admit when an invitation acceptance created this membership.
-  attr_accessor :granted_by
-
-  # Non-persisted self-join marker. Grades, and why it is kept apart from granted_by:
-  # /docs/developer/notifications (The actor rule).
-  attr_accessor :self_join
-
-  # Non-persisted removal actor (#933), an argument to #deactivate! — the model never reads Current.
-  # See /docs/developer/notifications (The actor rule).
-  attr_accessor :removed_by
   belongs_to :role
-
-  SELF_JOIN_GRADES = [ nil, false, true, :onboarding ].freeze
-
-  CONFLICTING_PROVENANCE_MESSAGE =
-    "granted_by and self_join are mutually exclusive: a self-join has no granter"
 
   validates :user_id, uniqueness: { scope: :workspace_id }
   validate :workspace_has_member_capacity, on: :create
 
-  # Model invariant, not only the entry-point guard: direct creates (User#join_shared_workspace) never
-  # see .reject_conflicting_provenance!. See /docs/developer/membership-lifecycle.
-  validate :provenance_markers_are_coherent
-
   # The real capacity guard is post-INSERT; the pre-flight lock! is a no-op across SQLite connections.
   # See /docs/developer/architecture (Concurrency).
   after_create :enforce_capacity_invariant
-
-  # saved_change_to_role_id?, not role_id_previously_changed?: the latter lags under nested transactions.
-  after_update_commit :notify_role_changed, if: :saved_change_to_role_id?
-
-  after_create_commit :notify_member_added, if: :workspace_has_other_owners?
-
-  # Re-admission is an UPDATE, so the create callback never sees it. Its own filter name is load-bearing:
-  # the :commit chain dedups by filter and would REPLACE :notify_member_added. See /docs/developer/membership-lifecycle.
-  after_update_commit :notify_member_readmitted, if: [ :just_reactivated?, :workspace_has_other_owners? ]
-
-  after_update_commit :notify_member_removed, if: :just_deactivated?
-
-  after_create_commit :notify_self_joined, if: :chosen_self_join?
-  after_update_commit :notify_self_rejoined, if: [ :just_reactivated?, :chosen_self_join? ]
 
   scope :filter_by_role, ->(role_slug) {
     return all if role_slug.blank?
@@ -73,26 +41,6 @@ class Membership < ApplicationRecord
       .filter_by_role(role)
       .filter_by_status(status)
   }
-
-  # Mutually exclusive, and refused rather than documented. See /docs/developer/notifications (The actor rule).
-  def self.reject_conflicting_provenance!(granted_by:, self_join:)
-    return unless granted_by && self_join
-    raise ArgumentError, CONFLICTING_PROVENANCE_MESSAGE
-  end
-
-  # Kept owner-role memberships in the workspace, excluding the given
-  # membership id — "are there OTHER owners besides this one?".
-  def self.other_kept_owners(workspace_id, excluding:)
-    kept.joins(:role)
-        .where(workspace_id: workspace_id, roles: { slug: "owner" })
-        .where.not(id: excluding)
-  end
-
-  # Role identity only — deliberately silent on kept/discarded state; the
-  # owner-floor queries carry their own kept filtering.
-  def owner?
-    role.present? && role.owner?
-  end
 
   def change_role!(new_role)
     demoting_owner = owner? && !new_role.owner?
@@ -129,27 +77,6 @@ class Membership < ApplicationRecord
     undiscard!
   end
 
-  def transfer_ownership_to!(target_membership)
-    owner_role = Role.system_default!("owner")
-    admin_role = Role.system_default!("admin")
-
-    transaction do
-      workspace.lock!
-
-      # CAS demote: zero rows means a racer demoted us first — abort before promoting. Skips callbacks
-      # by design. See /docs/developer/architecture (Concurrency).
-      rows = Membership.where(id: id)
-                       .where(role_id: Role.where(slug: "owner").select(:id))
-                       .update_all(role_id: admin_role.id)
-      raise ActiveRecord::RecordInvalid, self if rows.zero?
-      reload
-      record_ownership_demotion(admin_role)
-
-      target_membership.reload
-      target_membership.update!(role: owner_role)
-    end
-  end
-
   private
 
   def broadcast_target
@@ -158,15 +85,6 @@ class Membership < ApplicationRecord
 
   def activity_workspace
     workspace
-  end
-
-  def provenance_markers_are_coherent
-    errors.add(:base, CONFLICTING_PROVENANCE_MESSAGE) if granted_by && self_join
-    return if SELF_JOIN_GRADES.include?(self_join)
-
-    errors.add(:base,
-      "self_join must be one of #{SELF_JOIN_GRADES.map(&:inspect).join(', ')}, " \
-      "got #{self_join.inspect}")
   end
 
   def workspace_has_member_capacity
@@ -186,32 +104,6 @@ class Membership < ApplicationRecord
     raise ActiveRecord::RecordInvalid, self
   end
 
-  def validate_not_last_owner!
-    if owner? && !Membership.other_kept_owners(workspace_id, excluding: id).exists?
-      errors.add(:base, :last_owner)
-      raise LastOwner, self
-    end
-  end
-
-  # Post-discard race net. See /docs/developer/architecture (Concurrency).
-  def enforce_owner_invariant!
-    return unless owner?
-    # Self is already discarded here, so "any kept owner" == "any OTHER kept
-    # owner" — the shared query reads identically either way.
-    return if Membership.other_kept_owners(workspace_id, excluding: id).exists?
-    errors.add(:base, :last_owner)
-    raise LastOwner, self
-  end
-
-  # Post-UPDATE owner-floor net. See /docs/developer/architecture (Concurrency).
-  def enforce_owner_floor!
-    # Self is already demoted here, so counting all kept owners == counting
-    # the OTHER kept owners — the shared query reads identically either way.
-    return if Membership.other_kept_owners(workspace_id, excluding: id).exists?
-    errors.add(:base, :last_owner)
-    raise LastOwner, self
-  end
-
   def track_creation
     metadata = { "role" => role&.slug }
     metadata["granted_by"] = granted_by.id if granted_by
@@ -226,22 +118,6 @@ class Membership < ApplicationRecord
     super.merge("granted_by" => granted_by.id)
   end
 
-  # One of Trackable's named out-of-concern best-effort writers: the CAS demote skips callbacks, so the
-  # audit row is written explicitly.
-  def record_ownership_demotion(to_role)
-    ActivityLog.create!(
-      actor: Current.user,
-      action: "membership.updated",
-      trackable: self,
-      workspace: workspace,
-      visibility: "admin",
-      metadata: { "changes" => { "role" => [ "owner", to_role.slug ] } }
-    )
-  rescue StandardError => e
-    Rails.logger.warn("Activity tracking failed for Membership##{id} (transfer demote): #{e.message}")
-    Rails.error.report(e, handled: true, context: { trackable: "Membership##{id}", action: "transfer_demote" })
-  end
-
   # SEC-1 audit: a role change is a privilege event. Record the role slugs by
   # value (not the mutable role_id FK) and route it to the admin-only feed.
   def enrich_tracked_changes(changes)
@@ -253,62 +129,6 @@ class Membership < ApplicationRecord
 
   def activity_visibility(action)
     (action == "membership.updated" && saved_change_to_role_id?) ? "admin" : "workspace"
-  end
-
-  # Fires post-commit: a raising notifier would 500 an action that already succeeded (#935). Same
-  # swallow-log-report posture as Trackable#create_activity.
-  def notify_best_effort(action)
-    yield
-  rescue StandardError => e
-    Rails.logger.warn("Notification failed for Membership##{id} (#{action}): #{e.message}")
-    Rails.error.report(e, handled: true, context: { trackable: "Membership##{id}", action: action })
-  end
-
-  def notify_role_changed
-    notify_best_effort("role_changed") do
-      next if user.blank?
-      WorkspaceRoleChangedNotifier.with(record: self).deliver(user)
-    end
-  end
-
-  # deliver(nil) and actor-as-param: see /docs/developer/notifications (The actor rule).
-  def notify_member_added
-    notify_best_effort("member_added") do
-      next if user.blank? || workspace.blank?
-      WorkspaceMemberAddedNotifier.with(record: self, actor: self_join ? user : granted_by).deliver(nil)
-    end
-  end
-
-  alias_method :notify_member_readmitted, :notify_member_added
-
-  def notify_member_removed
-    notify_best_effort("member_removed") do
-      next if user.blank? || workspace.blank?
-      WorkspaceMemberRemovedNotifier.with(record: self, actor: removed_by).deliver(nil)
-    end
-  end
-
-  # `deliver(nil)` again: WorkspaceJoinedNotifier declares a `recipients` block
-  # so the in-app preference gate runs. An explicit recipient would skip it.
-  def notify_self_joined
-    notify_best_effort("self_joined") do
-      next if user.blank? || workspace.blank?
-      WorkspaceJoinedNotifier.with(record: self).deliver(nil)
-    end
-  end
-
-  alias_method :notify_self_rejoined, :notify_self_joined
-
-  # Inclusion, not `!= :onboarding`: an unvalidated new grade must not read as "chosen" and mail someone.
-  def chosen_self_join?
-    self_join == true
-  end
-
-  # Self-exclusion is the contract: the very first owner being seeded
-  # (User#create_personal_workspace, bootstrap) must not count as a pre-existing owner.
-  def workspace_has_other_owners?
-    return false if workspace_id.blank?
-    Membership.other_kept_owners(workspace_id, excluding: id).exists?
   end
 
   # Discarded → kept. Direction matters: the same column change in the other
