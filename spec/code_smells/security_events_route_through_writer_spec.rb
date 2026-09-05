@@ -70,6 +70,22 @@ RSpec.describe "Code smell: security events route through record_security_event!
       "allowed_direct_writes in this spec, with its reason."
   end
 
+  it "carries no stale exemptions" do
+    live_files = ruby_sources
+      .select { |file| File.read(file).match?(direct_writes) }
+      .map { |file| Pathname(file).relative_path_from(Rails.root).to_s }
+    stale = allowed_direct_writes.keys - live_files
+
+    expect(stale).to be_empty,
+      "These exemptions name a file that no longer writes ActivityLog directly — " \
+      "the allow-list is describing code that moved or went away, and because the " \
+      "scan above skips an exempted file whole, a stale key would silently cover a " \
+      "future direct write in it:\n  #{stale.join("\n  ")}"
+  end
+
+  # Per-file by design. Since the model decomposition, app/models/user/password.rb
+  # must satisfy this on its own (it names the literal and calls the writer); a
+  # split that separates the two breaks this example, and should.
   it "every file naming a security action routes it through the writer" do
     action_literal = Regexp.union(ActivityLog::SECURITY_ACTIONS)
 

@@ -318,7 +318,8 @@ orphaned pages across both maps automatically.
 
 ```bash
 git fetch upstream
-git log --oneline main..upstream/main   # what's coming
+git log --oneline main..upstream/main                   # what's coming
+git log --diff-filter=R --stat main..upstream/main      # what moved — plan renames, don't discover them mid-merge
 ```
 
 Read `CHANGELOG.md` on `upstream/main` first — breaking changes and migrations

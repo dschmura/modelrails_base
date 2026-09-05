@@ -63,7 +63,7 @@ A password is optional (`has_secure_password validations: false`); the passwordl
 
 **Lockout** is `MAX_FAILED_ATTEMPTS` (5) failed logins, held for `LOCK_DURATION` (1 hour); `register_failed_login!` and `register_successful_login!` are the only writers of the counter.
 
-**The Have I Been Pwned check runs before `save`**, outside the write transaction — see [Architecture § Concurrency](/docs/developer/architecture). A network failure allows the password rather than blocking registration on an external service.
+**The Have I Been Pwned check runs before `save`**, outside the write transaction — see [Architecture § Concurrency](/docs/developer/architecture) for the timing and [Security § Password Security](/docs/developer/security) for its fail-open posture.
 
 ## For forks
 

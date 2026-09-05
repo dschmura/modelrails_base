@@ -1,5 +1,8 @@
 require "rails_helper"
 
+# The Password, Avatar and Onboarding trait examples still live here until the
+# planned split by trait; spec/models/user/ holds only the two files that were
+# already one-to-one with a trait (email_change, known_devices).
 RSpec.describe User, type: :model do
   describe "validations" do
     it "requires an email address" do
