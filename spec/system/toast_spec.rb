@@ -5,9 +5,9 @@ RSpec.describe "Toast notification system", type: :system do
 
   def trigger_login_failure
     # The lookup action now sends a magic link; reach the password form directly.
-    visit session_password_form_path(email_address: user.email_address)
-    fill_in I18n.t("sessions.password_form.password_label"), with: "wrongpassword"
-    click_button I18n.t("sessions.password_form.submit")
+    visit new_session_password_path(email_address: user.email_address)
+    fill_in I18n.t("sessions.passwords.new.password_label"), with: "wrongpassword"
+    click_button I18n.t("sessions.passwords.new.submit")
   end
 
   def dismiss_cookie_banner

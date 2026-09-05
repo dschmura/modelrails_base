@@ -1,6 +1,6 @@
 require "rails_helper"
 
-RSpec.describe EmailLookupForm, type: :model do
+RSpec.describe EmailLookup, type: :model do
   describe "#valid?" do
     it "is valid with a properly-formatted email" do
       form = described_class.new(email_address: "alice@example.com")
@@ -10,25 +10,25 @@ RSpec.describe EmailLookupForm, type: :model do
     it "is invalid when email_address is blank" do
       form = described_class.new(email_address: "")
       expect(form).not_to be_valid
-      expect(form.errors[:email_address]).to include(I18n.t("sessions.lookup.invalid_email"))
+      expect(form.errors[:email_address]).to include(I18n.t("sessions.lookups.create.invalid_email"))
     end
 
     it "is invalid when email_address is nil" do
       form = described_class.new(email_address: nil)
       expect(form).not_to be_valid
-      expect(form.errors[:email_address]).to include(I18n.t("sessions.lookup.invalid_email"))
+      expect(form.errors[:email_address]).to include(I18n.t("sessions.lookups.create.invalid_email"))
     end
 
     it "is invalid when email_address has no domain TLD" do
       form = described_class.new(email_address: "alice@example")
       expect(form).not_to be_valid
-      expect(form.errors[:email_address]).to include(I18n.t("sessions.lookup.invalid_email"))
+      expect(form.errors[:email_address]).to include(I18n.t("sessions.lookups.create.invalid_email"))
     end
 
     it "is invalid when email_address has no @ separator" do
       form = described_class.new(email_address: "notanemail")
       expect(form).not_to be_valid
-      expect(form.errors[:email_address]).to include(I18n.t("sessions.lookup.invalid_email"))
+      expect(form.errors[:email_address]).to include(I18n.t("sessions.lookups.create.invalid_email"))
     end
 
     it "uses the same user-facing error message for blank, nil, and malformed inputs" do
@@ -39,7 +39,7 @@ RSpec.describe EmailLookupForm, type: :model do
         form.valid?
         form.errors[:email_address].first
       end
-      expect(messages).to all(eq(I18n.t("sessions.lookup.invalid_email")))
+      expect(messages).to all(eq(I18n.t("sessions.lookups.create.invalid_email")))
     end
   end
 

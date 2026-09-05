@@ -75,7 +75,7 @@ RSpec.describe "Mutating controller actions authorize or are allow-listed" do
     "email_verification_resends#create",
     # The signed verification token is the authorization: it acts only on the
     # single Authentication it names, exactly like magic_link_callbacks#create
-    # and #sign_in below.
+    # and magic_link_callbacks/sessions#create below.
     "email_verifications#create",
     "invitation_accepts#create",
     # The signed block-confirmation token from the invitee's own invitation
@@ -84,12 +84,12 @@ RSpec.describe "Mutating controller actions authorize or are allow-listed" do
     "invitation_blocks#create",
     "invitation_declines#create",
     "magic_link_callbacks#create",
-    "magic_link_callbacks#sign_in",
+    "magic_link_callbacks/sessions#create",
     "magic_links#create",
     "password_resets#create",
     "sessions#create",
     "sessions#destroy",
-    "sessions#lookup",
+    "sessions/lookups#create",
     "sessions#update",
     "workspaces/joins#create",
     "passkeys/authentications#options",

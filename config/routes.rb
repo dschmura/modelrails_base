@@ -13,7 +13,14 @@ Rails.application.routes.draw do
   # adoption forms are text-only). Controller lives in spec/support/harness.
   resource :draft_harness, only: %i[show create], controller: "draft_harness" if Rails.env.test?
 
-  resource :session
+  resource :session do
+    scope module: :sessions do
+      # The two steps of email-first sign-in (#1007): the lookup sends the right
+      # link and renders the next step; the password step's form posts to sessions#create.
+      resource :lookup, only: [ :create ]
+      resource :password, only: [ :new ]
+    end
+  end
   resource :email_verification, only: [ :new, :show, :create ]
 
   namespace :passkeys do
@@ -29,13 +36,13 @@ Rails.application.routes.draw do
 
   resource :magic_link, only: [ :create ]
   resource :password_reset, only: [ :create ]
-  get "magic_link_callback/:token", to: "magic_link_callbacks#show", as: :magic_link_callback
+  # GET only renders a confirmation; the session is a nested resource whose
+  # create is the POST, so a mail scanner or prefetch can't burn the token or
+  # sign anyone in (SEC-5). Registration keeps its POST on the callback itself.
+  resources :magic_link_callbacks, param: :token, path: "magic_link_callback", only: [ :show ] do
+    resource :session, only: [ :create ], module: :magic_link_callbacks
+  end
   post "magic_link_callback/:token", to: "magic_link_callbacks#create"
-  # Existing-user sign-in is a POST so a GET (mail scanner / prefetch) can't
-  # burn the token or establish a session — the GET only renders a confirmation.
-  post "magic_link_callback/:token/sign_in", to: "magic_link_callbacks#sign_in", as: :magic_link_callback_sign_in
-  post "session/lookup", to: "sessions#lookup", as: :session_lookup
-  get  "session/password", to: "sessions#password_form", as: :session_password_form
 
   get "/auth/:provider/callback", to: "omniauth_callbacks#create"
   get "/auth/failure", to: "omniauth_callbacks#failure"
