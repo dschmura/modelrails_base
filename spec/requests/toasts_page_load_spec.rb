@@ -12,7 +12,7 @@ RSpec.describe "Page-load flash toasts", type: :request do
 
   it "renders the live-region containers empty and carries the flash in a template beside them" do
     token = MagicLinkToken.create_for_email(user.email_address)
-    post magic_link_callback_sign_in_path(token: token)
+    post magic_link_callback_session_path(token)
     follow_redirect!
 
     doc = Nokogiri::HTML(response.body)

@@ -166,7 +166,7 @@ factors a locked-out user needs to get back in. Consequence to be aware of:
 a locked account is locked out of *passwords*, not out of the account — the
 owner can still sign in with a passkey or magic link. If your fork wants a
 lock to mean "no sign-in at all", add the `locked?` check to
-`magic_link_callbacks#sign_in` and `Passkeys::AuthenticateCeremony` as well.
+`magic_link_callbacks/sessions#create` and `Passkeys::AuthenticateCeremony` as well.
 
 Admin rake tasks:
 

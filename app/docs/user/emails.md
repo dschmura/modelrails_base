@@ -56,7 +56,7 @@ Tokens are single-use: accepting an invitation, verifying an email, or resetting
 1. User enters their email on the sign-in/sign-up page (`sessions#new`) and submits.
 2. `SessionsController#lookup` issues a `MagicLinkToken` and sends `MagicLinkMailer.registration_link` (new email) or `MagicLinkMailer.sign_in_link` (existing account).
 3. User clicks the link (GET) → `MagicLinkCallbacksController#show` checks for an existing account. The GET never consumes the token or starts a session (a mail scanner or prefetcher can't burn the link):
-   - Existing user: renders a "Sign in as x@y?" confirmation page; the button POSTs to `#sign_in`, which consumes the token and starts the session.
+   - Existing user: renders a "Sign in as x@y?" confirmation page; the button POSTs to the nested session (`POST /magic_link_callback/:token/session`), which consumes the token and starts the session.
    - New user: renders `magic_link_callbacks/new_registration` (name fields) for first-time signup.
 4. New user submits their name → `MagicLinkCallbacksController#create` creates the User and a **verified** `Authentication` (email ownership proved by the link). No separate verification email is sent.
 5. User is redirected to `after_authentication_url` (onboarding or home).

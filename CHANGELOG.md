@@ -6,6 +6,17 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Breaking
 
+- **Fork invariant — the sign-in steps are resources.** `POST /session/lookup` is `Sessions::LookupsController#create` (path and `session_lookup_path` helper unchanged; `SessionsController#lookup` is gone, with its `deliver_magic_link`). `GET /session/password` is `GET /session/password/new` (`Sessions::PasswordsController#new`, `new_session_password_path`; `session_password_form_path` is gone). `POST /magic_link_callback/:token/sign_in` is `POST /magic_link_callback/:token/session` (`MagicLinkCallbacks::SessionsController#create`, `magic_link_callback_session_path(token)`; `magic_link_callbacks#sign_in` and `magic_link_callback_sign_in_path` are gone). The form object `EmailLookupForm` is `EmailLookup`. Views moved with their actions: `sessions/{check_email,closed,email_error}` to `sessions/lookups/`, `sessions/password_form` to `sessions/passwords/new`. Locale keys: `sessions.lookup.invalid_email` → `sessions.lookups.create.invalid_email`; `sessions.lookup.password_prompt` and `sessions.password_form.*` → `sessions.passwords.new.*`. Third of the three PRs closing #1007; every routed action in base is now one of the seven REST actions.
+
+  | Failure in your fork | Remedy |
+  |---|---|
+  | `NoMethodError: undefined method 'session_password_form_path'` | `new_session_password_path(email_address:)` |
+  | `NoMethodError: undefined method 'magic_link_callback_sign_in_path'` | `magic_link_callback_session_path(token)` |
+  | `NameError: uninitialized constant EmailLookupForm` | `EmailLookup` |
+  | `ActionView::MissingTemplate sessions/check_email` from a fork's own render | The template is `sessions/lookups/check_email`; render it from a controller under `Sessions::` or pass the full path |
+  | Missing translation `sessions.password_form.*` / `sessions.lookup.*` | `sessions.passwords.new.*` / `sessions.lookups.create.invalid_email` |
+  | A fork's `allow_unauthenticated_access only: %i[... lookup password_form]` on `SessionsController` | Drop the two names; the new controllers allow it for all their actions |
+
 - **Fork invariant — the identity picker hubs are resource shows.** `GET /account/avatar/hub` (`Settings::AvatarsController#hub`) is now `GET /account/avatar` (`#show`; `Settings::AvatarPolicy#show?` added). `GET /workspaces/:slug/identity_picker_hub` (`WorkspacesController#identity_picker_hub`) is now `GET /workspaces/:slug/logo` (`Workspaces::LogosController#show`, authorized by the new `Workspaces::LogoPolicy#show?`; `Workspaces::ProfilePolicy#identity_picker_hub?` is removed). The `shared/identity_picker_hub` partial and its locals are unchanged; only `hub_url` values change. `WorkspaceNavHelper::WORKSPACE_SETTINGS_ENDPOINTS` names `workspaces/logos` instead of the old action. Second of the three PRs closing #1007.
 
   | Failure in your fork | Remedy |

@@ -17,6 +17,6 @@ class PasswordResetsController < ApplicationController
     end
 
     @email_address = email
-    render "sessions/check_email"
+    render "sessions/lookups/check_email"
   end
 end

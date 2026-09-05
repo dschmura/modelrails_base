@@ -13,7 +13,7 @@ RSpec.describe "No new bearer tokens in route paths" do
   # Each entry names the decision that keeps it here.
   accepted = {
     "/magic_link_callback/:token(.:format)"                     => "#916: 15-minute single-use token; GET confirms, POST consumes",
-    "/magic_link_callback/:token/sign_in(.:format)"             => "#916: same token, consuming POST",
+    "/magic_link_callback/:magic_link_callback_token/session(.:format)" => "#916: same token; the nested session's consuming POST",
     "/invitations/:token/accept(.:format)"                      => "#916: 7-day single-use token, email-matched on accept",
     "/invitations/:token/decline(.:format)"                     => "#916: 7-day token; identity guard tracked in #951",
     "/workspaces/:workspace_slug/joins/:token(.:format)"        => "#916: shareable by design; expiry tracked in #952",
