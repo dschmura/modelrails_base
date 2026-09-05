@@ -49,28 +49,16 @@ class Invitation < ApplicationRecord
     scope
   }
 
-  # lock! reloads inside BEGIN IMMEDIATE, so a stale pending? can't overwrite a committed acceptance (#675).
-  # See /docs/developer/architecture (Concurrency).
   def decline!
-    transaction do
-      lock!
-      raise ActiveRecord::RecordInvalid.new(self), "Invitation already processed" unless pending?
-      update!(status: "declined", declined_at: Time.current)
-    end
+    with_pending_lock { update!(status: "declined", declined_at: Time.current) }
   end
 
   def revoke!
-    transaction do
-      lock!
-      raise ActiveRecord::RecordInvalid.new(self), "Invitation already processed" unless pending?
-      update!(status: "revoked", revoked_at: Time.current)
-    end
+    with_pending_lock { update!(status: "revoked", revoked_at: Time.current) }
   end
 
   def resend!
-    transaction do
-      lock!
-      raise ActiveRecord::RecordInvalid.new(self), "Invitation already processed" unless pending?
+    with_pending_lock do
       update!(
         token: SecureRandom.urlsafe_base64(32),
         expires_at: 7.days.from_now
@@ -102,6 +90,16 @@ class Invitation < ApplicationRecord
   end
 
   private
+
+  # lock! reloads inside BEGIN IMMEDIATE, so a stale pending? can't overwrite a committed acceptance (#675).
+  # See /docs/developer/architecture (Concurrency).
+  def with_pending_lock
+    transaction do
+      lock!
+      raise ActiveRecord::RecordInvalid.new(self), "Invitation already processed" unless pending?
+      yield
+    end
+  end
 
   def broadcast_target
     resolved_workspace
