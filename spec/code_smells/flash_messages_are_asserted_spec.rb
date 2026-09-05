@@ -79,7 +79,6 @@ RSpec.describe "Flash messages are asserted, not just redirects" do
     "workspaces.members.destroy.cannot_deactivate_last_owner",
     "workspaces.members.destroy.cannot_leave_last_owner",
     "workspaces.members.reactivations.create.reactivated",
-    "workspaces.members.transfer_ownership.transferred",
     "workspaces.members.update.success",
     "workspaces.projects.create.success",
     "workspaces.projects.invitations.create.success",

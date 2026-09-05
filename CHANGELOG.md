@@ -6,6 +6,13 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Breaking
 
+- **Fork invariant — ownership transfer is a resource.** `PATCH /workspaces/:slug/members/:id/transfer_ownership` (`Workspaces::MembersController#transfer_ownership`) is `POST .../members/:id/ownership_transfer` (`Workspaces::Members::OwnershipTransfersController#create`, `workspace_member_ownership_transfer_path`). `MembershipPolicy#transfer_ownership?` and `Membership::Ownership#transfer_ownership_to!` are unchanged. Flash key: `workspaces.members.ownership_transfers.create.transferred`. Part of the second arc on #1007.
+
+  | Failure in your fork | Remedy |
+  |---|---|
+  | `NoMethodError: undefined method 'transfer_ownership_workspace_member_path'` | `workspace_member_ownership_transfer_path(workspace, membership)` with `method: :post` |
+  | Missing translation `workspaces.members.transfer_ownership.transferred` | `workspaces.members.ownership_transfers.create.transferred` |
+
 - **Fork invariant — the undo-and-resend actions are resources.** Five member/collection actions become nested resources: `POST /workspaces/:slug/invitations/:id/resend` → `Workspaces::Invitations::ResendsController#create` at `.../invitations/:id/resend` (`workspace_invitation_resend_path`); `POST /settings/connected_accounts/:id/resend_verification` → `Settings::ConnectedAccounts::VerificationResendsController#create` at `.../connected_accounts/:id/verification_resend`; `PATCH /workspaces/:slug/members/:id/reactivate` → `POST .../members/:id/reactivation` (`Workspaces::Members::ReactivationsController#create`); `PATCH .../resources/:id/reposition` → `PATCH .../resources/:id/position` (`Workspaces::Projects::Resources::PositionsController#update`, same `resource[position]` param); `POST /settings/notifications/mark_all_read` → `POST /settings/notification_readings` (`Settings::NotificationReadingsController#create`, the bulk twin of `Settings::Notifications::ReadingsController`). The five old actions and their route helpers are gone; the policy predicates (`resend?`, `reactivate?`, `reposition?`, `mark_all_read?`) are unchanged and called explicitly. Rate limits moved with their actions at the same thresholds. Flash keys follow the controllers: `workspaces.invitations.resends.create.*`, `settings.connected_accounts.verification_resends.create.*`, `workspaces.members.reactivations.create.reactivated`, `settings.notification_readings.create.success` (the `notifications.index.mark_all_read.*` dialog copy stays). Part of the second arc on #1007.
 
   | Failure in your fork | Remedy |

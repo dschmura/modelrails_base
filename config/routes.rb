@@ -103,9 +103,7 @@ Rails.application.routes.draw do
         # Deactivating is members#destroy; reactivating creates a reactivation (#1007).
         scope module: :members do
           resource :reactivation, only: :create
-        end
-        member do
-          patch :transfer_ownership
+          resource :ownership_transfer, only: :create
         end
       end
       resources :invitations, only: [ :new, :create, :destroy ] do
