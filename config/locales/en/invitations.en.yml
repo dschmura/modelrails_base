@@ -14,6 +14,7 @@ en:
     invitations:
       index:
         magic_link_label: "Share this link to invite members:"
+        magic_link_aria: "Invitation link"
         magic_link_section_title: "Generate a shareable magic link"
         magic_link_section_hint: "Anyone with the link can join with the role you select."
         magic_link_role_label: "Role"
