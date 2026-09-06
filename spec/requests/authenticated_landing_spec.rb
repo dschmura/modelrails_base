@@ -31,8 +31,8 @@ RSpec.describe "Authenticated landing seam", type: :request do
       expect(controller.send(:authenticated_home_path)).to eq(Rails.application.routes.url_helpers.root_path)
       expect(controller.send(:after_authentication_url)).to eq(Rails.application.routes.url_helpers.root_path)
 
-      allow(controller).to receive(:authenticated_home_path).and_return(Rails.application.routes.url_helpers.about_path)
-      expect(controller.send(:after_authentication_url)).to eq(Rails.application.routes.url_helpers.about_path)
+      allow(controller).to receive(:authenticated_home_path).and_return(Rails.application.routes.url_helpers.page_path(:about))
+      expect(controller.send(:after_authentication_url)).to eq(Rails.application.routes.url_helpers.page_path(:about))
     end
   end
 end
