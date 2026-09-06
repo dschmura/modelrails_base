@@ -319,7 +319,8 @@ RSpec.describe "Account Connected Accounts", type: :request do
     end
   end
 
-  describe "POST /account/connected_accounts/:id/resend_verification" do
+  # Resending the verification email is the create of a verification resend nested under the account (#1007).
+  describe "POST /account/connected_accounts/:id/verification_resend" do
     let(:user) { create(:user, :no_authentications) }
     let(:pending_auth) do
       user.authentications.create!(
@@ -343,12 +344,12 @@ RSpec.describe "Account Connected Accounts", type: :request do
     context "with a pending authentication" do
       it "enqueues a fresh verification email" do
         expect {
-          post resend_verification_settings_connected_account_path(pending_auth)
+          post settings_connected_account_verification_resend_path(pending_auth)
         }.to have_enqueued_mail(AuthenticationMailer, :link_verification_email)
       end
 
       it "redirects to connected accounts with success" do
-        post resend_verification_settings_connected_account_path(pending_auth)
+        post settings_connected_account_verification_resend_path(pending_auth)
         expect(response).to redirect_to(settings_connected_accounts_path)
         expect(flash[:notice]).to include("pending@example.com")
       end
@@ -357,12 +358,12 @@ RSpec.describe "Account Connected Accounts", type: :request do
     context "with an already-verified authentication" do
       it "does not change the auth" do
         original_verified_at = verified_auth.verified_at
-        post resend_verification_settings_connected_account_path(verified_auth)
+        post settings_connected_account_verification_resend_path(verified_auth)
         expect(verified_auth.reload.verified_at).to eq(original_verified_at)
       end
 
       it "redirects with already_verified alert" do
-        post resend_verification_settings_connected_account_path(verified_auth)
+        post settings_connected_account_verification_resend_path(verified_auth)
         expect(flash[:alert]).to include("already verified")
       end
     end
@@ -379,7 +380,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
 
       it "enqueues the verification email" do
         expect {
-          post resend_verification_settings_connected_account_path(another_pending)
+          post settings_connected_account_verification_resend_path(another_pending)
         }.to have_enqueued_mail(AuthenticationMailer, :link_verification_email)
       end
     end
@@ -392,8 +393,8 @@ RSpec.describe "Account Connected Accounts", type: :request do
           call_count
         end
 
-        3.times { post resend_verification_settings_connected_account_path(pending_auth) }
-        post resend_verification_settings_connected_account_path(pending_auth)
+        3.times { post settings_connected_account_verification_resend_path(pending_auth) }
+        post settings_connected_account_verification_resend_path(pending_auth)
         expect(flash[:alert]).to include("wait a moment")
       end
     end
@@ -418,7 +419,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
         end
 
         expect {
-          post resend_verification_settings_connected_account_path(pending_auth)
+          post settings_connected_account_verification_resend_path(pending_auth)
         }.not_to have_enqueued_mail(AuthenticationMailer, :link_verification_email)
       end
 
@@ -427,7 +428,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
           EmailRecipientThrottle.allow!(pending_auth.email, kind: :verification)
         end
 
-        post resend_verification_settings_connected_account_path(pending_auth)
+        post settings_connected_account_verification_resend_path(pending_auth)
         expect(flash[:notice]).to include(pending_auth.email)
       end
     end
@@ -442,7 +443,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
           1
         end
 
-        post resend_verification_settings_connected_account_path(pending_auth)
+        post settings_connected_account_verification_resend_path(pending_auth)
         expect(captured_key).to include(user.id.to_s)
       end
     end
@@ -463,7 +464,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
         # The scoped lookup (Current.user.authentications.find) blocks cross-user access,
         # so the other user's auth is never touched and no email is sent.
         expect {
-          post resend_verification_settings_connected_account_path(other_pending_auth)
+          post settings_connected_account_verification_resend_path(other_pending_auth)
         }.not_to have_enqueued_mail(AuthenticationMailer, :link_verification_email)
         expect(flash[:alert]).to eq(I18n.t("errors.not_found"))
       end

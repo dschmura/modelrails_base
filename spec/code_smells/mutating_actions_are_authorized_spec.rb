@@ -103,7 +103,7 @@ RSpec.describe "Mutating controller actions authorize or are allow-listed" do
     "pending_joins#create",
     "pending_joins#destroy",
     "settings/connected_accounts#destroy",
-    "settings/connected_accounts#resend_verification",
+    "settings/connected_accounts/verification_resends#create",
     # Same rationale as email_verifications#create above: the signed
     # verification token names the one Authentication the action acts on.
     "settings/connected_account_verifications#create",

@@ -78,13 +78,6 @@ module Workspaces
       end
     end
 
-    def reactivate
-      @membership = @workspace.memberships.find(params[:id])
-      authorize @membership
-      @membership.reactivate!(granted_by: Current.user)
-      redirect_to workspace_members_path(@workspace), notice: t(".reactivated")
-    end
-
     def transfer_ownership
       @membership = @workspace.memberships.kept.find(params[:id])
       authorize @membership

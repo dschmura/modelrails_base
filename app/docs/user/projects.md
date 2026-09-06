@@ -93,7 +93,7 @@ The default (and currently only) resource type. Documents use **Action Text** fo
 
 Resources have a `position` field (integer, >= 0) and can be reordered:
 
-**Route:** `PATCH /workspaces/:slug/projects/:slug/resources/:id/reposition`
+**Route:** `PATCH /workspaces/:slug/projects/:slug/resources/:id/position` (`Workspaces::Projects::Resources::PositionsController#update`)
 
 The `positioned` scope orders by position ascending.
 

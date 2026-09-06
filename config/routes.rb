@@ -69,8 +69,9 @@ Rails.application.routes.draw do
     resource :reauthentication_code, only: [ :create ]
     resources :passkeys, only: [ :index, :destroy ]
     resources :connected_accounts, only: [ :index, :destroy ] do
-      member do
-        post :resend_verification
+      # Resending the verification email is a resend, created (#1007).
+      scope module: :connected_accounts do
+        resource :verification_resend, only: :create
       end
     end
     resource :connected_account_verification, only: [ :show, :create ], path: "connected_accounts/verify"
@@ -86,10 +87,10 @@ Rails.application.routes.draw do
       scope module: :notifications do
         resource :reading, only: :create
       end
-      collection do
-        post :mark_all_read
-      end
     end
+    # Mark all read: readings for every unread notification, created at once
+    # (#1007) — the bulk twin of the per-notification reading above.
+    resource :notification_readings, only: :create
   end
 
   resources :workspaces, param: :slug do
@@ -99,14 +100,17 @@ Rails.application.routes.draw do
       # The logo picker hub; saves post to workspaces#update, where the logo lives (#1007).
       resource :logo, only: [ :show ]
       resources :members, only: [ :index, :edit, :update, :destroy ] do
+        # Deactivating is members#destroy; reactivating creates a reactivation (#1007).
+        scope module: :members do
+          resource :reactivation, only: :create
+        end
         member do
-          patch :reactivate
           patch :transfer_ownership
         end
       end
       resources :invitations, only: [ :new, :create, :destroy ] do
-        member do
-          post :resend
+        scope module: :invitations do
+          resource :resend, only: :create
         end
       end
       resources :join_links, only: [ :create, :destroy ]
@@ -128,8 +132,9 @@ Rails.application.routes.draw do
           resources :memberships, only: [ :index, :new, :create, :update, :destroy ]
           resources :invitations, only: [ :new, :create ]
           resources :resources, only: [ :index, :new, :create, :show, :edit, :update, :destroy ] do
-            member do
-              patch :reposition
+            # Reordering updates the resource's position (#1007).
+            scope module: :resources do
+              resource :position, only: :update
             end
           end
           resource :tools, only: %i[edit update]

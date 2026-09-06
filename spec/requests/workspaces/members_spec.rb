@@ -377,7 +377,7 @@ RSpec.describe "Workspace Members", type: :request do
       it "refuses an admin reactivating a deactivated owner and leaves it discarded" do
         deactivated_owner = create(:membership, :owner, user: create(:user), workspace: workspace)
         deactivated_owner.discard!
-        patch reactivate_workspace_member_path(workspace, deactivated_owner)
+        post workspace_member_reactivation_path(workspace, deactivated_owner)
         expect(deactivated_owner.reload).to be_discarded
         expect(response).to have_http_status(:redirect)
       end
@@ -460,13 +460,14 @@ RSpec.describe "Workspace Members", type: :request do
       end
     end
 
-    describe "PATCH /workspaces/:workspace_slug/members/:id/reactivate" do
+    # Reactivating is the create of a reactivation nested under the member (#1007).
+    describe "POST /workspaces/:workspace_slug/members/:id/reactivation" do
       let!(:target_membership) { add_member }
 
       before { target_membership.discard! }
 
       it "reactivates the member" do
-        patch reactivate_workspace_member_path(workspace, target_membership)
+        post workspace_member_reactivation_path(workspace, target_membership)
         expect(target_membership.reload).not_to be_discarded
       end
     end
@@ -523,7 +524,7 @@ RSpec.describe "Workspace Members", type: :request do
 
       it "denies reactivate" do
         target_membership.discard!
-        patch reactivate_workspace_member_path(workspace, target_membership)
+        post workspace_member_reactivation_path(workspace, target_membership)
         expect(target_membership.reload).to be_discarded
       end
 
