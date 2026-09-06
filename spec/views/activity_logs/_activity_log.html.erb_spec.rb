@@ -166,8 +166,11 @@ RSpec.describe "activity_logs/_activity_log", type: :view do
     expect(render_row(action: "project.created")).to have_text("created a project")
   end
 
-  it "still falls back to the humanized action for an unknown one" do
-    expect(render_row(action: "widget.frobnicated")).to have_text("Widget.frobnicated")
+  # No fallback: an action without a label is a missing translation, which
+  # raises in test. spec/code_smells/dynamic_i18n_keys_have_values_spec.rb is
+  # the gate that keeps every action the feed can render labeled.
+  it "has no humanized fallback for an unlabeled action" do
+    expect { render_row(action: "widget.frobnicated") }.to raise_error(ActionView::Template::Error, /translation missing/i)
   end
 
   # The #911 pin: the strings above must come from the locale file with no

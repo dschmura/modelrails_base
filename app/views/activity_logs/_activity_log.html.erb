@@ -5,8 +5,7 @@
     </span>
     <span class="text-text-muted">
       <%= t("activity.actions.#{activity_log.display_action}",
-             member: activity_log.display_member || t("activity.unknown_member"),
-             default: activity_log.action.humanize) %>
+             member: activity_log.display_member || t("activity.unknown_member")) %>
     </span>
   </div>
   <time datetime="<%= activity_log.created_at.iso8601 %>"
