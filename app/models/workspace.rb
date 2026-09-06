@@ -116,7 +116,7 @@ class Workspace < ApplicationRecord
   def owners
     memberships.kept
       .joins(:role)
-      .where(roles: { slug: "owner" })
+      .merge(Role.owner)
       .includes(:user)
       .map(&:user)
       .compact
