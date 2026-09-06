@@ -165,8 +165,9 @@ en:
       reactivations:
         create:
           reactivated: "Member reactivated."
-      transfer_ownership:
-        transferred: "Ownership transferred."
+      ownership_transfers:
+        create:
+          transferred: "Ownership transferred."
     settings:
       edit:
         title: "Workspace settings"

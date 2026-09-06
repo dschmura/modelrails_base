@@ -472,14 +472,17 @@ RSpec.describe "Workspace Members", type: :request do
       end
     end
 
-    describe "PATCH /workspaces/:workspace_slug/members/:id/transfer_ownership" do
+    # Transferring ownership is the create of an ownership transfer nested under the member (#1007).
+    describe "POST /workspaces/:workspace_slug/members/:id/ownership_transfer" do
       it "transfers ownership" do
         target_membership = add_member
         owner_role = Role.system_default!("owner")
         admin_role = Role.system_default!("admin")
-        patch transfer_ownership_workspace_member_path(workspace, target_membership)
+        post workspace_member_ownership_transfer_path(workspace, target_membership)
         expect(target_membership.reload.role).to eq(owner_role)
         expect(membership.reload.role).to eq(admin_role)
+        expect(response).to redirect_to(workspace_members_path(workspace))
+        expect(flash[:notice]).to eq(I18n.t("workspaces.members.ownership_transfers.create.transferred"))
       end
     end
 
@@ -529,7 +532,7 @@ RSpec.describe "Workspace Members", type: :request do
       end
 
       it "denies transfer_ownership" do
-        patch transfer_ownership_workspace_member_path(workspace, target_membership)
+        post workspace_member_ownership_transfer_path(workspace, target_membership)
         expect(response).to have_http_status(:redirect)
       end
     end
