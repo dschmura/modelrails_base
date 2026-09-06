@@ -45,7 +45,7 @@
   <% end %>
 
   <% if workspace.open_link? && open_link_permitted %>
-    <div class="mt-6 pt-6 border-t border-border" data-controller="clipboard">
+    <div class="mt-6 pt-6 border-t border-border">
       <h3 class="text-sm font-semibold text-text-heading">
         <%= t("workspaces.settings.join_policy.active_link_heading") %>
       </h3>
@@ -53,38 +53,29 @@
       <% if flash[:join_link_url].present? %>
         <%# Show-once reveal: the full URL is shown exactly once, right after
             generate/rotate. The token is hashed at rest, so it can never be
-            re-displayed — copy it now or rotate for a new one. %>
-        <p id="join_link_show_once_warning" class="mt-2 rounded-md border border-warning-border bg-warning-surface px-3 py-2 text-sm text-warning">
-          <span class="font-semibold"><%= t("workspaces.settings.join_policy.show_once_warning_lead") %></span>
-          <%= t("workspaces.settings.join_policy.show_once_warning") %>
-        </p>
-        <div class="mt-2 flex items-center gap-2">
-          <input type="text"
-                 readonly
-                 autofocus
-                 value="<%= flash[:join_link_url] %>"
-                 autocomplete="off"
-                 data-clipboard-target="source"
-                 aria-describedby="join_link_show_once_warning"
-                 class="flex-1 min-w-0 min-h-11 text-sm font-mono px-3 py-2 rounded-md border border-border bg-surface-sunken text-text"
-                 aria-label="<%= t('workspaces.settings.join_policy.link_aria') %>">
-          <button type="button"
-                  data-action="clipboard#copy"
-                  class="btn-touch-target inline-flex items-center px-3 py-2 rounded-md text-sm
-                         border border-border hover:bg-surface-sunken
-                         focus-ring">
-            <span data-clipboard-target="label"><%= t("workspaces.settings.join_policy.copy") %></span>
-          </button>
-        </div>
-        <p role="status" aria-live="polite" data-clipboard-target="status" class="mt-1 text-xs text-text-muted h-4"></p>
+            re-displayed — copy it now or rotate for a new one. data-turbo-temporary
+            keeps the reveal out of Turbo's snapshot, so Back does not re-show it. %>
+        <div data-turbo-temporary>
+          <p id="join_link_show_once_warning" class="mt-2 rounded-md border border-warning-border bg-warning-surface px-3 py-2 text-sm text-warning">
+            <span class="font-semibold"><%= t("workspaces.settings.join_policy.show_once_warning_lead") %></span>
+            <%= t("workspaces.settings.join_policy.show_once_warning") %>
+          </p>
+          <%= ui :copy,
+                value: flash[:join_link_url],
+                label: t("workspaces.settings.join_policy.link_aria"),
+                label_hidden: true,
+                describedby: "join_link_show_once_warning",
+                autofocus: true,
+                class: "mt-2" %>
 
-        <%# Freshly minted/rotated, so never expired yet — no colour, just the
-            date in words, matching the steady-state expiry line below (#952). %>
-        <p class="mt-1 text-xs text-text-muted">
-          <time datetime="<%= current_link.expires_at.iso8601 %>">
-            <%= t("workspaces.settings.join_policy.expires_on", date: l(current_link.expires_at, format: :long)) %>
-          </time>
-        </p>
+          <%# Freshly minted/rotated, so never expired yet — no colour, just the
+              date in words, matching the steady-state expiry line below (#952). %>
+          <p class="mt-1 text-xs text-text-muted">
+            <time datetime="<%= current_link.expires_at.iso8601 %>">
+              <%= t("workspaces.settings.join_policy.expires_on", date: l(current_link.expires_at, format: :long)) %>
+            </time>
+          </p>
+        </div>
 
         <div class="mt-4 flex items-center gap-3">
           <%= button_to t("workspaces.settings.join_policy.revoke"),
