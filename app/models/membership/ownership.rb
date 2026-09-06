@@ -10,7 +10,8 @@ class Membership < ApplicationRecord
       # membership id — "are there OTHER owners besides this one?".
       def other_kept_owners(workspace_id, excluding:)
         kept.joins(:role)
-            .where(workspace_id: workspace_id, roles: { slug: "owner" })
+            .merge(Role.owner)
+            .where(workspace_id: workspace_id)
             .where.not(id: excluding)
       end
     end
@@ -31,7 +32,7 @@ class Membership < ApplicationRecord
         # CAS demote: zero rows means a racer demoted us first — abort before promoting. Skips callbacks
         # by design. See /docs/developer/architecture (Concurrency).
         rows = Membership.where(id: id)
-                         .where(role_id: Role.where(slug: "owner").select(:id))
+                         .where(role_id: Role.owner.select(:id))
                          .update_all(role_id: admin_role.id)
         raise ActiveRecord::RecordInvalid, self if rows.zero?
         reload
