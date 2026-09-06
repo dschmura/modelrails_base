@@ -108,6 +108,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Added
 
+- `ModelRails/NoDefaultScope`: a `default_scope` call anywhere under `app/models` is an offense. Tenant scoping is opt-in (`Tenanted` installs none), and a default scope acts at a distance on every query, including the ones a job, the console, and an association never meant. The message names the workspace association to use instead and points at `/docs/developer/extending` ("Decide how it is tenant-scoped").
 - House RuboCop cops under `lib/rubocop`, loaded by `.rubocop.yml` on top of omakase. First cop: `ModelRails/ModelConcernNamespace`, which fails a file under `app/models/<model>/` that defines its module or class in the compact `module Model::Trait` form instead of reopening the model. Every message says what broke, how to fix it, which pattern applies, and where to read more (`/docs/developer/extending`, "Per-model traits", which now carries the placement rule; closes #1002). A fork that keeps its own `.rubocop.yml` opts in with the `require:` and cop blocks base's file shows.
 - The notifications index tells you how your list clears ("Once you've read a notification, we remove it N days later") and links straight to the retention control.
 - A code-smell fence refuses relation-level deletes of `Noticed::Event` in `app/` and `lib/`; the future orphan-pruning job registers there by file name.
