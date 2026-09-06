@@ -193,7 +193,6 @@ en:
         rotate_confirm: "Rotating disables the current link and issues a new one valid for seven days. Continue?"
         revoke: "Revoke link"
         revoke_confirm: "Revoking will disable the current link. Continue?"
-        copy: "Copy"
         link_aria: "Workspace join link"
         show_once_warning_lead: "Copy this link now."
         show_once_warning: "For security it is shown only once — you won't be able to see the full link again. Rotate the link anytime to generate a new one."

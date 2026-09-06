@@ -29,29 +29,16 @@ RSpec.describe "Join link copy control", type: :system do
     expect(page).to have_text(I18n.t("workspaces.settings.join_policy.show_once_warning_lead"))
   end
 
-  it "renders the reveal as a copy field wired to the warning, with focus on the trigger" do
+  it "renders the reveal as a copy field wired to the warning; focus lands on the main landmark (#1036)" do
     expect(page).to have_css("input[readonly][data-copy-target='source'][value^='http']")
     expect(page).to have_css("button[data-action='copy#copy'][aria-describedby='join_link_show_once_warning'][autofocus]")
     expect(page).to have_css("label.sr-only", text: link_noun, visible: :all)
     expect(page).to have_css("[data-turbo-temporary] [data-controller='copy']")
     expect(page).to have_no_css("[data-controller='clipboard']")
-    # :focus predicate (Capybara-retried), not an activeElement sample (see
-    # spec/system/accessibility/post_navigation_focus_spec.rb). Here it also
-    # documents a real, pre-existing interaction rather than a mere assertion
-    # race: the workspace layout runs `turbo_refreshes_with method: :morph`
-    # (app/views/layouts/application.html.erb:9), and generating/rotating a
-    # join link redirects back to the SAME edit_workspace_settings_path, so
-    # Turbo treats it as a same-page "refresh" and renders via
-    # MorphingPageRenderer — whose `shouldAutofocus` is hard-coded `false`
-    # (turbo-rails 2.0.23), skipping Turbo's own autofocus-on-render
-    # emulation. navigation_focus.js's landmark handler (turbo:load) then
-    # wins because it never observes the trigger claim focus first. The old
-    # hand-rolled `<input autofocus>` had the identical interaction — this is
-    # not a C3 regression. Both outcomes satisfy WCAG 2.4.3 (focus lands on a
-    # sensible in-page target, never lost); assert either, as
-    # post_navigation_focus_spec.rb does for the analogous "does not fight an
-    # autofocused field" case.
-    expect(page).to have_css("button[data-action='copy#copy']:focus, #main-content:focus")
+    # Deviation from the trigger holding focus: this redirect targets the same URL
+    # under Turbo morph, which skips Turbo's autofocus-on-render, so
+    # navigation_focus.js's landmark handler wins deterministically. Tracked as #1036.
+    expect(page).to have_css("#main-content:focus")
   end
 
   it "copies the URL and announces it without changing the button's text" do

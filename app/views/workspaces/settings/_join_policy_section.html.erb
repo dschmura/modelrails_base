@@ -65,6 +65,8 @@
                 label: t("workspaces.settings.join_policy.link_aria"),
                 label_hidden: true,
                 describedby: "join_link_show_once_warning",
+                # Inert on this page today: this redirect targets the same URL under
+                # Turbo morph, which skips Turbo's autofocus-on-render (#1036).
                 autofocus: true,
                 class: "mt-2" %>
 
