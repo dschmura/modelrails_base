@@ -8,3 +8,4 @@ require "rubocop"
 
 require_relative "cop/modelrails/model_concern_namespace"
 require_relative "cop/modelrails/no_default_scope"
+require_relative "cop/modelrails/no_sleep_in_system_specs"

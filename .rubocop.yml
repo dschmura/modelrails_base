@@ -23,6 +23,12 @@ ModelRails/NoDefaultScope:
   Include:
     - "app/models/**/*.rb"
 
+# A system spec waits for observable state, never for a clock.
+ModelRails/NoSleepInSystemSpecs:
+  Enabled: true
+  Include:
+    - "spec/system/**/*.rb"
+
 # So the policy Excludes below (migrations, specs) merge with the todo's
 # grandfather Excludes instead of one clobbering the other.
 inherit_mode:
