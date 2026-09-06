@@ -17,6 +17,12 @@ ModelRails/ModelConcernNamespace:
   Include:
     - "app/models/*/**/*.rb"
 
+# Tenant scoping is opt-in; no model installs a default_scope.
+ModelRails/NoDefaultScope:
+  Enabled: true
+  Include:
+    - "app/models/**/*.rb"
+
 # So the policy Excludes below (migrations, specs) merge with the todo's
 # grandfather Excludes instead of one clobbering the other.
 inherit_mode:
