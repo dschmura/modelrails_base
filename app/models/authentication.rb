@@ -9,9 +9,10 @@ class Authentication < ApplicationRecord
     [ :create, :update, :destroy ]
   end
 
+  # Dynamic key, no fallback: spec/code_smells/dynamic_i18n_keys_have_values_spec.rb
+  # proves every configured provider has its label.
   def self.display_name_for(provider_string)
-    I18n.t("authentication.providers.#{provider_string}",
-           default: provider_string.to_s.titleize)
+    I18n.t("authentication.providers.#{provider_string}")
   end
 
   def display_provider

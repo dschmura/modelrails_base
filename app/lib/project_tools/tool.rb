@@ -4,7 +4,8 @@ module ProjectTools
   Tool = Data.define(:key, :default_enabled, :implemented, :path_helper) do
     def implemented?      = implemented
     def default_enabled?  = default_enabled
-    def name        = I18n.t("project_tools.#{key}.name", default: key.to_s.humanize)
-    def description = I18n.t("project_tools.#{key}.description", default: "")
+    # Dynamic keys; spec/code_smells/project_tools_have_locale_keys_spec.rb is the gate.
+    def name        = I18n.t("project_tools.#{key}.name")
+    def description = I18n.t("project_tools.#{key}.description")
   end
 end

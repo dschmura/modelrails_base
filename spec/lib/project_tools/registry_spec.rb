@@ -37,9 +37,12 @@ RSpec.describe ProjectTools::Registry do
     expect(described_class.find(:docs).name).to eq("Docs & Files")
   end
 
-  it "falls back to a humanized key when no locale entry exists" do
+  # No inline default: a tool without a locale entry is a missing key, which
+  # raises in test and fails spec/code_smells/project_tools_have_locale_keys_spec.rb
+  # for every registered tool, so a fork learns before deploy.
+  it "has no fallback name — a tool without a locale entry is a missing translation" do
     described_class.register(key: :time_tracking, path_helper: :workspace_project_resources_path)
     tool = described_class.find(:time_tracking)
-    expect(tool.name).to eq("Time tracking")
+    expect { tool.name }.to raise_error(I18n::MissingTranslationData)
   end
 end

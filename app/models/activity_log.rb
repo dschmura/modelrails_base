@@ -26,6 +26,10 @@ class ActivityLog < ApplicationRecord
     user.passkey_removed
   ].freeze
 
+  # The members whose writer records the device os in metadata (Authenticatable's
+  # new-device sign-in); the account activity card renders their _with_os label.
+  SECURITY_ACTIONS_WITH_OS = %w[user.signed_in_new_device].freeze
+
   # The one writer for security-tier rows (User password callbacks,
   # WebauthnCredential, Authenticatable all route here). Two reasons it exists:
   # the row shape lives in exactly one place, and an action outside
