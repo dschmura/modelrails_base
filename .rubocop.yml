@@ -56,6 +56,15 @@ ModelRails/StackFloor:
   Include:
     - "**/Gemfile"
 
+# Every routed action is one of the seven. ApplicationController is abstract:
+# no route reaches it, and its public methods are helper_method exposures.
+ModelRails/RestfulActions:
+  Enabled: true
+  Include:
+    - "app/controllers/**/*_controller.rb"
+  Exclude:
+    - "app/controllers/application_controller.rb"
+
 # So the policy Excludes below (migrations, specs) merge with the todo's
 # grandfather Excludes instead of one clobbering the other.
 inherit_mode:
