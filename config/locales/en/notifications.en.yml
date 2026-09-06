@@ -159,9 +159,6 @@ en:
       retention_hint:
         text: "Once you've read a notification, we remove it %{period} later. Unread notifications stay until you read them."
         change: "Change retention"
-        days:
-          one: "%{count} day"
-          other: "%{count} days"
   notification_mailer:
     digest:
       subject:

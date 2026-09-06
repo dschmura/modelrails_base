@@ -19,10 +19,13 @@ RSpec.describe "Onboarding · tools step", type: :request do
     sign_in(user)
   end
 
-  # A second toggleable tool so the registry offers a real choice. Restored by
-  # the registry's own save/restore pattern is not active here, so undo it.
+  # A second toggleable tool so the registry offers a real choice, with the
+  # locale keys a fork must add for its own tools (Tool#name has no fallback;
+  # spec/code_smells/project_tools_have_locale_keys_spec.rb is the gate).
+  # The registry's own save/restore pattern is not active here, so undo it.
   def with_two_tools
     extra = ProjectTools::Registry.register(key: :extra, path_helper: :workspace_project_resources_path)
+    I18n.backend.store_translations(:en, project_tools: { extra: { name: "Extra", description: "An extra tool." } })
     yield
   ensure
     ProjectTools::Registry.all.delete(extra)

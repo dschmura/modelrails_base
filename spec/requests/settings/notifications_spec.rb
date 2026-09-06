@@ -108,18 +108,16 @@ RSpec.describe "Account Notifications", type: :request do
         expect(response.body).to include("we remove it 90 days later")
       end
 
-      # A value written around the value object (a fork widening
-      # ALLOWED_RETENTION_DAYS without adding a label, or a row that predates
-      # a label change) has no `retention_options.<n>` translation. The view
-      # must still say something plain rather than leak "translation missing".
-      it "falls back to a plain day count for a retention value with no label" do
-        user.create_preferences!
-        prefs = user.preferences.notification_preferences
-        user.preferences.update_column(:notification_preferences, prefs.merge("retention_days" => 45))
-
-        get settings_notifications_path
-
-        expect(response.body).to include("we remove it 45 days later")
+      # The period label is a dynamic key with no inline default, so the label
+      # set and the allowed set must agree: a fork widening
+      # ALLOWED_RETENTION_DAYS adds the label here or this example is red.
+      # (The value object refuses any value outside the set, so a stored row
+      # cannot name a value that has no label.)
+      it "labels every allowed retention value" do
+        unlabeled = NotificationPreferences::ALLOWED_RETENTION_DAYS.reject do |days|
+          I18n.exists?("notifications.preferences.advanced.retention_options.#{days}")
+        end
+        expect(unlabeled).to be_empty, "retention values without a retention_options label: #{unlabeled.join(", ")}"
       end
 
       # Regression (Bullet unused-eager-loading). The index eager-loads

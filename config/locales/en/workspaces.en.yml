@@ -72,10 +72,6 @@ en:
         last_accessed:
           touched: "Last accessed %{relative} ago"
           never: "Never accessed"
-        role:
-          owner: "Owner"
-          admin: "Admin"
-          member: "Member"
     new:
       title: "Create a workspace"
       name_label: "Workspace name"
