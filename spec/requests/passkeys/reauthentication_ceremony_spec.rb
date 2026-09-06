@@ -2,7 +2,8 @@
 
 require "rails_helper"
 
-RSpec.describe "Passkeys::Reauthentications", type: :request do
+# A WebAuthn ceremony is two creates on two nouns (#1007): the challenge, then the confirmation it earns.
+RSpec.describe "Passkeys reauthentication ceremony", type: :request do
   let(:user) { create(:user) }
   let(:client) { WebAuthn::FakeClient.new(Passkeys.origin) }
 
@@ -18,11 +19,11 @@ RSpec.describe "Passkeys::Reauthentications", type: :request do
   end
 
   it "stamps reauthentication from the current user's own passkey" do
-    post passkeys_reauthentication_options_path
+    post passkeys_reauthentication_challenge_path
     challenge = WebauthnChallenge.where(purpose: "reauthentication").last.challenge
     assertion = client.get(challenge: challenge)
 
-    post passkeys_reauthentication_verify_path, params: assertion.to_json,
+    post passkeys_reauthentication_confirmation_path, params: assertion.to_json,
          headers: { "CONTENT_TYPE" => "application/json" }
 
     expect(response).to have_http_status(:ok)
@@ -34,11 +35,11 @@ RSpec.describe "Passkeys::Reauthentications", type: :request do
     other_client = WebAuthn::FakeClient.new(Passkeys.origin)
     register_passkey_for(other_user, other_client)
 
-    post passkeys_reauthentication_options_path
+    post passkeys_reauthentication_challenge_path
     challenge = WebauthnChallenge.where(purpose: "reauthentication").last.challenge
     assertion = other_client.get(challenge: challenge)
 
-    post passkeys_reauthentication_verify_path, params: assertion.to_json,
+    post passkeys_reauthentication_confirmation_path, params: assertion.to_json,
          headers: { "CONTENT_TYPE" => "application/json" }
 
     expect(response).to have_http_status(:unprocessable_content)
@@ -46,15 +47,15 @@ RSpec.describe "Passkeys::Reauthentications", type: :request do
   end
 
   it "rejects a replayed assertion (consumed challenge)" do
-    post passkeys_reauthentication_options_path
+    post passkeys_reauthentication_challenge_path
     challenge = WebauthnChallenge.where(purpose: "reauthentication").last.challenge
     assertion = client.get(challenge: challenge)
     headers = { "CONTENT_TYPE" => "application/json" }
 
-    post passkeys_reauthentication_verify_path, params: assertion.to_json, headers: headers
+    post passkeys_reauthentication_confirmation_path, params: assertion.to_json, headers: headers
     expect(response).to have_http_status(:ok)
 
-    post passkeys_reauthentication_verify_path, params: assertion.to_json, headers: headers
+    post passkeys_reauthentication_confirmation_path, params: assertion.to_json, headers: headers
     expect(response).to have_http_status(:unprocessable_content)
   end
 end

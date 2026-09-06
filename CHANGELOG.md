@@ -6,6 +6,14 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Breaking
 
+- **Fork invariant — the passkey ceremonies are resources.** Each WebAuthn ceremony is two creates on two nouns: the challenge, then what the signature earns. `POST /passkeys/registration/{options,verify}` → `POST /passkeys/registration/{challenge,credential}` (`Passkeys::Registration::ChallengesController#create`, `Passkeys::Registration::CredentialsController#create`); `POST /passkeys/authentication/{options,verify}` → `.../authentication/{challenge,session}` (`Passkeys::Authentication::ChallengesController`, `Passkeys::Authentication::SessionsController`); `POST /passkeys/reauthentication/{options,verify}` → `.../reauthentication/{challenge,confirmation}` (`Passkeys::Reauthentication::ChallengesController`, `Passkeys::Reauthentication::ConfirmationsController`). The three old controllers are gone with their route helpers; `Passkeys::RegisterCeremony`, `Passkeys::AuthenticateCeremony`, the error classes, the gates, and the sign-in rate limit are unchanged. The `webauthn` Stimulus controller reads its URLs from `data-webauthn-*-url-value` attributes, which the three views now fill with the new helpers; the JS is untouched. Part of the second arc on #1007.
+
+  | Failure in your fork | Remedy |
+  |---|---|
+  | `NoMethodError` on `passkeys_registration_options_path` / `_verify_path` (or the authentication / reauthentication pair) | `passkeys_registration_challenge_path` / `passkeys_registration_credential_path`; `passkeys_authentication_challenge_path` / `passkeys_authentication_session_path`; `passkeys_reauthentication_challenge_path` / `passkeys_reauthentication_confirmation_path` |
+  | A fork subclassing `Passkeys::RegistrationsController` (or the other two) | Subclass the two controllers the ceremony became |
+  | Custom JS posting to `/passkeys/*/options` or `/verify` literally | Read the URLs from the view's data attributes, as base's controller does |
+
 - **Fork invariant — ownership transfer is a resource.** `PATCH /workspaces/:slug/members/:id/transfer_ownership` (`Workspaces::MembersController#transfer_ownership`) is `POST .../members/:id/ownership_transfer` (`Workspaces::Members::OwnershipTransfersController#create`, `workspace_member_ownership_transfer_path`). `MembershipPolicy#transfer_ownership?` and `Membership::Ownership#transfer_ownership_to!` are unchanged. Flash key: `workspaces.members.ownership_transfers.create.transferred`. Part of the second arc on #1007.
 
   | Failure in your fork | Remedy |

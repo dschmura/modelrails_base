@@ -23,13 +23,22 @@ Rails.application.routes.draw do
   end
   resource :email_verification, only: [ :new, :show, :create ]
 
+  # A WebAuthn ceremony is two creates on two nouns (#1007): the challenge the
+  # authenticator signs, then what the signature earns — a credential, a
+  # session, or a confirmation of the current one.
   namespace :passkeys do
-    post "registration/options",   to: "registrations#options",   as: :registration_options
-    post "registration/verify",    to: "registrations#verify",    as: :registration_verify
-    post "authentication/options", to: "authentications#options", as: :authentication_options
-    post "authentication/verify",  to: "authentications#verify",  as: :authentication_verify
-    post "reauthentication/options", to: "reauthentications#options", as: :reauthentication_options
-    post "reauthentication/verify",  to: "reauthentications#verify",  as: :reauthentication_verify
+    namespace :registration do
+      resource :challenge, only: :create
+      resource :credential, only: :create
+    end
+    namespace :authentication do
+      resource :challenge, only: :create
+      resource :session, only: :create
+    end
+    namespace :reauthentication do
+      resource :challenge, only: :create
+      resource :confirmation, only: :create
+    end
   end
 
   resource :email_verification_resend, only: [ :create ]
