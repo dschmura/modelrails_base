@@ -193,8 +193,10 @@ RSpec.describe Authentication, type: :model do
       expect(Authentication.display_name_for("email")).to eq("Email")
     end
 
-    it "falls back to titleize for unknown providers" do
-      expect(Authentication.display_name_for("unknown_provider")).to eq("Unknown Provider")
+    # No inline default: a provider without a label is a missing translation,
+    # which raises in test; the dynamic-keys code-smell spec is the gate.
+    it "has no fallback for a provider without a label" do
+      expect { Authentication.display_name_for("unknown_provider") }.to raise_error(I18n::MissingTranslationData)
     end
   end
 
