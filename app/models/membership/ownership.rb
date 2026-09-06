@@ -71,10 +71,11 @@ class Membership < ApplicationRecord
     end
 
     # One of Trackable's named out-of-concern best-effort writers: the CAS demote skips callbacks, so the
-    # audit row is written explicitly.
+    # audit row is written explicitly. The actor is the owner stepping down — this membership's own user —
+    # never an ambient read (#1008). See /docs/developer/architecture (Actors are parameters).
     def record_ownership_demotion(to_role)
       ActivityLog.create!(
-        actor: Current.user,
+        actor: user,
         action: "membership.updated",
         trackable: self,
         workspace: workspace,
