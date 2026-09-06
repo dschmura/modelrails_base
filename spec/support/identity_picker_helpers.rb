@@ -86,6 +86,11 @@ module IdentityPickerHelpers
       "[data-controller~='image-cropper'][data-image-cropper-ready='true']",
       wait: 10
     )
+    # The picker moves focus into the cropper container on a timer after the
+    # modal animation (identity_picker_controller#_manageFocus). Until that has
+    # landed the view is still settling: a spec that tabs before it fires has
+    # its focus taken back (#997). Waiting on the focus is waiting on the state.
+    expect(page).to have_css("[data-image-cropper-target='container']:focus", wait: 10)
   end
 
   # Wait for hub view to become visible (after a mode switch back to hub).

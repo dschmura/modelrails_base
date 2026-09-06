@@ -397,9 +397,9 @@ RSpec.describe "Account profile — identity picker", type: :system do
       # of it — the crop footer's own "Save crop" button.
       expect(previous_focus_tag).to eq("BUTTON")
       expect(previous_focus_text).to eq(I18n.t("identity_picker.save_crop"))
-      # Bounded poll, not a read-once: the :focus-visible ring paints on the
-      # next style recalculation after the Tab, which under CI load can land
-      # after this line (#997). The Tab-order proof above stays read-once.
+      # Bounded poll for the paint, not a read-once. The flake #997 saw here
+      # was not paint lag: the picker's deferred focus move was landing after
+      # the Tab and taking focus back, which wait_for_crop_view now waits out.
       Timeout.timeout(Capybara.default_max_wait_time) do
         sleep 0.05 until label_outline.call == "solid"
       end
