@@ -65,6 +65,18 @@ ModelRails/RestfulActions:
   Exclude:
     - "app/controllers/application_controller.rb"
 
+# Current is request state. Two model-side readers, by design: Trackable (the
+# audit actor and activity workspace — a callback cannot take an argument) and
+# Tenanted's opt-in for_current_workspace scope. Current itself defines it.
+ModelRails/NoAmbientCurrentInModels:
+  Enabled: true
+  Include:
+    - "app/models/**/*.rb"
+  Exclude:
+    - "app/models/current.rb"
+    - "app/models/concerns/trackable.rb"
+    - "app/models/concerns/tenanted.rb"
+
 # So the policy Excludes below (migrations, specs) merge with the todo's
 # grandfather Excludes instead of one clobbering the other.
 inherit_mode:
