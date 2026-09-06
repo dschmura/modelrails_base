@@ -11,6 +11,10 @@ keywords: setup install mise ruby bundle rspec tests oauth credentials developme
 - [mise](https://mise.jdx.dev/) for runtime version management (see `.tool-versions`)
 - Chromium (managed automatically by Cuprite/Ferrum for system tests)
 
+## The stack
+
+Rails 8.1 or newer, and the pieces Rails ships: Propshaft for assets, import maps for JavaScript (with `tailwindcss-rails` for CSS), Hotwire (Turbo and Stimulus) for interaction, the built-in authentication generator's shape for sessions, and Solid Queue, Solid Cache, and Solid Cable on SQLite. That is a floor, not a preference list: there is no Devise, no JavaScript bundler, no React, no Sprockets, and no Redis-backed queue, and a fork that adds one of them is off the path every other page here describes. The `ModelRails/StackFloor` cop (`lib/rubocop`) fails a Gemfile line that brings in what the floor replaces, or pins `rails` below it, on commit.
+
 ## Setup
 
 ```bash
