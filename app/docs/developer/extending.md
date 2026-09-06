@@ -103,6 +103,21 @@ Mix in the same concerns the built-in models use, only as needed:
 
 `Project` includes all three; `Resource` broadcasts to its `project`. Copy whichever match your model.
 
+#### Per-model traits
+
+A concern that belongs to one model is a **trait**, and it lives with its model, not in `app/models/concerns/`: `app/models/user/avatar.rb` reopens the class and nests the module —
+
+```ruby
+class User < ApplicationRecord
+  module Avatar
+    extend ActiveSupport::Concern
+    # ...
+  end
+end
+```
+
+— and the model includes it by its bare name (`include Avatar`). The nested form is required, not stylistic: the compact `module User::Avatar` does not open `User`'s lexical scope, so the trait cannot see the model's constants. `app/models/concerns/` is for concerns a second model also includes (`Discardable`, `Trackable`, `Broadcastable`). What earns a trait is a domain name a user would recognize plus a reason to change that differs from the model's; a slice by Rails artifact type ("validations", "callbacks") does not, and a method that overrides a shared concern's hook or calls `super` stays in the class body, where include order cannot shadow it. Include order is callback registration order, so a trait that registers callbacks is included where its callbacks belonged. Base's own traits under `app/models/{user,invitation,workspace,membership}/` are the exemplars. The `ModelRails/ModelConcernNamespace` cop (`lib/rubocop`) fails a compact-form file under `app/models/<model>/` on commit.
+
 ### 6. Outside the request cycle (jobs, rake tasks, machine clients)
 
 Controllers establish `Current.workspace` for you (`WorkspaceScoped` resolves it from the URL slug); **nothing does that automatically anywhere else**. A job, rake task, or any future non-browser entry point doing tenant-scoped work must set it explicitly — and should read it back with `Current.workspace!` (note the bang), which raises `Current::NoWorkspaceError` when context was never established. The plain `Current.workspace` returns `nil` in that situation, and a `nil` inside a `where` clause silently widens the query across tenants — the exact failure the explicit-scoping design exists to prevent.
