@@ -90,7 +90,10 @@ class Invitation < ApplicationRecord
       # :adopt — a project invite must tolerate an existing workspace member (see the "already a project member" spec).
       invitable.workspace.admit(user, role: role, granted_by: invited_by, on_existing: :adopt)
 
-      raise ActiveRecord::RecordInvalid.new(self), "User is already a project member" if invitable.project_memberships.exists?(user: user)
+      if invitable.project_memberships.exists?(user: user)
+        errors.add(:base, :already_project_member)
+        raise ActiveRecord::RecordInvalid, self
+      end
       invitable.project_memberships.create!(user: user, role: project_role || "editor")
     end
   end

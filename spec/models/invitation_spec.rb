@@ -292,7 +292,9 @@ RSpec.describe Invitation, type: :model do
       invitation = create(:invitation, invitable: create(:workspace))
       user = create(:user)
       invitation.accept!(user)
-      expect { invitation.decline! }.to raise_error(ActiveRecord::RecordInvalid)
+      expect { invitation.decline! }.to raise_error(ActiveRecord::RecordInvalid) { |e|
+        expect(e.record.errors.details[:base]).to include(error: :already_processed)
+      }
     end
   end
 
@@ -485,7 +487,9 @@ RSpec.describe Invitation, type: :model do
       create(:membership, user: existing_user, workspace: workspace)
       create(:project_membership, project: project, user: existing_user)
 
-      expect { invitation.accept!(existing_user) }.to raise_error(ActiveRecord::RecordInvalid)
+      expect { invitation.accept!(existing_user) }.to raise_error(ActiveRecord::RecordInvalid) { |e|
+        expect(e.record.errors.details[:base]).to include(error: :already_project_member)
+      }
     end
   end
 
