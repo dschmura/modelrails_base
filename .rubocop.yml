@@ -40,6 +40,15 @@ ModelRails/NoI18nDefault:
   Exclude:
     - "app/components/ui/**/*"
 
+# The signed-in user is Current.user. The one current_user definition is the
+# bridge Pundit and the mounted engines call, on ApplicationController.
+ModelRails/NoCurrentUserShim:
+  Enabled: true
+  Include:
+    - "app/**/*.rb"
+  Exclude:
+    - "app/controllers/application_controller.rb"
+
 # So the policy Excludes below (migrations, specs) merge with the todo's
 # grandfather Excludes instead of one clobbering the other.
 inherit_mode:
