@@ -1095,6 +1095,7 @@ RSpec.describe "Template invariants" do
         config/locales/en/pages.en.yml
         config/locales/en/brand.en.yml
         config/routes/app.rb
+        .rubocop/app.yml
         config/markdowndocs_categories.local.yml
         app/assets/tailwind/tokens/_brand.css
         README.md

@@ -213,6 +213,7 @@ on every sync.
 | `config/locales/en/pages.en.yml` | Marketing copy for your pages |
 | `app/views/pages/**`, `app/controllers/pages_controller.rb` | Your marketing/static pages |
 | `config/routes/app.rb` | Your product's routes (loaded by `draw(:app)`) |
+| `.rubocop/app.yml` | Your RuboCop overrides — turn a house cop off here, with the reason ([Getting started](getting-started#turning-a-house-cop-off-in-your-fork)) |
 | `config/markdowndocs_categories.local.yml` | Registers your own docs pages on this `/docs` index |
 | `app/assets/tailwind/tokens/_brand.css` | Brand-color overrides — swap the primary palette family ([Theming](theming)) |
 | `config/initializers/project_tools.rb` | Register your own project tools (`ProjectTools::Registry.register`) — see [Extending: Project Tools](/docs/developer/extending#project-tools-registry) |
