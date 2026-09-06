@@ -233,6 +233,18 @@ Runs the same checks plus additional linting:
 4. Push (pre-push hook runs full CI locally)
 5. Open PR on GitHub (Actions run second round of checks)
 
+### Turning a house cop off in your fork
+
+Base ships eight house cops under `lib/rubocop` (`ModelRails/*`), configured in the base-owned `.rubocop/house.yml` and on by default. They are rules about how base writes code — the same kind of thing as the omakase config it inherits — and your fork is free to disagree with any of them. Do it in the fork-owned `.rubocop/app.yml`, which upstream never touches (`merge=ours`), with the reason on the line above:
+
+```yaml
+# Our admin area keeps a few verb routes on purpose; see ADR-7.
+ModelRails/RestfulActions:
+  Enabled: false
+```
+
+That is a decision with a name, which is what a reviewer or an agent reads first. It is not the place for offenses in code you inherited or wrote before a cop landed: those belong in `.rubocop_todo.yml`, which grandfathers by path and shrinks as files are fixed, while `app.yml` changes the rule itself. Never edit `.rubocop/house.yml` or `.rubocop.yml` in a fork; both are base-owned and every upstream sync would conflict.
+
 ### Linting Commands
 
 ```bash
