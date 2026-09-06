@@ -62,6 +62,8 @@ en:
           attributes:
             base:
               client_requires_project: "client invitations must target a project"
+              already_processed: "has already been accepted, declined, or revoked"
+              already_project_member: "is for someone who is already a member of this project"
         role:
           attributes:
             permissions:
