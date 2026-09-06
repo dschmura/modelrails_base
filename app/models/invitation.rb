@@ -50,15 +50,15 @@ class Invitation < ApplicationRecord
   }
 
   def decline!
-    with_pending_lock { update!(status: "declined", declined_at: Time.current) }
+    while_still_pending! { update!(status: "declined", declined_at: Time.current) }
   end
 
   def revoke!
-    with_pending_lock { update!(status: "revoked", revoked_at: Time.current) }
+    while_still_pending! { update!(status: "revoked", revoked_at: Time.current) }
   end
 
   def resend!
-    with_pending_lock do
+    while_still_pending! do
       update!(
         token: SecureRandom.urlsafe_base64(32),
         expires_at: 7.days.from_now
@@ -91,12 +91,19 @@ class Invitation < ApplicationRecord
 
   private
 
+  # The bang is the raise: the block runs only if this invitation is still pending once locked, else
+  # RecordInvalid with :already_processed on errors[:base], which the four rescuing controllers render.
   # lock! reloads inside BEGIN IMMEDIATE, so a stale pending? can't overwrite a committed acceptance (#675).
+  # Acceptance#accept! keeps its own shape on purpose: its guard is acceptable? (pending, unexpired,
+  # admittable) and its exception is NotAcceptable, which the accept controllers rescue by name.
   # See /docs/developer/architecture (Concurrency).
-  def with_pending_lock
+  def while_still_pending!
     transaction do
       lock!
-      raise ActiveRecord::RecordInvalid.new(self), "Invitation already processed" unless pending?
+      unless pending?
+        errors.add(:base, :already_processed)
+        raise ActiveRecord::RecordInvalid, self
+      end
       yield
     end
   end
