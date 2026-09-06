@@ -5,6 +5,18 @@ inherit_gem: { rubocop-rails-omakase: rubocop.yml }
 # below then hold NEW code to the limit. Shrink the todo as files are refactored.
 inherit_from: .rubocop_todo.yml
 
+# House cops (lib/rubocop): the playbook's shape rules made executable, on top
+# of omakase's style. Each message says what broke, how to fix it, which
+# pattern applies, and where to read more. See /docs/developer/extending.
+require:
+  - ./lib/rubocop/modelrails
+
+# A file under app/models/<model>/ defines its trait in nested form.
+ModelRails/ModelConcernNamespace:
+  Enabled: true
+  Include:
+    - "app/models/*/**/*.rb"
+
 # So the policy Excludes below (migrations, specs) merge with the todo's
 # grandfather Excludes instead of one clobbering the other.
 inherit_mode:

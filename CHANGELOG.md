@@ -108,6 +108,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Added
 
+- House RuboCop cops under `lib/rubocop`, loaded by `.rubocop.yml` on top of omakase. First cop: `ModelRails/ModelConcernNamespace`, which fails a file under `app/models/<model>/` that defines its module or class in the compact `module Model::Trait` form instead of reopening the model. Every message says what broke, how to fix it, which pattern applies, and where to read more (`/docs/developer/extending`, "Per-model traits", which now carries the placement rule; closes #1002). A fork that keeps its own `.rubocop.yml` opts in with the `require:` and cop blocks base's file shows.
 - The notifications index tells you how your list clears ("Once you've read a notification, we remove it N days later") and links straight to the retention control.
 - A code-smell fence refuses relation-level deletes of `Noticed::Event` in `app/` and `lib/`; the future orphan-pruning job registers there by file name.
 - Removing a member now notifies the people it concerns — the removed member and every workspace owner but the one who acted — with the in-app row reading "was removed" or "left" depending on who did it, and a second-person email to the removed member only. It sits in the `account_access` category, so muting workspace chatter never mutes losing access (#933).

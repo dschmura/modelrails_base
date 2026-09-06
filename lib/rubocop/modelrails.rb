@@ -1,0 +1,9 @@
+# frozen_string_literal: true
+
+# House cops: the playbook's shape rules made executable, loaded by
+# .rubocop.yml's `require:` on top of omakase's style config. One file per
+# cop under cop/modelrails/. Every offense message says what broke, how to
+# fix it, which pattern applies, and where to read more.
+require "rubocop"
+
+require_relative "cop/modelrails/model_concern_namespace"
