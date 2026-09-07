@@ -756,6 +756,33 @@ RSpec.describe "Template invariants" do
         "queue-level observability (was on `default` — sharing with DB sweep jobs)"
     end
 
+    # Solid Queue resolves a `command:` entry with no `queue:` key to
+    # SolidQueue::RecurringJob, which is `queue_as :solid_queue_recurring`
+    # (RecurringTask#enqueue_options compacts a nil queue away). A queue no
+    # worker polls is a job that can never be claimed, and it fails silently —
+    # the row is enqueued and simply sits there (#894).
+    it "recurring.yml routes every entry to a queue queue.yml actually polls" do
+      polled = YAML.safe_load(queue_yml_raw, aliases: true)
+        .dig("default", "workers").to_a.flat_map { |worker| Array(worker["queues"]) }
+      recurring = YAML.safe_load(recurring_yml_raw, aliases: true).fetch("production")
+
+      unpolled = recurring.reject { |_name, entry| polled.include?(effective_recurring_queue(entry)) }
+
+      expect(unpolled).to be_empty,
+        "expected every config/recurring.yml entry to land on one of #{polled.inspect}; these do not: " +
+        unpolled.map { |name, entry| "#{name} -> #{effective_recurring_queue(entry)}" }.join(", ")
+    end
+
+    # Mirrors SolidQueue::RecurringTask: an explicit `queue:` wins, otherwise
+    # the job class's own `queue_as` decides — and a `command:` entry has no
+    # class, so SolidQueue::RecurringJob's does.
+    def effective_recurring_queue(entry)
+      return entry["queue"] if entry["queue"].present?
+
+      job_class = entry["class"].presence&.constantize || SolidQueue::RecurringJob
+      job_class.queue_name
+    end
+
     it "database.yml declares journal_mode WAL explicitly so forks inherit the durability posture" do
       rendered = ERB.new(File.read(root.join("config/database.yml"))).result
       db = YAML.safe_load(rendered, aliases: true)
