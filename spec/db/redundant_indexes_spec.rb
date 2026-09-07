@@ -11,7 +11,10 @@ require "rails_helper"
 # the column unindexed.
 RSpec.describe "Redundant single-column indexes" do
   # table => [redundant index dropped, covering index that subsumes it, its columns]
-  DROPPED = {
+  # A plain local, not a constant: a constant assigned in a describe body lands
+  # on Object and clobbers a same-named one in another spec file
+  # (spec/code_smells/no_object_level_spec_constants_spec.rb).
+  dropped_with_cover = {
     "memberships" => [
       [ "index_memberships_on_user_id", "index_memberships_on_user_id_and_last_accessed_at", %w[user_id last_accessed_at] ]
     ],
@@ -31,7 +34,7 @@ RSpec.describe "Redundant single-column indexes" do
 
   let(:connection) { ActiveRecord::Base.connection }
 
-  DROPPED.each do |table, entries|
+  dropped_with_cover.each do |table, entries|
     entries.each do |dropped, covering, covering_columns|
       it "#{table} no longer carries #{dropped}" do
         expect(connection.indexes(table).map(&:name)).not_to include(dropped)
