@@ -434,7 +434,7 @@ RSpec.describe ApplicationNotifier, type: :notifier do
       # The schema default permits in_app for every category; the previous
       # `nil` wrapping returned false for everything except security. This
       # test locks in that the canonical default matrix is honored.
-      prefs = ApplicationNotifier.new.send(:preferences_for, bare_user)
+      prefs = ApplicationNotifier.new.preferences_for(bare_user)
 
       expect(prefs).to be_a(NotificationPreferences)
       expect(prefs.deliver_now?(category: "account_access", channel: "in_app")).to be true
@@ -448,7 +448,7 @@ RSpec.describe ApplicationNotifier, type: :notifier do
       user_prefs.update!(notification_preferences:
         user_prefs.notification_preferences.merge("quiet_hours" => { "enabled" => true, "start" => "00:00", "end" => "23:59", "allow_urgent" => true }))
 
-      prefs = ApplicationNotifier.new.send(:preferences_for, user.reload)
+      prefs = ApplicationNotifier.new.preferences_for(user.reload)
 
       # Persisted DND flag honored — proves we read THROUGH to the user's row,
       # not a transient stand-in.
