@@ -38,6 +38,11 @@ class Authentication < ApplicationRecord
   # no longer its business, and the two deterministic columns stop holding
   # identical bytes for the same address. Blank-only, so the data migration is
   # the sole path that rewrites a row already carrying an address.
+  #
+  # It reads user_id, so an email row needs a persisted user — which every
+  # writer has (`user.authentications.create!`). Building one on an unsaved
+  # user fails loudly on the uid presence validation rather than saving a
+  # half-formed row.
   before_validation :assign_email_uid, if: :email?
 
   validates :provider, presence: true

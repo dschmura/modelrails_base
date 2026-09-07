@@ -42,14 +42,15 @@ RSpec.describe Authentication, type: :model do
     end
   end
 
+  # These build OAuth rows so each fails for the one reason it names: an email
+  # row built off an unsaved user has no user_id for #assign_email_uid to read,
+  # so it is invalid on uid too and every example here would pass twice over.
   describe "validations" do
     it "requires a provider" do
-      auth = build(:authentication, provider: nil)
+      auth = build(:authentication, :google, provider: nil)
       expect(auth).not_to be_valid
     end
 
-    # An OAuth row, because an email row's blank uid is filled by the
-    # before_validation callback before this validation ever sees it (#903).
     it "requires a uid" do
       auth = build(:authentication, :google, uid: nil)
       expect(auth).not_to be_valid
@@ -70,27 +71,27 @@ RSpec.describe Authentication, type: :model do
 
     describe "avatar_url format" do
       it "accepts https URLs" do
-        auth = build(:authentication, avatar_url: "https://example.com/avatar.png")
+        auth = build(:authentication, :google, avatar_url: "https://example.com/avatar.png")
         expect(auth).to be_valid
       end
 
       it "allows blank avatar_url" do
-        auth = build(:authentication, avatar_url: nil)
+        auth = build(:authentication, :google, avatar_url: nil)
         expect(auth).to be_valid
       end
 
       it "rejects http (non-TLS) URLs" do
-        auth = build(:authentication, avatar_url: "http://example.com/avatar.png")
+        auth = build(:authentication, :google, avatar_url: "http://example.com/avatar.png")
         expect(auth).not_to be_valid
       end
 
       it "rejects URLs with embedded whitespace (prevents newline injection)" do
-        auth = build(:authentication, avatar_url: "https://example.com\njavascript:alert(1)")
+        auth = build(:authentication, :google, avatar_url: "https://example.com\njavascript:alert(1)")
         expect(auth).not_to be_valid
       end
 
       it "rejects javascript: scheme" do
-        auth = build(:authentication, avatar_url: "javascript:alert(1)")
+        auth = build(:authentication, :google, avatar_url: "javascript:alert(1)")
         expect(auth).not_to be_valid
       end
     end
@@ -247,7 +248,7 @@ RSpec.describe Authentication, type: :model do
     let(:user) { create(:user, :no_authentications) }
 
     context "when this is the only verified auth for the user" do
-      let!(:auth) { user.authentications.create!(provider: "email", uid: user.email_address, email: user.email_address, verified_at: Time.current) }
+      let!(:auth) { user.authentications.create!(provider: "email", email: user.email_address, verified_at: Time.current) }
 
       it "returns true" do
         expect(auth.only_verified_remaining?).to be true
@@ -255,7 +256,7 @@ RSpec.describe Authentication, type: :model do
     end
 
     context "when other verified auths exist for the user" do
-      let!(:auth) { user.authentications.create!(provider: "email", uid: user.email_address, email: user.email_address, verified_at: Time.current) }
+      let!(:auth) { user.authentications.create!(provider: "email", email: user.email_address, verified_at: Time.current) }
       let!(:other_verified) { user.authentications.create!(provider: "google", uid: "g-1", email: "test@example.com", verified_at: Time.current) }
 
       it "returns false" do
@@ -264,7 +265,7 @@ RSpec.describe Authentication, type: :model do
     end
 
     context "when this auth is itself unverified" do
-      let!(:auth) { user.authentications.create!(provider: "email", uid: user.email_address, email: user.email_address, verified_at: nil) }
+      let!(:auth) { user.authentications.create!(provider: "email", email: user.email_address, verified_at: nil) }
 
       it "returns false (the auth being deleted isn't a verified auth, so deletion can't reduce the verified count)" do
         expect(auth.only_verified_remaining?).to be false

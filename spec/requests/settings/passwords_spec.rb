@@ -125,8 +125,9 @@ RSpec.describe "Account Passwords", type: :request do
       it "finds the row by provider even when its uid is stale (#865)" do
         # The unique index is (user_id, provider); a finder keyed on uid
         # misses the existing row after the address changed underneath it and
-        # attempts a duplicate. update_column manufactures the stale uid the
-        # way a bypassed email-change sync would.
+        # attempts a duplicate. #903 retired the drift itself — uid is the
+        # user's id and no address change can move it — so this now pins the
+        # finder's shape rather than reproducing the drift.
         stale = create(:user, :unverified_email, password: nil)
         stale.update_column(:email_address, "moved@example.com")
         sign_in(stale)
@@ -257,7 +258,7 @@ RSpec.describe "Account Passwords", type: :request do
         # and the example passes for the wrong reason.
         original_digest = user.password_digest
         auth = user.authentications.create!(
-          provider: "email", uid: user.email_address, verified_at: Time.current
+          provider: "email", verified_at: Time.current
         )
         allow(ActivityLog).to receive(:create!).and_raise(ActiveRecord::StatementInvalid, "boom")
 

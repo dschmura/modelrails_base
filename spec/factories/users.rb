@@ -37,7 +37,6 @@ FactoryBot.define do
       when :verified, :pending
         user.authentications.create!(
           provider: "email",
-          uid: user.email_address,
           verified_at: (Time.current if evaluator.email_authentication == :verified)
         )
       else
