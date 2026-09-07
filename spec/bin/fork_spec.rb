@@ -12,6 +12,18 @@ load Rails.root.join("bin/fork")
 # only assertion that means anything — stubbing `system` would assert that we
 # called a string.
 RSpec.describe ForkFlow do
+  # #789 — `git -C <dir>` LOSES to an inherited GIT_DIR: with one set,
+  # `git -C x init` re-initialises $GIT_DIR (flipping core.bare) and
+  # `git -C x config` writes $GIT_DIR/config, which for a linked worktree is the
+  # SHARED repository config. Git hooks export GIT_DIR (man 5 githooks) and this
+  # suite runs under Lefthook, so the fixture's own writes landed in the
+  # developer's repository. A nil value deletes the key in the child, restoring
+  # `-C` precedence.
+  #
+  # ForkFlow::CLEAN_GIT_ENV rather than a second copy: the fixture and the script
+  # under test must clear the same set, and a constant defined in this describe
+  # block would land on Object and collide with template_invariants_spec.rb's.
+
   let(:workdir) { Pathname.new(Dir.mktmpdir) }
   let(:repo) { workdir.join("my_app") }
   # Must end in modelrails_base or TEMPLATE_REMOTE won't match and every remote
@@ -26,12 +38,13 @@ RSpec.describe ForkFlow do
   def git(*args, dir: repo)
     # -c user.* so commits work on a machine (or CI runner) with no global git
     # identity configured.
-    system("git", "-C", dir.to_s, "-c", "user.email=t@example.com", "-c", "user.name=T",
+    system(ForkFlow::CLEAN_GIT_ENV,
+           "git", "-C", dir.to_s, "-c", "user.email=t@example.com", "-c", "user.name=T",
            *args, out: File::NULL, err: File::NULL) || raise("git #{args.join(' ')} failed")
   end
 
   def capture_git(*args, dir: repo)
-    IO.popen([ "git", "-C", dir.to_s, *args ], err: File::NULL, &:read).to_s.strip
+    IO.popen(ForkFlow::CLEAN_GIT_ENV, [ "git", "-C", dir.to_s, *args ], err: File::NULL, &:read).to_s.strip
   end
 
   # Minimal skeleton rather than a copy of the real template: copying would
@@ -57,7 +70,8 @@ RSpec.describe ForkFlow do
   end
 
   def build_template_clone
-    system("git", "init", "--bare", "-q", template_bare.to_s) || raise("bare init failed")
+    system(ForkFlow::CLEAN_GIT_ENV, "git", "init", "--bare", "-q", template_bare.to_s) ||
+      raise("bare init failed")
     FileUtils.mkdir_p(repo)
     git("init", "-q", "-b", "main")
     # bin/fork makes its OWN commits, which do not inherit the `-c user.*` the
@@ -127,7 +141,10 @@ RSpec.describe ForkFlow do
       raise "refusing to point GIT_DIR at #{decoy} — not under #{tmp_root}"
     end
 
-    system("git", "init", "-q", decoy, out: File::NULL, err: File::NULL) ||
+    # Cleared here too: an ambient GIT_DIR is exactly the condition this
+    # guard exists for, and creating the decoy under one would re-initialise the
+    # developer's own repository instead.
+    system(ForkFlow::CLEAN_GIT_ENV, "git", "init", "-q", decoy, out: File::NULL, err: File::NULL) ||
       raise("decoy init failed")
     decoy_git = File.join(decoy, ".git")
     decoy_config = File.join(decoy_git, "config")
@@ -620,7 +637,12 @@ RSpec.describe ForkFlow do
       it "runs bin/setup without starting the dev server when accepted" do
         allow($stdin).to receive(:gets).and_return("\n") # bare Enter takes the default
 
-        expect(flow).to receive(:system).with("bin/setup", "--skip-server", hash_including(chdir: repo.to_s)).and_return(true)
+        # The env hash is positionally first (#789): bin/setup shells git itself,
+        # so it must not inherit a GIT_DIR either.
+        expect(flow).to receive(:system)
+          .with(hash_including("GIT_DIR" => nil), "bin/setup", "--skip-server",
+                hash_including(chdir: repo.to_s))
+          .and_return(true)
 
         flow.offer_setup!
       end
