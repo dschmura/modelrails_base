@@ -68,8 +68,6 @@ RSpec.describe "Flash messages are asserted, not just redirects" do
     "workspaces.destroy.success",
     "workspaces.invitations.create.magic_link_created",
     "workspaces.invitations.create.sent",
-    "workspaces.invitations.destroy.revoked",
-    "workspaces.invitations.resends.create.magic_link_refreshed",
     "workspaces.invitations.resends.create.rate_limited",
     "workspaces.join_links.create.rotated",
     "workspaces.join_links.destroy.revoked",
