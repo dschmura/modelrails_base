@@ -91,9 +91,15 @@
                 a label names it — see AccountActivityHelper, which also
                 carries the humanized fallback for a security action shipped
                 without a label. -%>
+            <%# py-5 and the stacked-below-sm idiom are the page's own (#831):
+                shared/_preferences_row is the canonical row but does not fit —
+                three of its five required locals are absent here (no icon, no
+                control; the "description" is a right-aligned <time>, not
+                stacked text) and it emits its own div, which cannot be the
+                child of an <li> in this <ol>. -%>
             <li data-testid="account-activity-item"
-                class="flex items-center justify-between gap-4 px-6 py-4 text-sm">
-              <span class="text-text-body"><%= account_activity_label(entry) %></span>
+                class="flex flex-col gap-1 px-6 py-5 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+              <span class="font-medium text-text-heading"><%= account_activity_label(entry) %></span>
               <time datetime="<%= entry.created_at.iso8601 %>"
                     title="<%= account_activity_timestamp(entry) %>"
                     class="text-xs text-text-muted shrink-0">
