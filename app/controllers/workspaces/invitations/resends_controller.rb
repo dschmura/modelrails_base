@@ -28,6 +28,12 @@ module Workspaces
           # (invitation, inviter, minute-bucket) tuple already exists in
           # noticed_events.idempotency_key — i.e. the inviter is double-clicking
           # within the 1-minute window.
+          #
+          # The third sentinel, :skipped (#928), is unreachable here: it needs an
+          # empty recipient set, and `invited_by` is a required belongs_to over a
+          # NOT NULL FK column. Were it ever reachable it would fall to
+          # ".resent", which is the honest copy — the invitee email above went
+          # out regardless of whether an in-app confirmation row was written.
           result = WorkspaceInvitationResentNotifier
             .with(record: invitation)
             .deliver(invitation.invited_by)

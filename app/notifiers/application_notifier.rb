@@ -217,15 +217,38 @@ class ApplicationNotifier < Noticed::Event
     end
   end
 
-  # Override deliver to return sentinel :delivered on first-send or :deduplicated
-  # on RecordNotUnique rescue. The DB partial unique index on noticed_events
+  # Override deliver to return one of three sentinels: :skipped when the
+  # recipient set resolves empty, :delivered on first-send, or :deduplicated on
+  # RecordNotUnique rescue. The DB partial unique index on noticed_events
   # (idempotency_key) is the atomic source of truth for concurrent dispatch;
   # this rescue is the real backstop, not dead code.
   #
   # No app-level SELECT-then-INSERT fast-path: that pattern was a TOCTOU race
   # in the previous implementation. The DB constraint enforces atomically.
+  #
+  # The empty-set guard (#928) is why recipients are resolved HERE rather than
+  # inside `super`. The gem's `Deliverable#deliver` calls `save!`
+  # unconditionally — only its `notifications.insert_all!` is guarded by
+  # `.any?` — so a zero-recipient dispatch still writes the event row, and with
+  # it `populate_idempotency_key`'s minute-bucket key. A genuine dispatch on
+  # the same record inside that minute then loses to the unique index and
+  # returns :deduplicated, with nobody ever notified. An actor exclusion in a
+  # `recipients` block resolves empty for real (a single-owner workspace whose
+  # owner acts on their own membership), so this is reachable, not theoretical.
+  #
+  # Keying the bucket on the recipient set instead would make the key
+  # non-deterministic across retries — a worse trade than a third sentinel.
+  #
+  # Resolution mirrors the gem's own `recipients ||= evaluate_recipients`
+  # (noticed-3.0.0, app/models/concerns/noticed/deliverable.rb:87) and the
+  # resolved array is handed to `super`, so a `recipients` block — where
+  # `permitted_in_app` and the actor exclusion live — is evaluated exactly once
+  # per dispatch, not once here and again inside the gem.
   def deliver(recipients = nil, **options)
-    super
+    resolved = Array.wrap(recipients || evaluate_recipients)
+    return :skipped if resolved.empty?
+
+    super(resolved, **options)
     :delivered
   rescue ActiveRecord::RecordNotUnique
     :deduplicated
