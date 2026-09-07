@@ -151,7 +151,10 @@ class ApplicationNotifier < Noticed::Event
 
     # The email gate for `deliver_by :email` before_enqueue hooks. Strictly
     # "send the instant email now" — opted out, DND, and deferred-to-digest
-    # all abort.
+    # all abort. A recipient whose user row is gone is absent from the event's
+    # permitted set, so a deleted user no longer gets an instant email off the
+    # schema defaults (it used to: a nil recipient resolved to the default
+    # preferences blob).
     # See /docs/developer/notifications (Email gating and the `:digest` sentinel).
     def deliver_email_now?
       event.email_permitted?(recipient_id)
@@ -314,6 +317,12 @@ class ApplicationNotifier < Noticed::Event
 
   # `pluck` on the already-loaded `notifications` collection reads the ids in
   # Ruby — inside EventJob's own `event.notifications.each` it costs nothing.
+  #
+  # Plucking recipient_id WITHOUT recipient_type rides on the DB invariant:
+  # noticed_notifications carries the check constraint
+  # `recipient_type_user_only_v1` (recipient_type = 'User'), so every id here
+  # is a User id. A fork that drops that constraint to notify a second
+  # recipient type must pluck both columns and filter here.
   def email_permitted_recipient_ids
     @email_permitted_recipient_ids ||= User
       .where(id: notifications.pluck(:recipient_id))
