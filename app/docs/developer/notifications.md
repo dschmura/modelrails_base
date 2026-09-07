@@ -128,7 +128,9 @@ Noticed 2.9.x deprecates the `:database` delivery method — notification rows a
 **The `deliver(nil)` invariant, both directions.** `Noticed::Deliverable#deliver` is `recipients ||= evaluate_recipients` — `noticed-3.0.0`, `app/models/concerns/noticed/deliverable.rb:87`. An explicit recipient does not *add* to the block; it *replaces* it, and the block never runs. So:
 
 - A notifier that **declares** a `recipients` block must be dispatched with `deliver(nil)`. Passing a recipient skips `permitted_in_app` — delivering to someone who opted out or is inside quiet hours — and skips the actor exclusion below. Nothing raises, nothing is logged; the preference is just quietly ignored.
-- A notifier that declares **no** block must be dispatched with an explicit recipient. `deliver(nil)` there resolves to zero recipients and writes no rows at all — a dispatch that silently does nothing.
+- A notifier that declares **no** block must be dispatched with an explicit recipient. `deliver(nil)` there resolves to zero recipients, so `ApplicationNotifier#deliver` returns `:skipped` and writes no rows at all — a dispatch that silently does nothing.
+
+That empty-set guard lives in `ApplicationNotifier#deliver`, not in the gem. `Noticed::Deliverable#deliver` calls `save!` **unconditionally** — only its `notifications.insert_all!` is guarded by `.any?` — so before the guard a zero-recipient dispatch still wrote the `noticed_events` row *and* consumed its minute-bucket idempotency key. That is reachable through a `recipients` block, not just through a mis-dispatched notifier: the actor exclusion below can leave a candidate set empty (a single-owner workspace whose owner acts on their own membership), and a genuine dispatch on the same record inside that minute then deduplicated away with nobody ever notified.
 
 Neither failure is visible at runtime, so both directions are fenced by `spec/code_smells/notifier_recipients_block_dispatch_spec.rb`, which scans every `SomeNotifier.with(...).deliver(...)` in `app/` and matches it against whether that notifier declares a block.
 
@@ -252,10 +254,13 @@ Callers can pass `idempotency_key: "custom"` to override the default. If neither
 
 `ApplicationNotifier#deliver` returns sentinels:
 
+- `:skipped` when the recipient set resolves empty — the dispatch returns **before** `super`, so no event row is written and the bucket key stays unconsumed
 - `:delivered` on first-send
 - `:deduplicated` on `ActiveRecord::RecordNotUnique`
 
-Callers (e.g., `WorkspaceInvitationsController#resend`) branch on this to choose flash copy.
+`:skipped` exists because the key is minted in a `before_create` on the event row, and the gem writes that row even with zero recipients (see *The `deliver(nil)` invariant* above). Keying the bucket on the recipient set would be the alternative and is worse: it makes the key non-deterministic across retries of the same dispatch.
+
+Callers (e.g., `Workspaces::Invitations::ResendsController#create`) branch on this to choose flash copy. A caller that branches on `:deduplicated` treats `:skipped` like `:delivered` unless it says otherwise — which is correct where the dispatch carries an explicit, known-present recipient and `:skipped` cannot occur.
 
 ## Broadcast pipeline
 
