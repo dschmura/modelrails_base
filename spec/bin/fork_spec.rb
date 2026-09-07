@@ -101,6 +101,59 @@ RSpec.describe ForkFlow do
 
   before { build_template_clone }
 
+  # Read back inside the example, before the after-hook rm_rf deletes workdir,
+  # so the #789 guard below can tell "the decoy was written" apart from "the
+  # clone helper never got as far as configuring the fixture".
+  before { @fixture_user_name = capture_git("config", "--local", "--get", "user.name") }
+
+  # #789 — every git call in this file and in bin/fork is `-C`-scoped, and `-C`
+  # loses to an inherited GIT_DIR. Under Lefthook the suite runs inside a hook
+  # process, and hooks export GIT_DIR; from a linked worktree that value is
+  # absolute, so `git config` at local scope wrote the developer's REAL shared
+  # .git/config. This points GIT_DIR at a throwaway decoy for the whole example:
+  # if any spawn still honours it, the decoy's config changes and this fails.
+  #
+  # The snapshot has to be taken HERE, between the assignment and example.run —
+  # `before { build_template_clone }` runs inside example.run, so a snapshot in
+  # the example body would compare post-damage to post-damage and pass on every
+  # seed.
+  around do |example|
+    decoy = Dir.mktmpdir("fork-spec-git-dir-decoy")
+    # realpath on BOTH sides: on macOS Dir.tmpdir is /var/... symlinked to
+    # /private/var/..., and a naive start_with? fails open on exactly the
+    # platform this repo is developed on.
+    tmp_root = Pathname.new(Dir.tmpdir).realpath.to_s
+    unless Pathname.new(decoy).realpath.to_s.start_with?(tmp_root)
+      raise "refusing to point GIT_DIR at #{decoy} — not under #{tmp_root}"
+    end
+
+    system("git", "init", "-q", decoy, out: File::NULL, err: File::NULL) ||
+      raise("decoy init failed")
+    decoy_git = File.join(decoy, ".git")
+    decoy_config = File.join(decoy_git, "config")
+    decoy_before = File.read(decoy_config)
+
+    original_git_dir = ENV["GIT_DIR"]
+    ENV["GIT_DIR"] = decoy_git
+    begin
+      example.run
+
+      expect(File.read(decoy_config)).to eq(decoy_before),
+        "GIT_DIR decoy repository was written: a git spawn in this file or in " \
+        "bin/fork honoured the inherited GIT_DIR instead of its own -C scope. " \
+        "In real use that GIT_DIR is the developer's own repository (#789)."
+      expect(@fixture_user_name).to eq("Fixture"),
+        "the fixture repo never received its local git identity, so the guard " \
+        "above proved nothing — the git spawns went somewhere else (#789)."
+    ensure
+      # ENV["X"] = nil deletes the key, which is the right restore when GIT_DIR
+      # was unset. `ensure`, not trust in example.run: the restore has to
+      # survive this hook's own raise and a SIGINT.
+      ENV["GIT_DIR"] = original_git_dir
+      FileUtils.rm_rf(decoy)
+    end
+  end
+
   # -------------------------------------------------------------- name safety
 
   describe "name validation" do
