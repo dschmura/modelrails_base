@@ -51,12 +51,13 @@ class WorkspaceJoinLink < ApplicationRecord
   #
   # The posture is re-read from committed state inside the serialized write transaction (its own
   # BEGIN IMMEDIATE, or the caller's — on the signup path Signupable#commit_signup_atomically
-  # already holds it and this becomes a savepoint) (#689). That serialization is what makes the
-  # re-read genuine: a racing revoke, expiry change or join_policy flip has either committed
+  # already holds it and this joins the caller's transaction) (#689). That serialization is what
+  # makes the re-read genuine: a racing revoke, expiry change or join_policy flip has either committed
   # before this reload sees it or cannot commit until the holding transaction ends. `lock!` locks
   # nothing across SQLite connections. Both records are reloaded because a claim path may
-  # have been holding this link since before the token was redeemed. Workspace#admit nests
-  # as a savepoint and keeps its own admittable? re-check.
+  # have been holding this link since before the token was redeemed. Workspace#admit's own
+  # transaction joins this one (a plain nested transaction does not open a savepoint) and it
+  # keeps its own admittable? re-check.
   # See /docs/developer/architecture (Concurrency).
   def admit(user)
     transaction do

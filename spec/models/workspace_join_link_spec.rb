@@ -110,15 +110,22 @@ RSpec.describe WorkspaceJoinLink, type: :model do
         end
       end
 
-      # A capability pin, not a live path: the warming step is load-bearing (without it the
-      # association would read the flipped row anyway), and the only caller that reaches
-      # WorkspaceJoinLink#admit — PendingClaims#claim_join — gets there on the opposite branch,
-      # for an existing user whose workspace is ALREADY not accepting open joins. The guard is
-      # here so a future caller cannot reintroduce the race.
+      # What this pins: a link instance held in memory across a policy flip still refuses,
+      # because the re-check inside the transaction reads the committed row rather than the
+      # instance's stale view. A capability pin rather than a live race — the one caller,
+      # PendingClaims#claim_join, reaches admit for a newly-registered user inside
+      # Signupable#commit_signup_atomically's BEGIN IMMEDIATE, so no flip can commit between
+      # the load and the re-read. The guard is here so a future caller outside that
+      # transaction cannot reintroduce the race.
+      #
+      # The warming step below is what lets this example FAIL against the pre-change code
+      # (measured both ways): without it the association loads after the flip and even the
+      # unguarded version refuses, so the example would pass vacuously. It is not needed for
+      # the guarded version to pass — reload clears the association cache either way.
       it "refuses when the workspace's join policy flipped in the meantime" do
         joiner
         stale = WorkspaceJoinLink.find(link.id)
-        stale.workspace # warm the association, so the flip below is invisible to it
+        stale.workspace # see above: without this the example cannot fail against the old code
         Workspace.find(open_workspace.id).update!(join_policy: "invite")
 
         expect { stale.admit(joiner) }.not_to change { open_workspace.memberships.count }
