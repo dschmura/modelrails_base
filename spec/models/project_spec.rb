@@ -105,6 +105,51 @@ RSpec.describe Project, type: :model do
       expect(workspace).to receive(:lock!).and_call_original
       project.save
     end
+
+    # #689 item 3: the pre-flight validation above is for the message; the net that
+    # actually holds under concurrency is the post-INSERT re-count, which sees the new
+    # row and every racer the writer lock serialized ahead of it. Mirrors
+    # Membership#enforce_capacity_invariant. See /docs/developer/architecture (Concurrency).
+    it "rolls the insert back when the count is over the limit after the write" do
+      workspace = create(:workspace, max_projects: 1)
+      user = create(:user)
+      create(:membership, user: user, workspace: workspace)
+      create(:project, workspace: workspace, created_by: user)
+      # save(validate: false) is the honest simulation of a racer that cleared the
+      # pre-flight before the first project's INSERT committed. The slug is passed
+      # because Sluggable derives it in a before_validation Rails skips here.
+      racer = build(:project, workspace: workspace, created_by: user, slug: "racer")
+
+      expect {
+        expect { racer.save!(validate: false) }.to raise_error(ActiveRecord::RecordInvalid)
+      }.not_to change(Project, :count)
+      expect(racer).not_to be_persisted
+    end
+
+    # Workspace#create_project saves non-bang so the form can re-render, and
+    # ActiveRecord::Validations#save rescues RecordInvalid — so on that path the net
+    # surfaces as false + the friendly error, with the row still rolled back.
+    it "rolls the insert back on the non-bang save the create verb uses" do
+      workspace = create(:workspace, max_projects: 1)
+      user = create(:user)
+      create(:membership, user: user, workspace: workspace)
+      create(:project, workspace: workspace, created_by: user)
+      racer = build(:project, workspace: workspace, created_by: user, slug: "racer")
+
+      expect(racer.save(validate: false)).to be false
+      expect(racer.errors[:base]).to be_present
+      expect(workspace.projects.count).to eq 1
+    end
+
+    it "still admits the at-the-limit insert (the net is a strict >)" do
+      workspace = create(:workspace, max_projects: 2)
+      user = create(:user)
+      create(:membership, user: user, workspace: workspace)
+      create(:project, workspace: workspace, created_by: user)
+      at_limit = build(:project, workspace: workspace, created_by: user)
+
+      expect { at_limit.save! }.to change(Project, :count).by(1)
+    end
   end
 
   describe "tool enablement" do

@@ -25,6 +25,10 @@ class Project < ApplicationRecord
   validates :slug, presence: true, uniqueness: { scope: :workspace_id }
   validate :workspace_has_project_capacity, on: :create
 
+  # The real capacity guard is post-INSERT; the pre-flight lock! is a no-op across SQLite connections.
+  # See /docs/developer/architecture (Concurrency).
+  after_create :enforce_project_capacity_invariant
+
   # A project is visible to external clients only while it — and its
   # workspace — are kept and the workspace is not suspended (locked).
   # Archived (project OR workspace) still shows: archived keeps existing
@@ -124,9 +128,22 @@ class Project < ApplicationRecord
 
   def workspace_has_project_capacity
     return unless workspace
+    # The real capacity guard is post-INSERT; the pre-flight lock! is a no-op across SQLite connections.
+    # See /docs/developer/architecture (Concurrency).
     workspace.lock!
     if workspace.at_project_capacity?
       errors.add(:base, :workspace_project_limit)
     end
+  end
+
+  # Deliberately re-counts inline rather than calling at_project_capacity?: the new row is
+  # already in the count here, so the comparison is a strict `>`. See architecture (Concurrency).
+  def enforce_project_capacity_invariant
+    return unless workspace_id
+    count = Project.where(workspace_id: workspace_id, discarded_at: nil).count
+    limit = Workspace.where(id: workspace_id).pick(:max_projects)
+    return unless limit && count > limit
+    errors.add(:base, :workspace_project_limit)
+    raise ActiveRecord::RecordInvalid, self
   end
 end
