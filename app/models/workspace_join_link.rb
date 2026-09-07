@@ -48,10 +48,24 @@ class WorkspaceJoinLink < ApplicationRecord
   # accepting-state guard and self-join role can't diverge between them.
   # Raises Workspace::AlreadyMember / Workspace::AtCapacity from Workspace#admit;
   # callers decide how to treat those.
+  #
+  # The posture is re-read from committed state INSIDE the write transaction (#689): what
+  # makes that genuine is that Rails' SQLite adapter opens the transaction with BEGIN
+  # IMMEDIATE, so a racing revoke, expiry change or join_policy flip has either committed
+  # before this reload sees it or cannot commit until this transaction ends. `lock!` locks
+  # nothing across SQLite connections. Both records are reloaded because a claim path may
+  # have been holding this link since before the token was redeemed. Workspace#admit nests
+  # as a savepoint and keeps its own admittable? re-check.
+  # See /docs/developer/architecture (Concurrency).
   def admit(user)
-    return unless active? && workspace.accepting_open_joins?
+    transaction do
+      reload
+      workspace.reload
+      # `next`, not `return`: the guarded shape never relies on return-inside-transaction.
+      next unless active? && workspace.accepting_open_joins?
 
-    workspace.admit(user, role: workspace.default_self_join_role, self_join: true)
+      workspace.admit(user, role: workspace.default_self_join_role, self_join: true)
+    end
   end
 
   def revoked?

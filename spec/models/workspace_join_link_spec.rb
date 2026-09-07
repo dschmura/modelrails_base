@@ -85,6 +85,41 @@ RSpec.describe WorkspaceJoinLink, type: :model do
       expect { link.admit(joiner) }.not_to change { open_workspace.memberships.count }
     end
 
+    # #689 item 4: the posture check is re-read INSIDE admit's write transaction, so a
+    # revoke, an expiry change or a join_policy flip that lands after the caller loaded
+    # the link still refuses. Each example mutates a SECOND instance of the same row and
+    # then admits through the first, stale one — the shape of the race, since the writer
+    # lock serializes the racer's commit ahead of this transaction's fresh read.
+    context "when the posture changed after the link was loaded" do
+      it "refuses a link revoked in the meantime" do
+        joiner # create outside the expect — onboarding creates its own membership
+        stale = WorkspaceJoinLink.find(link.id)
+        WorkspaceJoinLink.find(link.id).revoke!
+
+        expect { stale.admit(joiner) }.not_to change { open_workspace.memberships.count }
+      end
+
+      it "refuses a link whose expiry was pulled in and has since passed" do
+        joiner
+        stale = WorkspaceJoinLink.find(link.id)
+        WorkspaceJoinLink.find(link.id).update!(expires_at: 1.day.from_now)
+
+        # Past the shortened expiry, still inside the seven days the stale instance holds.
+        travel_to 2.days.from_now do
+          expect { stale.admit(joiner) }.not_to change { open_workspace.memberships.count }
+        end
+      end
+
+      it "refuses when the workspace's join policy flipped in the meantime" do
+        joiner
+        stale = WorkspaceJoinLink.find(link.id)
+        stale.workspace # warm the association, so the flip below is invisible to it
+        Workspace.find(open_workspace.id).update!(join_policy: "invite")
+
+        expect { stale.admit(joiner) }.not_to change { open_workspace.memberships.count }
+      end
+    end
+
     it "raises Workspace::AlreadyMember for a duplicate join (callers decide how to treat it)" do
       create(:membership, workspace: open_workspace, user: joiner)
       expect { link.admit(joiner) }.to raise_error(Workspace::AlreadyMember)
