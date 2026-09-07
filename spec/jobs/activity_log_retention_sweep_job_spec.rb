@@ -89,4 +89,8 @@ RSpec.describe ActivityLogRetentionSweepJob, type: :job do
       expect(ActivityLog.exists?(admin_row.id)).to be(false)
     end
   end
+
+  it "runs on the low queue" do
+    expect(described_class.queue_name).to eq("low")
+  end
 end

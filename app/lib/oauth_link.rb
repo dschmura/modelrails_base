@@ -128,8 +128,11 @@ class OauthLink
     WelcomeNotifier.with(record: user).deliver(nil) if existing.nil?
 
     outcome(:signed_in, user: user, problems: claims.problems, spent_tokens: claims.spent)
+  # Workspace::AdmissionError, not the three subclasses by name: every admission
+  # outcome collapses to the same :failed here, so a fourth added to #admit is
+  # covered without an edit (#689).
   rescue Invitation::NotAcceptable, ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique,
-         Workspace::NotAdmittableError, Workspace::AlreadyMember, Workspace::AtCapacity
+         Workspace::AdmissionError
     # Spent session tokens still surface — session writes aren't transactional,
     # and re-parking a dead token would reject forever.
     outcome(:failed, spent_tokens: claims.spent)
