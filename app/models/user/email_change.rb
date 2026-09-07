@@ -39,8 +39,6 @@ class User < ApplicationRecord
         @user.email_address = @user.pending_email
         clear_fields
         @user.save!
-
-        @user.authentications.email.update_all(uid: @user.email_address)
       end
 
       true

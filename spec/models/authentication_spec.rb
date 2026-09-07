@@ -8,14 +8,50 @@ RSpec.describe Authentication, type: :model do
     end
   end
 
+  # #903: an email-provider row's uid used to be a second copy of the user's
+  # address, kept in step by three separate writers. It is now the user's id,
+  # assigned by the model so no writer has to remember it.
+  describe "email-provider uid" do
+    it "assigns the user's id to an email row created without one" do
+      user = create(:user, :no_authentications)
+
+      auth = user.authentications.create!(provider: "email")
+
+      expect(auth.uid).to eq(user.id.to_s)
+    end
+
+    it "never repeats a user's address in an email row's uid" do
+      create(:user, :no_authentications).authentications.create!(provider: "email")
+      create(:user, :no_authentications).authentications.create!(provider: "email")
+
+      expect(Authentication.email.map(&:uid)).not_to include(*User.pluck(:email_address))
+    end
+
+    it "leaves an explicitly supplied uid alone" do
+      user = create(:user, :no_authentications)
+
+      auth = user.authentications.create!(provider: "email", uid: "legacy@example.com")
+
+      expect(auth.uid).to eq("legacy@example.com")
+    end
+
+    it "does not touch an OAuth row's uid" do
+      auth = create(:authentication, :google, uid: "108154")
+
+      expect(auth.uid).to eq("108154")
+    end
+  end
+
   describe "validations" do
     it "requires a provider" do
       auth = build(:authentication, provider: nil)
       expect(auth).not_to be_valid
     end
 
+    # An OAuth row, because an email row's blank uid is filled by the
+    # before_validation callback before this validation ever sees it (#903).
     it "requires a uid" do
-      auth = build(:authentication, uid: nil)
+      auth = build(:authentication, :google, uid: nil)
       expect(auth).not_to be_valid
     end
 

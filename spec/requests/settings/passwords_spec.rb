@@ -66,6 +66,19 @@ RSpec.describe "Account Passwords", type: :request do
           }.to change(passwordless_user.authentications.email, :count).by(1)
         end
 
+        # #903: password-set no longer copies the address into uid either.
+        it "identifies the created authentication by the user's id" do
+          post settings_password_path, params: {
+            user: {
+              password: "NewSecureP@ss123!",
+              password_confirmation: "NewSecureP@ss123!"
+            }
+          }
+
+          expect(passwordless_user.authentications.email.sole.uid)
+            .to eq(passwordless_user.id.to_s)
+        end
+
         it "returns unprocessable entity for short password" do
           post settings_password_path, params: {
             user: { password: "short", password_confirmation: "short" }
@@ -130,13 +143,18 @@ RSpec.describe "Account Passwords", type: :request do
 
       it "sets the password and creates the authentication atomically (#821)" do
         # No stubs: the block's INSERT fails for real, against the GLOBAL
-        # (provider, uid) uniqueness, because another account already holds an
-        # email row under this address. A crash between the two writes must
+        # (provider, uid) uniqueness, because another row already holds the
+        # uid this one is about to claim. A crash between the two writes must
         # not strand a password without its authentication — so the password
         # save rolls back with it.
+        #
+        # The contested value is the victim's id since #903, and no production
+        # path can put it on someone else's row (uid is assigned from user_id),
+        # so the conflicting row is manufactured here. What is under test is
+        # the rollback, not the route into the conflict.
         victim = create(:user, :oauth_only, password: nil, email_address: "contested@example.com")
         squatter = create(:user, :no_authentications)
-        squatter.authentications.create!(provider: "email", uid: "contested@example.com")
+        squatter.authentications.create!(provider: "email", uid: victim.id.to_s)
         sign_in(victim)
 
         post settings_password_path, params: {
