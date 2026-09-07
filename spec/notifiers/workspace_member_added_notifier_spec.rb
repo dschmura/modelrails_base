@@ -70,8 +70,12 @@ RSpec.describe WorkspaceMemberAddedNotifier, type: :notifier do
       # Edge case: simulate "added user is already an owner" by passing an
       # existing owner's membership through the resolver. The candidate list
       # would be [owner_user_a, owner_user_a, owner_user_b] without dedup.
+      # evaluate_recipients is public API on Noticed::Deliverable — no `send`
+      # needed. Kept as the subject (rather than counting delivered rows)
+      # because `.uniq` in the recipients block is what this pins, and
+      # noticed_notifications has no unique index on (event_id, recipient).
       event = described_class.with(record: owner_a_membership)
-      recipients = event.send(:evaluate_recipients)
+      recipients = event.evaluate_recipients
       expect(recipients.count(owner_user_a)).to eq 1
       expect(recipients).to match_array([ owner_user_a, owner_user_b ])
     end
