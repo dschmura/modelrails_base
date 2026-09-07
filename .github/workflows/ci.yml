@@ -59,7 +59,9 @@ jobs:
           sudo apt-get install -y --no-install-recommends libvips42t64
 
       - name: Scan for security vulnerabilities in JavaScript dependencies
-        run: bin/importmap audit
+        run: |
+          for i in 1 2 3; do bin/importmap audit && exit 0; [ "$i" -lt 3 ] && sleep $((i * 20)); done
+          echo "::error::REGISTRY UNREACHABLE after 3 attempts — audit did not run (#984)"; exit 1
 
   lint:
     runs-on: ubuntu-latest
