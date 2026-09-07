@@ -267,12 +267,12 @@ The exception matrix:
 | --- | --- | --- |
 | `Invitation::NotAcceptable` | Invitation raced to consumed/expired | Roll back; clear the parked session token; `flash.now[:alert]`; return `false` |
 | `ActiveRecord::RecordInvalid` | Model validation failure | Roll back; return `false` — caller reads `@user.errors` |
-| `Workspace::NotAdmittableError` | Workspace went archived/suspended/deleted mid-flight | Roll back; return `false` |
-| `Workspace::AlreadyMember` / `Workspace::AtCapacity` | Typed outcomes of `Workspace#admit` | Roll back; return `false` |
+| `Workspace::AdmissionError` | Any outcome of `Workspace#admit` — `NotAdmittableError` (workspace went archived/suspended/deleted mid-flight), `AlreadyMember`, `AtCapacity` | Roll back; return `false` |
 | Anything else | A real bug | **Propagates** — never masked |
 
-Two details are load-bearing:
+Three details are load-bearing:
 
+- **The rescue names the base class, not the three subclasses.** Every admission outcome is handled identically here, so a fourth outcome added to `#admit` is covered without editing this method. Sites that *branch* on which outcome occurred keep naming the subclasses — `Workspace::HomeWorkspaceProtectedError` is deliberately **not** a subclass, because it is a lifecycle guard raised from `archive!`/`discard!`, not an admission outcome.
 - **`flash.now[:alert]` is set only on `Invitation::NotAcceptable`**, so callers can rely on `@user.errors` for model-validation failures without a competing generic alert.
 - **`NotAdmittableError` is the TOCTOU backstop** for a parked open-link join whose workspace goes non-admittable between the pre-check and `admit`'s locked re-check. Rescuing it the same as `RecordInvalid` means the whole signup rolls back cleanly instead of a raw exception aborting registration. Normal stale-workspace parked joins never reach it — the pre-check drops them first.
 

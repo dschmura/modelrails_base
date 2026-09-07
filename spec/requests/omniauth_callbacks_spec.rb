@@ -1012,6 +1012,25 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
     end
 
 
+    # What Workspace::AdmissionError buys (#689): OauthLink's rescue enumerated
+    # the three admission outcomes by hand, so a fourth would escape the PORO
+    # and 500 the callback instead of becoming an :failed outcome.
+    context "when #admit raises an admission outcome this code predates" do
+      before do
+        stub_const("Workspace::FifthOutcome", Class.new(Workspace::AdmissionError))
+        allow_any_instance_of(Workspace).to receive(:admit).and_raise(Workspace::FifthOutcome)
+      end
+
+      it "reports a failed link rather than erroring out" do
+        get "/auth/google_oauth2/callback"
+
+        expect(response).to redirect_to(new_session_path)
+        expect(flash[:alert]).to eq(I18n.t("omniauth_callbacks.create.linking_failed"))
+        expect(Membership.joins(:user).where(workspace: join_workspace,
+                                             users: { email_address: "joinoauth@example.com" })).not_to exist
+      end
+    end
+
     it "creates the user, auto-verifies the authentication, and admits them as a member" do
       expect {
         get "/auth/google_oauth2/callback"
