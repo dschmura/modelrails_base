@@ -8,6 +8,30 @@ require "yaml"
 # since) — each catches a misconfiguration that would otherwise propagate
 # silently. See /docs/developer/testing.
 RSpec.describe "Template invariants" do
+  # #789 — `git -C <dir>` loses to an inherited GIT_DIR, and git hooks export
+  # one (man 5 githooks); under Lefthook these reads would enumerate the wrong
+  # repository's index and assert the invariants against someone else's files.
+  # The GIT_CONFIG_* family rides along for completeness: any variable that can
+  # redirect a config write or read belongs in the set (mirrors
+  # ForkFlow::CLEAN_GIT_ENV). A nil value deletes the key in the child,
+  # restoring `-C` precedence.
+  # A `let` rather than a constant: a constant in a describe block lands on
+  # Object and collides across workers (no_object_level_spec_constants_spec).
+  let(:clean_git_env) do
+    {
+      "GIT_DIR" => nil,
+      "GIT_WORK_TREE" => nil,
+      "GIT_INDEX_FILE" => nil,
+      "GIT_COMMON_DIR" => nil,
+      "GIT_OBJECT_DIRECTORY" => nil,
+      "GIT_NAMESPACE" => nil,
+      "GIT_CONFIG" => nil,
+      "GIT_CONFIG_GLOBAL" => nil,
+      "GIT_CONFIG_SYSTEM" => nil,
+      "GIT_CONFIG_COUNT" => nil
+    }.freeze
+  end
+
   let(:root) { Rails.root }
 
   describe "Ruby version pinning is consistent across all sources of truth" do
@@ -1064,7 +1088,8 @@ RSpec.describe "Template invariants" do
     )}x
 
     it "tracks no AI-agent configuration files" do
-      tracked = `git -C #{root} ls-files`.lines.map(&:strip)
+      tracked = IO.popen(clean_git_env, [ "git", "-C", root.to_s, "ls-files" ], &:read)
+        .to_s.lines.map(&:strip)
       offenders = tracked.grep(ai_config_patterns)
 
       expect(offenders).to be_empty,
@@ -1081,7 +1106,8 @@ RSpec.describe "Template invariants" do
     # generate per-environment credentials on day one (README "Forking this
     # template") and may commit their own blobs in their private repos.
     it "tracks no credential blobs or keys in git" do
-      tracked = `git -C #{root} ls-files config`.lines.map(&:strip)
+      tracked = IO.popen(clean_git_env, [ "git", "-C", root.to_s, "ls-files", "config" ], &:read)
+        .to_s.lines.map(&:strip)
       offenders = tracked.grep(/\.yml\.enc\z|master\.key\z|credentials\/.*\.key\z/)
       expect(offenders).to be_empty,
         "expected no encrypted credential blobs or keys tracked in git, found: " \
