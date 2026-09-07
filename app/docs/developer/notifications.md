@@ -257,6 +257,14 @@ Callers can pass `idempotency_key: "custom"` to override the default. If neither
 
 Callers (e.g., `WorkspaceInvitationsController#resend`) branch on this to choose flash copy.
 
+## Dispatch reliability
+
+What is atomic is the ledger: `Noticed::Deliverable#deliver` writes the event row, its `idempotency_key`, and every recipient's notification row in one transaction. What is *not* atomic is the delivery job — noticed enqueues `Noticed::EventJob` after that transaction returns, and Solid Queue writes to a separate SQLite database in production, so it never could be. If the enqueue fails (Solid Queue's database busy past its timeout, a full disk) or the process dies in the gap, the recipient sees the notification in the bell, the key is burned so a retry inside the same bucket dedupes away, and the email and broadcast legs never run.
+
+So the job records its own arrival. A `before_perform` callback registered in `config/initializers/noticed.rb` stamps `noticed_events.dispatched_at` at the **start** of `Noticed::EventJob`, and `NotificationDispatchReconcileJob` re-enqueues any event still carrying NULL five minutes later (see [Background jobs](#background-jobs)).
+
+Stamping at the start, not the end, is what keeps the sweep safe: a job that was *claimed* belongs to Solid Queue's own retry and discard policy, and it is already stamped. The reconciler therefore covers only the never-enqueued gap and can never re-run an event whose delivery legs already fanned out. A claimed job that then fails is not this sweep's business.
+
 ## Broadcast pipeline
 
 The Turbo Streams layer is the cross-tab + arrival real-time backbone.
@@ -398,6 +406,12 @@ Per-user retention enforcement. For every user:
 **Batched deletion**: rows go out via `in_batches(of: 100, &:delete_all)` so the writer lock is released between rounds. Each yielded batch is derived from the scoped relation, so its DELETE still carries `read_at IS NOT NULL AND read_at < cutoff` and a row marked unread between the id SELECT and the DELETE is not deleted. That holds in both of `in_batches`' modes (`activerecord-8.1.3.1/lib/active_record/relation/batches.rb:440` for the id-list `rewhere`, `:457-458` for the range mode's `apply_finish_limit` on the same relation). A partial batch is re-entrant: the next run recomputes the cutoff.
 
 `delete_all`, not `destroy_all`: `Noticed::Notification` has no callbacks worth running here. The one it has — noticed's counter cache on `noticed_events.notifications_count` — is bypassed by every deletion path in the app (this job, `Noticed::Event#has_many :notifications, dependent: :delete_all`, and `User#notifications, dependent: :delete_all`), so the counter is not a reliable signal; orphan-event pruning (#811) must use `NOT EXISTS`. `User#notifications, dependent: :delete_all` is also the *only* enforcement against orphaned notification rows: `noticed_notifications` carries no foreign key to users, so raw SQL or `User.delete_all` in a fork orphans them silently, and this job — which iterates `User.find_each` — never sees them again.
+
+### `NotificationDispatchReconcileJob`
+
+Re-enqueues `Noticed::EventJob` for every event whose `dispatched_at` is still NULL more than `GRACE` (5 minutes) after it was written — see [Dispatch reliability](#dispatch-reliability) for why that column exists and why a claimed job is never this job's business. Events with `notifications_count == 0` are skipped: there is no recipient for a re-enqueue to reach. The scan rides the partial index on `noticed_events (created_at) WHERE dispatched_at IS NULL`, which is empty in steady state.
+
+Same fault posture as `NotificationCleanupJob`: each re-enqueue is rescued and reported through `Rails.error` with the event id, and a cycle in which *every* attempt failed re-raises so Solid Queue records a failure rather than logging a successful sweep.
 
 ## Security event audit coverage
 

@@ -41,7 +41,7 @@ workers:
 |---|---|---|
 | `default` | Business logic, model callbacks, the notifier sweeps, anything you `perform_later` without specifying a queue | `WorkspaceInvitationExpiringSweepJob`, `WorkspaceCapacitySweepJob`, custom callback jobs |
 | `mailers` | Action Mailer / mailer-class jobs (network-bound, slower) | `DigestMailerJob`, `UserMailer.deliver_later` |
-| `low` | Best-effort cleanup and retention sweeps — nobody is waiting on it, and it must never delay work someone *is* waiting on | `clear_solid_queue_finished_jobs`, `NotificationCleanupJob`, `ExpiredSessionsSweepJob`, `WebauthnChallengesSweepJob`, `UnattachedBlobsSweepJob`, `ActivityLogRetentionSweepJob` |
+| `low` | Best-effort cleanup and retention sweeps — nobody is waiting on it, and it must never delay work someone *is* waiting on | `clear_solid_queue_finished_jobs`, `NotificationCleanupJob`, `NotificationDispatchReconcileJob`, `ExpiredSessionsSweepJob`, `WebauthnChallengesSweepJob`, `UnattachedBlobsSweepJob`, `ActivityLogRetentionSweepJob` |
 
 ### Routing a job to a specific queue
 
@@ -67,7 +67,7 @@ Mailer jobs from `Mailer.deliver_later` calls automatically use the `mailers` qu
 
 ## Recurring jobs
 
-Recurring jobs are declared in `config/recurring.yml` and dispatched by Solid Queue's scheduler. The template ships nine:
+Recurring jobs are declared in `config/recurring.yml` and dispatched by Solid Queue's scheduler. The template ships ten:
 
 | Job | Cadence | Queue | What it does |
 |---|---|---|---|
@@ -75,6 +75,7 @@ Recurring jobs are declared in `config/recurring.yml` and dispatched by Solid Qu
 | `workspace_invitation_expiring_sweep` | Every 6 hours | `default` | Notifies users whose invitations expire soon (per-day idempotency) |
 | `workspace_capacity_sweep` | Every 12 hours | `default` | Alerts workspace owners approaching member limits |
 | `digest_mailer` | Every 15 minutes | `mailers` | Polls the `digest_next_due_at` index to send pending digest emails per each user's cadence |
+| `notification_dispatch_reconcile` | Every 15 minutes | `low` | Re-enqueues `Noticed::EventJob` for events whose enqueue never landed — rows committed, `dispatched_at` still NULL after 5 minutes (#927) |
 | `notification_cleanup` | Daily at 3am UTC | `low` | Batched deletion of old notifications (chunks of 100 with SQLite lock release between transactions) |
 | `expired_sessions_sweep` | Daily at 4am | `low` | Batched delete of sessions past the idle/absolute timeouts (expiry is already enforced at read time) |
 | `webauthn_challenges_sweep` | Daily at 4:30am | `low` | Deletes WebAuthn challenge rows past a 1-day grace, consumed or not |
