@@ -284,6 +284,27 @@ RSpec.describe Workspace, type: :model do
       }.not_to change(workspace.projects, :count)
     end
 
+    # #689: the pre-flight capacity validation runs before the racer's row is committed, so the
+    # post-INSERT net (Project#enforce_project_capacity_invariant) is what has to stop the write.
+    # The net raises RecordInvalid, and a non-bang save inside this transaction would both rescue
+    # it and skip the savepoint — committing an over-capacity project with no creator membership.
+    # Stubbed on the workspace instance (the file's idiom) rather than any_instance: the built
+    # project reaches its workspace through the association, so this is the object it asks.
+    it "rolls the project back when the post-INSERT capacity net raises" do
+      workspace.update!(max_projects: 1)
+      create(:project, workspace: workspace, created_by: creator)
+      allow(workspace).to receive(:at_project_capacity?).and_return(false)
+      project = nil
+
+      expect {
+        project = workspace.create_project({ name: "Racer" }, creator: creator)
+      }.not_to change(Project, :count)
+
+      expect(project).not_to be_persisted
+      expect(project.errors[:base]).to include("workspace has reached its project limit")
+      expect(ProjectMembership.where(user: creator).count).to eq(1) # only the first project's
+    end
+
     it "raises SuspendedError on a suspended workspace and creates nothing" do
       workspace.suspend!
 

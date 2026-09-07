@@ -56,7 +56,6 @@ class MagicLinkCallbacksController < ApplicationController
 
       user.authentications.create!(
         provider: "email",
-        uid: user.email_address,
         verified_at: Time.current
       )
     end

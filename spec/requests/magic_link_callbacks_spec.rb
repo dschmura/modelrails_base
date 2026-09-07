@@ -102,6 +102,16 @@ RSpec.describe "Magic Link Callbacks", type: :request do
         expect(auth.verified_at).to be_present
       end
 
+      # #903: the signup path no longer copies the address into uid.
+      it "identifies the email authentication by the user's id, not their address" do
+        post magic_link_callback_path(token: token), params: {
+          user: { first_name: "Jane", last_name: "Doe" }
+        }
+
+        user = User.find_by(email_address: "newreg@example.com")
+        expect(user.authentications.sole.uid).to eq(user.id.to_s)
+      end
+
       it "consumes the token" do
         post magic_link_callback_path(token: token), params: {
           user: { first_name: "Jane", last_name: "Doe" }
