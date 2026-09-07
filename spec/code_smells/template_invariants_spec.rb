@@ -11,7 +11,10 @@ RSpec.describe "Template invariants" do
   # #789 — `git -C <dir>` loses to an inherited GIT_DIR, and git hooks export
   # one (man 5 githooks); under Lefthook these reads would enumerate the wrong
   # repository's index and assert the invariants against someone else's files.
-  # A nil value deletes the key in the child, restoring `-C` precedence.
+  # The GIT_CONFIG_* family rides along for completeness: any variable that can
+  # redirect a config write or read belongs in the set (mirrors
+  # ForkFlow::CLEAN_GIT_ENV). A nil value deletes the key in the child,
+  # restoring `-C` precedence.
   # A `let` rather than a constant: a constant in a describe block lands on
   # Object and collides across workers (no_object_level_spec_constants_spec).
   let(:clean_git_env) do
@@ -21,7 +24,11 @@ RSpec.describe "Template invariants" do
       "GIT_INDEX_FILE" => nil,
       "GIT_COMMON_DIR" => nil,
       "GIT_OBJECT_DIRECTORY" => nil,
-      "GIT_NAMESPACE" => nil
+      "GIT_NAMESPACE" => nil,
+      "GIT_CONFIG" => nil,
+      "GIT_CONFIG_GLOBAL" => nil,
+      "GIT_CONFIG_SYSTEM" => nil,
+      "GIT_CONFIG_COUNT" => nil
     }.freeze
   end
 

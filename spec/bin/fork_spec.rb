@@ -13,12 +13,12 @@ load Rails.root.join("bin/fork")
 # called a string.
 RSpec.describe ForkFlow do
   # #789 — `git -C <dir>` LOSES to an inherited GIT_DIR: with one set,
-  # `git -C x init` re-initialises $GIT_DIR (flipping core.bare) and
-  # `git -C x config` writes $GIT_DIR/config, which for a linked worktree is the
-  # SHARED repository config. Git hooks export GIT_DIR (man 5 githooks) and this
-  # suite runs under Lefthook, so the fixture's own writes landed in the
-  # developer's repository. A nil value deletes the key in the child, restoring
-  # `-C` precedence.
+  # `git -C x init` re-initialises $GIT_DIR — flipping core.bare when $GIT_DIR
+  # is a worktree gitdir — and `git -C x config` writes $GIT_DIR/config, which
+  # for a linked worktree is the SHARED repository config. Git hooks export
+  # GIT_DIR (man 5 githooks) and this suite runs under Lefthook, so the
+  # fixture's own writes landed in the developer's repository. A nil value
+  # deletes the key in the child, restoring `-C` precedence.
   #
   # ForkFlow::CLEAN_GIT_ENV rather than a second copy: the fixture and the script
   # under test must clear the same set, and a constant defined in this describe
@@ -133,26 +133,33 @@ RSpec.describe ForkFlow do
   # seed.
   around do |example|
     decoy = Dir.mktmpdir("fork-spec-git-dir-decoy")
-    # realpath on BOTH sides: on macOS Dir.tmpdir is /var/... symlinked to
-    # /private/var/..., and a naive start_with? fails open on exactly the
-    # platform this repo is developed on.
-    tmp_root = Pathname.new(Dir.tmpdir).realpath.to_s
-    unless Pathname.new(decoy).realpath.to_s.start_with?(tmp_root)
-      raise "refusing to point GIT_DIR at #{decoy} — not under #{tmp_root}"
-    end
-
-    # Cleared here too: an ambient GIT_DIR is exactly the condition this
-    # guard exists for, and creating the decoy under one would re-initialise the
-    # developer's own repository instead.
-    system(ForkFlow::CLEAN_GIT_ENV, "git", "init", "-q", decoy, out: File::NULL, err: File::NULL) ||
-      raise("decoy init failed")
-    decoy_git = File.join(decoy, ".git")
-    decoy_config = File.join(decoy_git, "config")
-    decoy_before = File.read(decoy_config)
-
     original_git_dir = ENV["GIT_DIR"]
-    ENV["GIT_DIR"] = decoy_git
+    git_dir_set = false
+
+    # `begin` opens here, not after the setup: a raise from the containment
+    # check, the decoy init or the snapshot read would otherwise leak the
+    # mktmpdir. The env restore stays conditional on having actually set it.
     begin
+      # realpath on BOTH sides: on macOS Dir.tmpdir is /var/... symlinked to
+      # /private/var/..., and a naive start_with? fails open on exactly the
+      # platform this repo is developed on.
+      tmp_root = Pathname.new(Dir.tmpdir).realpath.to_s
+      unless Pathname.new(decoy).realpath.to_s.start_with?(tmp_root)
+        raise "refusing to point GIT_DIR at #{decoy} — not under #{tmp_root}"
+      end
+
+      # Cleared here too: an ambient GIT_DIR is exactly the condition this
+      # guard exists for, and creating the decoy under one would re-initialise
+      # the developer's own repository instead.
+      system(ForkFlow::CLEAN_GIT_ENV, "git", "init", "-q", decoy, out: File::NULL, err: File::NULL) ||
+        raise("decoy init failed")
+      decoy_git = File.join(decoy, ".git")
+      decoy_config = File.join(decoy_git, "config")
+      decoy_before = File.read(decoy_config)
+
+      ENV["GIT_DIR"] = decoy_git
+      git_dir_set = true
+
       example.run
 
       expect(File.read(decoy_config)).to eq(decoy_before),
@@ -166,7 +173,7 @@ RSpec.describe ForkFlow do
       # ENV["X"] = nil deletes the key, which is the right restore when GIT_DIR
       # was unset. `ensure`, not trust in example.run: the restore has to
       # survive this hook's own raise and a SIGINT.
-      ENV["GIT_DIR"] = original_git_dir
+      ENV["GIT_DIR"] = original_git_dir if git_dir_set
       FileUtils.rm_rf(decoy)
     end
   end
