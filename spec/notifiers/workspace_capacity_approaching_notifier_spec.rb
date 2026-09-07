@@ -64,8 +64,12 @@ RSpec.describe WorkspaceCapacityApproachingNotifier, type: :notifier do
     it "issues exactly one user_preferences query for N owners (preloaded, not N+1)" do
       event = described_class.with(record: workspace, metric: "members", current: 8, limit: 10)
 
+      # evaluate_recipients is public API on Noticed::Deliverable — it needs
+      # no `send`, and calling it keeps THIS notifier's recipients block in
+      # the measurement. Measuring `permitted_in_app` directly instead would
+      # still count one query after a refactor that stopped preloading here.
       query_count = count_queries_touching("user_preferences") do
-        event.send(:evaluate_recipients)
+        event.evaluate_recipients
       end
 
       expect(query_count).to eq 1
