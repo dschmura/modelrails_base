@@ -12,8 +12,7 @@
 # is not this job's business — and, to be exact about it, `Noticed::EventJob`
 # declares no `retry_on` (only `discard_on ActiveJob::DeserializationError`),
 # so a claimed job that raises lands in `solid_queue_failed_executions` and
-# waits for a manual retry. Closing that gap is the follow-up issue filed from
-# the #927 review.
+# waits for a manual retry. Closing that gap is #1065.
 #
 # THE SWEEP STAMPS THE ROW ITSELF, before enqueuing. Its enqueue is the one
 # retry an event gets. Without the stamp, a delivery queue backed up past the

@@ -21,8 +21,7 @@
 # `Noticed::EventJob` declares no `retry_on` (only
 # `discard_on ActiveJob::DeserializationError`), so it lands in
 # `solid_queue_failed_executions` and waits for a manual retry — there is no
-# automatic recovery and no dashboard here. Closing that is the follow-up issue
-# filed from the #927 review.
+# automatic recovery and no dashboard here. Closing that is #1065.
 #
 # `before_perform` rather than an override: the gem hardcodes `EventJob` at
 # `Deliverable#deliver`, so no subclass can be substituted. `update_column`
