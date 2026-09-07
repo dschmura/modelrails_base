@@ -773,6 +773,30 @@ RSpec.describe "Template invariants" do
         unpolled.map { |name, entry| "#{name} -> #{effective_recurring_queue(entry)}" }.join(", ")
     end
 
+    # queue.yml declares `low: best-effort cleanup, retention sweeps`; this is
+    # the assertion that the declaration is honoured. The two workspace sweeps
+    # stay on `default` deliberately — they dispatch notifiers a user waits on,
+    # so they must not queue behind an hour of blob purges (#894).
+    it "recurring.yml keeps cleanup sweeps on `low` and notifier sweeps on `default`" do
+      recurring = YAML.safe_load(recurring_yml_raw, aliases: true).fetch("production")
+      expected = {
+        "clear_solid_queue_finished_jobs" => "low",
+        "unattached_blobs_sweep" => "low",
+        "expired_sessions_sweep" => "low",
+        "webauthn_challenges_sweep" => "low",
+        "activity_log_retention_sweep" => "low",
+        "notification_cleanup" => "low",
+        "workspace_invitation_expiring_sweep" => "default",
+        "workspace_capacity_sweep" => "default"
+      }
+
+      actual = expected.keys.index_with { |name| effective_recurring_queue(recurring.fetch(name)) }
+
+      expect(actual).to eq(expected),
+        "expected config/recurring.yml to honour queue.yml's `low: best-effort cleanup, " \
+        "retention sweeps` convention"
+    end
+
     # Mirrors SolidQueue::RecurringTask: an explicit `queue:` wins, otherwise
     # the job class's own `queue_as` decides — and a `command:` entry has no
     # class, so SolidQueue::RecurringJob's does.

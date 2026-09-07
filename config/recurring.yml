@@ -46,7 +46,7 @@ production:
 
   unattached_blobs_sweep:
     class: UnattachedBlobsSweepJob
-    queue: default
+    queue: low
     # Direct-upload blobs that never got attached are permanent files on the
     # same volume as the SQLite databases; nothing else purges them. Daily
     # sweep, 2-day grace, purge_later fan-out (see the job's comment).
@@ -54,7 +54,7 @@ production:
 
   expired_sessions_sweep:
     class: ExpiredSessionsSweepJob
-    queue: default
+    queue: low
     # Housekeeping for the sessions table — expiry is enforced at read time, so
     # cadence isn't security-critical. Daily is plenty; batched delete releases
     # the SQLite writer lock between rounds.
@@ -62,7 +62,7 @@ production:
 
   webauthn_challenges_sweep:
     class: WebauthnChallengesSweepJob
-    queue: default
+    queue: low
     # The conditional-UI autofill path inserts a challenge row on every load
     # of the public sign-in page and nothing else ever deletes them (#378).
     # Expiry/single-use are enforced at consume time, so cadence is pure
@@ -71,7 +71,7 @@ production:
 
   activity_log_retention_sweep:
     class: ActivityLogRetentionSweepJob
-    queue: default
+    queue: low
     # Bounds the best-effort audit trail at 12 months (#438, panel-decided).
     # The window and its rationale live as a constant in the job; the job is
     # registered in the immutability guard's allowed_bypasses. Weekly is
@@ -80,7 +80,7 @@ production:
 
   notification_cleanup:
     class: NotificationCleanupJob
-    queue: default
+    queue: low
     # Runs daily at 3am UTC. Per-user batched deletion in chunks of 100 to
     # release SQLite's write lock between transactions. No retention floor at
     # this layer: the audit sweep keeps the ActivityLog record (PR 5).

@@ -89,4 +89,10 @@ RSpec.describe ActivityLogRetentionSweepJob, type: :job do
       expect(ActivityLog.exists?(admin_row.id)).to be(false)
     end
   end
+  # Best-effort cleanup belongs on `low` (queue.yml's convention). The class
+  # queue must match recurring.yml so an ad-hoc perform_later routes the same
+  # way the schedule does (#894).
+  it "runs on the low queue" do
+    expect(described_class.queue_name).to eq("low")
+  end
 end
