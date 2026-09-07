@@ -11,26 +11,35 @@
 // A dialog comes back worse: open, `display: block`, matching `:modal`, still carrying
 // the hardcoded `aria-modal="true"` from UI::DialogComponent — a named dialog claiming
 // the rest of the page is not there — with Escape dead (`cancel` fires for modal
-// dialogs only) and focus on <body>. Whether it survives is a race that this app
-// currently wins by accident: Turbo defers `snapshot.clone()` one event-loop tick past
-// this event, so `modal_controller#disconnect()` gets to close the dialog on the old
-// body first — but ONLY while the destination's head merge settles in microtasks,
-// which holds today only because every page ships the identical stylesheets and
-// nothing provides `yield :head`. One page-specific stylesheet through that seam makes
-// `copyNewHeadStylesheetElements` await a load event, the clone wins, and the bug is
-// back. That seam is the template's documented extension point, so the sweep runs
-// rather than the invariant being trusted. Both sides are pinned in
-// `spec/system/modal_spec.rb`.
+// dialogs only) and focus on <body>.
+//
+// The measured route is NOT Turbo's snapshot cache. On the Drive path this app wins by
+// accident: Turbo defers `snapshot.clone()` one event-loop tick past this event, so
+// `modal_controller#disconnect()` closes the dialog on the old body before the clone is
+// taken. What the proving spec exercises is the other route — **the browser's
+// back-forward cache**. Every navigation away that Turbo does not render itself leaves
+// the live DOM exactly as it stood at unload, and Back restores that same document:
+// an external link, `data-turbo="false"`, or any `data-turbo-track="reload"` mismatch
+// (both stylesheet links carry it, so an asset-digest change alone is enough) makes
+// Turbo invalidate and hand the navigation to the browser. `turbo:before-cache` has
+// already fired by then, which is exactly why this listener is what makes the restored
+// DOM correct — there is no snapshot involved to fix it later.
+//
+// A second, unmeasured reason the sweep is not optional: on the Drive path the clone
+// race is only won while the destination's head merge settles in microtasks. A merge
+// that must await a stylesheet load would let the clone win. Plausible, but this file
+// does not claim it as measured — the spec's stylesheet stripping takes the
+// invalidation path above, not the merge path.
 //
 // `dialog.close()` raw, not `modal_controller#close()`: the controller animates out
-// behind a `setTimeout`, and a close that has not finished by clone time is not in the
-// snapshot. (`modal_closer_controller.js` routes through the controller for the
-// opposite reason — there the animation is the point.)
+// behind a `setTimeout`, and a close that has not finished when the page is cached or
+// unloaded is not in what comes back. (`modal_closer_controller.js` routes through the
+// controller for the opposite reason — there the animation is the point.)
 //
-// The close set runs on the live DOM and must be synchronous — anything deferred
-// misses the clone. All three parts of a menu's open state are reversed together or
-// none: `hidden` on the panel, `aria-expanded` on the trigger, and the Stimulus
-// value. The top layer is left alone on purpose: the `[data-top-layer]` reset in
+// The close set runs on the live DOM and must be synchronous — anything deferred misses
+// the clone, and misses the unload entirely. All three parts of a menu's open state are
+// reversed together or none: `hidden` on the panel, `aria-expanded` on the trigger, and
+// the Stimulus value. The top layer is left alone on purpose: the `[data-top-layer]` reset in
 // application.css does not restore `display`, so stripping `popover` without the
 // `hidden` above would promote an unreachable panel into a visible menu under a
 // trigger that reports closed. A cloned popover is closed anyway, so

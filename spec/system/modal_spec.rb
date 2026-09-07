@@ -116,24 +116,24 @@ RSpec.describe "Modal system", type: :system do
     end
   end
 
-  # #713. Turbo's snapshot clone normalises only `select`, `input[type=password]` and
-  # `noscript`, so a dialog left open when the user navigates away survives into the
-  # cached page and comes back non-modal but still carrying the hardcoded
-  # `aria-modal="true"` (UI::DialogComponent) — a named dialog announced in DOM order,
-  # claiming the rest of the page is not there, with Escape dead and focus on <body>.
+  # #713. A dialog left open when the user navigates away can come back with the page:
+  # Turbo's snapshot clone normalises only `select`, `input[type=password]` and
+  # `noscript`, and the browser's back-forward cache normalises nothing at all. What
+  # returns is a named dialog still carrying the hardcoded `aria-modal="true"`
+  # (UI::DialogComponent), announced in DOM order, claiming the rest of the page is not
+  # there, with Escape dead (`cancel` fires for modal dialogs only) and focus on <body>.
   #
-  # Whether that happens is a race, which is why there are two examples here. Turbo
-  # defers `snapshot.clone()` one event-loop tick past `turbo:before-cache`, so it is
-  # taken from the old body — and `modal_controller#disconnect()` closes any open
-  # dialog on that body when Turbo replaces it. Which of the two lands first depends
-  # entirely on how long the destination's head merge takes.
-  describe "Turbo snapshot restore (#713)" do
-    # The identical-head case, where `disconnect()` happens to win: every page in this
-    # app ships the same stylesheets and nothing provides `yield :head`, so
-    # `PageRenderer#copyNewHeadStylesheetElements` has nothing to append, the merge
-    # settles in microtasks, and the body is replaced before the clone. That is luck,
-    # not design — see the example below for the same navigation once the merge has to
-    # wait — and this one pins it so the incidental protection cannot be removed
+  # There are two examples because there are two ways back to a page, and only one of
+  # them is Turbo's. On a Drive visit Turbo defers `snapshot.clone()` one event-loop tick
+  # past `turbo:before-cache`, so the clone is taken from the old body — and
+  # `modal_controller#disconnect()` closes any open dialog on that body when Turbo
+  # replaces it, so the app wins that one today. On a navigation Turbo does not render,
+  # there is no snapshot at all: the browser keeps the live document and Back restores it
+  # as it stood at unload. The sweep is what covers the second.
+  describe "restore after leaving the page (#713)" do
+    # The Drive case, where `disconnect()` happens to win the clone race. That is luck,
+    # not design — see the example below for the route where nothing wins it for us —
+    # and this one pins it so the incidental protection cannot be removed
     # silently. The closed dialog keeps its `aria-modal` attribute but is
     # `display: none`, so the assertion is deliberately visibility-scoped: nothing a
     # screen reader can reach may claim modality.
@@ -166,18 +166,27 @@ RSpec.describe "Modal system", type: :system do
       expect(page).to have_no_css('[aria-modal="true"]')
     end
 
-    # The case the app cannot rely on not happening. When the destination's head merge
-    # has to append a stylesheet, `copyNewHeadStylesheetElements` awaits its load
-    # event — which never resolves in a microtask — so Turbo's deferred clone runs
-    # while the old body is still in place and its dialog still open. Back then
-    # restores a live `dialog[open]` at `display: block` matching `:modal`, with focus
-    # on <body>: a visible, named dialog claiming the rest of the page is not there.
+    # The case that does not go through Turbo's snapshot cache at all, and the one the
+    # sweep actually earns its place on. Both stylesheet links carry
+    # `data-turbo-track="reload"` (`shared/_layout_head.html.erb`), so stripping them
+    # changes the tracked-element signature: `PageRenderer.shouldRender` is false, Turbo
+    # invalidates with `reloadReason: "tracked_element_mismatch"`, and the destination is
+    # fetched by a FULL browser load — Turbo renders nothing. Back is then served the
+    # ORIGINAL document from the browser's back-forward cache, with its DOM exactly as it
+    # stood at unload. `turbo:before-cache` has already fired by that point, so the sweep
+    # is what makes that DOM correct; there is no snapshot for anything to fix later.
+    # Measured: on the destination the original window's globals are gone (a real
+    # navigation), and after Back they are back (the same document restored).
     #
-    # Stripping the current head's stylesheet links is how the test reaches that path:
-    # it makes /about's identical links count as new. A fork needs no trick — one
-    # page-specific stylesheet through the layout's `yield :head` seam is the same code
-    # path with one link instead of four.
-    it "restores with no open dialog when the destination's head merge awaits a stylesheet" do
+    # Stripping is only how the test reaches an invalidating navigation cheaply. An
+    # external link, `data-turbo="false"`, or a plain asset-digest change reaches the same
+    # place in production, so this is a broader bug than a dialog surviving a Drive visit.
+    #
+    # Coupled to the bfcache being usable: `Cache-Control: no-store` on the root page
+    # would make Back re-request instead of restoring, and the `#test-modal` assertion
+    # below would fail for that reason rather than this one — the injected modal is
+    # client-side only and no server response contains it.
+    it "restores with no open dialog when the navigation away invalidates and Back uses bfcache" do
       inject_test_modal
       click_button "Open Modal"
       expect(page).to have_css("dialog[open]")
