@@ -110,6 +110,11 @@ RSpec.describe WorkspaceJoinLink, type: :model do
         end
       end
 
+      # A capability pin, not a live path: the warming step is load-bearing (without it the
+      # association would read the flipped row anyway), and the only caller that reaches
+      # WorkspaceJoinLink#admit — PendingClaims#claim_join — gets there on the opposite branch,
+      # for an existing user whose workspace is ALREADY not accepting open joins. The guard is
+      # here so a future caller cannot reintroduce the race.
       it "refuses when the workspace's join policy flipped in the meantime" do
         joiner
         stale = WorkspaceJoinLink.find(link.id)

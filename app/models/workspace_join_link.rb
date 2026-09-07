@@ -49,10 +49,11 @@ class WorkspaceJoinLink < ApplicationRecord
   # Raises Workspace::AlreadyMember / Workspace::AtCapacity from Workspace#admit;
   # callers decide how to treat those.
   #
-  # The posture is re-read from committed state INSIDE the write transaction (#689): what
-  # makes that genuine is that Rails' SQLite adapter opens the transaction with BEGIN
-  # IMMEDIATE, so a racing revoke, expiry change or join_policy flip has either committed
-  # before this reload sees it or cannot commit until this transaction ends. `lock!` locks
+  # The posture is re-read from committed state inside the serialized write transaction (its own
+  # BEGIN IMMEDIATE, or the caller's — on the signup path Signupable#commit_signup_atomically
+  # already holds it and this becomes a savepoint) (#689). That serialization is what makes the
+  # re-read genuine: a racing revoke, expiry change or join_policy flip has either committed
+  # before this reload sees it or cannot commit until the holding transaction ends. `lock!` locks
   # nothing across SQLite connections. Both records are reloaded because a claim path may
   # have been holding this link since before the token was redeemed. Workspace#admit nests
   # as a savepoint and keeps its own admittable? re-check.

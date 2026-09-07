@@ -128,8 +128,7 @@ class Project < ApplicationRecord
 
   def workspace_has_project_capacity
     return unless workspace
-    # The real capacity guard is post-INSERT; the pre-flight lock! is a no-op across SQLite connections.
-    # See /docs/developer/architecture (Concurrency).
+    # This is the message, not the guard; lock! is ballast — see enforce_project_capacity_invariant.
     workspace.lock!
     if workspace.at_project_capacity?
       errors.add(:base, :workspace_project_limit)

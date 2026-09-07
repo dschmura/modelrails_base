@@ -126,10 +126,12 @@ RSpec.describe Project, type: :model do
       expect(racer).not_to be_persisted
     end
 
-    # Workspace#create_project saves non-bang so the form can re-render, and
-    # ActiveRecord::Validations#save rescues RecordInvalid — so on that path the net
-    # surfaces as false + the friendly error, with the row still rolled back.
-    it "rolls the insert back on the non-bang save the create verb uses" do
+    # The OUTERMOST case only: a bare non-bang save with no enclosing transaction, where the
+    # save's own transaction is the rollback boundary. ActiveRecord::Validations#save rescues
+    # the net's RecordInvalid, so the outcome is false + the friendly error, row gone. This is
+    # NOT what Workspace#create_project does — there the save joins the verb's transaction and
+    # the rescue swallows the net; that path is pinned in workspace_spec (#689 fix round).
+    it "rolls the insert back on a bare non-bang save, outside any enclosing transaction" do
       workspace = create(:workspace, max_projects: 1)
       user = create(:user)
       create(:membership, user: user, workspace: workspace)
