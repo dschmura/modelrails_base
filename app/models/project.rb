@@ -125,7 +125,7 @@ class Project < ApplicationRecord
   def workspace_has_project_capacity
     return unless workspace
     workspace.lock!
-    if workspace.projects.kept.count >= workspace.max_projects
+    if workspace.at_project_capacity?
       errors.add(:base, :workspace_project_limit)
     end
   end
