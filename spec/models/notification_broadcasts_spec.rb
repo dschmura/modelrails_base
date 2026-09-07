@@ -42,19 +42,35 @@ RSpec.describe "Notification Turbo Stream broadcasts" do
     PasswordChangedNotifier.with(record: user).deliver([ user, other ])
   end
 
-  it "skips broadcasts when there are no User recipients" do
-    # Recipients are Users in v1; no badge surface exists for non-User
-    # streams, so a broadcast there is wasted work. The SQL-level filter
-    # `recipient_type: "User"` makes recipient_ids empty for non-User
-    # dispatches, and the guard short-circuits before any broadcast call.
+  it "skips broadcasts for an event that created no notification rows" do
+    # Badge surfaces follow the notification ROWS, never the dispatch: an
+    # event whose recipients all gated out commits with zero rows, and
+    # nobody's bell should twitch for it.
+    #
+    # Reached publicly — the workspace's only owner switches the billing
+    # category off, so WorkspaceCapacityApproachingNotifier's permitted_in_app
+    # gate resolves to nobody. (The previous framing, "no User recipients",
+    # is unreachable: db/schema.rb's `check_constraint "recipient_type =
+    # 'User'"` on noticed_notifications rejects every other recipient type.)
+    workspace = user.personal_workspace
+    prefs = create(:user_preferences, user: user)
+    types = prefs.notification_preferences["notification_types"].deep_dup
+    types["billing"] = false
+    prefs.update!(notification_preferences: prefs.notification_preferences.merge("notification_types" => types))
+    # Not a vacuous pass: the owner IS a candidate, so zero recipients is the
+    # preference gate's doing, not an empty owner set.
+    expect(workspace.owners).to eq([ user ])
+    # A notification row belonging to a DIFFERENT event, so the hook's
+    # event_id scope is load-bearing here: a recipient query that dropped it
+    # would broadcast to this user off the back of our empty event.
+    other = create(:user)
+    PasswordChangedNotifier.with(record: other).deliver(other)
+
     expect(Turbo::StreamsChannel).not_to receive(:broadcast_update_to)
 
-    notifier = PasswordChangedNotifier.with(record: user)
-    notifier.save!
-    # Manually delete the auto-created User notification so the SQL filter
-    # returns no rows.
-    notifier.notifications.destroy_all
-    notifier.send(:broadcast_notifications_arrival)
+    event = WorkspaceCapacityApproachingNotifier.with(record: workspace, metric: "members", current: 8, limit: 10)
+    expect { event.deliver(nil) }.to change { Noticed::Event.count }.by(1)
+    expect(Noticed::Notification.where(event_id: Noticed::Event.last.id)).to be_empty
   end
 
   it "swallows broadcast adapter errors so notification creation isn't blocked" do
