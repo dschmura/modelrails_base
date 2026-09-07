@@ -177,4 +177,8 @@ RSpec.describe NotificationCleanupJob, type: :job do
       end
     end
   end
+
+  it "runs on the low queue" do
+    expect(described_class.queue_name).to eq("low")
+  end
 end
