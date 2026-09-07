@@ -370,6 +370,19 @@ RSpec.describe ApplicationNotifier, type: :notifier do
       expect(notification.deliver_email_now?).to be false
     end
 
+    # The schema-default path, through the gate rather than through
+    # recipient_pref. Since #936 the answer comes from a set built by
+    # `User.where(...).includes(:preferences)`, where a user with no row
+    # preloads as nil — so the missing-row fallback has to survive the preload,
+    # not just a lazy `user.preferences` call.
+    it "is true for a recipient with no user_preferences row (schema defaults)" do
+      bare_user = create(:user)
+      StubAccountAccessNotifier.with(record: bare_user).deliver(bare_user)
+      notification = bare_user.notifications.where(type: "StubAccountAccessNotifier::Notification").last
+
+      expect(notification.deliver_email_now?).to be true
+    end
+
     it "is false when the preference resolves to the :digest sentinel (non-instant frequency)" do
       np = prefs.notification_preferences.deep_dup
       np["delivery_methods"]["email"]["frequency"] = "daily"
