@@ -76,6 +76,10 @@ RSpec.describe User::EmailChange, type: :model do
 
       expect { described_class.new(user).confirm!(token) }
         .not_to change { email_auth.reload.uid }
+
+      # Both halves: the change moved nothing, and what it left is the id —
+      # so an unchanged-but-wrong value cannot satisfy this example.
+      expect(email_auth.uid).to eq(user.id.to_s)
     end
 
     # The production-common confirmer: a magic-link signup holding the

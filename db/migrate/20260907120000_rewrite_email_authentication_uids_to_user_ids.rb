@@ -24,6 +24,10 @@ class RewriteEmailAuthenticationUidsToUserIds < ActiveRecord::Migration[8.1]
   # user_id is unique among email rows ((user_id, provider) is a unique index),
   # so the new values cannot collide with each other; and (provider, uid) scopes
   # the other index to email rows, so they cannot collide with an OAuth uid.
+  #
+  # find_each bounds MEMORY, not the transaction: Rails wraps the whole
+  # migration in one (no disable_ddl_transaction! here), so on SQLite the
+  # rewrite holds the writer lock from first row to last.
   def up
     MigrationAuthentication.where(provider: "email").find_each(batch_size: BATCH_SIZE) do |auth|
       auth.update!(uid: auth.user_id.to_s)
