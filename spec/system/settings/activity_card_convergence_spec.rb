@@ -9,6 +9,7 @@ require "rails_helper"
 # classes are the implementation, and a fork restyles them first.
 RSpec.describe "Settings sessions — card convergence", type: :system do
   let(:user) { create(:user, first_name: "Sam", last_name: "Session") }
+  let(:axe_options) { { runOnly: { type: "tag", values: [ "wcag2aaa" ] } } }
 
   before do
     sign_in_via_form(user)
@@ -33,6 +34,14 @@ RSpec.describe "Settings sessions — card convergence", type: :system do
 
       expect(stacked).to be(true),
         "At 320px the activity label should sit ABOVE its timestamp, not beside it."
+
+      # Inline, and INSIDE the block: with_viewport's `ensure` restores the
+      # 1400px suite default before the teardown audit runs (#912), so the
+      # stacked narrow layout this example exists to protect is audited here
+      # or nowhere.
+      page.execute_script("document.querySelectorAll('[data-controller=\"toast-pill\"], [data-controller=\"toast-card\"]').forEach(el => el.remove())")
+      expect(axe_clean_in_both_themes?(axe_options)).to be(true),
+        "Accessibility violations at 320px:\n#{axe_violations_in_both_themes(axe_options).join("\n")}"
     end
   end
 
@@ -58,7 +67,9 @@ RSpec.describe "Settings sessions — card convergence", type: :system do
           labelWeight:   lstyle.fontWeight,
           deviceWeight:  dstyle.fontWeight,
           labelColor:    lstyle.color,
-          deviceColor:   dstyle.color
+          deviceColor:   dstyle.color,
+          sideBySide:    row.querySelector("time").getBoundingClientRect().left >
+                         label.getBoundingClientRect().right
         };
       })()
     JS
@@ -74,6 +85,11 @@ RSpec.describe "Settings sessions — card convergence", type: :system do
     # 4: the card's content is not lighter than the device list's content.
     expect(metrics["labelWeight"]).to eq(metrics["deviceWeight"])
     expect(metrics["labelColor"]).to eq(metrics["deviceColor"])
+    # 5, the other half: the stack at 320px is a NARROW-width behaviour. Losing
+    # `sm:flex-row` would keep the phone example green while making every row
+    # two lines forever, so the desktop side is pinned too.
+    expect(metrics["sideBySide"]).to be(true),
+      "At desktop the timestamp should sit to the RIGHT of the label, not below it."
   end
 
   it "shares one text left edge between the device list and the activity card" do
