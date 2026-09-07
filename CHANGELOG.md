@@ -215,6 +215,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 - sqlite3 bumped to 2.9.6 for GHSA-mwm8-39rw-8826 (#599).
 - CI/workflow hardening — the Dependabot-checksums job checks out the exact SHA the author gate evaluated (TOCTOU), a shard secret race is closed, and a throttle-store leak is fixed (#783).
 - A single invitation submission is capped at 20 addresses. The controller's rate limit bounded how often someone could submit; nothing bounded how far one submission could fan out. The cap is never applied silently — mid-flow the invitations that fit are sent and the remainder reported, and during first-run onboarding the submission is refused so the list can be trimmed rather than half-processed.
+- **An email authentication's `uid` is the user's id, not a second copy of their address** ([#903](https://github.com/dschmura/modelrails_base/issues/903)). Both columns are deterministically encrypted, so they held identical bytes for the same address and a leaked dump joined them. `Authentication` now assigns the value itself; the three writers that kept the mirror by hand are gone, including the `update_all` that skipped the `uid` uniqueness validator. Fork owners: run `bin/rails db:migrate` to rewrite existing rows, and drop any `uid:` you pass when creating an email authentication.
 
 ### Fixed
 
