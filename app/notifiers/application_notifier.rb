@@ -151,31 +151,20 @@ class ApplicationNotifier < Noticed::Event
 
     # The email gate for `deliver_by :email` before_enqueue hooks. Strictly
     # "send the instant email now" — opted out, DND, and deferred-to-digest
-    # all abort.
+    # all abort. A recipient whose user row is gone is absent from the event's
+    # permitted set, so a deleted user no longer gets an instant email off the
+    # schema defaults (it used to: a nil recipient resolved to the default
+    # preferences blob).
     # See /docs/developer/notifications (Email gating and the `:digest` sentinel).
     def deliver_email_now?
-      deliver_email_now_for?(recipient)
+      event.email_permitted?(recipient_id)
     end
 
-    # The same gate asked about a user the caller already holds.
-    #
-    # Not a performance fix, despite appearances: a hook that aborts every
-    # recipient but one loads `recipient` once either way, and the EventJob
-    # measures flat at 4 queries with 2 owners and with 8. What it avoids is
-    # Bullet. Noticed's EventJob iterates `event.notifications.each`, so
-    # reading `recipient` in a before_enqueue is a lazy load off a member of
-    # that collection — which Bullet's heuristic cannot tell from a real N+1,
-    # and raises on. A hook that has just established
-    # `recipient_id == event.record.user_id` hands the record's own user here
-    # instead, keeping the gate in one place.
-    #
-    # A notifier whose email leg has NO such narrowing guard is a different
-    # story: there `deliver_email_now?` really does load per recipient, and
-    # this method cannot help, because each recipient's own preferences are
-    # what the gate needs.
+    # The same gate asked about a user the caller already holds. The gate
+    # itself lives on the Event — it never reads anything off a notification
+    # row — and this is the delegate the `before_enqueue` hooks call.
     def deliver_email_now_for?(user)
-      ApplicationNotifier.preferences_for(user)
-        .deliver_now?(category: event.class.category_name, channel: :email)
+      event.deliver_email_now_for?(user)
     end
 
     def recipient_locale
@@ -259,6 +248,34 @@ class ApplicationNotifier < Noticed::Event
     self.class.preferences_for(user)
   end
 
+  # The email gate for a single user: strictly "send this user the instant
+  # email now", so an opt-out, DND, and the digest deferral all answer false.
+  # Lives on the Event because it reads nothing off a notification row — only
+  # the user handed in and this class's declared category.
+  # See /docs/developer/notifications (Email gating and the `:digest` sentinel).
+  def deliver_email_now_for?(user)
+    preferences_for(user).deliver_now?(category: self.class.category_name, channel: :email)
+  end
+
+  # The same gate for the whole fan-out, asked by recipient id. Noticed's
+  # EventJob iterates `event.notifications.each` and runs every email leg's
+  # before_enqueue against a row whose `recipient` is cold, so a per-recipient
+  # gate cost one `users` select plus one `user_preferences` select per
+  # recipient — 8 and 8 at eight owners for a notifier whose email leg does
+  # not narrow the fan-out first (#936). Noticed exposes no hook to preload
+  # that relation, so the set is resolved here, once, and memoised for the
+  # job's lifetime.
+  #
+  # A Set of ids rather than a Preloader over the notification rows: the
+  # preloaded shape leaves `recipient` eager-loaded and unread on every
+  # notifier whose email leg DOES narrow to one recipient (see
+  # WorkspaceMemberAddedNotifier), which is Bullet's unused-eager-loading
+  # shape — and Bullet raises in test. An id read off the notification's own
+  # column loads nothing nobody reads.
+  def email_permitted?(recipient_id)
+    email_permitted_recipient_ids.include?(recipient_id)
+  end
+
   # Shared recipient gate for `recipients do ... end` blocks: preloads
   # :preferences for the whole candidate set in ONE query (`preferences_for`
   # reads `user.preferences` per-user — an N+1 without the preload; Bullet
@@ -297,6 +314,23 @@ class ApplicationNotifier < Noticed::Event
   end
 
   private
+
+  # `pluck` on the already-loaded `notifications` collection reads the ids in
+  # Ruby — inside EventJob's own `event.notifications.each` it costs nothing.
+  #
+  # Plucking recipient_id WITHOUT recipient_type rides on the DB invariant:
+  # noticed_notifications carries the check constraint
+  # `recipient_type_user_only_v1` (recipient_type = 'User'), so every id here
+  # is a User id. A fork that drops that constraint to notify a second
+  # recipient type must pluck both columns and filter here.
+  def email_permitted_recipient_ids
+    @email_permitted_recipient_ids ||= User
+      .where(id: notifications.pluck(:recipient_id))
+      .includes(:preferences)
+      .select { |user| deliver_email_now_for?(user) }
+      .map(&:id)
+      .to_set
+  end
 
   def broadcast_notifications_arrival
     # Query `Noticed::Notification` directly (not `self.notifications`) so
