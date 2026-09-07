@@ -13,12 +13,17 @@ class Workspace < ApplicationRecord
   # Defense in depth behind WorkspacePolicy — covers console/direct-call paths the policy never sees.
   HomeWorkspaceProtectedError = Class.new(StandardError)
 
+  # Raised only from #admit; HomeWorkspaceProtectedError is a lifecycle guard and
+  # deliberately not a subclass (#689). Rescue this where every admission outcome
+  # is handled the same way; rescue the subclasses where they branch.
+  AdmissionError = Class.new(StandardError)
+
   # Non-disclosing by contract: an outsider must not learn which lifecycle state blocked them.
   # See /docs/developer/architecture (Key Concepts).
-  NotAdmittableError = Class.new(StandardError)
+  NotAdmittableError = Class.new(AdmissionError)
   # Typed so callers never match the humanized validation string (locale edits break it).
-  AlreadyMember = Class.new(StandardError)
-  AtCapacity = Class.new(StandardError)
+  AlreadyMember = Class.new(AdmissionError)
+  AtCapacity = Class.new(AdmissionError)
 
   has_many :memberships, dependent: :destroy
   has_many :users, through: :memberships
