@@ -154,7 +154,7 @@ class ApplicationNotifier < Noticed::Event
     # all abort.
     # See /docs/developer/notifications (Email gating and the `:digest` sentinel).
     def deliver_email_now?
-      deliver_email_now_for?(recipient)
+      event.email_permitted?(recipient_id)
     end
 
     # The same gate asked about a user the caller already holds. The gate
@@ -254,6 +254,25 @@ class ApplicationNotifier < Noticed::Event
     preferences_for(user).deliver_now?(category: self.class.category_name, channel: :email)
   end
 
+  # The same gate for the whole fan-out, asked by recipient id. Noticed's
+  # EventJob iterates `event.notifications.each` and runs every email leg's
+  # before_enqueue against a row whose `recipient` is cold, so a per-recipient
+  # gate cost one `users` select plus one `user_preferences` select per
+  # recipient — 8 and 8 at eight owners for a notifier whose email leg does
+  # not narrow the fan-out first (#936). Noticed exposes no hook to preload
+  # that relation, so the set is resolved here, once, and memoised for the
+  # job's lifetime.
+  #
+  # A Set of ids rather than a Preloader over the notification rows: the
+  # preloaded shape leaves `recipient` eager-loaded and unread on every
+  # notifier whose email leg DOES narrow to one recipient (see
+  # WorkspaceMemberAddedNotifier), which is Bullet's unused-eager-loading
+  # shape — and Bullet raises in test. An id read off the notification's own
+  # column loads nothing nobody reads.
+  def email_permitted?(recipient_id)
+    email_permitted_recipient_ids.include?(recipient_id)
+  end
+
   # Shared recipient gate for `recipients do ... end` blocks: preloads
   # :preferences for the whole candidate set in ONE query (`preferences_for`
   # reads `user.preferences` per-user — an N+1 without the preload; Bullet
@@ -292,6 +311,17 @@ class ApplicationNotifier < Noticed::Event
   end
 
   private
+
+  # `pluck` on the already-loaded `notifications` collection reads the ids in
+  # Ruby — inside EventJob's own `event.notifications.each` it costs nothing.
+  def email_permitted_recipient_ids
+    @email_permitted_recipient_ids ||= User
+      .where(id: notifications.pluck(:recipient_id))
+      .includes(:preferences)
+      .select { |user| deliver_email_now_for?(user) }
+      .map(&:id)
+      .to_set
+  end
 
   def broadcast_notifications_arrival
     # Query `Noticed::Notification` directly (not `self.notifications`) so

@@ -180,10 +180,15 @@ RSpec.describe WorkspaceMemberRemovedNotifier, type: :notifier do
   #
   # What this pins: the gate asks about the RECORD's user, not about each
   # recipient, so the delivery pipeline costs the same whether the workspace
-  # has two owners or eight. Rewriting it as a per-recipient
-  # `deliver_email_now?` takes it from 7 queries to 19 at eight owners — which
-  # is what WorkspaceCapacityApproachingNotifier, whose email leg has no
-  # narrowing guard, actually does today (5 at two owners, 17 at eight).
+  # has two owners or eight — 4 queries either way.
+  #
+  # It is no longer the ONLY thing keeping that flat. Since #936 the event
+  # resolves the whole fan-out's permitted set once, so a per-recipient
+  # `deliver_email_now?` is flat too: the unguarded
+  # WorkspaceCapacityApproachingNotifier went from 5 queries at two owners and
+  # 17 at eight to 3 at both. What the narrowing guard here still buys is the
+  # email semantics — only the removed member is ever mailed — and a gate that
+  # touches no association off a member of `event.notifications`.
   #
   # What this does NOT pin: Bullet. Bullet raises on a lazy `recipient` load
   # off a member of `event.notifications` whether or not the load repeats, so

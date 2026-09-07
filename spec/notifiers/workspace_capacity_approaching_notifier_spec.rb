@@ -76,6 +76,42 @@ RSpec.describe WorkspaceCapacityApproachingNotifier, type: :notifier do
     end
   end
 
+  # #936. The recipients block above is leg A, and it is flat. This is leg B:
+  # Noticed's EventJob iterates `event.notifications.each` and runs this
+  # notifier's email `before_enqueue` against every row — and this notifier's
+  # email leg has NO narrowing guard, so the gate is genuinely asked about each
+  # recipient. Read off the notification row that means a cold `recipient`
+  # load plus a `preferences` load per owner: eight and eight at eight owners.
+  #
+  # Two scoped counts rather than one total: a total-equality assertion can be
+  # satisfied by luck — one leg shrinking while another grows.
+  describe "email gate cost across the fan-out" do
+    def event_for_workspace_with(owner_count)
+      fanned_out = create(:workspace, max_members: 60)
+      owner_count.times do
+        create(:membership, user: create(:user), workspace: fanned_out, role: owner_role)
+      end
+      described_class.with(record: fanned_out, metric: "members", current: 8, limit: 10).deliver(nil)
+      Noticed::Event.where(type: described_class.name).order(:created_at).last
+    end
+
+    # Each measurement re-finds the event so the second one starts from a cold
+    # instance: measuring twice against one in-memory event would read the
+    # first run's memo and report a query count no cold job ever pays.
+    def queries_touching(table, event_id)
+      count_queries_touching(table) { Noticed::EventJob.perform_now(Noticed::Event.find(event_id)) }
+    end
+
+    it "loads the recipients and their preferences once each, not once per owner" do
+      event_id = event_for_workspace_with(8).id
+
+      aggregate_failures do
+        expect(queries_touching("users", event_id)).to eq 1
+        expect(queries_touching("user_preferences", event_id)).to eq 1
+      end
+    end
+  end
+
   describe "dispatching" do
     it "delivers in-app notifications to all owners under default preferences" do
       result = described_class.with(record: workspace, metric: "members", current: 8, limit: 10).deliver(nil)
