@@ -66,28 +66,16 @@ RSpec.describe "Code smell: forms inside Turbo frames" do
       "Turbo Stream precisely so the message is not left in a dropped flash."
   }.freeze
 
-  # site => reason, one entry per offending form. These are BROKEN, not
-  # allowed: the same #1038 defect, found by this guard's own census and
-  # confirmed by hand (each action succeeds; its notice never appears). They
-  # are ledgered rather than fixed because fixing them is a behaviour change to
-  # three more actions than #1038 covered — tracked as #1050.
+  # site => reason, one entry per offending form. Entries here are BROKEN, not
+  # allowed — a form whose notice is provably swallowed, ledgered because the
+  # fix is a behaviour change someone has to own.
   #
-  # NOTE FOR THE NEXT TOUCH: this ledger is asserted exactly, so fixing one of
-  # these fails this spec until its line is deleted. That is the point — the
-  # ledger can only shrink, and #1050 is what empties it.
-  unfixed_offenders = {
-    "app/views/workspaces/members/_member_row.html.erb button_to workspace_member_path" =>
-      "#1050. Deactivate: members#destroy redirects with a `.deactivated` " \
-      "notice (and, when you deactivate yourself, to a DIFFERENT page). Both " \
-      "are swallowed by members_results.",
-    "app/views/workspaces/members/_member_row.html.erb button_to workspace_member_reactivation_path" =>
-      "#1050. Reactivate: reactivations#create redirects with a `.reactivated` " \
-      "notice. Swallowed.",
-    "app/views/workspaces/members/_member_row.html.erb button_to workspace_member_ownership_transfer_path" =>
-      "#1050. Transfer ownership: ownership_transfers#create redirects with a " \
-      "`.transferred` notice. Swallowed — and this one hands the workspace to " \
-      "someone else with no confirmation that it happened."
-  }.freeze
+  # EMPTY, and meant to stay that way. It held the three _member_row buttons
+  # #1050 has now fixed (proven by spec/system/workspaces/member_row_actions_spec.rb).
+  # This ledger is asserted exactly, so a new bare form fails the first example
+  # rather than landing here: adding an entry is a deliberate act that needs an
+  # issue number and a reason, and the ledger can only shrink again afterwards.
+  unfixed_offenders = {}.freeze
 
   view_root = Rails.root.join("app/views")
 
