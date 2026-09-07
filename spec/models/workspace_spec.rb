@@ -225,6 +225,19 @@ RSpec.describe Workspace, type: :model do
         expect(klass.ancestors).not_to include(ActiveRecord::RecordInvalid)
       end
     end
+
+    # The raise sites draw the boundary: these three are every outcome #admit
+    # can raise, so a caller that treats "could not admit" as one case names one
+    # class — and a fourth admission outcome is caught without editing it (#689).
+    it "descend from Workspace::AdmissionError" do
+      [ Workspace::AlreadyMember, Workspace::AtCapacity, Workspace::NotAdmittableError ].each do |klass|
+        expect(klass.ancestors).to include(Workspace::AdmissionError)
+      end
+    end
+
+    it "exclude the lifecycle guard, which is raised from archive!/discard!, not #admit" do
+      expect(Workspace::HomeWorkspaceProtectedError.ancestors).not_to include(Workspace::AdmissionError)
+    end
   end
 
   describe "#create_project" do

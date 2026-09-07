@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_03_190000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_07_090000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -94,7 +94,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_190000) do
     t.integer "user_id", null: false
     t.index ["discarded_at"], name: "index_client_accesses_on_discarded_at"
     t.index ["project_id", "user_id"], name: "index_client_accesses_on_project_id_and_user_id", unique: true
-    t.index ["project_id"], name: "index_client_accesses_on_project_id"
     t.index ["user_id"], name: "index_client_accesses_on_user_id"
   end
 
@@ -163,7 +162,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_190000) do
     t.index ["role_id"], name: "index_memberships_on_role_id"
     t.index ["user_id", "last_accessed_at"], name: "index_memberships_on_user_id_and_last_accessed_at"
     t.index ["user_id", "workspace_id"], name: "index_memberships_on_user_id_and_workspace_id", unique: true
-    t.index ["user_id"], name: "index_memberships_on_user_id"
     t.index ["workspace_id"], name: "index_memberships_on_workspace_id"
   end
 
@@ -223,7 +221,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_190000) do
     t.index ["created_by_id"], name: "index_projects_on_created_by_id"
     t.index ["discarded_at"], name: "index_projects_on_discarded_at"
     t.index ["workspace_id", "slug"], name: "index_projects_on_workspace_id_and_slug", unique: true
-    t.index ["workspace_id"], name: "index_projects_on_workspace_id"
   end
 
   create_table "reauthentication_challenges", force: :cascade do |t|
@@ -252,7 +249,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_190000) do
     t.index ["created_by_id"], name: "index_resources_on_created_by_id"
     t.index ["discarded_at"], name: "index_resources_on_discarded_at"
     t.index ["project_id", "position"], name: "index_resources_on_project_id_and_position"
-    t.index ["project_id"], name: "index_resources_on_project_id"
     t.index ["resourceable_type", "resourceable_id"], name: "index_resources_on_resourceable_type_and_resourceable_id", unique: true
   end
 
@@ -359,7 +355,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_190000) do
     t.index ["created_by_id"], name: "index_workspace_join_links_on_created_by_id"
     t.index ["token_digest"], name: "index_workspace_join_links_on_token_digest", unique: true
     t.index ["workspace_id", "revoked_at"], name: "index_workspace_join_links_on_workspace_id_and_revoked_at"
-    t.index ["workspace_id"], name: "index_workspace_join_links_on_workspace_id"
     t.index ["workspace_id"], name: "index_workspace_join_links_unique_active_per_workspace", unique: true, where: "revoked_at IS NULL"
   end
 
