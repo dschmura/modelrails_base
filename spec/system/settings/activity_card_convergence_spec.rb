@@ -75,4 +75,34 @@ RSpec.describe "Settings sessions — card convergence", type: :system do
     expect(metrics["labelWeight"]).to eq(metrics["deviceWeight"])
     expect(metrics["labelColor"]).to eq(metrics["deviceColor"])
   end
+
+  it "shares one text left edge between the device list and the activity card" do
+    visit settings_sessions_path
+    expect(page).to have_css("[data-testid='account-activity-item']")
+
+    jag = page.evaluate_script(<<~JS)
+      (() => {
+        const device   = document.querySelector("[data-testid='device-list'] li p");
+        const activity = document.querySelector("[data-testid='account-activity-item'] span");
+        return Math.abs(device.getBoundingClientRect().left -
+                        activity.getBoundingClientRect().left);
+      })()
+    JS
+
+    expect(jag).to be <= 1,
+      "Device-row text and activity-row text should start at the same x; " \
+      "they were #{jag}px apart."
+  end
+
+  it "gives the device list its own heading, in a card, accessibly in both themes" do
+    visit settings_sessions_path
+
+    device_section = page.find("[data-testid='device-list']").find(:xpath, "ancestor::section[1]")
+    expect(device_section).to have_css("h2", text: I18n.t("settings.sessions.index.devices_heading"))
+
+    page.execute_script("document.querySelectorAll('[data-controller=\"toast-pill\"], [data-controller=\"toast-card\"]').forEach(el => el.remove())")
+    axe_options = { runOnly: { type: "tag", values: [ "wcag2aaa" ] } }
+    expect(axe_clean_in_both_themes?(axe_options)).to be(true),
+      "Accessibility violations found:\n#{axe_violations_in_both_themes(axe_options).join("\n")}"
+  end
 end
