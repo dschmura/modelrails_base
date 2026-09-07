@@ -13,9 +13,16 @@
 # email and no broadcast behind them.
 #
 # So the job stamps its own arrival. Stamped at the START of `perform`, not the
-# end: a job that was claimed belongs to Solid Queue's retry/discard policy, so
+# end: an event whose job was CLAIMED is already stamped, so
 # `NotificationDispatchReconcileJob` covers only the never-enqueued gap and can
 # never re-run an event whose delivery legs already fanned out.
+#
+# What that deliberately does NOT cover: a claimed job that then raises.
+# `Noticed::EventJob` declares no `retry_on` (only
+# `discard_on ActiveJob::DeserializationError`), so it lands in
+# `solid_queue_failed_executions` and waits for a manual retry — there is no
+# automatic recovery and no dashboard here. Closing that is the follow-up issue
+# filed from the #927 review.
 #
 # `before_perform` rather than an override: the gem hardcodes `EventJob` at
 # `Deliverable#deliver`, so no subclass can be substituted. `update_column`

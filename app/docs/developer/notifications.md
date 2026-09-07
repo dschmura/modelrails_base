@@ -263,7 +263,9 @@ What is atomic is the ledger: `Noticed::Deliverable#deliver` writes the event ro
 
 So the job records its own arrival. A `before_perform` callback registered in `config/initializers/noticed.rb` stamps `noticed_events.dispatched_at` at the **start** of `Noticed::EventJob`, and `NotificationDispatchReconcileJob` re-enqueues any event still carrying NULL five minutes later (see [Background jobs](#background-jobs)).
 
-Stamping at the start, not the end, is what keeps the sweep safe: a job that was *claimed* belongs to Solid Queue's own retry and discard policy, and it is already stamped. The reconciler therefore covers only the never-enqueued gap and can never re-run an event whose delivery legs already fanned out. A claimed job that then fails is not this sweep's business.
+Stamping at the start, not the end, is what keeps the sweep safe: an event whose job was *claimed* is already stamped, so the reconciler covers only the never-enqueued gap and can never re-run an event whose delivery legs already fanned out.
+
+**What the watermark does not cover**, stated plainly because it is easy to assume otherwise: a job that was claimed and then *raised*. `Noticed::EventJob` declares no `retry_on` — only `discard_on ActiveJob::DeserializationError` — and Solid Queue adds no retry policy of its own, so such a job lands in `solid_queue_failed_executions` and stays there until someone retries it by hand. A pruned worker process likewise *fails* its claimed executions rather than releasing them, and this app ships no Mission Control UI to notice either. The reconciler is not that safety net and cannot be: the row is stamped, so it is invisible to the sweep by design. Closing that gap is the follow-up issue filed from the #927 review.
 
 ## Broadcast pipeline
 
@@ -409,9 +411,20 @@ Per-user retention enforcement. For every user:
 
 ### `NotificationDispatchReconcileJob`
 
-Re-enqueues `Noticed::EventJob` for every event whose `dispatched_at` is still NULL more than `GRACE` (5 minutes) after it was written — see [Dispatch reliability](#dispatch-reliability) for why that column exists and why a claimed job is never this job's business. Events with `notifications_count == 0` are skipped: there is no recipient for a re-enqueue to reach. The scan rides the partial index on `noticed_events (created_at) WHERE dispatched_at IS NULL`, which is empty in steady state.
+Re-enqueues `Noticed::EventJob` for every event whose `dispatched_at` is still NULL — see [Dispatch reliability](#dispatch-reliability) for why that column exists and what it deliberately does not cover. The scan is bounded at both ends, `created_at BETWEEN MAX_LOOKBACK.ago AND GRACE.ago`:
 
-Same fault posture as `NotificationCleanupJob`: each re-enqueue is rescued and reported through `Rails.error` with the event id, and a cycle in which *every* attempt failed re-raises so Solid Queue records a failure rather than logging a successful sweep.
+- **`GRACE` (5 minutes)** is well past any plausible enqueue latency, and short enough that a recovered notification is late rather than missing.
+- **`MAX_LOOKBACK` (24 hours)** stops a row that can never be stamped — a deserialization discard, a fork's hand-written row — from being re-enqueued every cycle forever. It is also why the migration that added the column **backfills existing rows** with their own `created_at`: without that, the first sweep after deploy would have re-delivered the entire notification history, since nothing prunes events and `NotificationCleanupJob` deletes notification rows without touching `notifications_count`.
+
+Events with `notifications_count == 0` are skipped: nobody for a re-enqueue to reach. The scan rides the partial index on `noticed_events (created_at) WHERE dispatched_at IS NULL`, which is empty in steady state.
+
+**The sweep stamps each row itself, before enqueuing it.** Its enqueue is the one retry an event gets. Without that stamp, a delivery queue backed up past the 15-minute cadence would hand the next cycle the same unstamped row and fan a second copy of every email out to every recipient. Stamping *before* the enqueue rather than after settles the other direction too: if the enqueue raises, the row is already stamped and is never retried, and the per-row rescue reports it — a lost retry that is visible beats a duplicate fan-out that is not.
+
+It runs on `default`, not `low`: `low` is chartered as work nobody is waiting on, and this re-delivers a notification a user is waiting on and already did not get. Same reasoning that keeps the two workspace notifier sweeps off `low`.
+
+One constraint on forks: noticed's `deliver(..., wait:)` / `wait_until:` deliberately enqueues `EventJob` for later, which this sweep reads as a lost enqueue and re-delivers early. No dispatch in this app uses them; a fork that adds one must widen `GRACE` past its longest wait, or exclude that notifier from the scan.
+
+Same fault posture as `NotificationCleanupJob`: each re-enqueue is rescued and reported through `Rails.error` with the event id, and a cycle in which *every* attempt failed re-raises so Solid Queue records a failure rather than logging a successful sweep. The recovered count is logged at the end of each cycle — a non-zero count means a delivery nearly went missing.
 
 ## Security event audit coverage
 
