@@ -810,6 +810,7 @@ RSpec.describe "Template invariants" do
         "webauthn_challenges_sweep" => "low",
         "activity_log_retention_sweep" => "low",
         "notification_cleanup" => "low",
+        "notification_dispatch_reconcile" => "low",
         "workspace_invitation_expiring_sweep" => "default",
         "workspace_capacity_sweep" => "default"
       }
