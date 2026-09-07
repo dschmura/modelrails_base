@@ -127,7 +127,6 @@ group :test do
   gem "cuprite" # pure-Ruby CDP driver (ferrum) — no Node/browser-driver dependency
   gem "simplecov", require: false
   gem "webmock"
-  gem "rails-controller-testing"
 end
 
 group :development do
