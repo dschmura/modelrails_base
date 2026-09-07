@@ -362,18 +362,16 @@ which is why the members page filters and sorts in Ruby (`WorkspaceRoster`).
 | Column | Cipher | Why |
 | ------ | ------ | --- |
 | `users.email_address` | deterministic, downcased | sign-in lookup; unique index |
-| `authentications.uid` | deterministic | `(provider, uid)` lookup and unique index — for email-provider rows this *is* the address |
+| `authentications.uid` | deterministic | `(provider, uid)` lookup and unique index; email-provider rows carry the user id, not the address (#903) |
 | `invitations.email` | deterministic, downcased | one pending invitation per address per invitable |
 | `magic_link_tokens.email` | deterministic, downcased | one unconsumed token per address |
 | `users.pending_email`, `first_name`, `last_name` | non-deterministic | never looked up |
 | `authentications.email`, `invitations.company_name`, `client_accesses.company_name` | non-deterministic | never looked up |
 
 `workspaces.name` stays plaintext deliberately: the slug is the name,
-parameterized, and sits in every URL. Three properties worth knowing: the
-deterministic columns for one address — `users.email_address` and the
-email-provider `authentications.uid` — hold identical bytes, so a leaked dump
-joins them; the `deterministic_key` cannot be rotated (Rails raises on a
-key list), so it is backed up with the credentials key; and the two
+parameterized, and sits in every URL. Two properties worth knowing: the
+`deterministic_key` cannot be rotated (Rails raises on a key list), so it is
+backed up with the credentials key; and the two
 invitation-token columns are encrypted *differently* on purpose —
 `invitations.token` is deterministic (its `find_by` lookup and unique index
 need it) while `authentications.pending_invitation_token` is not (nothing
