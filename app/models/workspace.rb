@@ -102,6 +102,16 @@ class Workspace < ApplicationRecord
       next if discarded?
       raise HomeWorkspaceProtectedError if home?
       raise Suspendable::SuspendedError if suspended?
+      # The cascade stays inside this transaction: a workspace discard and its
+      # projects' discard commit together or not at all, and on SQLite that one
+      # write transaction is also what keeps a concurrent create_project from
+      # interleaving (`lock!` is a no-op here — Arel's SQLite visitor emits no
+      # lock clause). The cost is the single writer held for N project UPDATEs,
+      # bounded by max_projects (default 3); revisit if a fork raises
+      # max_projects past ~100, at which point move the cascade to a job that
+      # carries the actor (a `discarded?` guard on create_project was
+      # considered and declined: #688 pins that the model deliberately does not
+      # guard it — see #1040).
       projects.kept.find_each(&:discard!)
       super
     end
