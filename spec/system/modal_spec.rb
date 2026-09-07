@@ -116,21 +116,27 @@ RSpec.describe "Modal system", type: :system do
     end
   end
 
-  # #713 filed this as a live bug: Turbo's snapshot clone normalises only `select`,
-  # `input[type=password]` and `noscript`, so a dialog left open when the user
-  # navigates away should survive into the cached page and come back non-modal but
-  # still carrying the hardcoded `aria-modal="true"` (UI::DialogComponent) — a named
-  # dialog announced in DOM order, claiming the rest of the page is not there.
-  # Measured on turbo-rails 2.0.23 it does not happen: Turbo defers `snapshot.clone()`
-  # one event-loop tick past `turbo:before-cache`, and in that window the body is
-  # replaced and `modal_controller#disconnect()` closes the dialog on the (now
-  # detached) old body that the clone is taken from. Every dialog in this app is under
-  # that controller, so the protection is `disconnect()` — incidental, and load-bearing.
-  # This example pins it: drop the close from `disconnect()` and #713 fails here
-  # instead of shipping. The closed dialog keeps its `aria-modal` attribute but is
-  # `display: none`, so the assertion is deliberately visibility-scoped — nothing a
-  # screen reader can reach may claim modality.
+  # #713. Turbo's snapshot clone normalises only `select`, `input[type=password]` and
+  # `noscript`, so a dialog left open when the user navigates away survives into the
+  # cached page and comes back non-modal but still carrying the hardcoded
+  # `aria-modal="true"` (UI::DialogComponent) — a named dialog announced in DOM order,
+  # claiming the rest of the page is not there, with Escape dead and focus on <body>.
+  #
+  # Whether that happens is a race, which is why there are two examples here. Turbo
+  # defers `snapshot.clone()` one event-loop tick past `turbo:before-cache`, so it is
+  # taken from the old body — and `modal_controller#disconnect()` closes any open
+  # dialog on that body when Turbo replaces it. Which of the two lands first depends
+  # entirely on how long the destination's head merge takes.
   describe "Turbo snapshot restore (#713)" do
+    # The identical-head case, where `disconnect()` happens to win: every page in this
+    # app ships the same stylesheets and nothing provides `yield :head`, so
+    # `PageRenderer#copyNewHeadStylesheetElements` has nothing to append, the merge
+    # settles in microtasks, and the body is replaced before the clone. That is luck,
+    # not design — see the example below for the same navigation once the merge has to
+    # wait — and this one pins it so the incidental protection cannot be removed
+    # silently. The closed dialog keeps its `aria-modal` attribute but is
+    # `display: none`, so the assertion is deliberately visibility-scoped: nothing a
+    # screen reader can reach may claim modality.
     it "restores with no open dialog and nothing exposed claiming modality" do
       inject_test_modal
       click_button "Open Modal"
@@ -158,6 +164,58 @@ RSpec.describe "Modal system", type: :system do
       expect(page).to have_css("#test-modal", visible: :all)
       expect(page).to have_no_css("dialog[open]")
       expect(page).to have_no_css('[aria-modal="true"]')
+    end
+
+    # The case the app cannot rely on not happening. When the destination's head merge
+    # has to append a stylesheet, `copyNewHeadStylesheetElements` awaits its load
+    # event — which never resolves in a microtask — so Turbo's deferred clone runs
+    # while the old body is still in place and its dialog still open. Back then
+    # restores a live `dialog[open]` at `display: block` matching `:modal`, with focus
+    # on <body>: a visible, named dialog claiming the rest of the page is not there.
+    #
+    # Stripping the current head's stylesheet links is how the test reaches that path:
+    # it makes /about's identical links count as new. A fork needs no trick — one
+    # page-specific stylesheet through the layout's `yield :head` seam is the same code
+    # path with one link instead of four.
+    it "restores with no open dialog when the destination's head merge awaits a stylesheet" do
+      inject_test_modal
+      click_button "Open Modal"
+      expect(page).to have_css("dialog[open]")
+
+      page.execute_script(<<~JS)
+        const link = document.createElement('a');
+        link.id = 'test-modal-away';
+        link.href = '#{page_path(:about)}';
+        link.textContent = 'Leave via Turbo';
+        link.setAttribute('style', 'display:inline-flex;min-width:44px;min-height:44px;align-items:center');
+        document.querySelector('[data-modal-target="panel"]').appendChild(link);
+      JS
+
+      stripped = page.evaluate_script(<<~JS)
+        (() => {
+          const links = [...document.querySelectorAll('head link[rel="stylesheet"]')];
+          links.forEach((l) => l.remove());
+          return links.length;
+        })()
+      JS
+      expect(stripped).to be_positive
+
+      click_link "Leave via Turbo"
+      expect(page).to have_current_path(page_path(:about))
+
+      page.go_back
+
+      expect(page).to have_current_path(root_path)
+      expect(page).to have_css("#test-modal", visible: :all)
+      expect(page).to have_no_css("dialog[open]")
+      expect(page).to have_no_css('[aria-modal="true"]')
+
+      # Land on a served page again. The teardown axe audit has no per-example opt-out
+      # (by design, #912), and it would otherwise audit the stylesheet-less document
+      # this example deliberately created — reporting target-size failures that are an
+      # artifact of the setup, not of the UI.
+      visit root_path
+      expect(page).to have_css("head link[rel='stylesheet']", visible: :all)
     end
   end
 

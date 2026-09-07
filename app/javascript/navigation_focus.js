@@ -32,7 +32,12 @@ document.addEventListener("turbo:load", () => {
   // exactly the "destinations that focus something themselves" case above. On a
   // non-morph render Turbo's own autofocus has already run and focus is not
   // parked, so this never fires there.
-  const autofocused = document.querySelector("[autofocus]")
+  // Same filter as Turbo's own queryAutofocusableElement, so the morph path picks the
+  // element the non-morph path would have picked: the first [autofocus] that is not
+  // inert, disabled, hidden, or inside a closed details/dialog.
+  const autofocused = Array.from(document.querySelectorAll("[autofocus]")).find((el) =>
+    el.closest("[inert], :disabled, [hidden], details:not([open]), dialog:not([open])") === null &&
+    typeof el.focus === "function")
   if (autofocused) {
     autofocused.focus({ preventScroll: true })
     if (document.activeElement === autofocused) return
