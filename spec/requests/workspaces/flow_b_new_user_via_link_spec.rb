@@ -82,6 +82,7 @@ RSpec.describe "Flow B: new user signs up via workspace join link", type: :reque
       }.not_to change(User, :count)
 
       expect(response).to redirect_to(new_session_path)
+      expect(flash[:alert]).to eq(I18n.t("magic_link_callbacks.create.invalid"))
     end
   end
 end

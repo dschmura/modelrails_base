@@ -39,9 +39,9 @@ workers:
 
 | Queue | Convention | Examples |
 |---|---|---|
-| `default` | Business logic, sweeps, model callbacks, anything you `perform_later` without specifying a queue | `WorkspaceInvitationExpiringSweepJob`, custom callback jobs |
+| `default` | Business logic, model callbacks, the notifier sweeps, anything you `perform_later` without specifying a queue | `WorkspaceInvitationExpiringSweepJob`, `WorkspaceCapacitySweepJob`, custom callback jobs |
 | `mailers` | Action Mailer / mailer-class jobs (network-bound, slower) | `DigestMailerJob`, `UserMailer.deliver_later` |
-| `low` | Best-effort cleanup, retention sweeps — work that can wait without operational impact | Future use; reserved for jobs you'd be OK losing in a deploy edge case |
+| `low` | Best-effort cleanup and retention sweeps — nobody is waiting on it, and it must never delay work someone *is* waiting on | `clear_solid_queue_finished_jobs`, `NotificationCleanupJob`, `ExpiredSessionsSweepJob`, `WebauthnChallengesSweepJob`, `UnattachedBlobsSweepJob`, `ActivityLogRetentionSweepJob` |
 
 ### Routing a job to a specific queue
 
@@ -83,7 +83,7 @@ Recurring jobs are declared in `config/recurring.yml` and dispatched by Solid Qu
 
 ### Why the sweeps are on the `low` queue
 
-`low` is the template's declared home for best-effort cleanup and retention work: nobody is waiting on it, and it must never delay a job someone *is* waiting on. The two `workspace_*` sweeps stay on `default` because they dispatch user-facing notifiers.
+Six of the nine entries are pure housekeeping — nothing downstream is waiting on them — so they belong on `low`, where they cannot delay work someone *is* waiting on. The two `workspace_*` sweeps stay on `default` because they dispatch user-facing notifiers.
 
 A recurring entry with **no** `queue:` key is not "the default queue" — Solid Queue resolves it to `SolidQueue::RecurringJob`, whose queue is `solid_queue_recurring`. Nothing in `config/queue.yml` polls that, so such a job enqueues and is never claimed, silently. Always name a queue.
 
