@@ -52,15 +52,9 @@ RSpec.describe WorkspaceCapacityApproachingNotifier, type: :notifier do
     end
   end
 
-  describe "recipient resolution" do
-    it "resolves to all workspace owners (excludes non-owner members)" do
-      event = described_class.with(record: workspace, metric: "members", current: 8, limit: 10)
-      recipients = event.send(:evaluate_recipients)
-      expect(recipients).to match_array([ owner_a, owner_b ])
-      expect(recipients).not_to include(non_owner)
-    end
-  end
-
+  # Recipient resolution itself is asserted through the real dispatch under
+  # "dispatching" below (a row for each owner, none for the non-owner) — the
+  # public surface says the same thing, so there is no resolver example here.
   describe "recipient resolution query efficiency" do
     # A third owner so an N+1 (one user_preferences query per owner) diverges
     # loudly from the single preloaded query the contract requires.
