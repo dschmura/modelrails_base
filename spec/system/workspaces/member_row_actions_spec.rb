@@ -32,9 +32,10 @@ RSpec.describe "Member row actions escape the members frame", type: :system do
   # page is audited with a row button held in :hover. That state blends
   # `text-danger`/`text-success` through the app-wide `hover:opacity-80` idiom
   # down to 5.0–6.4:1 — a REAL AAA hole, but in a pattern that spans 7 sites
-  # including a UI component, so it is reported for its own issue rather than
-  # half-fixed here. Parking on the page heading (inert text, no hover style)
-  # audits the resting state every other system spec audits.
+  # including a UI component, so it is #1068 rather than half-fixed here.
+  # Parking on the page heading (inert text, no hover style) audits the resting
+  # state every other system spec audits. Delete this helper when #1068 lands —
+  # left in place afterwards it would quietly protect the same regression.
   def park_pointer
     find("h1", match: :first).hover
   end
