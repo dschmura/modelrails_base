@@ -116,6 +116,51 @@ RSpec.describe "Modal system", type: :system do
     end
   end
 
+  # #713 filed this as a live bug: Turbo's snapshot clone normalises only `select`,
+  # `input[type=password]` and `noscript`, so a dialog left open when the user
+  # navigates away should survive into the cached page and come back non-modal but
+  # still carrying the hardcoded `aria-modal="true"` (UI::DialogComponent) — a named
+  # dialog announced in DOM order, claiming the rest of the page is not there.
+  # Measured on turbo-rails 2.0.23 it does not happen: Turbo defers `snapshot.clone()`
+  # one event-loop tick past `turbo:before-cache`, and in that window the body is
+  # replaced and `modal_controller#disconnect()` closes the dialog on the (now
+  # detached) old body that the clone is taken from. Every dialog in this app is under
+  # that controller, so the protection is `disconnect()` — incidental, and load-bearing.
+  # This example pins it: drop the close from `disconnect()` and #713 fails here
+  # instead of shipping. The closed dialog keeps its `aria-modal` attribute but is
+  # `display: none`, so the assertion is deliberately visibility-scoped — nothing a
+  # screen reader can reach may claim modality.
+  describe "Turbo snapshot restore (#713)" do
+    it "restores with no open dialog and nothing exposed claiming modality" do
+      inject_test_modal
+      click_button "Open Modal"
+      expect(page).to have_css("dialog[open]")
+
+      # A real Turbo link, clicked. `visit` is a hard browser goto: it fires no
+      # `turbo:before-cache` and leaves the snapshot cache empty, so Back would
+      # re-request the page and the restore under test never happens. The link goes
+      # inside the panel because a modal dialog swallows every pointer event aimed
+      # at the page behind it.
+      page.execute_script(<<~JS)
+        const link = document.createElement('a');
+        link.id = 'test-modal-away';
+        link.href = '#{page_path(:about)}';
+        link.textContent = 'Leave via Turbo';
+        link.setAttribute('style', 'display:inline-flex;min-width:44px;min-height:44px;align-items:center');
+        document.querySelector('[data-modal-target="panel"]').appendChild(link);
+      JS
+      click_link "Leave via Turbo"
+      expect(page).to have_current_path(page_path(:about))
+
+      page.go_back
+
+      expect(page).to have_current_path(root_path)
+      expect(page).to have_css("#test-modal", visible: :all)
+      expect(page).to have_no_css("dialog[open]")
+      expect(page).to have_no_css('[aria-modal="true"]')
+    end
+  end
+
   describe "reduced motion" do
     it "skips animation when prefers-reduced-motion is set" do
       cdp_emulate_reduced_motion
