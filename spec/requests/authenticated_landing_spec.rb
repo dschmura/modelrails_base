@@ -30,11 +30,18 @@ RSpec.describe "Authenticated landing seam", type: :request do
     # passes the two examples above. Stubbing the seam and driving a REAL
     # sign-in is what fails on that change.
     #
-    # allow_any_instance_of (a named smell) because the controller instance
-    # is the framework's, created inside the request; there is nothing else
-    # to hold. It does not verify the method exists — but a rename leaves the
-    # stub inert and lands the redirect on root, which fails this example
-    # anyway.
+    # allow_any_instance_of (a named smell) because the controller instance is
+    # the framework's, created inside the request; there is nothing else to
+    # hold. It IS verified: spec_helper.rb sets verify_partial_doubles, so the
+    # any-instance recorder refuses an undefined method — renaming the seam
+    # fails this example at stub time with "SessionsController does not
+    # implement #authenticated_home_path", not with a quiet wrong redirect.
+    #
+    # Not a duplicate of authenticated_home_spec.rb:4-13, which drives the same
+    # seam through a real client-only flow with no mock at all. That one pins
+    # WHERE the fork-agnostic default sends a client; this one pins that the
+    # landing is dispatched BY METHOD NAME — a fork's override is honoured only
+    # while the call stays dynamic.
     it "sends a real sign-in wherever a fork points authenticated_home_path" do
       allow_any_instance_of(SessionsController)
         .to receive(:authenticated_home_path).and_return(page_path(:about))

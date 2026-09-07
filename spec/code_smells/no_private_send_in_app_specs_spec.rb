@@ -30,11 +30,22 @@ RSpec.describe "Code smell: no `send` into private surfaces from specs" do
   #   does — reaches nothing private and passes here by construction rather
   #   than by a blanket file exemption.
   #
+  # The documented hole, so nobody mistakes it for coverage: a receiverless
+  # send whose argument is a VARIABLE is invisible here by design — that is
+  # exactly how the helper dispatch above passes — so a private method name
+  # held in a variable and sent to self escapes the guard. Closing it would
+  # cost every legitimate helper dispatch in the suite.
+  #
   # Regex, not Prism: none of the other spec/code_smells guards parse, and
-  # matching their shape is worth more than this one's precision. A `send`
-  # inside a comment or heredoc would be a false positive; revisit with a
+  # matching their shape is worth more than this one's precision. Comment
+  # lines are skipped in the scan below (this file's own prose is the reason);
+  # a `send` inside a heredoc would still be a false positive. Revisit with a
   # CallNode walk if one ever appears.
   private_send = /\.(?:send|__send__)\b|(?<![.\w:])(?:send|__send__)\s*[( ]\s*:/
+
+  # A comment is not a call. Both scans below share this so the exemption
+  # counts and the offender list can never disagree about what a match is.
+  offending = ->(line) { line.match?(private_send) && !line.strip.start_with?("#") }
 
   # path => exact count + reason. The count is the positive control: it fails
   # loudly if an exempt file is renamed, or if the pattern silently stops
@@ -50,12 +61,6 @@ RSpec.describe "Code smell: no `send` into private surfaces from specs" do
       sends: 2,
       reason: "subject IS bin/parallel-rspec's own runner object — same " \
               "test-tooling exemption (ruled 2026-08-29)"
-    },
-    "spec/code_smells/no_private_send_in_app_specs_spec.rb" => {
-      sends: 2,
-      reason: "this guard has to spell the forbidden forms to explain " \
-              "itself; both matches are prose inside the comments above, " \
-              "and the exact 2 is what keeps a real one from hiding there"
     }
   }.freeze
 
@@ -65,7 +70,7 @@ RSpec.describe "Code smell: no `send` into private surfaces from specs" do
       next [] if allowed_sends.key?(relative)
 
       File.readlines(file).each_with_index.filter_map do |line, i|
-        "#{relative}:#{i + 1}: #{line.strip}" if line.match?(private_send)
+        "#{relative}:#{i + 1}: #{line.strip}" if offending.call(line)
       end
     end
 
@@ -80,7 +85,7 @@ RSpec.describe "Code smell: no `send` into private surfaces from specs" do
   it "each exemption still holds exactly the sends it was exempted for" do
     counts = allowed_sends.to_h do |relative, _|
       path = Rails.root.join(relative)
-      lines = path.exist? ? path.readlines.count { |line| line.match?(private_send) } : :missing_file
+      lines = path.exist? ? path.readlines.count { |line| offending.call(line) } : :missing_file
       [ relative, lines ]
     end
 
