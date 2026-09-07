@@ -171,6 +171,44 @@ RSpec.describe ForkFlow do
     end
   end
 
+  # #789 canary — the guard above proves no spawn honours an inherited GIT_DIR;
+  # this watches the outcome directly, on the very file that was corrupted.
+  #
+  # --path-format=absolute because --git-common-dir is RELATIVE in a main
+  # checkout and would otherwise resolve against the worker's CWD. In a linked
+  # worktree it resolves to the MAIN checkout's .git — which is exactly the
+  # shared config `git config` at local scope writes, and exactly what #789 lost.
+  #
+  # Scoped to the keys this leak writes, and to --local, rather than the whole
+  # config: under Lefthook the window between the two hooks is minutes long, and
+  # a developer running `git config` in another terminal must not turn this red
+  # on innocent input. parallel_tests groups whole files, so one worker owns this
+  # file and the canary never races itself.
+  def checkout_config_canary
+    common_dir = IO.popen(
+      ForkFlow::CLEAN_GIT_ENV,
+      [ "git", "-C", Rails.root.to_s, "rev-parse", "--path-format=absolute", "--git-common-dir" ],
+      err: File::NULL, &:read
+    ).to_s.strip
+    return "(not a git checkout)" if common_dir.empty?
+
+    IO.popen(
+      ForkFlow::CLEAN_GIT_ENV,
+      [ "git", "--git-dir=#{common_dir}", "config", "--local", "--get-regexp",
+        '^(user\.|core\.bare|gc\.auto|maintenance\.auto|remote\.)' ],
+      err: File::NULL, &:read
+    ).to_s
+  end
+
+  before(:context) { @canary_before = checkout_config_canary }
+
+  after(:context) do
+    expect(checkout_config_canary).to eq(@canary_before),
+      "this spec file changed the git config of the checkout it was running in " \
+      "(#789). A git spawn escaped its -C scope — most likely an inherited " \
+      "GIT_DIR that some new call site does not clear."
+  end
+
   # -------------------------------------------------------------- name safety
 
   describe "name validation" do
