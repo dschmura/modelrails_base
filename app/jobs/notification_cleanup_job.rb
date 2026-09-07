@@ -20,7 +20,11 @@ class NotificationCleanupJob < ApplicationJob
     failed = 0
     last_error = nil
 
-    User.find_each do |user|
+    # includes(:preferences): cleanup_for reads the row through
+    # ApplicationNotifier.preferences_for, which is an N+1 without it. The
+    # preload rides each find_each batch, so the cost is one extra query per
+    # batch rather than one per user.
+    User.includes(:preferences).find_each do |user|
       attempted += 1
       cleanup_for(user)
     rescue StandardError => e
