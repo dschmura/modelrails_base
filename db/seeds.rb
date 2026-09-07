@@ -34,7 +34,7 @@ if TenancyConfig.shared?
 
   # Operator vouches for the email (they supplied it); the password-set link
   # closes the loop by requiring inbox access.
-  owner.authentications.find_or_create_by!(provider: "email", uid: owner.email_address) do |auth|
+  owner.authentications.find_or_create_by!(provider: "email") do |auth|
     auth.email = owner.email_address
     auth.verified_at = Time.current
   end

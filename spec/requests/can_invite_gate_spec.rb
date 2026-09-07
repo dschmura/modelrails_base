@@ -9,7 +9,7 @@ RSpec.describe "User#can_invite? — verified_at writer inventory", type: :reque
 
   describe "writers that legitimately prove the address" do
     it "email round-trip: Authentication#verify! satisfies the gate" do
-      auth = user.authentications.create!(provider: "email", uid: user.email_address)
+      auth = user.authentications.create!(provider: "email")
       expect(user.reload.can_invite?).to be(false)
 
       auth.verify!
