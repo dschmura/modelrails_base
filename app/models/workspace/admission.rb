@@ -23,6 +23,11 @@ class Workspace < ApplicationRecord
       memberships.kept.count >= max_members
     end
 
+    # Same shape as at_capacity?, for the other tenant limit: `>=`, evaluated before the insert.
+    def at_project_capacity?
+      projects.kept.count >= max_projects
+    end
+
     # Pinned to the lowest-privilege system role; per-link role customization is deliberately deferred.
     def default_self_join_role
       Role.find_by!(slug: "member", workspace_id: nil)
