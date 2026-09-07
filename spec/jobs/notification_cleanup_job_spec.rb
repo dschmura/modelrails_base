@@ -171,6 +171,8 @@ RSpec.describe NotificationCleanupJob, type: :job do
         small = user_preferences_queries_after_adding(5)
         large = user_preferences_queries_after_adding(50)
 
+        # A count of zero would satisfy the equality without proving anything.
+        expect(small).to be_positive
         expect(large).to eq(small)
       end
     end
