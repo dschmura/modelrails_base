@@ -16,20 +16,24 @@ RSpec.describe "Stimulus controller registration", type: :system do
   # the autoload failures fire during page load. Every `visit` already waits
   # for controllers to connect (spec/support/stimulus_ready.rb), so by the time
   # an example asserts, the loader has run.
-  CONSOLE_CAPTURE_JS = <<~JS
-    window.__consoleErrors = [];
-    const originalConsoleError = console.error;
-    console.error = (...args) => {
-      try { window.__consoleErrors.push(args.map(String).join(" ")) } catch (_) {}
-      originalConsoleError.apply(console, args);
-    };
-  JS
+  # A `let`, not a constant: a bare constant in a describe block lands on
+  # Object and collides across parallel workers (#607).
+  let(:console_capture_js) do
+    <<~JS
+      window.__consoleErrors = [];
+      const originalConsoleError = console.error;
+      console.error = (...args) => {
+        try { window.__consoleErrors.push(args.map(String).join(" ")) } catch (_) {}
+        originalConsoleError.apply(console, args);
+      };
+    JS
+  end
 
   def console_errors
     page.evaluate_script("window.__consoleErrors || []")
   end
 
-  before { cdp_add_init_script(CONSOLE_CAPTURE_JS) }
+  before { cdp_add_init_script(console_capture_js) }
 
   it "logs no console error on the signed-out landing page" do
     visit "/"
