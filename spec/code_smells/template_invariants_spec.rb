@@ -801,6 +801,8 @@ RSpec.describe "Template invariants" do
     # the assertion that the declaration is honoured. The two workspace sweeps
     # stay on `default` deliberately — they dispatch notifiers a user waits on,
     # so they must not queue behind an hour of blob purges (#894).
+    # `notification_dispatch_reconcile` is on `default` for the same reason: it
+    # re-delivers a notification that already failed to arrive once (#927).
     it "recurring.yml keeps cleanup sweeps on `low` and notifier sweeps on `default`" do
       recurring = YAML.safe_load(recurring_yml_raw, aliases: true).fetch("production")
       expected = {
@@ -810,6 +812,7 @@ RSpec.describe "Template invariants" do
         "webauthn_challenges_sweep" => "low",
         "activity_log_retention_sweep" => "low",
         "notification_cleanup" => "low",
+        "notification_dispatch_reconcile" => "default",
         "workspace_invitation_expiring_sweep" => "default",
         "workspace_capacity_sweep" => "default"
       }
