@@ -113,7 +113,6 @@ data:
     - ['workspaces.archive.*', 'config/locales/%{locale}/workspaces.%{locale}.yml']
     - ['workspaces.archived_banner', 'config/locales/%{locale}/workspaces.%{locale}.yml']
     - ['workspaces.brandings.*', 'config/locales/%{locale}/workspaces.%{locale}.yml']
-    - ['workspaces.context_banner.*', 'config/locales/%{locale}/workspaces.%{locale}.yml']
     - ['workspaces.create.*', 'config/locales/%{locale}/workspaces.%{locale}.yml']
     - ['workspaces.creation_disabled', 'config/locales/%{locale}/workspaces.%{locale}.yml']
     - ['workspaces.destroy.*', 'config/locales/%{locale}/workspaces.%{locale}.yml']

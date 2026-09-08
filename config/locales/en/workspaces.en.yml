@@ -1,8 +1,5 @@
 en:
   workspaces:
-    context_banner:
-      label: "Workspace context"
-      in_workspace_html: "You're in <strong>%{name}</strong>"
     not_found: "Workspace not found."
     locked_notice: "This workspace is locked."
     locked_row:
