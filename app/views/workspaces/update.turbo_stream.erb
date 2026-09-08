@@ -1,8 +1,11 @@
-<%# Replace the workspace name heading in the persistent identity bar when
-    renamed in-context — shares shared/_workspace_name_link with
-    shared/_workspace_identity_bar so the two can't drift. %>
-<%= turbo_stream.replace "workspace-name-heading" do %>
-  <%= render "shared/workspace_name_link", workspace: @workspace %>
+<%# Replace the sidebar switcher's trigger when the workspace is renamed
+    in-context. The WHOLE trigger, not the name inside it: name, logo and role
+    are one control now, and patching the name alone once injected an <a> into
+    the <button> (nested-interactive). Shares
+    shared/_workspace_switcher_trigger with the live sidebar so the two
+    can't drift. %>
+<%= turbo_stream.replace "workspace-switcher-button" do %>
+  <%= render "shared/workspace_switcher_trigger", workspace: @workspace %>
 <% end %>
 
 <%= turbo_stream.replace "workspace_logo_branding" do %>
@@ -13,12 +16,6 @@
       <%= icon(:pencil, size: :sm,
             class: "text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md") %>
     </span>
-  </span>
-<% end %>
-
-<%= turbo_stream.replace "workspace_logo_show" do %>
-  <span id="workspace_logo_show" class="shrink-0">
-    <%= workspace_icon_for(@workspace, size: :md) %>
   </span>
 <% end %>
 

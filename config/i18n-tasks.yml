@@ -117,7 +117,6 @@ data:
     - ['workspaces.creation_disabled', 'config/locales/%{locale}/workspaces.%{locale}.yml']
     - ['workspaces.destroy.*', 'config/locales/%{locale}/workspaces.%{locale}.yml']
     - ['workspaces.edit.*', 'config/locales/%{locale}/workspaces.%{locale}.yml']
-    - ['workspaces.identity_bar.*', 'config/locales/%{locale}/workspaces.%{locale}.yml']
     - ['workspaces.index.*', 'config/locales/%{locale}/workspaces.%{locale}.yml']
     - ['workspaces.join_links.*', 'config/locales/%{locale}/workspaces.%{locale}.yml']
     - ['workspaces.joins.*', 'config/locales/%{locale}/workspaces.%{locale}.yml']

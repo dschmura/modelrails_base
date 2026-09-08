@@ -28,9 +28,12 @@
         <div class="hidden md:block">
           <%= render "shared/theme_toggle", style: :icon %>
         </div>
-        <% if authenticated? %>
-          <%= render "shared/workspace_switcher" %>
-        <% end %>
+        <%# No workspace switcher here: it is the head of the workspace sidebar
+            (_workspace_sidebar_switcher), so the workspace is named once and
+            only in workspace chrome. Account pages carry no workspace context
+            by design, so they no longer offer a switch. The mobile variant
+            still renders inside the hamburger panel below — the sidebar is
+            hidden under md. %>
         <%= render "shared/user_menu", context: :desktop %>
 
         <%# Mobile menu button. Header-accordion pattern (Path Z) — tapping

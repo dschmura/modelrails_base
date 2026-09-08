@@ -1,23 +1,21 @@
 <%# locals: (current_workspace:) -%>
-<%# Chrome-free workspace-sidebar contents — workspace nav items.
-    Rendered inside `_workspace_sidebar` (which adds the <aside> landmark
-    + sidebar visual chrome for the desktop column). Below md, the same
-    item source renders as an in-page section-nav strip instead (see
-    _section_nav_strip) — not inside this partial.
-    The workspace switcher now lives exclusively in the header
-    (#workspace-switcher-button, Phase 2b) — not in the sidebar.
+<%# Chrome-free workspace-sidebar contents — the workspace switcher (which is
+    also the workspace's identity) followed by the nav items. Rendered inside
+    `_workspace_sidebar`, which adds the <aside> landmark + sidebar chrome for
+    the desktop column. Below md, the same item source renders as an in-page
+    section-nav strip instead (see _section_nav_strip) — not inside this
+    partial.
     Items come from WorkspaceHelper#workspace_shell_nav_items — single
     source of truth, shared with the mobile strip. -%>
 <% section_label_id = "workspace-sidebar-section-label" %>
 
-<%# Section label is a styled <div>, not a heading, associated with the <ul>
-    via aria-labelledby — screen readers announce "Workspace, list, N items"
-    on entry.
+<%= render "shared/workspace_sidebar_switcher", workspace: current_workspace %>
 
-    mb-6 is measured, not chosen: it puts the first nav item's top edge on the
-    bottom of the identity-bar logo across the column. mb-2 left it 16px high. %>
-<div id="<%= section_label_id %>"
-     class="px-3 mb-6 text-xs font-semibold uppercase tracking-wider text-text-muted">
+<%# The visible "WORKSPACE" label is gone — the switcher above names the
+    workspace, so repeating the word labelled nothing. The <ul> still needs an
+    accessible name (screen readers announce "Workspace, list, N items" on
+    entry), so the label survives sr-only. %>
+<div id="<%= section_label_id %>" class="sr-only">
   <%= t("workspaces.sidebar.section_label") %>
 </div>
 
@@ -28,3 +26,22 @@
     <%= render "shared/settings_sidebar_item", **item %>
   <% end %>
 </ul>
+
+<% if current_workspace.personal? %>
+  <%# Personal workspaces get no Settings nav entry (workspace_shell_nav_items);
+      Customize is its counterpart — name + logo editing in a modal. It sits
+      OUTSIDE the nav <ul> because it opens a dialog rather than navigating to
+      a destination, and matches the nav items' styling so the two read as one
+      column. %>
+  <div class="mt-1">
+    <%= render "shared/modal",
+          id: "workspace-customize",
+          title: t("workspaces.overview.customize.title"),
+          trigger: t("workspaces.overview.customize.open"),
+          trigger_class: "w-full min-h-[44px] flex items-center gap-3 px-3 py-2 rounded-md
+                          text-text-body motion-safe:transition-colors motion-safe:duration-150
+                          hover:bg-surface-sunken hover:text-text-heading focus-ring" do %>
+      <%= render "workspaces/customize_modal", workspace: current_workspace %>
+    <% end %>
+  </div>
+<% end %>

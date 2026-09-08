@@ -1,6 +1,6 @@
 require "rails_helper"
 
-RSpec.describe "Workspace identity bar role", type: :request do
+RSpec.describe "Workspace switcher role line", type: :request do
   let(:user) { create(:user) }
   let(:workspace) { create(:workspace, name: "Acme") }
 
@@ -29,7 +29,7 @@ RSpec.describe "Workspace identity bar role", type: :request do
 
     [ workspace_path(workspace), workspace_projects_path(workspace) ].each do |path|
       get path
-      expect(role_line&.text&.strip).to eq("Owner"), "#{path}: expected the identity bar to name the role"
+      expect(role_line&.text&.strip).to eq("Owner"), "#{path}: expected the switcher to name the role"
     end
   end
 end
