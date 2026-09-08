@@ -128,7 +128,9 @@ Noticed 2.9.x deprecates the `:database` delivery method — notification rows a
 **The `deliver(nil)` invariant, both directions.** `Noticed::Deliverable#deliver` is `recipients ||= evaluate_recipients` — `noticed-3.0.0`, `app/models/concerns/noticed/deliverable.rb:87`. An explicit recipient does not *add* to the block; it *replaces* it, and the block never runs. So:
 
 - A notifier that **declares** a `recipients` block must be dispatched with `deliver(nil)`. Passing a recipient skips `permitted_in_app` — delivering to someone who opted out or is inside quiet hours — and skips the actor exclusion below. Nothing raises, nothing is logged; the preference is just quietly ignored.
-- A notifier that declares **no** block must be dispatched with an explicit recipient. `deliver(nil)` there resolves to zero recipients and writes no rows at all — a dispatch that silently does nothing.
+- A notifier that declares **no** block must be dispatched with an explicit recipient. `deliver(nil)` there resolves to zero recipients, so `ApplicationNotifier#deliver` returns `:skipped` and writes no rows at all — a dispatch that silently does nothing.
+
+That empty-set guard lives in `ApplicationNotifier#deliver`, not in the gem. `Noticed::Deliverable#deliver` calls `save!` **unconditionally** — only its `notifications.insert_all!` is guarded by `.any?` — so before the guard a zero-recipient dispatch still wrote the `noticed_events` row *and* consumed its minute-bucket idempotency key. That is reachable through a `recipients` block, not just through a mis-dispatched notifier: the actor exclusion below can leave a candidate set empty (a single-owner workspace whose owner acts on their own membership), and a genuine dispatch on the same record inside that minute then deduplicated away with nobody ever notified.
 
 Neither failure is visible at runtime, so both directions are fenced by `spec/code_smells/notifier_recipients_block_dispatch_spec.rb`, which scans every `SomeNotifier.with(...).deliver(...)` in `app/` and matches it against whether that notifier declares a block.
 
@@ -252,10 +254,23 @@ Callers can pass `idempotency_key: "custom"` to override the default. If neither
 
 `ApplicationNotifier#deliver` returns sentinels:
 
+- `:skipped` when the recipient set resolves empty — the dispatch returns **before** `super`, so no event row is written and the bucket key stays unconsumed
 - `:delivered` on first-send
 - `:deduplicated` on `ActiveRecord::RecordNotUnique`
 
-Callers (e.g., `WorkspaceInvitationsController#resend`) branch on this to choose flash copy.
+`:skipped` exists because the key is minted in a `before_create` on the event row, and the gem writes that row even with zero recipients (see *The `deliver(nil)` invariant* above). Keying the bucket on the recipient set would be the alternative and is worse: it makes the key non-deterministic across retries of the same dispatch.
+
+Callers (e.g., `Workspaces::Invitations::ResendsController#create`) branch on this to choose flash copy. A caller that branches on `:deduplicated` treats `:skipped` like `:delivered` unless it says otherwise — which is correct where the dispatch carries an explicit, known-present recipient and `:skipped` cannot occur.
+
+## Dispatch reliability
+
+What is atomic is the ledger: `Noticed::Deliverable#deliver` writes the event row, its `idempotency_key`, and every recipient's notification row in one transaction. What is *not* atomic is the delivery job — noticed enqueues `Noticed::EventJob` after that transaction returns, and Solid Queue writes to a separate SQLite database in production, so it never could be. If the enqueue fails (Solid Queue's database busy past its timeout, a full disk) or the process dies in the gap, the recipient sees the notification in the bell, the key is burned so a retry inside the same bucket dedupes away, and the email and broadcast legs never run.
+
+So the job records its own arrival. A `before_perform` callback registered in `config/initializers/noticed.rb` stamps `noticed_events.dispatched_at` at the **start** of `Noticed::EventJob`, and `NotificationDispatchReconcileJob` re-enqueues any event still carrying NULL five minutes later (see [Background jobs](#background-jobs)).
+
+Stamping at the start, not the end, is what keeps the sweep safe: an event whose job was *claimed* is already stamped, so the reconciler covers only the never-enqueued gap and can never re-run an event whose delivery legs already fanned out.
+
+**What the watermark does not cover**, stated plainly because it is easy to assume otherwise: a job that was claimed and then *raised*. `Noticed::EventJob` declares no `retry_on` — only `discard_on ActiveJob::DeserializationError` — and Solid Queue adds no retry policy of its own, so such a job lands in `solid_queue_failed_executions` and stays there until someone retries it by hand. A pruned worker process likewise *fails* its claimed executions rather than releasing them, and this app ships no Mission Control UI to notice either. The reconciler is not that safety net and cannot be: the row is stamped, so it is invisible to the sweep by design. Closing that gap is [#1065](https://github.com/dschmura/modelrails_base/issues/1065).
 
 ## Broadcast pipeline
 
@@ -398,6 +413,23 @@ Per-user retention enforcement. For every user:
 **Batched deletion**: rows go out via `in_batches(of: 100, &:delete_all)` so the writer lock is released between rounds. Each yielded batch is derived from the scoped relation, so its DELETE still carries `read_at IS NOT NULL AND read_at < cutoff` and a row marked unread between the id SELECT and the DELETE is not deleted. That holds in both of `in_batches`' modes (`activerecord-8.1.3.1/lib/active_record/relation/batches.rb:440` for the id-list `rewhere`, `:457-458` for the range mode's `apply_finish_limit` on the same relation). A partial batch is re-entrant: the next run recomputes the cutoff.
 
 `delete_all`, not `destroy_all`: `Noticed::Notification` has no callbacks worth running here. The one it has — noticed's counter cache on `noticed_events.notifications_count` — is bypassed by every deletion path in the app (this job, `Noticed::Event#has_many :notifications, dependent: :delete_all`, and `User#notifications, dependent: :delete_all`), so the counter is not a reliable signal; orphan-event pruning (#811) must use `NOT EXISTS`. `User#notifications, dependent: :delete_all` is also the *only* enforcement against orphaned notification rows: `noticed_notifications` carries no foreign key to users, so raw SQL or `User.delete_all` in a fork orphans them silently, and this job — which iterates `User.find_each` — never sees them again.
+
+### `NotificationDispatchReconcileJob`
+
+Re-enqueues `Noticed::EventJob` for every event whose `dispatched_at` is still NULL — see [Dispatch reliability](#dispatch-reliability) for why that column exists and what it deliberately does not cover. The scan is bounded at both ends, `created_at BETWEEN MAX_LOOKBACK.ago AND GRACE.ago`:
+
+- **`GRACE` (5 minutes)** is well past any plausible enqueue latency, and short enough that a recovered notification is late rather than missing.
+- **`MAX_LOOKBACK` (24 hours)** stops a row that can never be stamped — a deserialization discard, a fork's hand-written row — from being re-enqueued every cycle forever. It is also why the migration that added the column **backfills existing rows** with their own `created_at`: without that, the first sweep after deploy would have re-delivered the entire notification history, since nothing prunes events and `NotificationCleanupJob` deletes notification rows without touching `notifications_count`.
+
+Events with `notifications_count == 0` are skipped: nobody for a re-enqueue to reach. The scan rides the partial index on `noticed_events (created_at) WHERE dispatched_at IS NULL`, which is empty in steady state.
+
+**The sweep stamps each row itself, before enqueuing it.** Its enqueue is the one retry an event gets. Without that stamp, a delivery queue backed up past the 15-minute cadence would hand the next cycle the same unstamped row and fan a second copy of every email out to every recipient. Stamping *before* the enqueue rather than after settles the other direction too: if the enqueue raises, the row is already stamped and is never retried, and the per-row rescue reports it — a lost retry that is visible beats a duplicate fan-out that is not.
+
+It runs on `default`, not `low`: `low` is chartered as work nobody is waiting on, and this re-delivers a notification a user is waiting on and already did not get. Same reasoning that keeps the two workspace notifier sweeps off `low`.
+
+One constraint on forks: noticed's `deliver(..., wait:)` / `wait_until:` deliberately enqueues `EventJob` for later, which this sweep reads as a lost enqueue and re-delivers early. No dispatch in this app uses them; a fork that adds one must widen `GRACE` past its longest wait, or exclude that notifier from the scan.
+
+Same fault posture as `NotificationCleanupJob`: each re-enqueue is rescued and reported through `Rails.error` with the event id, and a cycle in which *every* attempt failed re-raises so Solid Queue records a failure rather than logging a successful sweep. The recovered count is logged at the end of each cycle — a non-zero count means a delivery nearly went missing.
 
 ## Security event audit coverage
 
