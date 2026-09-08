@@ -582,6 +582,31 @@ RSpec.describe "Workspaces::Members destroy", type: :request do
       end
     end
 
+    # #526: the self-leave last-owner refusal is a RACE net, not a reachable
+    # click — MembershipPolicy#may_leave? already turns a sole owner away, so
+    # the rescue fires only when the other owner disappears between that check
+    # and the locked validation inside #deactivate!. Losing that race is still
+    # something a person reads, and it is the branch whose message no spec
+    # named. Which of the two last-owner alerts gets selected is the whole
+    # point: both refusals rescue the same error, and only the copy tells the
+    # person who left from the person who removed someone else.
+    context "when the other owner vanishes between the policy check and the write" do
+      let!(:user_owner_membership) { create(:membership, :owner, user: user, workspace: workspace) }
+      let!(:racing_owner) { create(:membership, :owner, user: other_user, workspace: workspace) }
+
+      it "redirects to /workspaces with the cannot-leave alert and keeps the membership" do
+        allow_any_instance_of(Membership).to receive(:deactivate!)
+          .and_raise(Membership::LastOwner.new(user_owner_membership))
+
+        delete workspace_member_path(workspace, user_owner_membership)
+
+        expect(response).to redirect_to(workspaces_path)
+        follow_redirect!
+        expect(flash[:alert]).to eq(I18n.t("workspaces.members.destroy.cannot_leave_last_owner"))
+        expect(user_owner_membership.reload.discarded_at).to be_nil
+      end
+    end
+
     context "admin deactivating another member (existing case)" do
       let!(:admin_membership) { create(:membership, :admin, user: user, workspace: workspace) }
       let!(:other_membership) { create(:membership, user: other_user, workspace: workspace) }
