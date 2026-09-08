@@ -1,21 +1,8 @@
 require "rails_helper"
 
-# Controllers registered explicitly (rather than lazy-loaded from the
-# "controllers" importmap prefix) have to be in the router BEFORE
-# `lazyLoadControllersFrom` runs. stimulus-loading guards each autoload with
-# `canRegisterController`, which is only false once an identifier is already
-# registered — so registration order, not availability, decides whether the
-# loader tries to import a path that does not exist and logs
-# "Failed to autoload controller" (#1072).
-#
-# The controllers still work either way, which is exactly why this needs a
-# spec: the failure is invisible to every other assertion in the suite and
-# shows up only as red in a console nobody is watching.
+# A controller works whether or not it is registered before the lazy loader,
+# so no other assertion in the suite can see this — only the console (#1072).
 RSpec.describe "Stimulus controller registration", type: :system do
-  # console.error is patched before any application module evaluates, because
-  # the autoload failures fire during page load. Every `visit` already waits
-  # for controllers to connect (spec/support/stimulus_ready.rb), so by the time
-  # an example asserts, the loader has run.
   # A `let`, not a constant: a bare constant in a describe block lands on
   # Object and collides across parallel workers (#607).
   let(:console_capture_js) do
@@ -33,6 +20,8 @@ RSpec.describe "Stimulus controller registration", type: :system do
     page.evaluate_script("window.__consoleErrors || []")
   end
 
+  # The failures fire during page load, so the patch is installed before it.
+  # `visit` already waits for controllers to connect (spec/support/stimulus_ready.rb).
   before { cdp_add_init_script(console_capture_js) }
 
   it "logs no console error on the signed-out landing page" do
