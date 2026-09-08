@@ -166,8 +166,20 @@ class Workspace < ApplicationRecord
       raise Suspendable::SuspendedError if suspended?
       project = projects.build(attrs)
       project.created_by = creator
-      if project.save
-        project.project_memberships.create!(user: creator, role: "creator")
+      # Savepoint + bang save (#689): a non-bang save here would join this transaction instead of
+      # opening a rollback boundary of its own, and ActiveRecord::Validations#save would rescue the
+      # RecordInvalid that Project's post-INSERT capacity net raises — committing an over-capacity
+      # project with no creator membership. The rescue sits OUTSIDE the savepoint so the row is gone
+      # by the time we return the invalid project for the form to re-render.
+      begin
+        transaction(requires_new: true) do
+          project.save!
+          project.project_memberships.create!(user: creator, role: "creator")
+        end
+      rescue ActiveRecord::RecordInvalid => e
+        # Only the project's own failure is an invalid-form outcome; a membership that cannot be
+        # written is a broken assembly and still propagates (pinned in workspace_spec).
+        raise unless e.record.equal?(project)
       end
       project
     end
