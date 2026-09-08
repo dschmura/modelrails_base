@@ -260,6 +260,77 @@ RSpec.describe ApplicationNotifier, type: :notifier do
         }.not_to change(Noticed::Event, :count)
       end
     end
+
+    # #928: the actor exclusion in a `recipients` block can resolve to an empty
+    # set (single-owner workspace, owner acting on their own membership). Before
+    # the :skipped sentinel that dispatch still ran the gem's unconditional
+    # `save!`, which minted and consumed the minute-bucket idempotency key — so a
+    # genuine dispatch on the same record seconds later deduplicated away with
+    # nobody ever having been notified.
+    context "when the recipients block resolves to an empty set (#928)" do
+      # A stub with a `recipients` block whose result the example drives, so the
+      # empty and populated dispatches differ ONLY in the resolved set.
+      class StubAudienceNotifier < ApplicationNotifier
+        category :account_access
+
+        recipients { [ params[:audience] ].compact }
+
+        notification_methods do
+          def message = "stub-audience"
+          def url     = "/stub"
+        end
+      end unless defined?(StubAudienceNotifier)
+
+      it "returns :skipped without calling through to the gem's deliver" do
+        result = StubAudienceNotifier.with(record: resource, audience: nil).deliver(nil)
+        expect(result).to eq :skipped
+      end
+
+      it "writes no noticed_events row" do
+        expect {
+          StubAudienceNotifier.with(record: resource, audience: nil).deliver(nil)
+        }.not_to change(Noticed::Event, :count)
+      end
+
+      it "writes no noticed_notifications row" do
+        expect {
+          StubAudienceNotifier.with(record: resource, audience: nil).deliver(nil)
+        }.not_to change(Noticed::Notification, :count)
+      end
+
+      it "leaves the minute-bucket key unconsumed for a genuine dispatch on the same record" do
+        freeze_time do
+          skipped = StubAudienceNotifier.with(record: resource, audience: nil).deliver(nil)
+          delivered = StubAudienceNotifier.with(record: resource, audience: user).deliver(nil)
+
+          expect(skipped).to eq :skipped
+          expect(delivered).to eq :delivered
+        end
+      end
+
+      it "creates the notification row for the genuine dispatch that follows a skipped one" do
+        freeze_time do
+          StubAudienceNotifier.with(record: resource, audience: nil).deliver(nil)
+
+          expect {
+            StubAudienceNotifier.with(record: resource, audience: user).deliver(nil)
+          }.to change { Noticed::Notification.where(recipient: user, type: "StubAudienceNotifier::Notification").count }.by(1)
+        end
+      end
+
+      it "still deduplicates two genuine dispatches in the same bucket" do
+        freeze_time do
+          first = StubAudienceNotifier.with(record: resource, audience: user).deliver(nil)
+          second = StubAudienceNotifier.with(record: resource, audience: user).deliver(nil)
+          expect(first).to eq :delivered
+          expect(second).to eq :deduplicated
+        end
+      end
+
+      it "returns :skipped for an explicitly empty recipients argument too" do
+        expect(StubAccountAccessNotifier.with(record: resource).deliver([])).to eq :skipped
+      end
+    end
   end
 
   describe "concurrent dispatch resolution (Chris Oliver edge case)" do
