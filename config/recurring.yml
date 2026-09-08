@@ -85,3 +85,19 @@ production:
     # release SQLite's write lock between transactions. No retention floor at
     # this layer: the audit sweep keeps the ActivityLog record (PR 5).
     schedule: every day at 3am
+
+  notification_dispatch_reconcile:
+    class: NotificationDispatchReconcileJob
+    # `default`, not `low`, for the same reason the two workspace sweeps are:
+    # this re-delivers a notification a user is waiting on and already did not
+    # get, so it must not queue behind an hour of blob purges.
+    queue: default
+    # Re-enqueues noticed events whose EventJob never landed (#927) — the
+    # enqueue happens after the gem's transaction commits, so a failed enqueue
+    # leaves rows the recipient can see with no email or broadcast behind them.
+    # Every 15 minutes against the job's own 5-minute grace: a recovered
+    # notification is late, not missing. The sweep stamps each row as it
+    # re-enqueues, so a backed-up queue cannot make cycle N+1 send a second
+    # copy. Indexed scan over the partial index on (created_at) WHERE
+    # dispatched_at IS NULL, which is empty in steady state.
+    schedule: every 15 minutes

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_07_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_07_180000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -167,6 +167,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_07_120000) do
 
   create_table "noticed_events", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.datetime "dispatched_at"
     t.string "idempotency_key"
     t.integer "notifications_count"
     t.json "params"
@@ -174,6 +175,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_07_120000) do
     t.string "record_type"
     t.string "type"
     t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "index_noticed_events_undispatched", where: "dispatched_at IS NULL"
     t.index ["idempotency_key"], name: "index_noticed_events_on_idempotency_key", unique: true, where: "idempotency_key IS NOT NULL"
     t.index ["record_type", "record_id"], name: "index_noticed_events_on_record"
   end
