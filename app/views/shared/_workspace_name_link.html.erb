@@ -1,10 +1,21 @@
 <%# locals: (workspace:) -%>
 <%# The identity-bar workspace name — links to the Overview. Rendered from
     both shared/_workspace_identity_bar and workspaces/update.turbo_stream so
-    the live bar and the Turbo broadcast target can never drift apart. -%>
+    the live bar and the Turbo broadcast target can never drift apart.
+
+    items-start + leading-tight are load-bearing, not taste: together they put
+    the text's top edge on the identity-bar logo's (measured — items-center sat
+    11px low, default leading 3px low, leading-none 2px high).
+
+    min-h-[44px] is not optional: spec/support/axe_accessibility.rb's
+    mc-target-size-44 check measures this element's own box and grants no
+    Equivalent exception, so dropping it fails ~98 system specs even though
+    the sidebar's Overview item reaches the same destination at 44px. It costs
+    22px of dead space under the name, which is why the role line below cannot
+    sit inside a 40px logo's height. -%>
 <%= link_to workspace_path(workspace),
       id: "workspace-name-heading",
       aria: { label: t("workspaces.identity_bar.overview_link_label", name: workspace.name) },
-      class: "min-h-[44px] min-w-11 inline-flex items-center text-lg font-bold text-text-heading truncate rounded focus-ring hover:text-interactive" do %>
+      class: "min-h-[44px] min-w-11 inline-flex items-start text-lg leading-tight font-bold text-text-heading truncate rounded focus-ring hover:text-interactive" do %>
   <%= workspace.name %>
 <% end %>

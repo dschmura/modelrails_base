@@ -7,9 +7,14 @@
 
     The workspace switcher now lives exclusively in the header
     (#workspace-switcher-button, Phase 2b). The Settings hub has its
-    own sidebar (_settings_sidebar) with destination-specific nav items. -%>
+    own sidebar (_settings_sidebar) with destination-specific nav items.
+
+    pt-4 tracks the identity bar's own pt-4 (_workspace_identity_bar) so the
+    section label and the workspace name share a top edge — the horizontal
+    counterpart to the shared left edge the layout builds. Change one and the
+    alignment breaks silently; the two are not independently tunable. -%>
 <aside aria-label="<%= t("workspaces.sidebar.aria_label") %>"
-       class="w-64 shrink-0 px-4 py-6 border-r border-border bg-surface">
+       class="w-64 shrink-0 px-4 pt-4 pb-6 border-r border-border bg-surface">
   <%= render "shared/workspace_sidebar_items",
         current_workspace: current_workspace %>
 </aside>

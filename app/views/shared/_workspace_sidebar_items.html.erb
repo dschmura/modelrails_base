@@ -10,15 +10,14 @@
     source of truth, shared with the mobile strip. -%>
 <% section_label_id = "workspace-sidebar-section-label" %>
 
-<%# Visual divider + section label — matches agent_os mobile rhythm
-    and gives the desktop sidebar the same scannable layout. Section
-    label is a styled <div> programmatically associated with the <ul>
-    below via aria-labelledby (screen readers announce "Workspace,
-    list, N items" on entry). %>
-<hr class="mt-4 mb-3 border-border">
+<%# Section label is a styled <div>, not a heading, associated with the <ul>
+    via aria-labelledby — screen readers announce "Workspace, list, N items"
+    on entry.
 
+    mb-6 is measured, not chosen: it puts the first nav item's top edge on the
+    bottom of the identity-bar logo across the column. mb-2 left it 16px high. %>
 <div id="<%= section_label_id %>"
-     class="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-text-muted">
+     class="px-3 mb-6 text-xs font-semibold uppercase tracking-wider text-text-muted">
   <%= t("workspaces.sidebar.section_label") %>
 </div>
 

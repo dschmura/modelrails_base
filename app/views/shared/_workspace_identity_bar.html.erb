@@ -1,15 +1,30 @@
 <%# locals: (workspace:) -%>
-<%# Persistent workspace identity — logo + name + plan, rendered above the
-    section-nav strip so identity leads navigation on every workspace page. -%>
-<div class="flex items-center gap-3 pt-4 mb-4">
+<%# Persistent workspace identity — logo + name + plan + the viewer's role,
+    rendered above the section-nav strip so identity leads navigation on every
+    workspace page.
+
+    The text column is sized to span the logo exactly: name text top on the
+    logo top, role text bottom on the logo bottom (all measured, not guessed).
+    items-start is the first half of that — centring instead drops the name
+    11px and the block stops matching the logo at either edge. The sidebar's
+    section label and first nav item align to the same two edges. -%>
+<div class="flex items-start gap-3 pt-4 mb-4">
   <span id="workspace_logo_show" class="shrink-0">
     <%= workspace_icon_for(workspace, size: :md) %>
   </span>
   <div class="flex-1 min-w-0">
-    <div class="flex items-center gap-2 min-w-0">
+    <div class="flex items-start gap-2 min-w-0">
       <%= render "shared/workspace_name_link", workspace: workspace %>
       <%= ui :badge, workspace.plan.titleize, variant: :outline, tone: :neutral %>
     </div>
+    <%# mt-0.5 is what lands this line's bottom on the logo's bottom edge —
+        the second of the two edges the column is built to match. %>
+    <% role = current_user_role_in(workspace) %>
+    <% if role %>
+      <p id="workspace-identity-role" class="mt-0.5 truncate text-xs text-text-muted">
+        <%= role.name %>
+      </p>
+    <% end %>
   </div>
   <% if workspace.personal? %>
     <%# Personal workspaces: "Customize" replaces the Settings sidebar entry.
