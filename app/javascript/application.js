@@ -4,5 +4,3 @@ import "navigation_focus"
 import "overlays/cache_hygiene"
 
 import "lexxy"
-
-import "markdowndocs"
