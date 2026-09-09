@@ -72,8 +72,10 @@ RSpec.describe "Mobile workspace switcher — content column", type: :system, js
 
     it "shows the trigger in the All-workspaces state and navigates to a workspace from it" do
       trigger = find("#workspace-switcher-button-mobile")
+      expect(trigger).to have_text(user.full_name)
       expect(trigger).to have_text(I18n.t("navigation.all_workspaces"))
       expect(trigger).to have_no_text("Owner")
+      expect(page).to have_css("[data-test='workspaces-identity']", visible: :hidden)
 
       trigger.click
       within("#workspace-switcher-menu-mobile") do
@@ -83,6 +85,36 @@ RSpec.describe "Mobile workspace switcher — content column", type: :system, js
 
       expect(page).to have_current_path(workspace_path(second_workspace))
     end
+  end
+
+  # Placement, measured on both pages that render the phone switcher: the
+  # avatar shares the content edge (the first tab pill on a workspace page,
+  # the h1 on the index) and the control sits the same distance under the
+  # header rule on each. Numbers, not class names, so neither page can drift
+  # alone — the index once floated 64px lower and 8px further in than this.
+  it "sits on the content edge, the same distance under the header, on the index and a workspace page" do
+    measure = lambda do |reference|
+      page.evaluate_script(<<~JS)
+        (() => {
+          const rect = (s) => document.querySelector(s).getBoundingClientRect();
+          return {
+            gap: rect("#workspace-switcher-button-mobile").top - rect("header").bottom,
+            avatar_left: rect("#workspace-switcher-button-mobile > span:first-child").left,
+            reference_left: rect(#{reference.to_json}).left
+          };
+        })()
+      JS
+    end
+
+    visit workspaces_path
+    index = measure.call("main h1")
+    visit workspace_path(second_workspace)
+    workspace = measure.call("nav[aria-labelledby='section-nav-strip-heading'] a")
+
+    expect(index["avatar_left"]).to eq(index["reference_left"])
+    expect(workspace["avatar_left"]).to eq(workspace["reference_left"])
+    expect(workspace["gap"]).to eq(index["gap"])
+    expect(index["gap"]).to be_between(0, 32)
   end
 
   it "closes on Escape" do

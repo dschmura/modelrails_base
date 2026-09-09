@@ -42,15 +42,38 @@ RSpec.describe "Workspace switcher placement", type: :request do
       ws
     end
 
-    it "renders the phone trigger in the All-workspaces state, with no role" do
+    # The trigger IS the page's identity anchor on phones: the user's name in
+    # the slot a workspace name takes elsewhere, "All workspaces" in the slot
+    # the role takes — the same two-line shape as on a workspace page.
+    it "renders the phone trigger as the identity anchor: the user's name over All workspaces" do
       get workspaces_path
       doc = Nokogiri::HTML(response.body)
 
       trigger = doc.at_css("#workspace-switcher-button-mobile")
       expect(trigger).not_to be_nil, "no phone trigger on the index"
-      expect(trigger.text).to include(I18n.t("navigation.all_workspaces"))
-      expect(trigger.at_css("#workspace-identity-role-mobile")).to be_nil, "a role rendered with no workspace current"
+      expect(trigger.at_css("#workspace-name-heading-mobile").text.strip).to eq(user.full_name)
+      expect(trigger.at_css("#workspace-identity-role-mobile").text.strip).to eq(I18n.t("navigation.all_workspaces"))
       expect(doc.at_css("#workspace-switcher-button")).to be_nil, "the index has no sidebar; no desktop copy expected"
+    end
+
+    it "hides the page's own identity anchor below md, where the trigger carries it" do
+      get workspaces_path
+      anchor = Nokogiri::HTML(response.body).at_css("[data-test='workspaces-identity']")
+
+      expect(anchor).not_to be_nil, "identity anchor missing from the index"
+      expect(anchor["class"].split).to include("hidden", "md:flex")
+    end
+
+    it "gives the current All-workspaces row the same current treatment as a workspace row" do
+      get workspaces_path
+      all_row = Nokogiri::HTML(response.body).at_css("#workspace-switcher-menu-mobile a[aria-current]")
+      get workspace_path(second)
+      workspace_row = Nokogiri::HTML(response.body).at_css("#workspace-switcher-menu-mobile a[aria-current]")
+
+      current_treatment = %w[font-semibold border-l-4 border-interactive bg-surface-sunken text-text-heading]
+      expect(workspace_row["class"].split).to include(*current_treatment)
+      expect(all_row["class"].split).to include(*current_treatment)
+      expect(all_row.at_css("span.w-8.h-8")).not_to be_nil, "All workspaces has no icon-slot spacer; its label sits left of the others"
     end
 
     it "marks All workspaces current in the menu and still lists the workspaces" do

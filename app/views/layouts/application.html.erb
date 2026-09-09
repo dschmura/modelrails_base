@@ -52,10 +52,17 @@
               the switcher's ids in the DOM (the sidebar is display:none, not
               absent), so the phone copy below carries its own id suffix on
               the trigger, the menu and both inner ids, and is capped to five
-              so it cannot run off a 375px screen (#1077). -%>
-          <div class="md:hidden max-w-4xl px-6">
-            <%= render "shared/workspace_switcher",
-                  workspace: Current.workspace, id_suffix: "-mobile", capped: true %>
+              so it cannot run off a 375px screen (#1077).
+
+              The switcher sits 24px in from the header's corner on both axes,
+              here and on the workspaces index: pt-4 plus the button's own
+              padding under the rule, and -mx-2 so that padding bleeds outward
+              and the avatar lands on the same edge as the tab pills. -%>
+          <div class="md:hidden max-w-4xl px-6 pt-4">
+            <div class="-mx-2">
+              <%= render "shared/workspace_switcher",
+                    workspace: Current.workspace, id_suffix: "-mobile", capped: true %>
+            </div>
           </div>
           <% if current_workspace_section == :settings %>
             <div class="max-w-4xl px-6">
