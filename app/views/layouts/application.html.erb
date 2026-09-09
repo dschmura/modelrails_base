@@ -54,7 +54,7 @@
               the trigger, the menu and both inner ids, and is capped to five
               so it cannot run off a 375px screen (#1077). -%>
           <div class="md:hidden max-w-4xl px-6">
-            <%= render "shared/workspace_sidebar_switcher",
+            <%= render "shared/workspace_switcher",
                   workspace: Current.workspace, id_suffix: "-mobile", capped: true %>
           </div>
           <% if current_workspace_section == :settings %>
