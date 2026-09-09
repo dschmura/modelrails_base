@@ -1,5 +1,14 @@
 <% content_for(:title) { t("workspaces.index.title") } %>
 <div class="max-w-4xl mx-auto px-4 py-16">
+  <%# The switcher stays in place here too, on phones, in its "All workspaces"
+      state — the index was the one authenticated page where that affordance
+      vanished (#1090). No workspace is current, so the trigger names the index
+      and the menu marks that row current. Unsuffixed would also be unique on
+      this page (no sidebar copy), but the phone trigger is always -mobile so
+      the responsive specs address one id. %>
+  <div class="md:hidden">
+    <%= render "shared/workspace_switcher", workspace: nil, id_suffix: "-mobile", capped: true %>
+  </div>
   <%# Identity anchor: this is the signed-in user's own home for workspaces
       (the former /me), so it opens with who "you" are before the list. %>
   <div class="flex items-center gap-3 mb-6" data-test="workspaces-identity">

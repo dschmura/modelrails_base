@@ -1,4 +1,7 @@
-<%# locals: (workspace:) -%>
+<%# locals: (workspace:, id_suffix: "") -%>
+<%# id_suffix: phones render this a second time in the content column while
+    the sidebar copy is display:none — present in the DOM, not absent — so the
+    second copy suffixes every id here and on its menu (#1077). -%>
 <%# The switcher's trigger: workspace identity (logo + name + role) and the
     switch affordance as ONE control. Shared with workspaces/update.turbo_stream
     so the live trigger and the rename broadcast cannot drift — the broadcast
@@ -9,20 +12,29 @@
     is a nested-interactive axe failure, which is what the personal-workspace
     rename spec caught when the id moved in here. -%>
 <button data-menu-target="trigger" data-action="click->menu#toggle keydown->menu#triggerKeydown"
-        id="workspace-switcher-button" type="button"
-        aria-haspopup="menu" aria-expanded="false" aria-controls="workspace-switcher-menu"
+        id="workspace-switcher-button<%= id_suffix %>" type="button"
+        aria-haspopup="menu" aria-expanded="false" aria-controls="workspace-switcher-menu<%= id_suffix %>"
         class="w-full min-h-[44px] flex items-center gap-3 px-2 py-2 rounded-lg text-left
                hover:bg-surface-sunken focus-ring">
-  <span class="shrink-0 w-10 h-10 flex items-center justify-center <%= workspace.personal? ? "rounded-full" : "rounded-md overflow-hidden" %>">
-    <%= workspace_icon_for(workspace, size: :md) %>
-  </span>
-  <span class="flex-1 min-w-0">
-    <span id="workspace-name-heading" class="block truncate text-sm font-bold text-text-heading">
-      <%= workspace.name %>
+  <%# No workspace (the workspaces index, #1090): the slot shows the signed-in
+      user's own avatar — "your workspaces" — the same anchor the index page
+      itself opens with, so no new icon is invented for the empty state. %>
+  <% if workspace %>
+    <span class="shrink-0 w-10 h-10 flex items-center justify-center <%= workspace.personal? ? "rounded-full" : "rounded-md overflow-hidden" %>">
+      <%= workspace_icon_for(workspace, size: :md) %>
     </span>
-    <% role = current_user_role_in(workspace) %>
+  <% else %>
+    <span class="shrink-0 w-10 h-10 flex items-center justify-center rounded-full">
+      <%= avatar_for(Current.user, size: :md) %>
+    </span>
+  <% end %>
+  <span class="flex-1 min-w-0">
+    <span id="workspace-name-heading<%= id_suffix %>" class="block truncate text-sm font-bold text-text-heading">
+      <%= workspace ? workspace.name : t("navigation.all_workspaces") %>
+    </span>
+    <% role = workspace && current_user_role_in(workspace) %>
     <% if role %>
-      <span id="workspace-identity-role" class="block truncate text-xs text-text-muted">
+      <span id="workspace-identity-role<%= id_suffix %>" class="block truncate text-xs text-text-muted">
         <%= role.name %>
       </span>
     <% end %>

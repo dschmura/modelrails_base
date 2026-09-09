@@ -34,10 +34,16 @@ class WorkspacesController < ApplicationController
               )
               .order(Arel.sql("memberships.last_accessed_at DESC NULLS LAST, workspaces.name ASC"))
 
+    # :workspace only — the archived section renders locked_row, which draws
+    # no logo. The logo_attachment include that used to sit here was never
+    # consumed by this page; Bullet keys "used" by class+id, and the header's
+    # hamburger switcher happened to draw the same rows' logos until #1077
+    # moved that switcher into workspace chrome. With that gone Bullet raises
+    # on the dead include, which is the right complaint.
     @archived_memberships = Current.user.memberships.kept
               .joins(:workspace)
               .merge(Workspace.kept.archived)
-              .includes(workspace: :logo_attachment)
+              .includes(:workspace)
               .order("workspaces.name ASC")
               .to_a
 

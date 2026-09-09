@@ -8,6 +8,12 @@
   <%= render "shared/workspace_switcher_trigger", workspace: @workspace %>
 <% end %>
 
+<%# The phone copy too — it is in the DOM at every width (md:hidden, not
+    absent), so patching only the sidebar trigger would leave it stale. %>
+<%= turbo_stream.replace "workspace-switcher-button-mobile" do %>
+  <%= render "shared/workspace_switcher_trigger", workspace: @workspace, id_suffix: "-mobile" %>
+<% end %>
+
 <%= turbo_stream.replace "workspace_logo_branding" do %>
   <span id="workspace_logo_branding" class="block relative">
     <%= workspace_icon_for(@workspace, size: :lg) %>

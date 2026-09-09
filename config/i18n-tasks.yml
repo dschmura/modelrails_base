@@ -129,7 +129,6 @@ data:
     - ['workspaces.plans.*', 'config/locales/%{locale}/workspaces.%{locale}.yml']
     - ['workspaces.settings.*', 'config/locales/%{locale}/workspaces.%{locale}.yml']
     - ['workspaces.sidebar.*', 'config/locales/%{locale}/workspaces.%{locale}.yml']
-    - ['workspaces.switcher.*', 'config/locales/%{locale}/workspaces.%{locale}.yml']
     - ['workspaces.unarchive.*', 'config/locales/%{locale}/workspaces.%{locale}.yml']
     - ['workspaces.update.*', 'config/locales/%{locale}/workspaces.%{locale}.yml']
     - ['workspaces.projects.*', 'config/locales/%{locale}/projects.%{locale}.yml']
