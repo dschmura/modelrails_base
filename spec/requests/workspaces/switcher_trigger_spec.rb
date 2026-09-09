@@ -44,6 +44,15 @@ RSpec.describe "Workspace switcher trigger", type: :request do
     expect(duplicates).to be_empty, "ids present more than once: #{duplicates.inspect}"
   end
 
+  # Opened from the keyboard there is no pointer hover, so the open state has to
+  # key off aria-expanded — the pair UI::MenubarMenuComponent already uses.
+  it "shows its open state without a pointer" do
+    get workspace_path(workspace)
+    trigger = Nokogiri::HTML(response.body).at_css("#workspace-switcher-button")
+
+    expect(trigger["class"].split).to include("aria-expanded:bg-surface-sunken", "aria-expanded:text-text-heading")
+  end
+
   it "re-renders BOTH triggers on rename so the phone copy cannot go stale" do
     patch workspace_path(workspace), params: { workspace: { name: "New Acme" } },
           headers: { "Accept" => "text/vnd.turbo-stream.html" }

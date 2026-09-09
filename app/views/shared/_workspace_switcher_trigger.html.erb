@@ -15,27 +15,24 @@
         id="workspace-switcher-button<%= id_suffix %>" type="button"
         aria-haspopup="menu" aria-expanded="false" aria-controls="workspace-switcher-menu<%= id_suffix %>"
         class="w-full min-h-[44px] flex items-center gap-3 px-2 py-2 rounded-lg text-left
-               hover:bg-surface-sunken focus-ring">
-  <%# No workspace (the workspaces index, #1090): the slot shows the signed-in
-      user's own avatar — "your workspaces" — the same anchor the index page
-      itself opens with, so no new icon is invented for the empty state. %>
-  <% if workspace %>
-    <span class="shrink-0 w-10 h-10 flex items-center justify-center <%= workspace.personal? ? "rounded-full" : "rounded-md overflow-hidden" %>">
-      <%= workspace_icon_for(workspace, size: :md) %>
-    </span>
-  <% else %>
-    <span class="shrink-0 w-10 h-10 flex items-center justify-center rounded-full">
-      <%= avatar_for(Current.user, size: :md) %>
-    </span>
-  <% end %>
+               hover:bg-surface-sunken aria-expanded:bg-surface-sunken aria-expanded:text-text-heading focus-ring">
+  <%# No workspace (the workspaces index, #1090): the trigger is the page's
+      identity anchor on phones — the user's own avatar and name where a
+      workspace's icon and name go, "All workspaces" where the role goes — so
+      the index keeps the two-line shape the trigger has on every workspace
+      page. The wrapper only stops the icon shrinking: the avatar component
+      sets its own size and rounding, and the helpers take no class. %>
+  <span class="shrink-0">
+    <%= workspace ? workspace_icon_for(workspace, size: :md) : avatar_for(Current.user, size: :md) %>
+  </span>
   <span class="flex-1 min-w-0">
     <span id="workspace-name-heading<%= id_suffix %>" class="block truncate text-sm font-bold text-text-heading">
-      <%= workspace ? workspace.name : t("navigation.all_workspaces") %>
+      <%= workspace ? workspace.name : Current.user.full_name %>
     </span>
-    <% role = workspace && current_user_role_in(workspace) %>
-    <% if role %>
+    <% secondary = workspace ? current_user_role_in(workspace)&.name : t("navigation.all_workspaces") %>
+    <% if secondary %>
       <span id="workspace-identity-role<%= id_suffix %>" class="block truncate text-xs text-text-muted">
-        <%= role.name %>
+        <%= secondary %>
       </span>
     <% end %>
   </span>
