@@ -1,8 +1,5 @@
 en:
   workspaces:
-    context_banner:
-      label: "Workspace context"
-      in_workspace_html: "You're in <strong>%{name}</strong>"
     not_found: "Workspace not found."
     locked_notice: "This workspace is locked."
     locked_row:
@@ -35,8 +32,6 @@ en:
         could_not_join: "You couldn't be added to %{workspace} right now."
     switcher:
       label: "Workspaces"
-    identity_bar:
-      overview_link_label: "%{name} — go to overview"
     sidebar:
       aria_label: "Workspace navigation"
       section_label: "Workspace"
@@ -78,13 +73,6 @@ en:
       submit: "Create workspace"
     create:
       success: "Workspace created."
-    overview:
-      customize:
-        open: "Customize"
-        title: "Customize workspace"
-        name_label: "Workspace name"
-        save: "Save changes"
-        logo_label: "Logo"
     edit:
       title: "%{workspace} — Profile"
       name_label: "Workspace name"

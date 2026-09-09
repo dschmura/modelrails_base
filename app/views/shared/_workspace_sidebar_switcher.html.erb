@@ -1,0 +1,50 @@
+<%# locals: (workspace:) -%>
+<%# The workspace switcher as the sidebar's head, carrying identity (logo +
+    name + role) and the switch affordance in ONE control. Being one control is
+    what lets it clear mc-target-size-44 as a block; the identity bar this
+    replaced needed a separate 44px name link, whose 22px of dead space could
+    not fit beside a 40px logo.
+
+    Unlike the old header switcher this ALWAYS renders: below 2 workspaces it
+    is still the only place the workspace is named, so it degrades to identity
+    plus "All workspaces" rather than disappearing.
+
+    The trigger lives in its own partial because the rename broadcast replaces
+    it whole (see _workspace_switcher_trigger). -%>
+<% workspaces = switcher_workspaces %>
+
+<div data-controller="menu" data-action="click@document->menu#closeOnClickOutside"
+     class="relative mb-6">
+  <%= render "shared/workspace_switcher_trigger", workspace: workspace %>
+
+  <div data-menu-target="menu" data-action="keydown->menu#navigate"
+       id="workspace-switcher-menu" role="menu" tabindex="-1" hidden
+       aria-labelledby="workspace-switcher-button"
+       class="absolute left-0 right-0 mt-1 rounded-lg bg-surface-raised border border-border shadow-lg z-50 py-1">
+    <% if workspaces.size > 1 %>
+      <% workspaces.each do |candidate| %>
+        <% is_current = candidate.id == workspace.id %>
+        <% membership = candidate.memberships.detect { |m| m.user_id == Current.user.id } %>
+        <%= link_to main_app.workspace_path(candidate), role: "menuitem", tabindex: "-1",
+              data: { menu_target: "item", action: "click->menu#activate" },
+              aria: { current: ("true" if is_current) },
+              class: [ "min-h-[44px] flex items-center gap-3 py-2 text-sm",
+                      (is_current ? "pl-2 pr-3 border-l-4 border-interactive bg-surface-sunken font-semibold text-text-heading"
+                                  : "px-3 text-text-body hover:bg-surface-sunken") ].compact do %>
+          <span class="shrink-0 w-8 h-8 flex items-center justify-center <%= candidate.personal? ? "rounded-full" : "rounded-md overflow-hidden" %>">
+            <%= workspace_icon_for(candidate, size: :sm) %>
+          </span>
+          <span class="flex-1 min-w-0">
+            <span class="block truncate"><%= candidate.name %></span>
+            <span class="block text-xs text-text-muted"><%= membership&.role&.name %></span>
+          </span>
+        <% end %>
+      <% end %>
+    <% end %>
+    <%= link_to t("navigation.all_workspaces"), main_app.workspaces_path,
+          role: "menuitem", tabindex: "-1",
+          data: { menu_target: "item", action: "click->menu#activate", turbo_prefetch: "true" },
+          class: "min-h-[44px] flex items-center px-3 py-2 text-sm font-medium
+                  text-interactive hover:bg-surface-sunken" %>
+  </div>
+</div>

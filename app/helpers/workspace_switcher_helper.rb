@@ -1,6 +1,7 @@
 module WorkspaceSwitcherHelper
   # Workspaces shown in the header context switcher, preloaded for the chip
-  # (logo + role), N+1-safe. Memoized so the banner and switcher share one load.
+  # (logo + role), N+1-safe. Memoized so the desktop and mobile switcher
+  # variants share one load.
   # Recency ordering is applied at render time via #workspaces_by_recency (not
   # here) so a solo user's single workspace isn't force-loaded just to be sorted.
   def switcher_workspaces

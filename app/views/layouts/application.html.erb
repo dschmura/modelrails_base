@@ -19,7 +19,6 @@
     <%= render "shared/toasts" %>
 
     <% if Current.workspace %>
-      <%= render "shared/workspace_context_banner" %>
       <div class="flex-1 flex flex-col md:flex-row">
         <%# Desktop sidebar — hidden below md where the section_nav_strip
             inside <main> surfaces the same items instead. %>
@@ -40,14 +39,19 @@
                  style: "--ws-primary-light: oklch(0.40 0.15 #{ws_hue}); --ws-primary-dark: oklch(0.78 0.10 #{ws_hue});" }
              end %>
         <%= tag.main id: "main-content", tabindex: "-1", class: "flex-1 min-w-0", **main_context_attrs do %>
-          <%# The identity bar, section nav, and page content all share one
-              left-aligned max-w-4xl column (px-6) so they line up on a single
-              left edge next to the sidebar (widths vary — 4xl lists, 2xl forms —
-              but the left edge is constant). On mobile the strip's -mx-6
-              full-bleeds to the viewport edge within this px-6. -%>
-          <div class="max-w-4xl px-6">
-            <%= render "shared/workspace_identity_bar", workspace: Current.workspace %>
-          </div>
+          <%# The section nav and page content share one left-aligned max-w-4xl
+              column (px-6) so they line up on a single left edge next to the
+              sidebar (widths vary — 4xl lists, 2xl forms — but the left edge is
+              constant). On mobile the strip's -mx-6 full-bleeds to the viewport
+              edge within this px-6.
+
+              The identity bar that used to lead this column is gone — the
+              sidebar switcher carries workspace identity now. Below md the
+              sidebar is hidden, so on a phone only the hamburger panel names
+              the workspace; re-rendering an identity bar here would duplicate
+              the switcher's ids in the DOM (the sidebar is display:none, not
+              absent), so mobile wants its own treatment rather than a second
+              copy. Deferred — see the mobile-identity issue. -%>
           <% if current_workspace_section == :settings %>
             <div class="max-w-4xl px-6">
               <%# Mobile-only breadcrumb: section-trail orientation. Desktop
