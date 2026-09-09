@@ -131,6 +131,21 @@ class ActivityLog < ApplicationRecord
     tracked_membership&.user&.full_name
   end
 
+  # The row's sentence subject, or nil when the row genuinely does not know
+  # one. membership.created is the only action whose subject is knowable
+  # WITHOUT an actor: the row is about the person who joined. Onboarding
+  # creates that membership in a User after_create, where Current.user cannot
+  # exist yet — it delegates to a session that starts only after the signup
+  # transaction commits. Every other action keeps the actor as subject; a nil
+  # actor there means a job or console did it, and "System" is the truth.
+  # Gated on the action for that reason: a bare actor-or-member fallback
+  # renders a nil-actor deactivation as "Dee deactivated Dee".
+  def display_subject
+    return actor.full_name if actor
+
+    display_member if display_action == "membership.created"
+  end
+
   private
 
   def tracked_membership

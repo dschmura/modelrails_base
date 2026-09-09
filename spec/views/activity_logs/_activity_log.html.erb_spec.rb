@@ -104,6 +104,36 @@ RSpec.describe "activity_logs/_activity_log", type: :view do
       expect(html).to have_text("Ada Owner deactivated Dee Member", normalize_ws: true)
     end
 
+    # membership.created is the one action whose subject is knowable without
+    # an actor: the row is about the person who joined. At signup the
+    # membership is created in a User after_create, where Current.user cannot
+    # exist yet, so the row used to render "System joined the workspace".
+    it "names the member as subject on a nil-actor membership.created" do
+      output = Capybara.string(render_row(action: "membership.created", actor: nil, trackable: dees_membership))
+
+      expect(output).to have_text("Dee Member joined the workspace", normalize_ws: true)
+      expect(output).to have_no_text("System", normalize_ws: true)
+    end
+
+    # The gate: a nil actor on any OTHER action still means a job or console
+    # did it, and "System" is the truth. Without the gate a bare
+    # actor-or-member fallback renders "Dee Member deactivated Dee Member".
+    it "keeps System as subject on a nil-actor membership.updated" do
+      output = Capybara.string(render_row(action: "membership.updated", metadata: deactivation_metadata,
+                                          actor: nil, trackable: dees_membership))
+
+      expect(output).to have_text("System deactivated Dee Member", normalize_ws: true)
+    end
+
+    # The fallback, not a substitution: a present actor always wins, so a
+    # membership.created row whose membership was hard-deleted still names
+    # the actor rather than degrading to the neutral noun.
+    it "still names the actor on membership.created when the membership is gone" do
+      output = Capybara.string(render_row(action: "membership.created", actor: ada, trackable: nil))
+
+      expect(output).to have_text("Ada Owner joined the workspace", normalize_ws: true)
+    end
+
     it "falls back to a neutral noun when the membership is gone" do
       html = render_row(
         action: "membership.updated",
@@ -164,6 +194,18 @@ RSpec.describe "activity_logs/_activity_log", type: :view do
 
   it "renders the written string for a non-membership action" do
     expect(render_row(action: "project.created")).to have_text("created a project")
+  end
+
+  # The partial always emits the subject span, so every action string must be
+  # written for an actor-as-subject sentence. `invitation.updated` was the one
+  # passive string in the file and rendered as "Ada Owner invitation was
+  # updated" (#1085).
+  it "reads invitation.updated as a sentence with the actor as subject" do
+    ada = create(:user, first_name: "Ada", last_name: "Owner")
+
+    output = Capybara.string(render_row(action: "invitation.updated", actor: ada))
+
+    expect(output).to have_text("Ada Owner updated an invitation", normalize_ws: true)
   end
 
   # No fallback: an action without a label is a missing translation, which

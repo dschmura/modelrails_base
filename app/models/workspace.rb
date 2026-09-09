@@ -187,6 +187,16 @@ class Workspace < ApplicationRecord
 
   private
 
+  # A workspace's own audit rows belong to it. Without this, Trackable falls
+  # through to Current.workspace — nil at signup, so the workspace.created row
+  # was written unreachable by any feed; and the PREVIOUS workspace when a
+  # signed-in user created a second one from inside the first, so the row
+  # landed in the wrong tenant's feed (#1084). Every other Trackable includer
+  # that owns a workspace already answers this for itself.
+  def activity_workspace
+    self
+  end
+
   def notify_workspace_created
     WorkspaceCreatedNotifier.with(record: self, creator: created_by).deliver(nil)
   end
