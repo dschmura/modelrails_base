@@ -1,4 +1,4 @@
-<%# locals: (workspace:) -%>
+<%# locals: (workspace:, id_suffix: "", capped: false) -%>
 <%# The workspace switcher as the sidebar's head, carrying identity (logo +
     name + role) and the switch affordance in ONE control. Being one control is
     what lets it clear mc-target-size-44 as a block; the identity bar this
@@ -15,14 +15,19 @@
 
 <div data-controller="menu" data-action="click@document->menu#closeOnClickOutside"
      class="relative mb-6">
-  <%= render "shared/workspace_switcher_trigger", workspace: workspace %>
+  <%= render "shared/workspace_switcher_trigger", workspace: workspace, id_suffix: id_suffix %>
 
   <div data-menu-target="menu" data-action="keydown->menu#navigate"
-       id="workspace-switcher-menu" role="menu" tabindex="-1" hidden
-       aria-labelledby="workspace-switcher-button"
+       id="workspace-switcher-menu<%= id_suffix %>" role="menu" tabindex="-1" hidden
+       aria-labelledby="workspace-switcher-button<%= id_suffix %>"
        class="absolute left-0 right-0 mt-1 rounded-lg bg-surface-raised border border-border shadow-lg z-50 py-1">
     <% if workspaces.size > 1 %>
-      <% workspaces.each do |candidate| %>
+      <%# capped: the phone copy pins the current workspace first and shows at
+          most five (the hamburger's old bound), so a long list cannot run the
+          dropdown off a 375px screen; "All workspaces" below is the overflow.
+          Recency sort only inside this 2+ branch — it materializes the relation. %>
+      <% shown = capped ? ([ workspace ] + workspaces_by_recency(workspaces).reject { |w| w.id == workspace.id }).first(5) : workspaces %>
+      <% shown.each do |candidate| %>
         <% is_current = candidate.id == workspace.id %>
         <% membership = candidate.memberships.detect { |m| m.user_id == Current.user.id } %>
         <%= link_to main_app.workspace_path(candidate), role: "menuitem", tabindex: "-1",

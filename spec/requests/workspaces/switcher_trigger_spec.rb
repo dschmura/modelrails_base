@@ -28,6 +28,34 @@ RSpec.describe "Workspace switcher trigger", type: :request do
       "focusable descendants nest interactive controls: #{trigger.css('a, button, input, select, textarea, [tabindex]').map(&:name)}"
   end
 
+  # #1077: phones get the switcher in the content column. The sidebar copy is
+  # display:none below md, not absent, so the mobile copy carries its own id
+  # suffix on the trigger, the menu, and both inner ids — otherwise every one
+  # of them is duplicated in the DOM at every width.
+  it "renders a mobile trigger with its own ids, and no id on the page twice" do
+    get workspace_path(workspace)
+    doc = Nokogiri::HTML(response.body)
+
+    expect(doc.at_css("#workspace-switcher-button-mobile")).not_to be_nil, "no mobile trigger"
+    expect(doc.at_css("#workspace-switcher-button")).not_to be_nil, "desktop trigger lost"
+
+    ids = doc.css("[id]").map { |el| el["id"] }
+    duplicates = ids.tally.select { |_, n| n > 1 }.keys
+    expect(duplicates).to be_empty, "ids present more than once: #{duplicates.inspect}"
+  end
+
+  it "re-renders BOTH triggers on rename so the phone copy cannot go stale" do
+    patch workspace_path(workspace), params: { workspace: { name: "New Acme" } },
+          headers: { "Accept" => "text/vnd.turbo-stream.html" }
+
+    doc = Nokogiri::HTML(response.body)
+    %w[workspace-switcher-button workspace-switcher-button-mobile].each do |id|
+      fragment = doc.at_css("##{id}")
+      expect(fragment).not_to be_nil, "broadcast did not replace ##{id}"
+      expect(fragment.text).to include("New Acme"), "##{id} still carries the old name"
+    end
+  end
+
   it "re-renders the whole trigger on rename, still free of focusable descendants" do
     patch workspace_path(workspace), params: { workspace: { name: "New Acme" } },
           headers: { "Accept" => "text/vnd.turbo-stream.html" }

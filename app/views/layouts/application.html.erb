@@ -50,8 +50,13 @@
               sidebar is hidden, so on a phone only the hamburger panel names
               the workspace; re-rendering an identity bar here would duplicate
               the switcher's ids in the DOM (the sidebar is display:none, not
-              absent), so mobile wants its own treatment rather than a second
-              copy. Deferred — see the mobile-identity issue. -%>
+              absent), so the phone copy below carries its own id suffix on
+              the trigger, the menu and both inner ids, and is capped to five
+              so it cannot run off a 375px screen (#1077). -%>
+          <div class="md:hidden max-w-4xl px-6">
+            <%= render "shared/workspace_sidebar_switcher",
+                  workspace: Current.workspace, id_suffix: "-mobile", capped: true %>
+          </div>
           <% if current_workspace_section == :settings %>
             <div class="max-w-4xl px-6">
               <%# Mobile-only breadcrumb: section-trail orientation. Desktop

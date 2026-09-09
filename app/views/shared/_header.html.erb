@@ -29,11 +29,10 @@
           <%= render "shared/theme_toggle", style: :icon %>
         </div>
         <%# No workspace switcher here: it is the head of the workspace sidebar
-            (_workspace_sidebar_switcher), so the workspace is named once and
-            only in workspace chrome. Account pages carry no workspace context
-            by design, so they no longer offer a switch. The mobile variant
-            still renders inside the hamburger panel below — the sidebar is
-            hidden under md. %>
+            (_workspace_sidebar_switcher), and on phones the same switcher
+            renders above the section tabs (#1077). The workspace is named
+            only in workspace chrome; account pages carry no workspace context
+            by design and offer "All workspaces" from the user menu instead. %>
         <%= render "shared/user_menu", context: :desktop %>
 
         <%# Mobile menu button. Header-accordion pattern (Path Z) — tapping
@@ -88,7 +87,6 @@
       <div class="flex flex-col gap-2">
         <% if authenticated? %>
           <%= render "shared/user_menu", context: :mobile %>
-          <%= render "shared/workspace_switcher", mobile: true %>
         <% else %>
           <%= link_to t("navigation.sign_in"), main_app.new_session_path,
                 class: "min-h-[var(--form-input-height)] flex items-center px-2 text-text-body
