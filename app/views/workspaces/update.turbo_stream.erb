@@ -20,12 +20,11 @@
 <% end %>
 
 <% if @close_modal %>
-  <%# Close any open modal that targets the standard "modal-body" slot (settings edit page). %>
+  <%# Close any open modal that targets the standard "modal-body" slot — the
+      identity picker on the Profile page. Personal workspaces used to need a
+      second append here for their own Customize modal; they now edit through
+      the same Profile page as an org, so there is one modal to close. %>
   <%= turbo_stream.append "modal-body" do %>
-    <div data-controller="modal-closer"></div>
-  <% end %>
-  <%# Close the Customize modal on the personal-workspace Overview (uses a stable id). %>
-  <%= turbo_stream.append "workspace-customize-body" do %>
     <div data-controller="modal-closer"></div>
   <% end %>
 <% end %>

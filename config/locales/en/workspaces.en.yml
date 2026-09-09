@@ -73,13 +73,6 @@ en:
       submit: "Create workspace"
     create:
       success: "Workspace created."
-    overview:
-      customize:
-        open: "Customize"
-        title: "Customize workspace"
-        name_label: "Workspace name"
-        save: "Save changes"
-        logo_label: "Logo"
     edit:
       title: "%{workspace} — Profile"
       name_label: "Workspace name"

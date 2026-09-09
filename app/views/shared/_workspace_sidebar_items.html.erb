@@ -26,22 +26,3 @@
     <%= render "shared/settings_sidebar_item", **item %>
   <% end %>
 </ul>
-
-<% if current_workspace.personal? %>
-  <%# Personal workspaces get no Settings nav entry (workspace_shell_nav_items);
-      Customize is its counterpart — name + logo editing in a modal. It sits
-      OUTSIDE the nav <ul> because it opens a dialog rather than navigating to
-      a destination, and matches the nav items' styling so the two read as one
-      column. %>
-  <div class="mt-1">
-    <%= render "shared/modal",
-          id: "workspace-customize",
-          title: t("workspaces.overview.customize.title"),
-          trigger: t("workspaces.overview.customize.open"),
-          trigger_class: "w-full min-h-[44px] flex items-center gap-3 px-3 py-2 rounded-md
-                          text-text-body motion-safe:transition-colors motion-safe:duration-150
-                          hover:bg-surface-sunken hover:text-text-heading focus-ring" do %>
-      <%= render "workspaces/customize_modal", workspace: current_workspace %>
-    <% end %>
-  </div>
-<% end %>
