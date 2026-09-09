@@ -65,6 +65,26 @@ RSpec.describe "Mobile workspace switcher — content column", type: :system, js
     expect(page).to have_current_path(workspace_path(second_workspace))
   end
 
+  # #1090: the index keeps the switcher in place too, in an "All workspaces"
+  # state — the one authenticated page where the affordance used to vanish.
+  describe "on the workspaces index" do
+    before { visit workspaces_path }
+
+    it "shows the trigger in the All-workspaces state and navigates to a workspace from it" do
+      trigger = find("#workspace-switcher-button-mobile")
+      expect(trigger).to have_text(I18n.t("navigation.all_workspaces"))
+      expect(trigger).to have_no_text("Owner")
+
+      trigger.click
+      within("#workspace-switcher-menu-mobile") do
+        expect(page).to have_css("a[aria-current]", text: I18n.t("navigation.all_workspaces"))
+        click_link second_workspace.name
+      end
+
+      expect(page).to have_current_path(workspace_path(second_workspace))
+    end
+  end
+
   it "closes on Escape" do
     find("#workspace-switcher-button-mobile").click
     expect(find("#workspace-switcher-button-mobile")["aria-expanded"]).to eq("true")
