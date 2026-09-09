@@ -112,10 +112,17 @@ RSpec.describe ActivityLog, type: :model do
   describe "scopes" do
     let(:workspace) { create(:workspace) }
 
+    # include/not_to include rather than contain_exactly: the workspace's own
+    # `workspace.created` row belongs to this scope too (Workspace answers
+    # activity_workspace for itself, #1084). The old exact match only held
+    # because that row used to be written with a nil workspace — the scope
+    # was passing on a defect, and pinning the row COUNT was never its job.
     it ".for_workspace filters by workspace" do
       ws_log = create(:activity_log, workspace: workspace)
-      create(:activity_log, workspace: create(:workspace))
-      expect(ActivityLog.for_workspace(workspace)).to contain_exactly(ws_log)
+      other_log = create(:activity_log, workspace: create(:workspace))
+
+      expect(ActivityLog.for_workspace(workspace)).to include(ws_log)
+      expect(ActivityLog.for_workspace(workspace)).not_to include(other_log)
     end
 
     it ".visible returns workspace-visibility logs" do
