@@ -1,0 +1,31 @@
+<%# locals: (workspace:) -%>
+<%# The switcher's trigger: workspace identity (logo + name + role) and the
+    switch affordance as ONE control. Shared with workspaces/update.turbo_stream
+    so the live trigger and the rename broadcast cannot drift — the broadcast
+    replaces this whole button rather than patching pieces of it.
+
+    The name is a <span>, never a link. It used to be one (shared/_workspace_
+    name_link, for the identity bar this replaced); an anchor inside this button
+    is a nested-interactive axe failure, which is what the personal-workspace
+    rename spec caught when the id moved in here. -%>
+<button data-menu-target="trigger" data-action="click->menu#toggle keydown->menu#triggerKeydown"
+        id="workspace-switcher-button" type="button"
+        aria-haspopup="menu" aria-expanded="false" aria-controls="workspace-switcher-menu"
+        class="w-full min-h-[44px] flex items-center gap-3 px-2 py-2 rounded-lg text-left
+               hover:bg-surface-sunken focus-ring">
+  <span class="shrink-0 w-10 h-10 flex items-center justify-center <%= workspace.personal? ? "rounded-full" : "rounded-md overflow-hidden" %>">
+    <%= workspace_icon_for(workspace, size: :md) %>
+  </span>
+  <span class="flex-1 min-w-0">
+    <span id="workspace-name-heading" class="block truncate text-sm font-bold text-text-heading">
+      <%= workspace.name %>
+    </span>
+    <% role = current_user_role_in(workspace) %>
+    <% if role %>
+      <span id="workspace-identity-role" class="block truncate text-xs text-text-muted">
+        <%= role.name %>
+      </span>
+    <% end %>
+  </span>
+  <span aria-hidden="true" class="shrink-0 text-text-muted">&#9662;</span> <%# erblint:disable HardCodedString - presentational glyph, not language (#498) %>
+</button>
