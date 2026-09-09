@@ -1,7 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "Strong workspaces index", type: :system, js: true do
-  let(:user) { create(:user, first_name: "Dave", last_name: "Hancock") }
+  let(:user) { create(:user, first_name: "Nell", last_name: "Hancock") }
   let(:current_workspace) { create(:workspace, name: "Recent") }
   let(:older_workspace) { create(:workspace, name: "Older") }
 

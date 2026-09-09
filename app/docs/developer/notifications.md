@@ -221,7 +221,7 @@ The helper owns view-token mapping + severity orchestration. The three public su
 |---|---|---|
 | `unread_notification_summary(user)` | `{ count:, severity: }` (severity nil when count zero) | The three frame-rendering broadcasts (avatar indicator, hamburger indicator, menu count row); passed in as a `summary:` local from `NotificationBroadcaster` to avoid redundant queries |
 | `notification_bell_classes(severity, variant: :icon)` | `{ icon: "text-<severity>" }` for `:icon`; a dot class (`SEVERITY_DOT_CLASSES`) for `:dot` | The indicator partial (`variant: :dot`) — maps severity to the saturated `--color-{severity}` token already used by toasts; `variant:` selects the icon-tint vs. dot-indicator form |
-| `avatar_button_aria_label(user, summary = …)` | I18n-composed string ("User menu for Dave. 3 unread notifications, including a security alert.") | Retained from the retired standalone bell; the current avatar button carries a static identity-only label (`navigation.user_menu_label_simple`), so unread phrasing no longer rides the button's accessible name |
+| `avatar_button_aria_label(user, summary = …)` | I18n-composed string ("User menu for Nell. 3 unread notifications, including a security alert.") | Retained from the retired standalone bell; the current avatar button carries a static identity-only label (`navigation.user_menu_label_simple`), so unread phrasing no longer rides the button's accessible name |
 
 `SEVERITY_RANK = { danger: 4, warning: 3, info: 2, success: 1 }` — higher rank wins when multiple severities are unread. `canonical_severity(severity)` clamps any input to one of the four canonical values (defensive coverage for non-production paths; production is already guarded by `ApplicationNotifier.severity`'s DSL).
 
