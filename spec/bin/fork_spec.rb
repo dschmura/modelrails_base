@@ -483,6 +483,86 @@ RSpec.describe ForkFlow do
     end
   end
 
+  # Git carries no record of what a fork was forked from; GitHub does. When
+  # nothing names the template, bin/fork asks `gh` for origin's parent. The
+  # fake gh below answers only for the repo it is asked about, so a wrong
+  # owner/repo parse reads as "GitHub has no parent", not as a pass.
+  describe "deriving the template from GitHub" do
+    let(:bin_dir) { workdir.join("bin") }
+    let(:parent_url) { "git@github.com:org/modelrails_base_wads.git" }
+
+    def with_path(*dirs)
+      original = ENV["PATH"]
+      ENV["PATH"] = dirs.join(":")
+      yield
+    ensure
+      ENV["PATH"] = original
+    end
+
+    def install_fake_gh
+      bin_dir.mkpath
+      gh = bin_dir.join("gh")
+      gh.write("#!/bin/sh\ncase \"$*\" in\n  *repos/me/my_app*) echo \"#{parent_url}\" ;;\nesac\n")
+      gh.chmod(0o755)
+    end
+
+    def fork_config
+      YAML.safe_load_file(repo.join(".fork.yml"))
+    end
+
+    before { git("remote", "set-url", "origin", "git@github.com:me/my_app.git") }
+
+    it "records origin's GitHub parent as the template when gh can answer" do
+      install_fake_gh
+
+      with_path(bin_dir.to_s, ENV["PATH"]) { run_fork(name: "my_app", yes: true) }
+
+      expect(fork_config["template_url"]).to eq(parent_url)
+      expect(capture_git("remote")).not_to include("upstream")
+    end
+
+    it "prefers an explicit --template over GitHub's answer" do
+      install_fake_gh
+
+      with_path(bin_dir.to_s, ENV["PATH"]) { run_fork(name: "my_app", template: "git@github.com:org/other.git", yes: true) }
+
+      expect(fork_config["template_url"]).to eq("git@github.com:org/other.git")
+    end
+
+    it "records no template when GitHub reports no parent" do
+      install_fake_gh
+      git("remote", "set-url", "origin", "git@github.com:me/plain_repo.git")
+
+      with_path(bin_dir.to_s, ENV["PATH"]) { run_fork(name: "my_app", yes: true) }
+
+      expect(fork_config).not_to have_key("template_url")
+    end
+
+    # On the clone path origin IS the template, so its GitHub parent is the
+    # template's own parent — recording that would point upstream one hop too
+    # far. --origin is the signal for that path; --template names the mirror.
+    it "does not ask GitHub on the clone path (--origin given)" do
+      install_fake_gh
+
+      with_path(bin_dir.to_s, ENV["PATH"]) { run_fork(name: "my_app", origin: "git@github.com:me/other.git", yes: true) }
+
+      expect(fork_config).not_to have_key("template_url")
+    end
+
+    it "falls back to verify-by-hand when gh is not installed" do
+      # A PATH holding nothing but git: gh is absent the way it is on a machine
+      # that never installed it, not faked as failing.
+      git_binary = ENV["PATH"].split(":").map { |dir| File.join(dir, "git") }.find { |path| File.executable?(path) }
+      bin_dir.mkpath
+      bin_dir.join("git").make_symlink(git_binary)
+
+      with_path(bin_dir.to_s) { run_fork(name: "my_app", yes: true) }
+
+      expect(fork_config).not_to have_key("template_url")
+      expect(capture_git("remote")).not_to include("upstream")
+    end
+  end
+
   # ------------------------------------------------------- resumability claims
 
   describe "re-running" do

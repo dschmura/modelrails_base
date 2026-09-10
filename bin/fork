@@ -207,6 +207,20 @@ class ForkFlow
 
   def normalize_url(url) = url.to_s.strip.delete_suffix(".git").chomp("/")
 
+  # Git has no record of what a fork was forked from; GitHub does. Asked only
+  # when nothing else names the template, and answered only when `gh` is
+  # installed and origin is a GitHub repo with a parent — otherwise --template.
+  def github_parent(origin_url)
+    match = origin_url.match(%r{github\.com[:/](?<owner>[^/]+)/(?<repo>[^/]+?)(?:\.git)?/?\z})
+    return nil unless match
+
+    field = origin_url.start_with?("https://") ? "clone_url" : "ssh_url"
+    url, status = capture("gh", "api", "repos/#{match[:owner]}/#{match[:repo]}", "--jq", ".parent.#{field} // empty")
+    status.zero? && !url.empty? ? url : nil
+  rescue Errno::ENOENT
+    nil
+  end
+
   def current_branch
     branch, = capture("git", "-C", @root, "rev-parse", "--abbrev-ref", "HEAD")
     branch.empty? ? "main" : branch
@@ -346,11 +360,13 @@ class ForkFlow
       # exists `git pull` would merge the TEMPLATE into your work.
       sh("git", "-C", @root, "branch", "--unset-upstream") if tracking_branch?
       origin_present = false
-    elsif @template_url
-      say("  ✓ template recorded (#{@template_url}) — bin/setup adds it as the push-disabled upstream remote")
+    elsif (@template_url ||= (github_parent(origin_url) unless @opts[:origin]))
+      how = @opts[:template] ? "--template" : "origin's GitHub parent"
+      say("  ✓ template #{@template_url} (#{how}) — bin/setup adds it as the push-disabled upstream remote")
     else
       say("  ! no template remote found to convert — verify by hand:")
       say("    git remote -v   # upstream fetch = the template, upstream push = DISABLED")
+      say("    or name it: bin/fork --template URL")
     end
 
     if origin_present

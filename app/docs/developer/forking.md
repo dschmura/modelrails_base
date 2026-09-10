@@ -60,27 +60,45 @@ When run interactively it finishes by offering to run `bin/setup` for you (the
 dev server is not started — that stays your call). Under `--yes`, or when stdin
 isn't a terminal, it never does: scripted and CI runs stay fast and predictable.
 
-### From a GitHub fork, or a mirror under another name
+### From a GitHub fork, or a fork of a fork
 
-If you pressed **Fork** on GitHub instead of cloning, your clone's `origin` is
-already your product and there is no `upstream` yet. Run `bin/fork` without
-`--origin` and name the template with `--template`: the script leaves `origin`
-alone, records the URL in `.fork.yml`, and `bin/setup` adds it as the
-push-disabled `upstream` in every clone.
+The template is meant to be forked, and forks get forked: an organization keeps
+its own synced copy under its own name, and products start from that copy. The
+shortest path is the **Fork** button, then a clone, then `bin/fork` with no
+remote flags at all:
 
 ```bash
-bin/fork --name myapp --preset personal --template git@github.com:dschmura/modelrails_base.git --yes
+git clone git@github.com:YOU/myapp.git
+cd myapp
+bin/fork --name myapp --preset personal --yes
 ```
 
-`--template` is also how a **synced mirror** of the template becomes your
-template. `bin/fork` knows the template by name — a remote ending in
-`/modelrails_base` — so a department's mirror under another name
-(`modelrails_base_wads`, say) is invisible to it until you say so. With the flag,
-an existing `upstream` equal to that URL counts as configured, and on the clone
-path an `origin` equal to it gets the same remote surgery as the template
-itself. The match is URL equality, with or without `.git`, never a looser name
-pattern: a repository of your own that merely *starts* with `modelrails_base`
-is never mistaken for the template.
+Your clone's `origin` is already your product and there is no `upstream` yet.
+Git has no record of what a fork was forked from, but GitHub does, so when
+nothing else names the template and the `gh` CLI is installed, `bin/fork` asks
+GitHub for `origin`'s parent and records that URL in `.fork.yml`. That is the
+repository you pressed Fork on — the organization's copy if you forked the
+copy, the template if you forked the template. `bin/setup` reads the URL and
+adds it as the push-disabled `upstream` in every clone. The script says which
+it did: *template … (origin's GitHub parent)*.
+
+Without `gh`, or when GitHub reports no parent, name the template yourself with
+`--template URL`; an explicit flag always wins over the lookup:
+
+```bash
+bin/fork --name myapp --preset personal --template git@github.com:ORG/modelrails_base_wads.git --yes
+```
+
+`--template` is also how a copy under another name works on the **clone path**
+(`git clone <the copy> myapp`, then `bin/fork --origin <your empty repo>`).
+There `origin` *is* the template, so its GitHub parent would be one hop too far
+and the script deliberately does not ask; `bin/fork` knows the template by
+name — a remote ending in `/modelrails_base` — and `--template` extends that to
+the copy. With the flag, an existing `upstream` equal to that URL counts as
+configured, and an `origin` equal to it gets the same remote surgery as the
+template itself. The match is URL equality, with or without `.git`, never a
+looser name pattern: a repository of your own that merely *starts* with
+`modelrails_base` is never mistaken for the template.
 
 ### By hand (what bin/fork does)
 
