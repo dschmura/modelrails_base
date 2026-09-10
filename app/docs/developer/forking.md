@@ -60,6 +60,28 @@ When run interactively it finishes by offering to run `bin/setup` for you (the
 dev server is not started — that stays your call). Under `--yes`, or when stdin
 isn't a terminal, it never does: scripted and CI runs stay fast and predictable.
 
+### From a GitHub fork, or a mirror under another name
+
+If you pressed **Fork** on GitHub instead of cloning, your clone's `origin` is
+already your product and there is no `upstream` yet. Run `bin/fork` without
+`--origin` and name the template with `--template`: the script leaves `origin`
+alone, records the URL in `.fork.yml`, and `bin/setup` adds it as the
+push-disabled `upstream` in every clone.
+
+```bash
+bin/fork --name myapp --preset personal --template git@github.com:dschmura/modelrails_base.git --yes
+```
+
+`--template` is also how a **synced mirror** of the template becomes your
+template. `bin/fork` knows the template by name — a remote ending in
+`/modelrails_base` — so a department's mirror under another name
+(`modelrails_base_wads`, say) is invisible to it until you say so. With the flag,
+an existing `upstream` equal to that URL counts as configured, and on the clone
+path an `origin` equal to it gets the same remote surgery as the template
+itself. The match is URL equality, with or without `.git`, never a looser name
+pattern: a repository of your own that merely *starts* with `modelrails_base`
+is never mistaken for the template.
+
 ### By hand (what bin/fork does)
 
 Use this if you'd rather drive it yourself, or to finish up after an interrupted

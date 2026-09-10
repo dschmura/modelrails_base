@@ -424,6 +424,65 @@ RSpec.describe ForkFlow do
     end
   end
 
+  # A synced mirror of the template (lsa-mis/modelrails_base_wads) is the
+  # template under another name, so TEMPLATE_REMOTE cannot know it. --template
+  # names it explicitly; the match is URL equality, never a looser pattern, so
+  # the anchoring guarantee above ("me/not_modelrails_base" is left alone) holds.
+  describe "--template (a mirror of the template under another name)" do
+    let(:mirror_bare) { workdir.join("modelrails_base_wads.git") }
+
+    before do
+      system(ForkFlow::CLEAN_GIT_ENV, "git", "init", "--bare", "-q", mirror_bare.to_s) ||
+        raise("mirror bare init failed")
+    end
+
+    # The GitHub Fork button path: origin is already the product, no upstream
+    # yet. bin/fork records the URL; bin/setup adds the remote in every clone.
+    it "records the template url in .fork.yml when nothing but origin exists" do
+      git("remote", "set-url", "origin", "git@github.com:me/my_app.git")
+
+      run_fork(name: "my_app", template: mirror_bare.to_s, yes: true)
+
+      expect(YAML.safe_load_file(repo.join(".fork.yml"))["template_url"]).to eq(mirror_bare.to_s)
+      expect(capture_git("remote")).not_to include("upstream")
+    end
+
+    # The clone-the-template path, with the mirror as origin. Equality is
+    # .git-insensitive: the remote has the suffix, the flag does not.
+    it "converts an origin equal to --template into a push-disabled upstream" do
+      git("remote", "set-url", "origin", mirror_bare.to_s)
+
+      run_fork(name: "my_app", template: mirror_bare.to_s.delete_suffix(".git"),
+               origin: "git@github.com:me/my_app.git", yes: true)
+
+      expect(capture_git("remote", "get-url", "upstream")).to eq(mirror_bare.to_s)
+      expect(capture_git("remote", "get-url", "--push", "upstream")).to eq("DISABLED")
+      expect(capture_git("remote", "get-url", "origin")).to eq("git@github.com:me/my_app.git")
+    end
+
+    it "treats an upstream equal to --template as already configured" do
+      git("remote", "set-url", "origin", "git@github.com:me/my_app.git")
+      git("remote", "add", "upstream", mirror_bare.to_s)
+      git("remote", "set-url", "--push", "upstream", "DISABLED")
+
+      run_fork(name: "my_app", template: mirror_bare.to_s, yes: true)
+
+      expect(YAML.safe_load_file(repo.join(".fork.yml"))["template_url"]).to eq(mirror_bare.to_s)
+      expect(capture_git("remote", "get-url", "upstream")).to eq(mirror_bare.to_s)
+    end
+
+    # Negative control for the design choice: without the flag, a name that
+    # merely starts with the template's is still nobody's template.
+    it "leaves a suffix-named origin alone when no --template is given" do
+      git("remote", "set-url", "origin", "git@github.com:me/modelrails_base_myapp.git")
+
+      run_fork(name: "my_app", yes: true)
+
+      expect(capture_git("remote", "get-url", "origin")).to eq("git@github.com:me/modelrails_base_myapp.git")
+      expect(capture_git("remote")).not_to include("upstream")
+    end
+  end
+
   # ------------------------------------------------------- resumability claims
 
   describe "re-running" do
