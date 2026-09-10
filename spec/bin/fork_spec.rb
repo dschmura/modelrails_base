@@ -424,6 +424,145 @@ RSpec.describe ForkFlow do
     end
   end
 
+  # A synced mirror of the template (lsa-mis/modelrails_base_wads) is the
+  # template under another name, so TEMPLATE_REMOTE cannot know it. --template
+  # names it explicitly; the match is URL equality, never a looser pattern, so
+  # the anchoring guarantee above ("me/not_modelrails_base" is left alone) holds.
+  describe "--template (a mirror of the template under another name)" do
+    let(:mirror_bare) { workdir.join("modelrails_base_wads.git") }
+
+    before do
+      system(ForkFlow::CLEAN_GIT_ENV, "git", "init", "--bare", "-q", mirror_bare.to_s) ||
+        raise("mirror bare init failed")
+    end
+
+    # The GitHub Fork button path: origin is already the product, no upstream
+    # yet. bin/fork records the URL; bin/setup adds the remote in every clone.
+    it "records the template url in .fork.yml when nothing but origin exists" do
+      git("remote", "set-url", "origin", "git@github.com:me/my_app.git")
+
+      run_fork(name: "my_app", template: mirror_bare.to_s, yes: true)
+
+      expect(YAML.safe_load_file(repo.join(".fork.yml"))["template_url"]).to eq(mirror_bare.to_s)
+      expect(capture_git("remote")).not_to include("upstream")
+    end
+
+    # The clone-the-template path, with the mirror as origin. Equality is
+    # .git-insensitive: the remote has the suffix, the flag does not.
+    it "converts an origin equal to --template into a push-disabled upstream" do
+      git("remote", "set-url", "origin", mirror_bare.to_s)
+
+      run_fork(name: "my_app", template: mirror_bare.to_s.delete_suffix(".git"),
+               origin: "git@github.com:me/my_app.git", yes: true)
+
+      expect(capture_git("remote", "get-url", "upstream")).to eq(mirror_bare.to_s)
+      expect(capture_git("remote", "get-url", "--push", "upstream")).to eq("DISABLED")
+      expect(capture_git("remote", "get-url", "origin")).to eq("git@github.com:me/my_app.git")
+    end
+
+    it "treats an upstream equal to --template as already configured" do
+      git("remote", "set-url", "origin", "git@github.com:me/my_app.git")
+      git("remote", "add", "upstream", mirror_bare.to_s)
+      git("remote", "set-url", "--push", "upstream", "DISABLED")
+
+      run_fork(name: "my_app", template: mirror_bare.to_s, yes: true)
+
+      expect(YAML.safe_load_file(repo.join(".fork.yml"))["template_url"]).to eq(mirror_bare.to_s)
+      expect(capture_git("remote", "get-url", "upstream")).to eq(mirror_bare.to_s)
+    end
+
+    # Negative control for the design choice: without the flag, a name that
+    # merely starts with the template's is still nobody's template.
+    it "leaves a suffix-named origin alone when no --template is given" do
+      git("remote", "set-url", "origin", "git@github.com:me/modelrails_base_myapp.git")
+
+      run_fork(name: "my_app", yes: true)
+
+      expect(capture_git("remote", "get-url", "origin")).to eq("git@github.com:me/modelrails_base_myapp.git")
+      expect(capture_git("remote")).not_to include("upstream")
+    end
+  end
+
+  # Git carries no record of what a fork was forked from; GitHub does. When
+  # nothing names the template, bin/fork asks `gh` for origin's parent. The
+  # fake gh below answers only for the repo it is asked about, so a wrong
+  # owner/repo parse reads as "GitHub has no parent", not as a pass.
+  describe "deriving the template from GitHub" do
+    let(:bin_dir) { workdir.join("bin") }
+    let(:parent_url) { "git@github.com:org/modelrails_base_wads.git" }
+
+    def with_path(*dirs)
+      original = ENV["PATH"]
+      ENV["PATH"] = dirs.join(":")
+      yield
+    ensure
+      ENV["PATH"] = original
+    end
+
+    def install_fake_gh
+      bin_dir.mkpath
+      gh = bin_dir.join("gh")
+      gh.write("#!/bin/sh\ncase \"$*\" in\n  *repos/me/my_app*) echo \"#{parent_url}\" ;;\nesac\n")
+      gh.chmod(0o755)
+    end
+
+    def fork_config
+      YAML.safe_load_file(repo.join(".fork.yml"))
+    end
+
+    before { git("remote", "set-url", "origin", "git@github.com:me/my_app.git") }
+
+    it "records origin's GitHub parent as the template when gh can answer" do
+      install_fake_gh
+
+      with_path(bin_dir.to_s, ENV["PATH"]) { run_fork(name: "my_app", yes: true) }
+
+      expect(fork_config["template_url"]).to eq(parent_url)
+      expect(capture_git("remote")).not_to include("upstream")
+    end
+
+    it "prefers an explicit --template over GitHub's answer" do
+      install_fake_gh
+
+      with_path(bin_dir.to_s, ENV["PATH"]) { run_fork(name: "my_app", template: "git@github.com:org/other.git", yes: true) }
+
+      expect(fork_config["template_url"]).to eq("git@github.com:org/other.git")
+    end
+
+    it "records no template when GitHub reports no parent" do
+      install_fake_gh
+      git("remote", "set-url", "origin", "git@github.com:me/plain_repo.git")
+
+      with_path(bin_dir.to_s, ENV["PATH"]) { run_fork(name: "my_app", yes: true) }
+
+      expect(fork_config).not_to have_key("template_url")
+    end
+
+    # On the clone path origin IS the template, so its GitHub parent is the
+    # template's own parent — recording that would point upstream one hop too
+    # far. --origin is the signal for that path; --template names the mirror.
+    it "does not ask GitHub on the clone path (--origin given)" do
+      install_fake_gh
+
+      with_path(bin_dir.to_s, ENV["PATH"]) { run_fork(name: "my_app", origin: "git@github.com:me/other.git", yes: true) }
+
+      expect(fork_config).not_to have_key("template_url")
+    end
+
+    it "falls back to verify-by-hand when gh is not installed" do
+      # A PATH holding nothing but git: gh is absent the way it is on a machine
+      # that never installed it, not faked as failing.
+      git_binary = ENV["PATH"].split(":").map { |dir| File.join(dir, "git") }.find { |path| File.executable?(path) }
+      bin_dir.mkpath
+      bin_dir.join("git").make_symlink(git_binary)
+
+      with_path(bin_dir.to_s) { run_fork(name: "my_app", yes: true) }
+
+      expect(fork_config).not_to have_key("template_url")
+      expect(capture_git("remote")).not_to include("upstream")
+    end
+  end
+
   # ------------------------------------------------------- resumability claims
 
   describe "re-running" do
