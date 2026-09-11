@@ -11,7 +11,7 @@
             project: @invitation.invitable.name) %>
     <% else %>
       <%= t("invitation_declines.show.body",
-            workspace: @invitation.invitable.name,
+            workspace_name: @invitation.invitable.name,
             inviter: @invitation.invited_by.email_address) %>
     <% end %>
   </p>

@@ -103,7 +103,7 @@ RSpec.describe "Member row actions escape the members frame", type: :system do
 
       expect(page).to have_current_path(workspaces_path)
       expect(page).to have_text(
-        I18n.t("workspaces.members.destroy.left", workspace: workspace.name)
+        I18n.t("workspaces.members.destroy.left", workspace_name: workspace.name)
       )
     end
   end

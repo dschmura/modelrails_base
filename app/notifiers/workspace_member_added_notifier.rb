@@ -57,7 +57,7 @@ class WorkspaceMemberAddedNotifier < ApplicationNotifier
           "notifications.workspace_member_added.message",
           locale: recipient_locale,
           added_user_name: event.record.user.first_name,
-          workspace: event.record.workspace.name
+          workspace_name: event.record.workspace.name
         )
       end
     end

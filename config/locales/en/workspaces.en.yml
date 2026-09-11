@@ -10,8 +10,8 @@ en:
     archived_banner: "This workspace is archived."
     pending_join_banner:
       label: "Pending workspace join"
-      message: "You followed a link to join %{workspace}."
-      join: "Join %{workspace}"
+      message: "You followed a link to join %{workspace_name}."
+      join: "Join %{workspace_name}"
       dismiss: "Dismiss"
     join_links:
       create:
@@ -21,15 +21,15 @@ en:
     joins:
       invalid_or_revoked: "That join link is invalid, revoked, or no longer accepts joins."
       show:
-        title: "Join %{workspace}"
-        prompt: "You're about to join %{workspace} as a Member."
-        join_button: "Join %{workspace}"
+        title: "Join %{workspace_name}"
+        prompt: "You're about to join %{workspace_name} as a Member."
+        join_button: "Join %{workspace_name}"
         cancel: "Cancel"
       create:
-        joined: "Welcome to %{workspace}."
-        already_member: "You're already a member of %{workspace}."
-        register_first: "Create an account to join %{workspace}."
-        could_not_join: "You couldn't be added to %{workspace} right now."
+        joined: "Welcome to %{workspace_name}."
+        already_member: "You're already a member of %{workspace_name}."
+        register_first: "Create an account to join %{workspace_name}."
+        could_not_join: "You couldn't be added to %{workspace_name} right now."
     sidebar:
       aria_label: "Workspace navigation"
       section_label: "Workspace"
@@ -58,7 +58,7 @@ en:
       row:
         switch: "Switch"
         leave: "Leave"
-        leave_confirm: "Leave %{workspace}? You'll lose access to its projects and members. This can be reversed only by being re-invited."
+        leave_confirm: "Leave %{workspace_name}? You'll lose access to its projects and members. This can be reversed only by being re-invited."
         member:
           one: "1 member"
           other: "%{count} members"
@@ -72,7 +72,7 @@ en:
     create:
       success: "Workspace created."
     edit:
-      title: "%{workspace} — Profile"
+      title: "%{workspace_name} — Profile"
       name_label: "Workspace name"
     update:
       success: "Workspace profile updated."
@@ -142,7 +142,7 @@ en:
       destroy:
         deactivated: "Member deactivated."
         cannot_deactivate_last_owner: "Cannot deactivate the last owner."
-        left: "You left %{workspace}."
+        left: "You left %{workspace_name}."
         cannot_leave_last_owner: "You can't leave — you're the last owner. Transfer ownership first."
       reactivations:
         create:
@@ -196,8 +196,8 @@ en:
         change_logo: "Change logo"
   pending_joins:
     create:
-      joined: "Welcome to %{workspace}."
+      joined: "Welcome to %{workspace_name}."
       unavailable: "That join link is no longer available."
-      could_not_join: "You couldn't be added to %{workspace} right now."
+      could_not_join: "You couldn't be added to %{workspace_name} right now."
     destroy:
       dismissed: "Dismissed."

@@ -555,7 +555,7 @@ RSpec.describe "Workspaces::Members destroy", type: :request do
         delete workspace_member_path(workspace, user_membership)
         expect(response).to redirect_to(workspaces_path)
         follow_redirect!
-        expect(flash[:notice]).to eq(I18n.t("workspaces.members.destroy.left", workspace: workspace.name))
+        expect(flash[:notice]).to eq(I18n.t("workspaces.members.destroy.left", workspace_name: workspace.name))
         expect(user_membership.reload.discarded_at).to be_present
       end
     end
