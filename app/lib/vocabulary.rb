@@ -1,9 +1,6 @@
-#
-# The nouns a fork renames. Two stored forms per noun; the capitalized tokens
-# are derived because no template string capitalizes a noun mid-sentence.
-# Constant after boot on purpose: the I18n hook merges `tokens` into any
-# lookup whose string uses one, and that is only cheap while nothing here
-# depends on a request.
+# The nouns a fork renames: two stored forms each, casing derived. Constant
+# after boot, because the I18n hook reads it on every lookup that uses a noun.
+# See /docs/developer/forking (Vocabulary).
 module Vocabulary
   class InvalidVocabulary < StandardError; end
 

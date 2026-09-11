@@ -1,34 +1,12 @@
-#
-# The only backend customization in the app, and the deviation is deliberate:
-# a fork renames the product's nouns in config/vocabulary.local.yml, and every
-# translation must see those names without every call site passing them. The
-# prepend is on `translate`, not `interpolate` — the i18n gem skips
-# interpolation entirely when a call carries no values, so a hook one level
-# down never runs for the common case. The tokens are merged only into calls
-# whose resolved string uses one: a value-less call for a string that keeps
-# a %{count} or %{name} for client-side JavaScript must stay value-less, or
-# the gem interpolates it and raises (#1111). Caller-supplied values are
-# merged on top, so a call can still override a token, and a genuinely
-# missing argument (%{workspace_name} with no name) still raises: after
-# #1108 no caller key shares a name with a noun. See /docs/developer/i18n
-# (Vocabulary) and #1109.
-#
-# vocabulary_token_pattern is memoized on first call, not built as a
-# module-body constant: `Vocabulary` lives in app/lib and isn't yet
-# resolvable while config/initializers/*.rb are loading (confirmed with
-# `bin/rails runner` — a bare `Vocabulary.tokens` at this file's top level
-# raises NameError; icons.rb's `after_initialize` wrapper around
-# `IconRegistry.eager_load!` is this codebase's existing workaround for the
-# same ordering issue). Deferring the reference to first call, after boot
-# completes, keeps the pattern built exactly once without touching Vocabulary
-# during initializer load.
+# The app's one I18n backend customization: a fork's nouns
+# (config/vocabulary.local.yml) reach every translation without call sites
+# passing them. Prepended on `translate`, not `interpolate`, and only for
+# strings that use a noun token — the gem skips interpolation on value-less
+# calls, and a string keeping %{count} for client-side JS must stay that way.
+# The reasoning and its costs: /docs/developer/i18n (Vocabulary), #1109, #1111.
 module VocabularyInterpolation
   def translate(locale, key, options = I18n::EMPTY_HASH)
-    # Rails' translation helper calls #translate(nil, ...) when a literal
-    # `default:` string is supplied and the key is missing. `lookup` with a
-    # nil key returns the whole locale subtree, not one string — scanning
-    # that answers the wrong question, so a nil key skips straight to super
-    # and the caller's literal default passes through untouched.
+    # A literal-default lookup arrives with a nil key: nothing to scan.
     return super if key.nil?
     return super unless uses_vocabulary?(lookup(locale, key, options[:scope], options))
 
@@ -46,6 +24,7 @@ module VocabularyInterpolation
     end
   end
 
+  # Built on first use: Vocabulary autoloads after initializers have run.
   def vocabulary_token_pattern
     @vocabulary_token_pattern ||= /%\{(#{Vocabulary.tokens.keys.join("|")})\}/
   end
