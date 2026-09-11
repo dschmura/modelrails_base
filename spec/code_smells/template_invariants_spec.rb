@@ -1214,6 +1214,13 @@ RSpec.describe "Template invariants" do
         config/markdowndocs_categories.local.yml
         app/assets/tailwind/tokens/_brand.css
         README.md
+        app/views/shared/_site_mark.html.erb
+        public/icon.svg
+        public/icon.png
+        public/icon-192.png
+        public/icon-512.png
+        public/apple-touch-icon.png
+        public/favicon.ico
       ].each do |path|
         expect(gitattributes).to match(/^#{Regexp.escape(path)} merge=ours$/),
           "expected .gitattributes to mark #{path} merge=ours"

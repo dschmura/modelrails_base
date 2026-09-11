@@ -181,6 +181,7 @@ find again.
 | Storage volume names | `config/deploy.yml` (`volumes:`) | Renaming later orphans the old volume — do it before first deploy |
 | Brand strings | `config/locales/en/brand.en.yml` | Product name, description, copyright — fork-owned, one file |
 | Brand colors | `config/locales/en/brand.en.yml`'s visual twin: `app/assets/tailwind/tokens/_brand.css` | Optional — swap the primary palette family here; re-prove AAA in CI ([Theming](theming)) |
+| Brand mark | `app/views/shared/_site_mark.html.erb` (one `<svg>`, nothing else) + the icon set in `public/` | Replace wholesale; keep `fill="currentColor"`, `aria-hidden="true"`, and a `viewBox` with no width/height ([Extending](extending#customizing-the-site-logo)) |
 | Marketing copy | `config/locales/en/pages.en.yml` + `app/views/pages/` | Fork-owned — rewrite wholesale |
 | Languages | `config/application.rb` (`config.i18n.available_locales`) | Register a locale here *before* adding its files, or `I18n.t(locale:)` raises in production — see [Internationalization](i18n) |
 | PWA app name | `public/manifest.webmanifest` (`name` / `short_name`) | Shown on the home screen if users install the PWA |
@@ -256,6 +257,8 @@ on every sync.
 | `.rubocop/app.yml` | Your RuboCop overrides — turn a house cop off here, with the reason ([Getting started](getting-started#turning-a-house-cop-off-in-your-fork)) |
 | `config/markdowndocs_categories.local.yml` | Registers your own docs pages on this `/docs` index |
 | `app/assets/tailwind/tokens/_brand.css` | Brand-color overrides — swap the primary palette family ([Theming](theming)) |
+| `app/views/shared/_site_mark.html.erb` | The brand mark — a file that is one `<svg>` ([Extending](extending#customizing-the-site-logo)) |
+| `public/icon.svg`, `public/icon.png`, `public/icon-192.png`, `public/icon-512.png`, `public/apple-touch-icon.png`, `public/favicon.ico` | The favicon and PWA icon set — same artwork, same filenames and sizes ([Getting started](getting-started#favicon-and-pwa-icons)) |
 | `config/initializers/project_tools.rb` | Register your own project tools (`ProjectTools::Registry.register`) — see [Extending: Project Tools](/docs/developer/extending#project-tools-registry) |
 | `README.md` | Your product's README |
 

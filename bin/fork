@@ -439,6 +439,8 @@ class ForkFlow
     @todos << "Set a real support address in config/locales/en/pages.en.yml " \
               "(now support@#{snake}.example — an unmistakable placeholder, not a mailbox)."
     @todos << "Rewrite marketing copy: config/locales/en/pages.en.yml + app/views/pages/ (fork-owned)."
+    @todos << "Replace the brand mark: app/views/shared/_site_mark.html.erb (one <svg>) and the icon set in public/ " \
+              "(fork-owned — bin/fork renames strings, never artwork)."
 
     commit!("Rename identity: #{title}", FORK_FILE, *RENAME_FILES)
   end
