@@ -182,6 +182,7 @@ find again.
 | Brand strings | `config/locales/en/brand.en.yml` | Product name, description, copyright — fork-owned, one file |
 | Brand colors | `config/locales/en/brand.en.yml`'s visual twin: `app/assets/tailwind/tokens/_brand.css` | Optional — swap the primary palette family here; re-prove AAA in CI ([Theming](theming)) |
 | Brand mark | `app/views/shared/_site_mark.html.erb` (one `<svg>`, nothing else) + the icon set in `public/` | Replace wholesale; keep `fill="currentColor"`, `aria-hidden="true"`, and a `viewBox` with no width/height ([Extending](extending#customizing-the-site-logo)) |
+| Vocabulary | `config/vocabulary.local.yml` | Your names for workspace and project (singular + plural); every template string follows ([i18n](i18n#vocabulary)) |
 | Marketing copy | `config/locales/en/pages.en.yml` + `app/views/pages/` | Fork-owned — rewrite wholesale |
 | Languages | `config/application.rb` (`config.i18n.available_locales`) | Register a locale here *before* adding its files, or `I18n.t(locale:)` raises in production — see [Internationalization](i18n) |
 | PWA app name | `public/manifest.webmanifest` (`name` / `short_name`) | Shown on the home screen if users install the PWA |
@@ -259,10 +260,40 @@ on every sync.
 | `app/assets/tailwind/tokens/_brand.css` | Brand-color overrides — swap the primary palette family ([Theming](theming)) |
 | `app/views/shared/_site_mark.html.erb` | The brand mark — a file that is one `<svg>` ([Extending](extending#customizing-the-site-logo)) |
 | `public/icon.svg`, `public/icon.png`, `public/icon-192.png`, `public/icon-512.png`, `public/apple-touch-icon.png`, `public/favicon.ico` | The favicon and PWA icon set — same artwork, same filenames and sizes ([Getting started](getting-started#favicon-and-pwa-icons)) |
+| `config/vocabulary.local.yml` | Your product's nouns — any subset; `config/vocabulary.yml` fills the rest ([i18n](i18n#vocabulary)) |
 | `config/initializers/project_tools.rb` | Register your own project tools (`ProjectTools::Registry.register`) — see [Extending: Project Tools](/docs/developer/extending#project-tools-registry) |
 | `README.md` | Your product's README |
 
 **Clientside (external client area).** Clientside is available in every preset and is enabled per-project, not per-deployment — a fork enables it on a project-by-project basis via the project's Clientside settings toggle. No fork-owned file change is required to activate it; the toggle is in the project settings UI. See [Clientside](/docs/user/clientside) for details.
+
+### Vocabulary — you own the words, upstream owns the sentences
+
+The template's copy never says "workspace" or "project"; it says `%{workspace}`
+and `%{project}`, and a boot-time hook fills those from `config/vocabulary.yml`.
+To rename, put your words in `config/vocabulary.local.yml`:
+
+```yaml
+workspace: { singular: "course", plural: "courses" }
+project:   { singular: "team",   plural: "teams" }
+```
+
+Restart. Every template string, including the ones upstream adds next month,
+arrives in your words — that is the point of this file existing instead of
+you editing `workspaces.en.yml`. Two template specs keep it true: upstream
+strings may not contain the bare noun, and every interpolation token must be
+supplied.
+
+What it does not do. It does not rename models, tables, routes, or URLs —
+those stay `workspaces` and `projects`, and a product whose UI says Course and
+whose URL says `/workspaces/3` is the accepted shape. It does not touch the
+user docs under `app/docs/user/`, which are markdown, not I18n; rename those
+by hand. And it never adds an article: template strings are worded so no "a"
+or "an" precedes a noun, and your own strings should be too. It does not
+escape: a fork's noun lands unescaped in `_html` keys, which is fine for a
+boot-time file only the fork edits and never a place for user input.
+
+Unlike `pages.en.yml`, this file holds nothing upstream will ever change, so
+`merge=ours` here carries none of the silently-missed-fix risk described above.
 
 ### Fork seams — method overrides
 

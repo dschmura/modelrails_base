@@ -15,8 +15,8 @@ en:
     # any key here.
     actions:
       workspace:
-        created: "created the workspace"
-        updated: "updated workspace settings"
+        created: "created the %{workspace}"
+        updated: "updated %{workspace} settings"
       # The row's SUBJECT is ActivityLog#display_subject: the actor when there
       # is one — Trackable writes `actor: Current.user`, whoever performed the
       # change — so every membership string below names the affected member
@@ -27,20 +27,20 @@ en:
       # membership is created in a User after_create where Current.user cannot
       # exist yet, so the row supplies the member itself rather than "System".
       membership:
-        created: "joined the workspace"
+        created: "joined the %{workspace}"
         updated: "changed %{member}'s role"
         # A deactivation, a departure and a reactivation are all recorded as
         # `membership.updated`; ActivityLog#display_action picks between these
         # from the row's own `changes` metadata and its actor (#932).
         deactivated: "deactivated %{member}"
         reactivated: "reactivated %{member}"
-        left: "left the workspace"
+        left: "left the %{workspace}"
       invitation:
         created: "sent an invitation"
         updated: "updated an invitation"
       project:
-        created: "created a project"
-        updated: "updated a project"
+        created: "created the %{project}"
+        updated: "updated the %{project}"
       resource:
         created: "added a resource"
         updated: "updated a resource"

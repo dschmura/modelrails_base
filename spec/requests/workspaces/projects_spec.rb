@@ -154,7 +154,7 @@ RSpec.describe "Workspace Projects", type: :request do
       it "names the edit link with its object for out-of-context reading" do
         get workspace_project_path(workspace, project)
         page = Capybara.string(response.body)
-        expect(page).to have_link("Edit project", href: edit_workspace_project_path(workspace, project))
+        expect(page).to have_link(I18n.t("workspaces.projects.show.edit"), href: edit_workspace_project_path(workspace, project))
         expect(page).to have_no_link("Edit", exact: true)
       end
 

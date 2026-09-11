@@ -72,7 +72,7 @@ RSpec.describe "Workspace activity feed", type: :request do
       get workspace_path(user.workspaces.kept.sole)
       page = Capybara.string(response.body)
 
-      expect(page).to have_text("Nell Ramirez joined the workspace", normalize_ws: true)
+      expect(page).to have_text("Nell Ramirez #{I18n.t("activity.actions.membership.created")}", normalize_ws: true)
       expect(page).to have_no_text("System joined the workspace", normalize_ws: true)
     end
 
@@ -86,7 +86,7 @@ RSpec.describe "Workspace activity feed", type: :request do
       get workspace_path(shared)
       page = Capybara.string(response.body)
 
-      expect(page).to have_text("Nell Ramirez joined the workspace", normalize_ws: true)
+      expect(page).to have_text("Nell Ramirez #{I18n.t("activity.actions.membership.created")}", normalize_ws: true)
       expect(page).to have_no_text("System joined the workspace", normalize_ws: true)
     end
   end

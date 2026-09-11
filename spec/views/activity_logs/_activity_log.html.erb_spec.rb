@@ -63,7 +63,7 @@ RSpec.describe "activity_logs/_activity_log", type: :view do
         trackable: dees_membership
       )
 
-      expect(html).to have_text("Dee Member left the workspace", normalize_ws: true)
+      expect(html).to have_text("Dee Member #{I18n.t("activity.actions.membership.left")}", normalize_ws: true)
       expect(html).not_to have_text("deactivated")
     end
 
@@ -111,7 +111,7 @@ RSpec.describe "activity_logs/_activity_log", type: :view do
     it "names the member as subject on a nil-actor membership.created" do
       output = Capybara.string(render_row(action: "membership.created", actor: nil, trackable: dees_membership))
 
-      expect(output).to have_text("Dee Member joined the workspace", normalize_ws: true)
+      expect(output).to have_text("Dee Member #{I18n.t("activity.actions.membership.created")}", normalize_ws: true)
       expect(output).to have_no_text("System", normalize_ws: true)
     end
 
@@ -131,7 +131,7 @@ RSpec.describe "activity_logs/_activity_log", type: :view do
     it "still names the actor on membership.created when the membership is gone" do
       output = Capybara.string(render_row(action: "membership.created", actor: ada, trackable: nil))
 
-      expect(output).to have_text("Ada Owner joined the workspace", normalize_ws: true)
+      expect(output).to have_text("Ada Owner #{I18n.t("activity.actions.membership.created")}", normalize_ws: true)
     end
 
     it "falls back to a neutral noun when the membership is gone" do
@@ -189,11 +189,11 @@ RSpec.describe "activity_logs/_activity_log", type: :view do
   end
 
   it "renders the written string for membership.created" do
-    expect(render_row(action: "membership.created")).to have_text("joined the workspace")
+    expect(render_row(action: "membership.created")).to have_text(I18n.t("activity.actions.membership.created"))
   end
 
   it "renders the written string for a non-membership action" do
-    expect(render_row(action: "project.created")).to have_text("created a project")
+    expect(render_row(action: "project.created")).to have_text(I18n.t("activity.actions.project.created"))
   end
 
   # The partial always emits the subject span, so every action string must be
@@ -218,12 +218,12 @@ RSpec.describe "activity_logs/_activity_log", type: :view do
   # The #911 pin: the strings above must come from the locale file with no
   # `default:` masking a miss.
   it "sources its copy from resolvable locale keys" do
-    expect(I18n.t("activity.actions.membership.created")).to eq("joined the workspace")
+    expect(I18n.t("activity.actions.membership.created")).to eq("joined the #{Vocabulary.tokens[:workspace]}")
     expect(I18n.t("activity.actions.membership.updated", member: "Dee")).to eq("changed Dee's role")
     expect(I18n.t("activity.actions.membership.deactivated", member: "Dee")).to eq("deactivated Dee")
     expect(I18n.t("activity.actions.membership.reactivated", member: "Dee")).to eq("reactivated Dee")
-    expect(I18n.t("activity.actions.membership.left")).to eq("left the workspace")
+    expect(I18n.t("activity.actions.membership.left")).to eq("left the #{Vocabulary.tokens[:workspace]}")
     expect(I18n.t("activity.unknown_member")).to eq("a member")
-    expect(I18n.t("activity.actions.project.created")).to eq("created a project")
+    expect(I18n.t("activity.actions.project.created")).to eq("created the #{Vocabulary.tokens[:project]}")
   end
 end

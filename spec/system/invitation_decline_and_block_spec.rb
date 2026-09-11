@@ -85,14 +85,22 @@ RSpec.describe "Invitation decline and block", type: :system do
   end
 
   it "renders the client branch — project and inviter, no workspace mislabel (T28)" do
-    project = create(:project, clientside_enabled: true)
+    project = create(:project, clientside_enabled: true, name: "Website Relaunch")
     client_invitation = create(:invitation, :client, invitable: project,
                                invited_by: inviter, email: "dana@bigco.com")
     visit decline_invitation_path(token: client_invitation.token)
 
+    # Regression guard for the %{project}/%{project_name} homonym (#1112):
+    # asserting through I18n.t with the same args the view passes would
+    # launder a doubled-name bug right through the expectation, since both
+    # sides share the same wrong argument. Count the rendered words instead —
+    # the noun "project" exactly once, the project's actual name exactly once.
+    body_text = page.find(".max-w-md p.text-text-muted").text
+    expect(body_text.scan(/\b#{Regexp.escape(Vocabulary.tokens[:project])}\b/i).size).to eq(1)
+    expect(body_text.scan("Website Relaunch").size).to eq(1)
     expect(page).to have_content(
       I18n.t("invitation_declines.show.client_body",
-             inviter: inviter.email_address, project: project.name)
+             inviter: inviter.email_address, project_name: project.name)
     )
     expect(page).to have_content(
       I18n.t("invitation_declines.show.block_hint", inviter: inviter.email_address)

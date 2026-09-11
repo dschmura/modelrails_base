@@ -88,7 +88,7 @@ RSpec.describe ProjectMembershipChangedNotifier, type: :notifier do
       notification = user.notifications.last
       expect(notification.message).to eq(
         I18n.t("notifications.project_membership_changed.message",
-               project: project.name,
+               project_name: project.name,
                new_role: "Editor")
       )
     end
