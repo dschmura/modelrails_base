@@ -212,7 +212,7 @@ RSpec.describe WorkspaceCapacityApproachingNotifier, type: :notifier do
       notification = Noticed::Notification.find_by(recipient: owner_a, type: "#{described_class.name}::Notification")
       expect(notification.message).to eq(
         I18n.t("notifications.workspace_capacity_approaching.message",
-               workspace: workspace.name,
+               workspace_name: workspace.name,
                metric: "members",
                current: 8,
                limit: 10)

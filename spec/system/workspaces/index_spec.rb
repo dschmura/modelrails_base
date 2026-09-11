@@ -146,7 +146,7 @@ RSpec.describe "Strong workspaces index", type: :system, js: true do
       end
 
       expect(page).to have_current_path(workspaces_path)
-      expect(page).to have_text(I18n.t("workspaces.members.destroy.left", workspace: "Older"))
+      expect(page).to have_text(I18n.t("workspaces.members.destroy.left", workspace_name: "Older"))
       # Scope the row-removal assertion to the page's workspace listing region —
       # the flash banner above includes "You left Older.", which a global
       # have_no_text("Older") would incorrectly match.
