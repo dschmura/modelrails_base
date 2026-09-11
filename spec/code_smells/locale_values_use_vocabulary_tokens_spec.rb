@@ -9,7 +9,7 @@ RSpec.describe "Code smell: upstream-owned locale values use the vocabulary toke
   fork_owned = %w[brand.en.yml pages.en.yml]
   # The literal is the word, not the noun. Keep this list a decision, not a fossil.
   allowed = {
-    # "member" as a ROLE NAME is out of the vocabulary's scope, and this file has none for workspace/project yet.
+    # "file.en.yml:LINE" => "reason the bare noun on this line is not app copy"
   }
 
   def offenders_in(path, nouns, allowed)

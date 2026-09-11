@@ -68,6 +68,14 @@ RSpec.describe Vocabulary do
       .to raise_error(Vocabulary::InvalidVocabulary, /vocabulary\.local\.yml.*workspace.*singular/)
   end
 
+  it "names the file when its YAML is not a mapping" do
+    write_defaults
+    override.write("just a string\n")
+
+    expect { described_class.reload!(defaults: defaults, override: override) }
+      .to raise_error(Vocabulary::InvalidVocabulary, /vocabulary\.local\.yml: expected a mapping of nouns/)
+  end
+
   it "refuses a noun the template does not know" do
     write_defaults
     override.write(%(member: { singular: "student", plural: "students" }\n))
@@ -77,6 +85,9 @@ RSpec.describe Vocabulary do
   end
 
   it "loads the shipped defaults at boot" do
-    expect(described_class.tokens).to include(workspace: "workspace", Projects: "Projects")
+    # Whatever the host's real files say, not the template's literal words —
+    # a renamed fork's shipped defaults are its own words, and the boot memo
+    # must equal a fresh read of them either way.
+    expect(described_class.tokens).to eq(described_class.reload!)
   end
 end

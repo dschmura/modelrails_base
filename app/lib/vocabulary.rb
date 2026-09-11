@@ -1,8 +1,9 @@
 #
 # The nouns a fork renames. Two stored forms per noun; the capitalized tokens
 # are derived because no template string capitalizes a noun mid-sentence.
-# Constant after boot on purpose: the I18n hook merges `tokens` into every
-# lookup, and that is only cheap while nothing here depends on a request.
+# Constant after boot on purpose: the I18n hook merges `tokens` into any
+# lookup whose string uses one, and that is only cheap while nothing here
+# depends on a request.
 module Vocabulary
   class InvalidVocabulary < StandardError; end
 
@@ -35,6 +36,8 @@ end
       return {} unless path.exist?
 
       data = YAML.safe_load_file(path) || {}
+      raise InvalidVocabulary, "#{path.basename}: expected a mapping of nouns" unless data.is_a?(Hash)
+
       unknown = data.keys.map(&:to_s) - NOUNS.map(&:to_s)
       raise InvalidVocabulary, "#{path.basename}: unknown noun(s) #{unknown.join(', ')} — the template knows #{NOUNS.join(', ')}" if unknown.any?
 

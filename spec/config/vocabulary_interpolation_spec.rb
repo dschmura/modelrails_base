@@ -1,10 +1,27 @@
 require "rails_helper"
+require "tmpdir"
 
 # The one backend customization in the app. Behavior is asserted against the
 # real backend and real keys, not a stub: the failure modes this guards were
 # found in a spike (the gem skips interpolation on value-less calls; a
 # vocabulary that fills a caller's forgotten argument masks a bug).
+#
+# The examples below assert the template's actual words ("workspace",
+# "project"), so they pin the vocabulary to those words for the duration —
+# otherwise a renamed fork reads its own words back and every assertion here
+# goes red for a reason that has nothing to do with the hook's mechanics.
 RSpec.describe "Vocabulary interpolation", type: :config do
+  around do |example|
+    Dir.mktmpdir do |dir|
+      override = Pathname.new(dir).join("vocabulary.local.yml")
+      override.write(%(workspace: { singular: "workspace", plural: "workspaces" }\nproject: { singular: "project", plural: "projects" }\n))
+      Vocabulary.reload!(override: override)
+      example.run
+    ensure
+      Vocabulary.reload!
+    end
+  end
+
   before do
     I18n.backend.store_translations(:en, vocab_probe: {
       bare: "%{Workspace} not found.",

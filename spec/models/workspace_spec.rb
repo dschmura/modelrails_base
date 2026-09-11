@@ -301,7 +301,9 @@ RSpec.describe Workspace, type: :model do
       }.not_to change(Project, :count)
 
       expect(project).not_to be_persisted
-      expect(project.errors[:base]).to include("workspace has reached its project limit")
+      expect(project.errors[:base]).to include(
+        I18n.t("activerecord.errors.models.project.attributes.base.workspace_project_limit")
+      )
       expect(ProjectMembership.where(user: creator).count).to eq(1) # only the first project's
     end
 

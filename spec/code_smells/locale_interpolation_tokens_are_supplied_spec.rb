@@ -21,6 +21,7 @@ RSpec.describe "Code smell: every locale interpolation token is supplied" do
   # are supplied by JavaScript, not a translation call argument — something
   # still supplies them, so they belong on this list rather than the
   # vocabulary's.
+  js_filled_keys = %w[form_draft.restored_other identity_picker.js.color_announce]
 
   def tokens_in(path)
     File.readlines(path).each_with_index.flat_map do |line, index|
@@ -47,6 +48,24 @@ RSpec.describe "Code smell: every locale interpolation token is supplied" do
 
       expect(tokens_in(path)).to contain_exactly([ "nobody", "probe.en.yml:2" ])
     end
+  end
+
+  # config/initializers/vocabulary.rb documents that a string carrying BOTH a
+  # noun token and a JS-filled placeholder raises on a value-less call: the
+  # hook sees the noun token, merges Vocabulary.tokens in, and the JS-filled
+  # placeholder (%{count}, %{name}) is left missing (#1111). Walking the
+  # public `translations` tree, not `I18n.t`, so checking this never itself
+  # triggers the raise it guards against.
+  def resolved_value(key)
+    key.split(".").inject(I18n.backend.translations.fetch(:en)) { |node, part| node[part.to_sym] }
+  end
+
+  it "keeps a JS-filled key's value free of a vocabulary token" do
+    vocabulary_pattern = /%\{(#{Vocabulary.tokens.keys.join("|")})\}/
+    offenders = js_filled_keys.select { |key| resolved_value(key).to_s.match?(vocabulary_pattern) }
+
+    expect(offenders).to be_empty,
+      "JS-filled key(s) also carry a vocabulary token — a value-less call would raise (#1111): #{offenders.join(', ')}"
   end
 
   # A caller that passes `workspace:` or `project:` to a translation is naming

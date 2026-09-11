@@ -96,7 +96,7 @@ RSpec.describe "Invitation decline and block", type: :system do
     # sides share the same wrong argument. Count the rendered words instead —
     # the noun "project" exactly once, the project's actual name exactly once.
     body_text = page.find(".max-w-md p.text-text-muted").text
-    expect(body_text.scan(/\bproject\b/i).size).to eq(1)
+    expect(body_text.scan(/\b#{Regexp.escape(Vocabulary.tokens[:project])}\b/i).size).to eq(1)
     expect(body_text.scan("Website Relaunch").size).to eq(1)
     expect(page).to have_content(
       I18n.t("invitation_declines.show.client_body",

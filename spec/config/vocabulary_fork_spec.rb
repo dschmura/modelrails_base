@@ -29,8 +29,13 @@ RSpec.describe "A fork's vocabulary", type: :config do
   end
 
   it "reads the template's words again once the override is gone" do
-    Vocabulary.reload!
+    # An absent override, not a bare reload!: DEFAULTS_PATH is template-owned
+    # (a fork only ever writes OVERRIDE_PATH), so this holds in every fork,
+    # not just this checkout.
+    Dir.mktmpdir do |dir|
+      Vocabulary.reload!(override: Pathname.new(dir).join("absent.yml"))
 
-    expect(I18n.t("onboarding.workspaces.new.title")).to eq("Name your workspace")
+      expect(I18n.t("onboarding.workspaces.new.title")).to eq("Name your workspace")
+    end
   end
 end

@@ -9,7 +9,7 @@ en:
       danger: "a security alert"
       warning: "an important update"
       info: "an account update"
-      success: "%{workspace} update"
+      success: "an update to your %{workspace}"
     preferences:
       timezone:
         heading: "Your timezone"

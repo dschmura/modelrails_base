@@ -218,12 +218,12 @@ RSpec.describe "activity_logs/_activity_log", type: :view do
   # The #911 pin: the strings above must come from the locale file with no
   # `default:` masking a miss.
   it "sources its copy from resolvable locale keys" do
-    expect(I18n.t("activity.actions.membership.created")).to eq("joined the workspace")
+    expect(I18n.t("activity.actions.membership.created")).to eq("joined the #{Vocabulary.tokens[:workspace]}")
     expect(I18n.t("activity.actions.membership.updated", member: "Dee")).to eq("changed Dee's role")
     expect(I18n.t("activity.actions.membership.deactivated", member: "Dee")).to eq("deactivated Dee")
     expect(I18n.t("activity.actions.membership.reactivated", member: "Dee")).to eq("reactivated Dee")
-    expect(I18n.t("activity.actions.membership.left")).to eq("left the workspace")
+    expect(I18n.t("activity.actions.membership.left")).to eq("left the #{Vocabulary.tokens[:workspace]}")
     expect(I18n.t("activity.unknown_member")).to eq("a member")
-    expect(I18n.t("activity.actions.project.created")).to eq("created the project")
+    expect(I18n.t("activity.actions.project.created")).to eq("created the #{Vocabulary.tokens[:project]}")
   end
 end

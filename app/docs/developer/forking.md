@@ -182,7 +182,7 @@ find again.
 | Brand strings | `config/locales/en/brand.en.yml` | Product name, description, copyright — fork-owned, one file |
 | Brand colors | `config/locales/en/brand.en.yml`'s visual twin: `app/assets/tailwind/tokens/_brand.css` | Optional — swap the primary palette family here; re-prove AAA in CI ([Theming](theming)) |
 | Brand mark | `app/views/shared/_site_mark.html.erb` (one `<svg>`, nothing else) + the icon set in `public/` | Replace wholesale; keep `fill="currentColor"`, `aria-hidden="true"`, and a `viewBox` with no width/height ([Extending](extending#customizing-the-site-logo)) |
-| Vocabulary | `config/vocabulary.local.yml` | Your names for workspace and project (singular + plural); every template string follows ([Extending](i18n#vocabulary)) |
+| Vocabulary | `config/vocabulary.local.yml` | Your names for workspace and project (singular + plural); every template string follows ([i18n](i18n#vocabulary)) |
 | Marketing copy | `config/locales/en/pages.en.yml` + `app/views/pages/` | Fork-owned — rewrite wholesale |
 | Languages | `config/application.rb` (`config.i18n.available_locales`) | Register a locale here *before* adding its files, or `I18n.t(locale:)` raises in production — see [Internationalization](i18n) |
 | PWA app name | `public/manifest.webmanifest` (`name` / `short_name`) | Shown on the home screen if users install the PWA |
@@ -288,7 +288,9 @@ those stay `workspaces` and `projects`, and a product whose UI says Course and
 whose URL says `/workspaces/3` is the accepted shape. It does not touch the
 user docs under `app/docs/user/`, which are markdown, not I18n; rename those
 by hand. And it never adds an article: template strings are worded so no "a"
-or "an" precedes a noun, and your own strings should be too.
+or "an" precedes a noun, and your own strings should be too. It does not
+escape: a fork's noun lands unescaped in `_html` keys, which is fine for a
+boot-time file only the fork edits and never a place for user input.
 
 Unlike `pages.en.yml`, this file holds nothing upstream will ever change, so
 `merge=ours` here carries none of the silently-missed-fix risk described above.
