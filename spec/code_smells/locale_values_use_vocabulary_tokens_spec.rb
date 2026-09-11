@@ -21,9 +21,11 @@ RSpec.describe "Code smell: upstream-owned locale values use the vocabulary toke
       # Skip key-only lines (the noun here is a key, not copy)
       next if line.match?(/\A\s*[\w.-]+:\s*(\||>[-+]?)?\s*\z/)
 
-      # Extract value from key: value lines
-      if line.match?(/\A\s*[\w.-]+:\s+(.+)\z/)
-        scannable = Regexp.last_match(1)
+      # Extract value from key: value lines. `/m` lets `.` cross the trailing
+      # newline `File.readlines` leaves on; `match?` never sets `Regexp.last_match`,
+      # so capture from `match` directly rather than reading stale global state.
+      if (m = line.match(/\A\s*[\w.-]+:\s+(.+)\z/m))
+        scannable = m[1]
       else
         # Block-scalar continuation or array entry - scan the whole line
         scannable = line
