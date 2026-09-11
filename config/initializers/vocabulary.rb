@@ -24,6 +24,12 @@
 # during initializer load.
 module VocabularyInterpolation
   def translate(locale, key, options = I18n::EMPTY_HASH)
+    # Rails' translation helper calls #translate(nil, ...) when a literal
+    # `default:` string is supplied and the key is missing. `lookup` with a
+    # nil key returns the whole locale subtree, not one string — scanning
+    # that answers the wrong question, so a nil key skips straight to super
+    # and the caller's literal default passes through untouched.
+    return super if key.nil?
     return super unless uses_vocabulary?(lookup(locale, key, options[:scope], options))
 
     super(locale, key, Vocabulary.tokens.merge(options))

@@ -62,4 +62,8 @@ RSpec.describe "Vocabulary interpolation", type: :config do
   it "renders the real form-draft notice with its placeholder intact" do
     expect(I18n.t("form_draft.restored_other")).to include("%{count}")
   end
+
+  it "leaves a literal default with a client-filled placeholder alone when the key is nil" do
+    expect(I18n.t(nil, default: "Draft restored. %{count} fields updated.")).to eq("Draft restored. %{count} fields updated.")
+  end
 end
