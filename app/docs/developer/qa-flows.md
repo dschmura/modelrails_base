@@ -249,11 +249,12 @@ Navigate to `settings/connected_accounts`. Next to a verified provider, click **
 
 ## Flow 5 — Identity surfaces
 
-### `/me` — identity card
+### `/workspaces` — your workspaces
 
-1. Sign in and navigate to `/me` (reachable from the user/avatar menu's "Your home" item, or directly by URL).
-   **Expect:** A card showing your avatar, full name, and email address, with an "Edit in settings" button (links to `edit_settings_profile_path`). Below it, a "Your workspaces" section listing every workspace you belong to (`Current.user.memberships.kept.includes(:workspace, :role)`), each showing workspace name, your role, and linking to `workspace_path(membership.workspace)`.
-2. If you have no workspace memberships the section shows an empty-state message — not an error.
+1. Sign in and navigate to `/workspaces` (the account menu's "All workspaces" item, the "All workspaces" row at the bottom of the workspace switcher's menu, or directly by URL).
+   **Expect (desktop, ≥`md`):** an identity anchor — your avatar and full name — above the "Your workspaces" heading and the "New workspace" button (present only while workspace creation is enabled). Below: the current workspace, if any, as a card marked "Current"; then **Other workspaces**, each card showing plan, your role, member count and last access, with a **Switch** button (a name filter appears once there are three or more); then **Archived** workspaces, each with a **Restore** button.
+   **Expect (phone, below `md`):** the workspace switcher sits at the top of the column in its "All workspaces" state — your avatar and name over "All workspaces" — and the identity anchor does not render separately; the switcher carries it.
+2. With no memberships and nothing archived, the page shows an empty-state message (with a create action while creation is enabled) — not an error.
 
 ### `/settings` — account settings
 
@@ -270,22 +271,24 @@ Navigate into the settings hub. The sidebar shows these items in personal contex
 
 **Timezone.** Timezone is set automatically by a client beacon (`settings/preferences/timezone`). There is no manual timezone setting page.
 
-### Header workspace switcher
+### Workspace switcher
 
-The header switcher (`shared/_workspace_switcher.html.erb`) renders **only when the user has two or more workspaces** (`workspaces.size > 1`). The partial is hidden via `if workspaces.size > 1`; the DOM element is entirely absent for single-workspace users.
+The switcher (`shared/_workspace_switcher.html.erb`; trigger in `shared/_workspace_switcher_trigger.html.erb`) renders on **every workspace page**, solo users included — it is what names the workspace. Desktop (≥`md`): it heads the sidebar. Phone (below `md`): the sidebar is `display:none`, not absent, so a second copy renders in the content column above the Overview / Projects / Settings strip with every id suffixed `-mobile`; the hamburger holds global chrome only. Only the *list* of workspaces in the menu is gated on `workspaces.size > 1`.
 
-1. Sign in as a user with exactly one workspace.
-   **Expect:** No workspace switcher visible in the header. The workspace name is not shown in the nav bar.
-2. Join or create a second workspace (requires `TENANCY_WORKSPACE_CREATION=enabled` or an invitation to a second workspace).
-   Reload any page.
-   **Expect (desktop, ≥`md`):** A workspace switcher dropdown button appears in the header (`hidden md:block`), showing the current workspace's avatar and name (name truncated at 12 characters on large screens). On mobile the switcher lives inside the hamburger menu instead — see step 4.
-3. Click the switcher button.
-   **Expect:** A dropdown menu opens listing all workspaces. The current workspace is marked with a left border (`border-l-4 border-interactive`), a sunken background, bold weight, and `aria-current`. Clicking another workspace navigates to `workspace_path(workspace)` for that workspace.
-4. **On mobile** (below `md`), the desktop dropdown is hidden; open the **hamburger menu** — the switcher renders there as a labeled inline list ("Workspaces"), each entry linking to its workspace with the current one marked via `aria-current`. (The user menu's "All workspaces" link → the workspaces index is an alternate switching path on any breakpoint.)
+1. Sign in as a user with exactly one workspace and open any workspace page.
+   **Expect:** one control — the workspace's logo, its name and your role — at the top of the sidebar (desktop) or above the section tabs (phone). Opening it shows a menu whose only row is "All workspaces".
+2. Join or create a second workspace (requires `TENANCY_WORKSPACE_CREATION=enabled` or an invitation), then reload.
+   **Expect:** the menu lists your workspaces, the current one marked with a left border (`border-l-4 border-interactive`), a sunken background, semibold weight and `aria-current`; "All workspaces" is the last row, aligned with the names. On a phone the list pins the current workspace first and shows at most five, most recently accessed first — "All workspaces" is the overflow.
+3. Click another workspace.
+   **Expect:** navigation to `workspace_path(workspace)`; the control now names that workspace.
+4. Rename the workspace from its Settings › Profile page.
+   **Expect:** the control updates in place — both copies on a phone — through a Turbo Stream that replaces the whole trigger (`workspaces/update.turbo_stream.erb`), never a piece of it.
+5. Navigate to `/workspaces`.
+   **Expect (phone):** the control stays, in its "All workspaces" state (see Flow 5), and its menu marks "All workspaces" current. Desktop has no sidebar on this page; the identity anchor above the heading takes its place.
 
 ### Edge cases — Identity
 
-- **`/me` requires authentication.** Navigating to `/me` when signed out triggers the authentication guard and redirects to the sign-in page.
+- **`/workspaces` requires authentication.** Navigating to `/workspaces` when signed out triggers the authentication guard and redirects to the sign-in page.
 - **Settings sidebar in org context.** When the settings layout is loaded in the context of a workspace (e.g., `/workspaces/:slug/edit`), the sidebar shows workspace-scoped items (Profile, Members, Invitations, Limits & Plan), gated by Pundit. Items for which the current user lacks the required permission are omitted — they are not shown as disabled.
 - **Removing the last OAuth/email sign-in method.** `Settings::ConnectedAccountsController#destroy` checks `only_verified_remaining?` before destroying. Attempting to remove the last verified authentication method shows the "cannot remove last verified" alert without deleting anything.
 

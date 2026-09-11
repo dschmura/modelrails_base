@@ -8,7 +8,7 @@ keywords: identity user workspace tenant membership role current-workspace perso
 
 This page names the three-tier identity and account model **that already exists** in this template. Its correctness was built in; this document makes it visible to forks.
 
-> **Model vs. surfaces.** The *model* below — `User`, `Workspace`, `Membership` — is built and verified. Two *surfaces* named here are the **target shape**, being adopted incrementally: the `/me` + `/settings` split (the template reaches identity settings under `/account/*` today) and the context switcher. The vocabulary is canonical now; those routes land in a later phase.
+> **Model vs. surfaces.** The *model* below — `User`, `Workspace`, `Membership` — is built and verified, and so are the two *surfaces* named here: identity lives at `/workspaces` (your workspaces, opening with who you are) and `/settings`, and the context switcher heads the sidebar on every workspace page (above the section tabs on a phone).
 
 ## The three tiers
 
@@ -16,11 +16,11 @@ The model separates identity (who you are) from tenancy (where your data lives).
 
 | Tier | Entity | Where you reach it | What it holds |
 |---|---|---|---|
-| **Identity** (the human) | `User` | `/me` (home) + `/settings` | login, avatar, preferences, linked logins — *account-independent* |
+| **Identity** (the human) | `User` | `/workspaces` (home) + `/settings` | login, avatar, preferences, linked logins — *account-independent* |
 | **Your workspace** (your own tenant) | `Workspace` (auto-created, growable) | the context switcher; default landing in solo apps | your individual scoped data; can grow into a team |
 | **Organization workspace** (shared tenant) | `Workspace` | the context switcher | a team's scoped data, many members + roles |
 
-A **context switcher** sets `Current.workspace`. Identity (`/me`, `/settings`) is reachable from any context and belongs to none of them.
+A **context switcher** sets `Current.workspace`. Identity (`/workspaces`, `/settings`) is reachable from any context and belongs to none of them.
 
 ## Identity vs. tenancy
 

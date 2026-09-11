@@ -10,7 +10,7 @@ A membership is a seat: granted, re-graded, revoked, restored. It is soft-delete
 
 ## Two associations answer two different questions
 
-`User has_many :memberships` is **unscoped**: it owns `dependent: :destroy` and it is what the members page reads, so removed people still show in history. `User has_many :workspaces` goes **through `active_memberships`, the kept ones only**. Every reader of `workspaces` — `WorkspaceScoped`'s resolver, the header switcher — is asking "which workspaces may this user enter". Routing it through every membership once let a removed member resolve the workspace, get refused by the policy, and be redirected back to the page that had just refused them (#931). Keep the two associations distinct; do not "simplify" `workspaces` onto `memberships`.
+`User has_many :memberships` is **unscoped**: it owns `dependent: :destroy` and it is what the members page reads, so removed people still show in history. `User has_many :workspaces` goes **through `active_memberships`, the kept ones only**. Every reader of `workspaces` — `WorkspaceScoped`'s resolver, the workspace switcher — is asking "which workspaces may this user enter". Routing it through every membership once let a removed member resolve the workspace, get refused by the policy, and be redirected back to the page that had just refused them (#931). Keep the two associations distinct; do not "simplify" `workspaces` onto `memberships`.
 
 ## Removal is idempotent by construction
 

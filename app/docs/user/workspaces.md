@@ -10,6 +10,12 @@ A workspace is the top-level organizational boundary — users, projects, invita
 
 > See the invite-teammates flow drawn as a wireframe in [Application Flows](/docs/developer/application-flows).
 
+## Switching Workspaces
+
+On a desktop-width screen the current workspace — its logo, its name and your role in it — sits at the top of the sidebar on every workspace page. It is one control: open it to see the other workspaces you belong to and switch, or choose **All workspaces**. On a phone the same control sits above the Overview / Projects / Settings tabs and lists your five most recently used workspaces; **All workspaces** covers the rest.
+
+**All workspaces** (also in the account menu) opens *Your workspaces*: every workspace you belong to with a **Switch** button, and archived ones you can restore. On a phone the control stays at the top of that page too, so you can move on without going back.
+
 ## Creating a Workspace
 
 Any authenticated user can create a workspace. A URL-safe slug is generated automatically from the name. The creator is assigned the **Owner** role.

@@ -117,8 +117,8 @@ owner.memberships.first.role.slug              # => "owner"
 
 In the browser, after the Owner has set their password and signed in:
 
-1. They land directly in the shared workspace (no switcher, no chooser).
-2. The header workspace switcher does not appear.
+1. They land directly in the shared workspace (no chooser).
+2. The workspace switcher at the top of the sidebar names the shared workspace and their role; its menu lists no other workspace — only "All workspaces".
 3. `/workspaces/new` redirects to root with the alert `Workspace creation is disabled on this instance.`
 4. Invited new users (via the standard invitation flow) verify their email and become Members of the same shared workspace.
 
