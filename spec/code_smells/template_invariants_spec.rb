@@ -1221,6 +1221,7 @@ RSpec.describe "Template invariants" do
         public/icon-512.png
         public/apple-touch-icon.png
         public/favicon.ico
+        config/vocabulary.local.yml
       ].each do |path|
         expect(gitattributes).to match(/^#{Regexp.escape(path)} merge=ours$/),
           "expected .gitattributes to mark #{path} merge=ours"
