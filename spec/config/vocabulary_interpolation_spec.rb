@@ -10,7 +10,9 @@ RSpec.describe "Vocabulary interpolation", type: :config do
       bare: "%{Workspace} not found.",
       mixed: "Join %{workspace_name}, your new %{workspace}.",
       counted: { one: "%{count} %{project}", other: "%{count} %{projects}" },
-      plain: "No tokens here."
+      plain: "No tokens here.",
+      client_filled: "Draft restored. %{count} fields updated.",
+      client_filled_with_noun: { one: "%{count} %{project} restored", other: "%{count} %{projects} restored" }
     })
   end
 
@@ -43,5 +45,21 @@ RSpec.describe "Vocabulary interpolation", type: :config do
 
   it "leaves a token-free string alone" do
     expect(I18n.t("vocab_probe.plain")).to eq("No tokens here.")
+  end
+
+  it "leaves a placeholder that JavaScript fills untouched when the caller passes nothing" do
+    expect(I18n.t("vocab_probe.client_filled")).to eq("Draft restored. %{count} fields updated.")
+  end
+
+  it "still interpolates that placeholder when the caller supplies it" do
+    expect(I18n.t("vocab_probe.client_filled", count: 3)).to eq("Draft restored. 3 fields updated.")
+  end
+
+  it "fills the nouns in a string that also carries a caller-supplied count" do
+    expect(I18n.t("vocab_probe.client_filled_with_noun", count: 2)).to eq("2 projects restored")
+  end
+
+  it "renders the real form-draft notice with its placeholder intact" do
+    expect(I18n.t("form_draft.restored_other")).to include("%{count}")
   end
 end
