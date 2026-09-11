@@ -50,6 +50,16 @@ RSpec.describe Vocabulary do
     expect(described_class.reload!(defaults: defaults, override: override)).to be_frozen
   end
 
+  it "names the file when the DEFAULTS are malformed" do
+    defaults.write(<<~YAML)
+      workspace: { singular: "", plural: "workspaces" }
+      project:   { singular: "project", plural: "projects" }
+    YAML
+
+    expect { described_class.reload!(defaults: defaults, override: override) }
+      .to raise_error(Vocabulary::InvalidVocabulary, /vocabulary\.yml.*workspace.*singular/)
+  end
+
   it "names the file and the noun when an override is malformed" do
     write_defaults
     override.write(%(workspace: "course"\n))

@@ -19,15 +19,15 @@ module Vocabulary
     def reload!(defaults: DEFAULTS_PATH, override: OVERRIDE_PATH)
       nouns = read(defaults).deep_merge(read(override))
       @tokens = NOUNS.each_with_object({}) do |noun, tokens|
-        forms = nouns.fetch(noun.to_s) { raise InvalidVocabulary, "#{defaults}: no entry for #{noun}" }
-        singular = form(forms, noun, :singular, override)
-        plural = form(forms, noun, :plural, override)
+        forms = nouns.fetch(noun.to_s) { raise InvalidVocabulary, "#{defaults.basename}: no entry for #{noun}" }
+        singular = forms["singular"]
+        plural = forms["plural"]
         tokens[noun] = singular
         tokens[:"#{noun}s"] = plural
         tokens[:"#{noun.to_s.upcase_first}"] = singular.upcase_first
         tokens[:"#{noun.to_s.upcase_first}s"] = plural.upcase_first
       end.freeze
-    end
+end
 
     private
 
@@ -36,16 +36,19 @@ module Vocabulary
 
       data = YAML.safe_load_file(path) || {}
       unknown = data.keys.map(&:to_s) - NOUNS.map(&:to_s)
-      raise InvalidVocabulary, "#{path}: unknown noun(s) #{unknown.join(', ')} — the template knows #{NOUNS.join(', ')}" if unknown.any?
+      raise InvalidVocabulary, "#{path.basename}: unknown noun(s) #{unknown.join(', ')} — the template knows #{NOUNS.join(', ')}" if unknown.any?
+
+      data.each do |noun_str, forms|
+        noun = noun_str.to_sym
+        FORMS.each do |form|
+          value = forms.is_a?(Hash) ? forms[form.to_s] : nil
+          unless value.is_a?(String) && !value.strip.empty?
+            raise InvalidVocabulary, "#{path.basename}: #{noun} needs a non-empty #{form} (got #{forms.inspect})"
+          end
+        end
+      end
 
       data
-    end
-
-    def form(forms, noun, form, path)
-      value = forms.is_a?(Hash) ? forms[form.to_s] : nil
-      return value if value.is_a?(String) && !value.strip.empty?
-
-      raise InvalidVocabulary, "#{path.basename}: #{noun} needs a non-empty #{form} (got #{forms.inspect})"
     end
   end
 end
