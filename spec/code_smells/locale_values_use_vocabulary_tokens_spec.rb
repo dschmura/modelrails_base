@@ -14,9 +14,22 @@ RSpec.describe "Code smell: upstream-owned locale values use the vocabulary toke
 
   def offenders_in(path, nouns, allowed)
     File.readlines(path).each_with_index.filter_map do |line, index|
+      # Skip comment lines
       next if line.match?(/\A\s*#/)
-      value = line.split(/:\s+/, 2)[1] or next
-      scannable = value.gsub(/%\{[^}]*\}/, "")
+      # Skip blank lines
+      next if line.match?(/\A\s*\z/)
+      # Skip key-only lines (the noun here is a key, not copy)
+      next if line.match?(/\A\s*[\w.-]+:\s*(\||>[-+]?)?\s*\z/)
+
+      # Extract value from key: value lines
+      if line.match?(/\A\s*[\w.-]+:\s+(.+)\z/)
+        scannable = Regexp.last_match(1)
+      else
+        # Block-scalar continuation or array entry - scan the whole line
+        scannable = line
+      end
+
+      scannable = scannable.gsub(/%\{[^}]*\}/, "")
       hit = nouns.find { |noun| scannable.match?(/\b#{noun}s?\b/i) }
       next unless hit
       location = "#{path.basename}:#{index + 1}"
@@ -37,12 +50,15 @@ RSpec.describe "Code smell: upstream-owned locale values use the vocabulary toke
   end
 
   # The check must be able to fail.
-  it "reports a planted literal" do
+  it "reports a planted literal and block-scalar lines" do
     Dir.mktmpdir do |dir|
       path = Pathname.new(dir).join("probe.en.yml")
-      path.write(%(en:\n  probe: "Create a workspace"\n  fine: "Create %{Workspace}"\n))
+      path.write(%(en:\n  probe: "Create a workspace"\n  fine: "Create %{Workspace}"\n  workspaces:\n    body: |\n      Ask your workspace administrator.\n    ok: "Nothing here"\n))
 
-      expect(offenders_in(path, %w[workspace project], {})).to contain_exactly(a_string_starting_with("probe.en.yml:2"))
+      expect(offenders_in(path, %w[workspace project], {})).to contain_exactly(
+        a_string_starting_with("probe.en.yml:2"),
+        a_string_starting_with("probe.en.yml:6")
+      )
     end
   end
 end
