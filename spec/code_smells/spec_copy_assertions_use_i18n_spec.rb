@@ -9,15 +9,30 @@ RSpec.describe "Code smell: spec copy assertions go through I18n.t" do
   text_option = /\btext:\s*(["'])((?:(?!\1).)*)\1/
   noun = /\b(workspace|project)s?\b/i
 
-  def offenders_in(path, matcher, text_option, noun)
+  # Fixture/preview text with no locale key behind it — a Lookbook preview's
+  # sample copy or a generic partial spec's arbitrary local. Not app copy, so
+  # there is no key to convert to; converting anyway would either invent a
+  # fake key or desync the assertion from what's actually rendered. Keep this
+  # list a decision, not a fossil.
+  allowed = {
+    "spec/system/ui/card_component_spec.rb:42" => "preview fixture text, not app copy",
+    "spec/system/ui/card_component_spec.rb:43" => "preview fixture text, not app copy",
+    "spec/system/ui/dialog_component_spec.rb:60" => "preview fixture text, not app copy",
+    "spec/system/ui/timeline_component_spec.rb:34" => "preview fixture text, not app copy",
+    "spec/views/shared/section_nav_strip_spec.rb:13" => "arbitrary local passed to a generic partial spec, not app copy"
+  }
+
+  def offenders_in(path, matcher, text_option, noun, allowed = {})
     File.readlines(path).each_with_index.filter_map do |line, index|
+      location = "#{path.relative_path_from(Rails.root)}:#{index + 1}"
+      next if allowed[location]
       # Check for paren/paren-less matcher calls
       m = line.match(matcher)
       if m && m[3].match?(noun)
-        "#{path.relative_path_from(Rails.root)}:#{index + 1}  #{m[0][0, 70]}"
+        "#{location}  #{m[0][0, 70]}"
       # Check for text: option
       elsif (m = line.match(text_option)) && m[2].match?(noun)
-        "#{path.relative_path_from(Rails.root)}:#{index + 1}  #{m[0][0, 70]}"
+        "#{location}  #{m[0][0, 70]}"
       end
     end
   end
@@ -26,7 +41,7 @@ RSpec.describe "Code smell: spec copy assertions go through I18n.t" do
     offenders = Dir.glob(Rails.root.join("spec/**/*_spec.rb"))
       .map { |f| Pathname.new(f) }
       .reject { |p| p.to_s == __FILE__ }
-      .flat_map { |p| offenders_in(p, matcher, text_option, noun) }
+      .flat_map { |p| offenders_in(p, matcher, text_option, noun, allowed) }
 
     expect(offenders).to be_empty,
       "Text matchers with the literal noun — assert I18n.t(\"…\") so a renamed fork stays green:\n  #{offenders.join("\n  ")}"

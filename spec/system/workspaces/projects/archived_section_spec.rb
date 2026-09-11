@@ -16,9 +16,9 @@ RSpec.describe "Projects index archived section", type: :system do
   it "moves archived projects out of the main list into the Archived section" do
     visit workspace_projects_path(workspace)
     within("[data-test='archived-projects']") do
-      expect(page).to have_text("Old Project")
+      expect(page).to have_text(archived_project.name)
     end
-    expect(page).to have_no_link("Old Project", href: workspace_project_path(workspace, archived_project))
+    expect(page).to have_no_link(archived_project.name, href: workspace_project_path(workspace, archived_project))
   end
 
   it "restores from the Archived section" do
