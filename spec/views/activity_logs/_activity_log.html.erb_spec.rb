@@ -193,7 +193,7 @@ RSpec.describe "activity_logs/_activity_log", type: :view do
   end
 
   it "renders the written string for a non-membership action" do
-    expect(render_row(action: "project.created")).to have_text("created a project")
+    expect(render_row(action: "project.created")).to have_text("created the project")
   end
 
   # The partial always emits the subject span, so every action string must be
@@ -224,6 +224,6 @@ RSpec.describe "activity_logs/_activity_log", type: :view do
     expect(I18n.t("activity.actions.membership.reactivated", member: "Dee")).to eq("reactivated Dee")
     expect(I18n.t("activity.actions.membership.left")).to eq("left the workspace")
     expect(I18n.t("activity.unknown_member")).to eq("a member")
-    expect(I18n.t("activity.actions.project.created")).to eq("created a project")
+    expect(I18n.t("activity.actions.project.created")).to eq("created the project")
   end
 end
