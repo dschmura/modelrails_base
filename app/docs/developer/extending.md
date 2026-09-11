@@ -291,22 +291,25 @@ when "Slideshow"
 
 ## Customizing the Site Logo
 
-The app logo is rendered via `app/views/shared/_site_logo.html.erb`, an inline SVG partial used in both the header and footer. It accepts strict locals:
+Brand has three fork-owned files: the words (`config/locales/en/brand.en.yml`), the colors (`app/assets/tailwind/tokens/_brand.css`), and the mark — `app/views/shared/_site_mark.html.erb`, a file whose entire body is one `<svg>`. Replace it wholesale with your artwork. It is `merge=ours`, so upstream never conflicts with it again. Three things on the root `<svg>` are the contract with the template, and a view spec asserts them:
 
-| Parameter | Default | Purpose |
-|-----------|---------|---------|
-| `size` | `:medium` | SVG height — `:small` (h-6), `:medium` (h-8), `:large` (h-10) |
-| `color_class` | `"text-sky-700"` | Tailwind color class for the SVG mark (uses `currentColor`) |
-| `show_name` | `false` | Show the app name text next to the mark |
-| `name_class` | `"text-xl font-bold text-slate-900 dark:text-gray-100"` | Tailwind classes for the name text |
+- `fill="currentColor"` — the mark inherits `text-interactive` from the link around it, which is what re-lights it in dark mode.
+- `aria-hidden="true"` — the mark is decorative; the brand name next to it is what assistive tech reads.
+- a `viewBox`, and **no** `width`, `height`, or `class` — the caller sizes it.
 
-To replace the logo with your own SVG, edit the partial and swap the `<svg>` content. Keep `aria-hidden="true"` and `fill="currentColor"` so theming and accessibility continue to work.
-
-Usage example:
+The lockup around it, `app/views/shared/_site_logo.html.erb`, is template-owned: it renders the mark and the product name as siblings inside whatever link the caller provides. The caller's link is the flex box and sizes the mark with a child selector; the one local, `name_class`, lets a compact variant keep the name for screen readers only:
 
 ```erb
-<%= render "shared/site_logo", size: :small, show_name: true %>
+<%= link_to root_path, class: "flex items-center gap-2 min-h-11 focus-ring rounded [&>svg]:h-6" do %>
+  <%= render "shared/site_logo" %>
+<% end %>
+
+<%= link_to root_path, class: "flex items-center min-h-11 focus-ring rounded [&>svg]:h-5" do %>
+  <%= render "shared/site_logo", name_class: "sr-only" %>
+<% end %>
 ```
+
+Use `h-*` on the child, not `size-*`: a wordmark is wider than tall, and a square box letterboxes it. The favicon and PWA icons in `public/` are the same artwork again, in the sizes [Getting started](getting-started#favicon-and-pwa-icons) lists; `public/icon.svg` colors itself with `prefers-color-scheme` rather than the app's `.dark` class because a favicon renders outside the document.
 
 ## Cookie Consent (GDPR)
 
