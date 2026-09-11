@@ -555,6 +555,41 @@ RSpec.describe "Template invariants" do
     end
   end
 
+  describe "every workflow job has a timeout (#1101)" do
+    # Without timeout-minutes a job inherits GitHub's 360-minute default, so a
+    # runner-side hang — #1101 was apt-get update stalling on one test shard —
+    # blocks the required status for six hours instead of failing in minutes.
+    # The slowest legitimate job here runs under four minutes.
+    let(:workflows) do
+      Dir.glob(root.join(".github/workflows/*.yml")).to_h do |path|
+        [ File.basename(path), YAML.safe_load(File.read(path), aliases: true) ]
+      end
+    end
+
+    it "declares timeout-minutes on every job in every workflow" do
+      missing = workflows.flat_map do |file, workflow|
+        workflow.fetch("jobs").reject { |_, job| job["timeout-minutes"].is_a?(Integer) }.keys.map { |job| "#{file}: #{job}" }
+      end
+
+      expect(missing).to be_empty,
+        "expected timeout-minutes on every job (GitHub's default is 360 minutes):\n  #{missing.join("\n  ")}"
+    end
+
+    # The apt step is the one that hung: it is the only step that talks to a
+    # package mirror, so it gets its own, shorter budget within the job's.
+    it "gives every apt-get step its own timeout" do
+      missing = workflows.flat_map do |file, workflow|
+        workflow.fetch("jobs").flat_map do |name, job|
+          Array(job["steps"]).select { |s| s["run"].to_s.include?("apt-get") && !s["timeout-minutes"].is_a?(Integer) }
+                             .map { |s| "#{file}: #{name} / #{s['name']}" }
+        end
+      end
+
+      expect(missing).to be_empty,
+        "expected a step-level timeout-minutes on every apt-get step:\n  #{missing.join("\n  ")}"
+    end
+  end
+
   describe "CI scans the production image for OS-level CVEs" do
     # brakeman covers app code and bundler-audit covers gem deps, but neither
     # sees the OS packages baked into ruby:slim (glibc, openssl, sqlite3,
