@@ -160,8 +160,8 @@ en:
         success: "%{provider} unlinked."
         cannot_remove_last_verified: "You can't remove your last verified sign-in method."
       verify:
-        email_mismatch: "Your email is verified, but that invitation was sent to a different address. Ask your workspace administrator to invite this email."
-        join_link_at_capacity: "Your email is verified, but that workspace is full right now. Ask a workspace administrator to make room or send you an invitation."
+        email_mismatch: "Your email is verified, but that invitation was sent to a different address. Ask your %{workspace} administrator to invite this email."
+        join_link_at_capacity: "Your email is verified, but that %{workspace} is full right now. Ask one of its administrators to make room or send you an invitation."
       verification_resends:
         create:
           resent: "We sent a fresh confirmation link to %{email}."
@@ -215,9 +215,9 @@ en:
       cropper_reset: "Crop reset to original position."
       zoom_announce: "Zoom %{percent}%"
     choose_profile_picture: "Choose profile picture"
-    choose_workspace_logo: "Choose workspace logo"
+    choose_workspace_logo: "Choose %{workspace} logo"
     adjust_profile_picture: "Adjust profile picture"
-    adjust_workspace_logo: "Adjust workspace logo"
+    adjust_workspace_logo: "Adjust %{workspace} logo"
     sources:
       upload:
         title: "Photo"

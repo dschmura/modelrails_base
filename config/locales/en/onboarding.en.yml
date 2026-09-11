@@ -1,31 +1,31 @@
 en:
   onboarding:
     steps:
-      workspace: "Workspace"
-      project: "Project"
+      workspace: "%{Workspace}"
+      project: "%{Project}"
       tools: "Tools"
       team: "Team"
     workspaces:
       new:
-        title: "Name your workspace"
-        subtitle: "This is the workspace your team will join."
-        name_label: "Workspace name"
+        title: "Name your %{workspace}"
+        subtitle: "This is the %{workspace} your team will join."
+        name_label: "%{Workspace} name"
         submit: "Continue"
       create:
         success: "Account created."
     projects:
       new:
-        title: "Create your first project"
-        subtitle: "Projects hold the work — you can add more later."
-        name_label: "Project name"
+        title: "Create your first %{project}"
+        subtitle: "%{Projects} hold the work — you can add more later."
+        name_label: "%{Project} name"
         description_label: "What's it about? (optional)"
         submit: "Continue"
       create:
-        success: "Project created."
+        success: "%{Project} created."
     tools:
       new:
         title: "Pick your tools"
-        subtitle: "Turn on the tools this project needs — you can change these later."
+        subtitle: "Turn on the tools this %{project} needs — you can change these later."
         submit: "Save tools"
     teams:
       new:

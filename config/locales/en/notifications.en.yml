@@ -9,7 +9,7 @@ en:
       danger: "a security alert"
       warning: "an important update"
       info: "an account update"
-      success: "a workspace update"
+      success: "%{workspace} update"
     preferences:
       timezone:
         heading: "Your timezone"
@@ -21,8 +21,8 @@ en:
       categories:
         security: "Security & sign-in"
         account_access: "Account & access"
-        workspace_activity: "Workspace activity"
-        project_activity: "Project activity"
+        workspace_activity: "%{Workspace} activity"
+        project_activity: "%{Project} activity"
         billing: "Billing"
       notification_types:
         heading: "Notification types"
@@ -36,11 +36,11 @@ en:
             title: "Account & access"
             description: "Role changes and invitation reminders."
           workspace_activity:
-            title: "Workspace activity"
+            title: "%{Workspace} activity"
             description: "Members joining or changing roles."
           project_activity:
-            title: "Project activity"
-            description: "Changes to projects you belong to."
+            title: "%{Project} activity"
+            description: "Changes to %{projects} you belong to."
           billing:
             title: "Billing"
             description: "Plan changes and usage warnings."
@@ -140,8 +140,8 @@ en:
         unread: "Unread"
         security: "Security"
         account_access: "Access"
-        workspace_activity: "Workspace"
-        project_activity: "Project"
+        workspace_activity: "%{Workspace}"
+        project_activity: "%{Project}"
         billing: "Billing"
       empty_all: "You're all caught up."
       item:
@@ -164,7 +164,7 @@ en:
       subject:
         daily: "Your daily %{app_name} digest"
         weekly: "Your weekly %{app_name} digest"
-      preheader: "%{count} updates from your workspaces."
+      preheader: "%{count} updates from your %{workspaces}."
       heading_daily: "Today's updates"
       heading_weekly: "This week's updates"
       action: "View"
@@ -174,7 +174,7 @@ en:
       heading: "Your role in %{workspace_name} has changed"
       greeting: "Hi %{name},"
       body: "Your role in %{workspace_name} has changed to %{new_role}."
-      action: "Open workspace"
+      action: "Open %{workspace}"
     workspace_invitation_expiring_soon:
       subject: "Your invitation is about to expire"
       heading: "Your invitation is about to expire"
@@ -186,7 +186,7 @@ en:
       heading: "Welcome to %{workspace_name}"
       greeting: "Hi %{name},"
       body: "You've been added to %{workspace_name} as %{new_role}."
-      action: "Open workspace"
+      action: "Open %{workspace}"
     # The one second-person surface of this event, and the only one the removed
     # member alone receives. No action link: the workspace is exactly where
     # they can no longer go.
@@ -200,7 +200,7 @@ en:
       heading: "%{workspace_name} is approaching its %{metric} limit"
       greeting: "Hi %{name},"
       body: "%{workspace_name} is using %{current} of %{limit} %{metric}. To avoid hitting the cap, consider upgrading your plan or reviewing existing %{metric}."
-      action: "Manage workspace settings"
+      action: "Manage %{workspace} settings"
     sign_in_from_new_device:
       subject: "New sign-in from %{os}"
       heading: "New sign-in to your account"
