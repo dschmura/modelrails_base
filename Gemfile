@@ -71,7 +71,7 @@ gem "kamal", require: false
 gem "thruster", require: false
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
-gem "image_processing", "~> 2.0"
+gem "image_processing", "~> 2.1"
 # image_processing 2.0 dropped the transitive backend dep; libvips is installed in CI
 # (.github/workflows/ci.yml) and the production Dockerfile, and Rails 8.1 defaults
 # active_storage.variant_processor to :vips, so we declare ruby-vips explicitly.
