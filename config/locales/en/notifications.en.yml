@@ -121,7 +121,7 @@ en:
     workspace_capacity_approaching:
       message: "%{workspace_name} is approaching its %{metric} limit (%{current} of %{limit})"
     project_membership_changed:
-      message: "Your access to %{project} changed to %{new_role}"
+      message: "Your access to %{project_name} changed to %{new_role}"
     passkey_added:
       message: "A new passkey was added to your account, %{user_name}. If this wasn't you, review your passkeys now."
     password_changed:

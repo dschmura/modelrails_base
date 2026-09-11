@@ -11,7 +11,7 @@ class ProjectMembershipChangedNotifier < ApplicationNotifier
         I18n.t(
           "notifications.project_membership_changed.message",
           locale: recipient_locale,
-          project: event.record.project.name,
+          project_name: event.record.project.name,
           new_role: event.record.role.to_s.titleize
         )
       end

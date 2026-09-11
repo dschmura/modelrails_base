@@ -46,7 +46,7 @@ en:
     show:
       title: "You've been invited"
       body: "%{inviter} invited you to join %{workspace_name} as a %{role}."
-      client_body: "%{inviter} shared the %{project} %{project} with you."
+      client_body: "%{inviter} shared the %{project} %{project_name} with you."
       accept: "Accept invitation"
       sign_in: "Sign in to accept"
       register: "Create an account to accept"
@@ -61,7 +61,7 @@ en:
     show:
       title: "Decline invitation"
       body: "Are you sure you want to decline the invitation to %{workspace_name} from %{inviter}?"
-      client_body: "Are you sure you want to decline %{inviter}'s invitation to the %{project} %{project}?"
+      client_body: "Are you sure you want to decline %{inviter}'s invitation to the %{project} %{project_name}?"
       confirm: "Decline invitation"
       block_hint: "To stop future invitations from %{inviter}, use the “Don't invite me again” link in your invitation email."
     create:

@@ -8,7 +8,7 @@
     <% if @invitation.client_invite? %>
       <%= t("invitation_declines.show.client_body",
             inviter: @invitation.invited_by.email_address,
-            project: @invitation.invitable.name) %>
+            project_name: @invitation.invitable.name) %>
     <% else %>
       <%= t("invitation_declines.show.body",
             workspace_name: @invitation.invitable.name,
