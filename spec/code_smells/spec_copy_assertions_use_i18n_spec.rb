@@ -14,7 +14,10 @@ RSpec.describe "Code smell: spec copy assertions go through I18n.t" do
   # interpolation) so `workspace.name`-flavored interpolation and single-word
   # identifiers don't trip it.
   sentence_matcher = /\b(eq|include|match|scan)\(\s*(["'])((?:(?!\2).)*)\2/
-  noun = /\b(workspace|project)s?\b/i
+
+  def noun_pattern
+    /\b(#{Vocabulary::NOUNS.join("|")})s?\b/i
+  end
 
   # Fixture/preview text with no locale key behind it — a Lookbook preview's
   # sample copy or a generic partial spec's arbitrary local. Not app copy, so
@@ -60,10 +63,14 @@ RSpec.describe "Code smell: spec copy assertions go through I18n.t" do
     offenders = Dir.glob(Rails.root.join("spec/**/*_spec.rb"))
       .map { |f| Pathname.new(f) }
       .reject { |p| p.to_s == __FILE__ }
-      .flat_map { |p| offenders_in(p, matcher, text_option, sentence_matcher, noun, allowed) }
+      .flat_map { |p| offenders_in(p, matcher, text_option, sentence_matcher, noun_pattern, allowed) }
 
     expect(offenders).to be_empty,
-      "Text matchers with the literal noun — assert I18n.t(\"…\") so a renamed fork stays green:\n  #{offenders.join("\n  ")}"
+      "A spec asserts template copy as a literal English string. Here the placeholder and the " \
+      "word match, so it stays green — and goes red in every product that renamed its nouns. " \
+      "Fix: assert through I18n.t(\"the.key\") with the arguments the view passes, so one spec " \
+      "passes in both. Fixture text with no key behind it goes in `allowed` above, with the reason. " \
+      "Read: /docs/developer/i18n (Vocabulary).\n  #{offenders.join("\n  ")}"
   end
 
   it "reports planted literals and ignores model references" do
@@ -71,7 +78,18 @@ RSpec.describe "Code smell: spec copy assertions go through I18n.t" do
       path = Pathname.new(dir).join("probe_spec.rb")
       path.write(%(expect(page).to have_content("Create a workspace")\nclick_link "New workspace"\nexpect(page).to have_css("h1", text: "Your workspaces")\nexpect(page).to have_content(workspace.name)\nexpect(activity_log_text).to eq("joined the workspace")\n))
 
-      expect(offenders_in(path, matcher, text_option, sentence_matcher, noun).size).to eq(4)
+      expect(offenders_in(path, matcher, text_option, sentence_matcher, noun_pattern).size).to eq(4)
+    end
+  end
+
+  # A third noun must be guarded here the day it is added to Vocabulary::NOUNS.
+  it "derives the nouns from Vocabulary::NOUNS" do
+    stub_const("Vocabulary::NOUNS", %i[workspace project event])
+    Dir.mktmpdir do |dir|
+      path = Pathname.new(dir).join("probe_spec.rb")
+      path.write(%(expect(page).to have_content("Create an event")\n))
+
+      expect(offenders_in(path, matcher, text_option, sentence_matcher, noun_pattern).size).to eq(1)
     end
   end
 end

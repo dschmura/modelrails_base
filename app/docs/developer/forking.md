@@ -279,9 +279,11 @@ project:   { singular: "team",   plural: "teams" }
 
 Restart. Every template string, including the ones upstream adds next month,
 arrives in your words — that is the point of this file existing instead of
-you editing `workspaces.en.yml`. Two template specs keep it true: upstream
-strings may not contain the bare noun, and every interpolation token must be
-supplied.
+you editing `workspaces.en.yml`. Two template specs keep it true: no locale
+value under `config/locales/en/` may spell out the bare noun (`brand` and
+`pages` excepted — those are yours to word), and every interpolation token must
+be supplied. That first rule covers the files you add, so write your own
+strings with `%{project}` too and they follow the rename the same way.
 
 What it does not do. It does not rename models, tables, routes, or URLs —
 those stay `workspaces` and `projects`, and a product whose UI says Course and

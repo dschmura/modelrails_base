@@ -38,7 +38,11 @@ RSpec.describe "Code smell: every locale interpolation token is supplied" do
       .map { |token, location| "#{location}  %{#{token}}" }
 
     expect(unknown).to be_empty,
-      "Interpolation token(s) nobody supplies — a vocabulary token, or add the caller argument to this spec:\n  #{unknown.join("\n  ")}"
+      "A %{token} in a locale value that nothing fills. The i18n gem skips interpolation on a " \
+      "value-less call, so the user sees the braces (\"Hello %{nobody}\"). Fix: a caller supplies " \
+      "it → add the name to caller_supplied in this spec, beside the call site; it is the " \
+      "product's noun → write a vocabulary placeholder (%{project}, %{Workspace}…). " \
+      "Read: /docs/developer/i18n (Vocabulary).\n  #{unknown.join("\n  ")}"
   end
 
   it "reports a planted unknown token" do
@@ -65,7 +69,11 @@ RSpec.describe "Code smell: every locale interpolation token is supplied" do
     offenders = js_filled_keys.select { |key| resolved_value(key).to_s.match?(vocabulary_pattern) }
 
     expect(offenders).to be_empty,
-      "JS-filled key(s) also carry a vocabulary token — a value-less call would raise (#1111): #{offenders.join(', ')}"
+      "A key JavaScript fills also carries a vocabulary placeholder. The hook sees the placeholder, " \
+      "merges the nouns in, and the i18n gem raises on the still-missing %{count}/%{name} at every " \
+      "value-less call — a 500 on that page (#1111). Fix: keep JS-filled strings free of noun " \
+      "placeholders, or drop the key from js_filled_keys if Ruby now supplies the value. " \
+      "Read: /docs/developer/i18n (Vocabulary): #{offenders.join(', ')}"
   end
 
   # A caller that passes `workspace:` or `project:` to a translation is naming
@@ -88,7 +96,11 @@ RSpec.describe "Code smell: every locale interpolation token is supplied" do
       .flat_map { |p| offending_calls_in(p) }
 
     expect(offenders).to be_empty,
-      "Translation calls passing a vocabulary token name — use workspace_name:/project_name: for a record's name:\n  #{offenders.join("\n  ")}"
+      "A translation call passes a vocabulary placeholder's name (workspace:, project:) as an " \
+      "argument. That slot is the product's noun and the backend fills it; a record's name passed " \
+      "there renders \"Join course\" with the name gone, or doubles it. Fix: pass " \
+      "workspace_name:/project_name: and write %{workspace_name} in the string. " \
+      "Read: /docs/developer/i18n (Vocabulary).\n  #{offenders.join("\n  ")}"
   end
 
   it "reports a planted call that passes a vocabulary token name" do
