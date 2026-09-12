@@ -442,7 +442,7 @@ class ForkFlow
     @todos << "Replace the brand mark: app/views/shared/_site_mark.html.erb (one <svg>) and the icon set in public/ " \
               "(fork-owned — bin/fork renames strings, never artwork)."
     @todos << "Name your nouns, if the product's aren't workspace/project: config/vocabulary.local.yml " \
-              "(fork-owned — every template string follows)."
+              "(fork-owned — every template string follows, and so do yours when they say %{project}, not the word)."
 
     commit!("Rename identity: #{title}", FORK_FILE, *RENAME_FILES)
   end
