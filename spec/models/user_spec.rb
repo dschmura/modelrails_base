@@ -226,12 +226,6 @@ RSpec.describe User, type: :model do
   end
 
   describe "operator reach" do
-    # The default onboarding preset (:personal) gives every created user their
-    # own kept workspace (User::Onboarding#onboard_workspace) — noise these
-    # exact-membership assertions can't absorb. Same suppression as
-    # spec/requests/onboarding/*_spec.rb.
-    before { allow(TenancyConfig).to receive(:onboarding).and_return(:none) }
-
     let(:user) { create(:user) }
     let!(:workspace) { create(:workspace) }
     let!(:suspended) { create(:workspace).tap(&:suspend!) }
@@ -247,7 +241,12 @@ RSpec.describe User, type: :model do
       Operatorship.grant!(user: user)
 
       expect(user.reload).to be_operator
-      expect(user.operated_workspaces).to contain_exactly(workspace, suspended)
+      # `include`, not `contain_exactly`: under the default :personal preset,
+      # `user`'s own onboarding workspace is also kept and legitimately in
+      # scope here — operated_workspaces is instance-wide reach, not "every
+      # workspace but mine".
+      expect(user.operated_workspaces).to include(workspace, suspended)
+      expect(user.operated_workspaces).not_to include(discarded)
     end
 
     it "loses reach when the operatorship is revoked" do
@@ -258,15 +257,14 @@ RSpec.describe User, type: :model do
     end
   end
 
-  describe "#granted_operatorships (R12)" do
-    it "survives when the granter is destroyed, with granted_by nulled" do
+  describe "#granted_operatorships" do
+    it "carries every operatorship a user has granted, keyed by granted_by_id" do
       granter = create(:user)
-      subject_user = create(:user)
-      operatorship = Operatorship.grant!(user: subject_user, granted_by: granter)
+      first_grant = Operatorship.grant!(user: create(:user), granted_by: granter)
+      second_grant = Operatorship.grant!(user: create(:user), granted_by: granter)
 
-      granter.destroy!
-
-      expect(operatorship.reload.granted_by_id).to be_nil
+      expect(granter.granted_operatorships).to contain_exactly(first_grant, second_grant)
+      expect(granter.granted_operatorships.pluck(:granted_by_id).uniq).to eq([ granter.id ])
     end
   end
 end

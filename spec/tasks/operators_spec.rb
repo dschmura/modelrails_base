@@ -16,13 +16,18 @@ RSpec.describe "operators rake tasks" do
       expect { run_task("operators:grant", user.email_address) }
         .to change { user.reload.operator? }.from(false).to(true)
         .and change { ActivityLog.where(action: "operatorship.granted").count }.by(1)
+
+      expect(user.operatorships.kept.sole.granted_by_id).to be_nil
+      expect(ActivityLog.where(action: "operatorship.granted").order(:id).last.actor_id).to be_nil
     end
 
     it "is idempotent for an existing operator" do
       user = create(:user)
       Operatorship.grant!(user: user)
 
-      expect { run_task("operators:grant", user.email_address) }.not_to change(Operatorship, :count)
+      expect { run_task("operators:grant", user.email_address) }
+        .to change(Operatorship, :count).by(0)
+        .and change(ActivityLog, :count).by(0)
     end
 
     it "aborts on an unknown email" do
