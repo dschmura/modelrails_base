@@ -58,6 +58,29 @@ RSpec.describe Operatorship do
       expect(row.actor).to eq(granter)
       expect(row.visibility).to eq("admin")
     end
+
+    it "rolls back the discard when the audit row cannot be written" do
+      operatorship = described_class.grant!(user: user)
+      granter # force before the stub: same lazy-let onboarding issue as R5.
+      allow(ActivityLog).to receive(:create!).and_raise(ActiveRecord::RecordInvalid)
+
+      expect { operatorship.revoke!(revoked_by: granter) }.to raise_error(ActiveRecord::RecordInvalid)
+      expect(operatorship.reload).to be_kept
+    end
+
+    it "is idempotent: a second revoke! writes no audit row and leaves discarded_at unchanged" do
+      operatorship = described_class.grant!(user: user)
+      operatorship.revoke!(revoked_by: granter)
+      discarded_at = operatorship.reload.discarded_at
+
+      result = nil
+      expect {
+        result = operatorship.revoke!(revoked_by: granter)
+      }.not_to change(ActivityLog, :count)
+
+      expect(operatorship.reload.discarded_at).to eq(discarded_at)
+      expect(result).to be(false)
+    end
   end
 
   it "keeps both audit actions behind the security retention floor" do

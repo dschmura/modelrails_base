@@ -21,7 +21,13 @@ class Operatorship < ApplicationRecord
     end
   end
 
+  # Idempotent: Discardable#discard! has no already-discarded guard, so a bare
+  # call would push discarded_at forward and duplicate the audit row on a
+  # second revoke! (double-submit, or two operators racing the same person) —
+  # corrupting the one thing this credential-grade trail exists to get right.
   def revoke!(revoked_by: nil)
+    return false if discarded?
+
     transaction do
       discard!
       ActivityLog.create!(
