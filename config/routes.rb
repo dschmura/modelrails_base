@@ -181,6 +181,7 @@ Rails.application.routes.draw do
   namespace :operations do
     root to: "workspaces#index"
     resources :workspaces, param: :slug, only: %i[index show]
+    resources :users, only: %i[index show]
   end
 
   # Fork seam: product routes (root, marketing pages, your features) live in

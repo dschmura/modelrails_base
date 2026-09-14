@@ -1,0 +1,21 @@
+<% content_for(:title) { @user.full_name } %>
+<%= render "shared/settings_page_header", title: @user.full_name, description: @user.email_address %>
+
+<dl class="mt-4 grid grid-cols-2 gap-2 text-sm max-w-md">
+  <dt class="text-text-heading"><%= t("operations.users.show.locked") %></dt>
+  <dd class="text-text-body"><%= @user.locked? ? t("operations.affirmative") : t("operations.negative") %></dd>
+  <dt class="text-text-heading"><%= t("operations.users.show.operator") %></dt>
+  <dd class="text-text-body"><%= @user.operator? ? t("operations.affirmative") : t("operations.negative") %></dd>
+</dl>
+
+<section aria-labelledby="ops-user-memberships" class="mt-6">
+  <h2 id="ops-user-memberships" class="text-lg font-semibold text-text-heading"><%= t("operations.users.show.memberships") %></h2>
+  <ul class="mt-3 divide-y divide-border rounded-lg border border-border bg-surface">
+    <% @memberships.each do |membership| %>
+      <li class="flex items-center justify-between px-4 py-3 text-sm">
+        <%= link_to membership.workspace.name, operations_workspace_path(membership.workspace), class: "btn-text focus-ring" %>
+        <%= ui :badge, membership.role.name, variant: :soft, tone: :neutral %>
+      </li>
+    <% end %>
+  </ul>
+</section>

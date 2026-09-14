@@ -3,8 +3,13 @@ en:
     area:
       banner: "Instance operations — you are above the %{workspaces}, not inside one."
       nav_label: "Operations"
+    # R19: bare `yes`/`no` parse as YAML booleans, not string keys — Psych
+    # would turn `yes:` into a `true` key and break the t() lookup.
+    affirmative: "Yes"
+    negative: "No"
     nav:
       workspaces: "%{Workspaces}"
+      users: "Users"
     workspaces:
       index:
         title: "%{Workspaces}"
@@ -19,3 +24,15 @@ en:
       show:
         description: "Status: %{status}"
         members: "Members"
+    users:
+      index:
+        title: "Users"
+        description: "Look a user up by their exact email address."
+        search_label: "Email address"
+        search_placeholder: "someone@example.com"
+        search: "Search"
+        no_match: "No user has that email address."
+      show:
+        locked: "Locked"
+        operator: "Operator"
+        memberships: "Memberships"
