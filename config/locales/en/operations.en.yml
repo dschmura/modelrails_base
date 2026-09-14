@@ -22,6 +22,7 @@ en:
           owner: "Owner"
           members: "Members"
       show:
+        status_prefix: "Status"
         members: "Members"
         no_members: "No members yet."
     users:

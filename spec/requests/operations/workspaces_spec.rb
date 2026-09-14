@@ -19,6 +19,25 @@ RSpec.describe "Operations workspaces", type: :request do
       expect(html).to have_text("Owner")
     end
 
+    it "orders members by name, not creation order or an SQL sort on encrypted columns" do
+      # first_name/last_name are non-deterministically encrypted (fix round 2,
+      # finding 7), so this must be created in an order where insertion order
+      # (and any accidental sort on ciphertext) disagrees with alphabetical
+      # order — otherwise the assertion below would pass by coincidence.
+      create(:membership, user: create(:user, first_name: "Zoe", last_name: "Young"), workspace: workspace)
+      create(:membership, user: create(:user, first_name: "Amy", last_name: "Adams"), workspace: workspace)
+      create(:membership, user: create(:user, first_name: "Ben", last_name: "Baker"), workspace: workspace)
+
+      get operations_workspace_path(workspace)
+      body = response.body
+      # Insertion order is Owner (the `before` block), Young, Adams, Baker.
+      # Alphabetical by last name is Adams, Baker, Owner, Young — a different
+      # order, so a match here can only come from sorting the decrypted names.
+      positions = %w[Adams Baker Owner Young].map { |last_name| body.index(last_name) }
+      expect(positions).to all(be_present)
+      expect(positions).to eq(positions.sort)
+    end
+
     it "renders a suspended workspace instead of bouncing" do
       workspace.suspend!
       get operations_workspace_path(workspace)
