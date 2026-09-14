@@ -279,6 +279,21 @@ RSpec.describe ActivityLog, type: :model do
     end
   end
 
+  describe "#display_member" do
+    # Fix round 1, finding 1: the operations feed is the first surface to
+    # render admin-visibility rows (the workspace feed is workspace-only, the
+    # account security card is personal-only), and an operatorship grant's
+    # trackable is the grantee User — not a Membership — so display_member
+    # returned nil and the sentence substituted "a member".
+    it "names the grantee for an operatorship grant, whose trackable is a User" do
+      grantee = create(:user, first_name: "Gale", last_name: "Grantee")
+      Operatorship.grant!(user: grantee)
+      log = ActivityLog.find_by!(action: "operatorship.granted", trackable: grantee)
+
+      expect(log.display_member).to eq("Gale Grantee")
+    end
+  end
+
   describe ".for_operations_feed" do
     it "includes workspace and admin tiers across workspaces and excludes personal rows, newest first" do
       w1 = create(:workspace)

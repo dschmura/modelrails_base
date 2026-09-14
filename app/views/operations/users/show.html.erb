@@ -11,21 +11,24 @@
 <section aria-labelledby="ops-user-memberships" class="mt-6">
   <h2 id="ops-user-memberships" class="text-lg font-semibold text-text-heading"><%= t("operations.users.show.memberships") %></h2>
   <% if @memberships.any? %>
-    <ul class="mt-3 divide-y divide-border rounded-lg border border-border bg-surface">
+    <%= ui :list_group, class: "mt-3" do %>
       <% @memberships.each do |membership| %>
-        <li class="flex items-center justify-between px-4 py-3 text-sm">
+        <%# The row stays a static li with the link inside it, not a whole-row
+            list_group_item href: the badge would then sit inside the <a> and
+            join its accessible name. %>
+        <%= ui :list_group_item, class: "gap-4" do %>
           <%# operated_workspaces (Workspace.kept) can never resolve a discarded
               workspace's slug — link only a kept one, or the operator lands on
               a not-found redirect (fix round 1, finding 3). %>
           <% if membership.workspace.kept? %>
             <%= link_to membership.workspace.name, operations_workspace_path(membership.workspace), class: "btn-text focus-ring" %>
           <% else %>
-            <span class="text-text-heading"><%= membership.workspace.name %> — <%= lifecycle_status_label(membership.workspace) %></span>
+            <span><%= membership.workspace.name %> — <%= lifecycle_status_label(membership.workspace) %></span>
           <% end %>
           <%= ui :badge, membership.role.name, variant: :soft, tone: :neutral %>
-        </li>
+        <% end %>
       <% end %>
-    </ul>
+    <% end %>
   <% else %>
     <div class="mt-3">
       <%= render "shared/empty_state", message: t("operations.users.show.no_memberships") %>

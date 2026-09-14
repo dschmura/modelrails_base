@@ -98,17 +98,27 @@ class ActivityLog < ApplicationRecord
   # blanket `preload(trackable: :user)` raises AssociationNotFoundError the
   # first time a Project or Invitation row shares the page. Restricting the hop
   # to the membership slice also keeps the eager-load off pages that have no
-  # membership rows, where Bullet would report it as unused.
+  # membership rows, where Bullet would report it as unused. An operatorship
+  # row's trackable is a User read directly by display_member, so it needs the
+  # same slice treatment — one hop, no nested :user (#1120).
   def self.for_feed
     logs = includes(:actor).to_a
-    membership_rows = logs.select { |log| log.trackable_type == "Membership" }
-    return logs if membership_rows.empty?
-
-    ActiveRecord::Associations::Preloader.new(records: membership_rows, associations: :trackable).call
-    members = membership_rows.filter_map(&:trackable)
-    ActiveRecord::Associations::Preloader.new(records: members, associations: :user).call if members.any?
+    preload_trackables(logs, "Membership") do |members|
+      ActiveRecord::Associations::Preloader.new(records: members, associations: :user).call
+    end
+    preload_trackables(logs, "User")
     logs
   end
+
+  def self.preload_trackables(logs, type)
+    rows = logs.select { |log| log.trackable_type == type }
+    return if rows.empty?
+
+    ActiveRecord::Associations::Preloader.new(records: rows, associations: :trackable).call
+    trackables = rows.filter_map(&:trackable)
+    yield trackables if block_given? && trackables.any?
+  end
+  private_class_method :preload_trackables
 
   # The locale key the feed renders this row with — usually just `action`.
   # A deactivation, a self-removal and a reactivation all arrive as
@@ -132,10 +142,16 @@ class ActivityLog < ApplicationRecord
 
   # The member a membership row is ABOUT, which is not its actor: Trackable
   # records the actor as whoever performed the change, so an owner removing
-  # someone produced a row whose only name was the owner's. nil for every other
-  # trackable, and for a membership that has since been hard-deleted — the
-  # partial supplies the neutral noun.
+  # someone produced a row whose only name was the owner's. An operatorship
+  # grant/revoke's trackable is a User directly, not a Membership — Operatorship
+  # is above the workspace layer (#1120 fix round 1: the operations feed is the
+  # first surface to render these admin-visibility rows, and without this case
+  # the row read "granted a member operator access", naming neither party).
+  # nil for every other trackable, and for a membership that has since been
+  # hard-deleted — the partial supplies the neutral noun.
   def display_member
+    return trackable.full_name if trackable_type == "User"
+
     tracked_membership&.user&.full_name
   end
 

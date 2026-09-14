@@ -8,12 +8,14 @@
   <div class="mt-4 rounded-lg border border-border bg-surface p-4">
     <ol class="space-y-3">
       <% @activities.each do |activity_log| %>
-        <li class="text-sm">
-          <span class="text-text-heading font-medium">
-            <%= activity_log.workspace ? link_to(activity_log.workspace.name, operations_workspace_path(activity_log.workspace), class: "btn-text focus-ring") : t("operations.activity_logs.index.instance") %>
-          </span>
-          <ol><%= render partial: "activity_logs/activity_log", locals: { activity_log: activity_log } %></ol>
-        </li>
+        <%# The workspace goes INTO the row as its context local, not around it:
+            the partial renders the <li>, so wrapping it to add a heading gives
+            every entry its own one-item <ol>. %>
+        <%= render "activity_logs/activity_log",
+              activity_log: activity_log,
+              context: (activity_log.workspace ?
+                link_to(activity_log.workspace.name, operations_workspace_path(activity_log.workspace), class: "btn-text focus-ring") :
+                t("operations.activity_logs.index.instance")) %>
       <% end %>
     </ol>
   </div>
