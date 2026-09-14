@@ -1,0 +1,26 @@
+<% content_for(:title) { t("operations.workspaces.index.title") } %>
+<%= render "shared/settings_page_header",
+      title: t("operations.workspaces.index.title"),
+      description: t("operations.workspaces.index.description") %>
+
+<% if @workspaces.any? %>
+  <div class="rounded-lg border border-border bg-surface overflow-x-auto">
+    <table class="min-w-full text-sm">
+      <caption class="sr-only"><%= t("operations.workspaces.index.caption") %></caption>
+      <thead>
+        <tr class="text-left text-text-heading">
+          <th scope="col" class="px-4 py-3"><%= t("operations.workspaces.index.columns.name") %></th>
+          <th scope="col" class="px-4 py-3"><%= t("operations.workspaces.index.columns.status") %></th>
+          <th scope="col" class="px-4 py-3"><%= t("operations.workspaces.index.columns.owners") %></th>
+          <th scope="col" class="px-4 py-3"><%= t("operations.workspaces.index.columns.members") %></th>
+        </tr>
+      </thead>
+      <tbody>
+        <%= render partial: "operations/workspaces/row", collection: @workspaces, as: :workspace %>
+      </tbody>
+    </table>
+    <%= render "shared/pagination", pagy: @pagy %>
+  </div>
+<% else %>
+  <%= render "shared/empty_state", message: t("operations.workspaces.index.empty") %>
+<% end %>

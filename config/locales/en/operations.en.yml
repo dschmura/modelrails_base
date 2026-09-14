@@ -1,0 +1,18 @@
+en:
+  operations:
+    area:
+      banner: "Instance operations — you are above the %{workspaces}, not inside one."
+      nav_label: "Operations"
+    nav:
+      workspaces: "%{Workspaces}"
+    workspaces:
+      index:
+        title: "%{Workspaces}"
+        description: "Every %{workspace} on this instance, including locked and archived ones."
+        caption: "All %{workspaces}"
+        empty: "No %{workspaces} yet."
+        columns:
+          name: "Name"
+          status: "Status"
+          owners: "Owners"
+          members: "Members"

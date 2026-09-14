@@ -175,6 +175,14 @@ Rails.application.routes.draw do
     end
   end
 
+  # Instance operations: above the workspaces, never inside one. Controllers
+  # here never include WorkspaceScoped and never set Current.workspace; see
+  # /docs/developer/operations and extending.md §Pattern 4.
+  namespace :operations do
+    root to: "workspaces#index"
+    resources :workspaces, param: :slug, only: %i[index]
+  end
+
   # Fork seam: product routes (root, marketing pages, your features) live in
   # the fork-owned config/routes/app.rb. See /docs/developer/forking.
   draw(:app)

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="<%= I18n.locale %>"
+      data-controller="theme"
+      data-theme-theme-value="<%= current_user_theme %>">
+<%= render "shared/layout_head" %>
+
+  <body class="min-h-screen flex flex-col bg-surface-raised text-text-heading">
+    <%= render "shared/skip_link" %>
+    <%= render "shared/header" %>
+    <%= render "shared/toasts" %>
+
+    <%# Persistent banner: an operator must never mistake an operations screen
+        for a workspace screen. %>
+    <%= ui :banner, t("operations.area.banner"), variant: :default %>
+
+    <nav aria-label="<%= t("operations.area.nav_label") %>" class="border-b border-border">
+      <ul class="max-w-5xl mx-auto px-6 py-2 flex gap-4 text-sm">
+        <li><%= link_to t("operations.nav.workspaces"), operations_workspaces_path, class: "btn-text focus-ring" %></li>
+      </ul>
+    </nav>
+
+    <main id="main-content" tabindex="-1" class="flex-1 max-w-5xl w-full mx-auto px-6 pb-16">
+      <%= yield %>
+    </main>
+
+    <%= render "shared/layout_tail" %>
+  </body>
+</html>
