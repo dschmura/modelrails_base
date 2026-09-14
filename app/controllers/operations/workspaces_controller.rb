@@ -35,15 +35,17 @@ module Operations
       authorize [ :operations, Workspace ]
       @owner_email = params.dig(:workspace, :owner_email).to_s.strip
       @workspace = Workspace.new(create_params)
+      @workspace.owner_email = @owner_email
 
       # Invitation.bulk_invite! does not raise on a malformed email — it
       # silently skips it (its own EMAIL_FORMAT check). Left unguarded, a
       # blank/invalid owner_email would quietly hand the new workspace to the
-      # OPERATOR with no invitation and no error surfaced.
-      unless @owner_email.match?(User::EMAIL_FORMAT)
-        @workspace.errors.add(:base, t("operations.workspaces.new.owner_email_invalid"))
-        return render :new, status: :unprocessable_entity
-      end
+      # OPERATOR with no invitation and no error surfaced. Workspace itself
+      # validates the format (fix round 1, item 5 — the error now attaches
+      # to the FIELD via the owner_email attribute, not :base); checked here
+      # first only to skip the owner lookup and transaction on input already
+      # known to be bad.
+      return render :new, status: :unprocessable_entity if @workspace.invalid?
 
       owner = User.find_by(email_address: @owner_email)
 

@@ -35,7 +35,6 @@ en:
         title: "New %{workspace}"
         name: "Name"
         owner_email: "Owner's email address"
-        owner_email_invalid: "Enter a valid email address for the owner."
         submit: "Create %{workspace}"
       create:
         success: "%{Workspace} created."
@@ -71,3 +70,16 @@ en:
         # already-safe %{date} markup through untouched.
         granted_by_html: "granted by %{name} on %{date}"
         bootstrap: "rake or seed"
+  # Fix round 1, item 5: owner_email moved off Workspace's :base errors onto
+  # its own virtual attribute (see Workspace#owner_email), so the form
+  # builder's error_for finds it and wires aria-invalid/describedby onto the
+  # FIELD. A fragment, not a full sentence — full_message prefixes the
+  # humanized attribute name ("Owner email"), same as every other
+  # Rails-style validation message in this app.
+  activerecord:
+    errors:
+      models:
+        workspace:
+          attributes:
+            owner_email:
+              invalid: "must be a valid email address"

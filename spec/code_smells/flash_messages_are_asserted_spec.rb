@@ -151,7 +151,7 @@ RSpec.describe "Flash messages are asserted, not just redirects" do
 
   let(:values) { locale_values }
 
-  # Excludes THIS file: the burn-down list below names all 80 keys as string
+  # Excludes THIS file: the burn-down list below names all 65 keys as string
   # literals, so scanning it would report every one of them as asserted and the
   # guard would pass on an empty promise.
   let(:specs) do

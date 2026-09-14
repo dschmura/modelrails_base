@@ -46,6 +46,13 @@ class Workspace < ApplicationRecord
   # See /docs/developer/notifications (The actor rule).
   attr_accessor :created_by
 
+  # Virtual, never persisted: the operator-create form's target-owner email
+  # (Operations::WorkspacesController#create). Fix round 1, item 5 — giving
+  # it a real attribute (rather than a controller-local variable) is what
+  # lets the format failure attach to THIS field instead of :base, so
+  # UI::FormBuilder's error_for finds it and wires aria-invalid/describedby.
+  attr_accessor :owner_email
+
   # _commit, not after_create: enqueuing into Solid Queue's SQLite under the primary write lock is a lock-ordering hazard.
   after_create_commit :notify_workspace_created, if: -> { created_by.present? }
 
@@ -55,6 +62,10 @@ class Workspace < ApplicationRecord
   validates :max_projects, numericality: { greater_than: 0 }
   validate :personal_workspaces_are_invite_only
   validate :join_policy_must_be_permitted_by_instance
+  # allow_nil, not allow_blank: every OTHER Workspace creation path never
+  # touches owner_email (stays nil) and must stay unaffected by this rule;
+  # the operator-create controller always assigns a String, possibly "".
+  validates :owner_email, format: { with: User::EMAIL_FORMAT }, allow_nil: true
 
   def self.broadcast_events
     [ :update ]

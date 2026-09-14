@@ -56,6 +56,27 @@ RSpec.describe "Operations workspaces", type: :request do
       expect(response).to redirect_to(root_path)
       expect(flash[:alert]).to eq(I18n.t("errors.not_found"))
     end
+
+    # Fix round 1, item 6: the suspend/unsuspend controls used to render as
+    # `<a href data-turbo-method>` — a GET fallback with no route, and a
+    # destructive state change announced as a link. `button_to` is the app's
+    # own convention for every other confirm-guarded mutation.
+    it "renders the suspend control as a form, not a link" do
+      get operations_workspace_path(workspace)
+      html = Capybara.string(response.body)
+      path = operations_workspace_suspension_path(workspace)
+      expect(html).to have_no_link(href: path)
+      expect(html).to have_css("form[action='#{path}']", text: I18n.t("operations.workspaces.show.suspend"))
+    end
+
+    it "renders the unsuspend control as a form, not a link" do
+      workspace.suspend!
+      get operations_workspace_path(workspace)
+      html = Capybara.string(response.body)
+      path = operations_workspace_suspension_path(workspace)
+      expect(html).to have_no_link(href: path)
+      expect(html).to have_css("form[action='#{path}']", text: I18n.t("operations.workspaces.show.unsuspend"))
+    end
   end
 
   describe "POST/DELETE /operations/workspaces/:slug/suspension" do
@@ -80,6 +101,39 @@ RSpec.describe "Operations workspaces", type: :request do
       expect(flash[:notice]).to eq(I18n.t("operations.workspaces.suspensions.destroy.success"))
     end
 
+    # Fix round 1, item 3: a repeat POST on an already-suspended workspace
+    # used to bump suspended_at to a new timestamp and write a second
+    # workspace.updated row that rendered as a second "locked" entry in the
+    # tenant's feed.
+    it "does not duplicate the activity row or bump the timestamp on a repeat suspend" do
+      workspace.suspend!
+      suspended_at = workspace.reload.suspended_at
+
+      expect {
+        post operations_workspace_suspension_path(workspace)
+      }.not_to change { workspace.activity_logs.count }
+      expect(workspace.reload.suspended_at).to eq(suspended_at)
+      expect(response).to redirect_to(operations_workspace_path(workspace))
+    end
+
+    # Fix round 1, item 4: DELETE on a workspace that was never suspended
+    # used to flash "Workspace unlocked." while writing zero activity rows
+    # and changing nothing — a flash asserting an action that did not happen.
+    it "does not flash success or write a row when unsuspending a workspace that is not suspended" do
+      # An intervening GET drains the sign-in flash the `before` block's
+      # sign_in(operator) sets on its OWN request (Rails carries a flash
+      # forward exactly one request) — without it, that leftover notice,
+      # not this action, is what the assertion below would be reading.
+      get operations_workspace_path(workspace)
+
+      expect {
+        delete operations_workspace_suspension_path(workspace)
+      }.not_to change { workspace.activity_logs.count }
+      expect(workspace.reload.suspended_at).to be_nil
+      expect(response).to redirect_to(operations_workspace_path(workspace))
+      expect(flash[:notice]).to be_nil
+    end
+
     it "shows the tenant's owner the operator's action in the workspace feed" do
       post operations_workspace_suspension_path(workspace)
       # The controller suspends its own freshly-loaded copy; this local `workspace`
@@ -88,9 +142,25 @@ RSpec.describe "Operations workspaces", type: :request do
       workspace.reload.unsuspend!
       sign_in(owner)
       get workspace_path(workspace)
-      expect(Capybara.string(response.body)).to have_text(
-        I18n.t("activity.actions.workspace.suspended", workspace: I18n.t("vocabulary.workspace.singular", default: "workspace"))
-      )
+      # A plain have_text substring check for the "locked" copy is satisfied
+      # by the "UNlocked" row too — both rows are on the page, since the
+      # unsuspend above is what lets the tenant reach this page at all rather
+      # than redirect. The negative lookbehind is what actually tells the two
+      # apart (fix round 1, item 1). `Vocabulary.tokens[:workspace]`, not an
+      # explicit `workspace:` option — the option would win over the backend's
+      # injected token (config/initializers/vocabulary.rb) and this example
+      # would keep computing the template's own noun in a fork that renamed
+      # it (fix round 1, item 2). Both assertions target the SAME <li>:
+      # checking the page at large for the locked copy and separately for
+      # the operator's name would still pass against an inverted ternary,
+      # where the operator
+      # is named on the (mislabeled) "unlocked" row instead.
+      locked_row_regex = /(?<!un)locked the #{Regexp.escape(Vocabulary.tokens[:workspace])}/
+      row = Capybara.string(response.body).all("li").find { |li| li.text.match?(locked_row_regex) }
+      expect(row).to be_present, "no activity row read \"locked the #{Vocabulary.tokens[:workspace]}\" (not \"unlocked\")"
+      # The example's name promises "the operator's action" — that row must
+      # name the operator as actor, not just describe the state.
+      expect(row).to have_text(operator.full_name)
     end
   end
 
@@ -122,14 +192,30 @@ RSpec.describe "Operations workspaces", type: :request do
     end
 
     # Invitation.bulk_invite! does not raise on a malformed/blank email — it
-    # silently skips it (issuance.rb's EMAIL_FORMAT check just decrements
-    # `sent`). Left unguarded, a blank owner_email would quietly hand the new
-    # workspace to the OPERATOR with no invitation and no error shown.
+    # silently skips it (issuance.rb's own EMAIL_FORMAT check increments
+    # `skipped`; `sent` is never decremented anywhere). Left unguarded, a
+    # blank owner_email would quietly hand the new workspace to the OPERATOR
+    # with no invitation and no error shown.
     it "re-renders on a blank owner_email rather than silently handing the workspace to the operator" do
       expect {
         post operations_workspaces_path, params: { workspace: { name: "Orphan Co", owner_email: "" } }
       }.to change(Workspace, :count).by(0).and change(Invitation, :count).by(0)
       expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    # Fix round 1, item 5: the error summary and the server-side message were
+    # always right; owner_email was not a Workspace attribute, so the error
+    # landed on :base and no input on the page ever carried aria-invalid.
+    it "marks the owner_email field invalid, with aria-describedby pointing at the message" do
+      post operations_workspaces_path, params: { workspace: { name: "Orphan Co", owner_email: "not-an-email" } }
+      html = Capybara.string(response.body)
+      field = html.find_field("workspace_owner_email")
+      expect(field["aria-invalid"]).to eq("true")
+
+      described_by = field["aria-describedby"]
+      expect(described_by).to be_present
+      expect(html).to have_selector("##{described_by}",
+        text: I18n.t("activerecord.errors.models.workspace.attributes.owner_email.invalid"))
     end
   end
 end
