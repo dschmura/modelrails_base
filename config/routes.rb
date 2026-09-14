@@ -180,7 +180,7 @@ Rails.application.routes.draw do
   # /docs/developer/operations and extending.md §Pattern 4.
   namespace :operations do
     root to: "workspaces#index"
-    resources :workspaces, param: :slug, only: %i[index]
+    resources :workspaces, param: :slug, only: %i[index show]
   end
 
   # Fork seam: product routes (root, marketing pages, your features) live in

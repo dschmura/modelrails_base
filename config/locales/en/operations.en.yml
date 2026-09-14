@@ -16,3 +16,6 @@ en:
           status: "Status"
           owner: "Owner"
           members: "Members"
+      show:
+        description: "Status: %{status}"
+        members: "Members"

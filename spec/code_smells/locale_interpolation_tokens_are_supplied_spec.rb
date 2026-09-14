@@ -12,8 +12,8 @@ RSpec.describe "Code smell: every locale interpolation token is supplied" do
     decliner_email device email first_name from hours_remaining
     invitee_email inviter limit max member metric minutes mode name
     new_email new_role nickname os percent period phrase project_name
-    provider relative role sent skipped summary time title to user_name
-    workspace_name
+    provider relative role sent skipped status summary time title to
+    user_name workspace_name
   ]
   # ^ from Step 1's measurement, minus the eight vocabulary tokens, sorted.
   # Two of these are filled client-side, not by a Ruby caller: `count` in

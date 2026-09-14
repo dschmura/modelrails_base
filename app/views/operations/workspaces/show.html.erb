@@ -1,0 +1,18 @@
+<% content_for(:title) { @workspace.name } %>
+<%= render "shared/settings_page_header",
+      title: @workspace.name,
+      description: t("operations.workspaces.show.description", status: lifecycle_status_label(@workspace)) %>
+
+<section aria-labelledby="ops-members-heading" class="mt-6">
+  <h2 id="ops-members-heading" class="text-lg font-semibold text-text-heading"><%= t("operations.workspaces.show.members") %></h2>
+  <ul class="mt-3 divide-y divide-border rounded-lg border border-border bg-surface">
+    <% @memberships.each do |membership| %>
+      <li class="flex items-center justify-between px-4 py-3 text-sm">
+        <span class="text-text-heading"><%= membership.user.full_name %></span>
+        <%= ui :badge, membership.role.name, variant: :soft, tone: :neutral %>
+      </li>
+    <% end %>
+  </ul>
+</section>
+
+<%= render "shared/activity_feed", activities: @activities %>
