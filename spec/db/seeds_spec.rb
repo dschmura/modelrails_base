@@ -39,4 +39,15 @@ RSpec.describe "db/seeds.rb :shared bootstrap", type: :request do
     expect(tenancy_line).to include("tenancy:owner_setup_link")   # on-demand mint, not a logged token
     expect(tenancy_line).not_to include("/passwords/")            # no live password credential in logs
   end
+
+  it "grants the bootstrap owner an operatorship, idempotently" do
+    allow(Rails.logger).to receive(:info)
+
+    Rails.application.load_seed
+    Rails.application.load_seed
+
+    owner = User.find_by!(email_address: "owner@acme.test")
+    expect(owner).to be_operator
+    expect(owner.operatorships.kept.count).to eq(1)
+  end
 end

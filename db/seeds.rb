@@ -43,6 +43,12 @@ if TenancyConfig.shared?
   membership = workspace.memberships.find_or_create_by!(user: owner) { |m| m.role = owner_role }
   membership.update!(role: owner_role) unless membership.role_id == owner_role.id
 
+  # The bootstrap owner also operates the instance: on an invite-only
+  # deployment somebody must be able to create workspaces and see users before
+  # anyone else exists. Idempotent — the partial unique index makes a second
+  # grant impossible, so guard on operator?.
+  Operatorship.grant!(user: owner) unless owner.operator?
+
   # Help the owner claim the account. In production we do NOT log a password
   # token: the link would be minted at deploy time (its short expiry clock
   # already ticking) and would linger as a live credential in log retention.
