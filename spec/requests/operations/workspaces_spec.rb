@@ -116,10 +116,12 @@ RSpec.describe "Operations workspaces", type: :request do
       expect(response).to redirect_to(operations_workspace_path(workspace))
     end
 
-    # Fix round 1, item 4: DELETE on a workspace that was never suspended
-    # used to flash "Workspace unlocked." while writing zero activity rows
-    # and changing nothing — a flash asserting an action that did not happen.
-    it "does not flash success or write a row when unsuspending a workspace that is not suspended" do
+    # Fix round 1, item 4: DELETE on a workspace that was never suspended used
+    # to call unsuspend! anyway, writing a zero-change row. Both halves of this
+    # toggle now report the RESULTING STATE rather than the transition, so a
+    # repeat submit on either one is truthful and they stay symmetric — the
+    # workspace is unlocked, which is what the notice says.
+    it "reports the unlocked state without writing a row when it is not suspended" do
       # An intervening GET drains the sign-in flash the `before` block's
       # sign_in(operator) sets on its OWN request (Rails carries a flash
       # forward exactly one request) — without it, that leftover notice,
@@ -131,7 +133,7 @@ RSpec.describe "Operations workspaces", type: :request do
       }.not_to change { workspace.activity_logs.count }
       expect(workspace.reload.suspended_at).to be_nil
       expect(response).to redirect_to(operations_workspace_path(workspace))
-      expect(flash[:notice]).to be_nil
+      expect(flash[:notice]).to eq(I18n.t("operations.workspaces.suspensions.destroy.success"))
     end
 
     it "shows the tenant's owner the operator's action in the workspace feed" do
