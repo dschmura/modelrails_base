@@ -183,6 +183,7 @@ Rails.application.routes.draw do
     resources :workspaces, param: :slug, only: %i[index show]
     resources :users, only: %i[index show]
     resources :activity_logs, only: :index
+    resources :operatorships, only: :index
   end
 
   # Fork seam: product routes (root, marketing pages, your features) live in

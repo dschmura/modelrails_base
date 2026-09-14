@@ -1,0 +1,18 @@
+<%# app/views/operations/operatorships/index.html.erb %>
+<% content_for(:title) { t("operations.operatorships.index.title") } %>
+<%= render "shared/settings_page_header",
+      title: t("operations.operatorships.index.title"),
+      description: t("operations.operatorships.index.description") %>
+
+<ul class="mt-4 divide-y divide-border rounded-lg border border-border bg-surface">
+  <% @operatorships.each do |operatorship| %>
+    <li class="px-4 py-3 text-sm flex items-center justify-between">
+      <span class="text-text-heading"><%= operatorship.user.full_name %></span>
+      <span class="text-text-body">
+        <%= t("operations.operatorships.index.granted_by",
+              name: operatorship.granted_by&.full_name || t("operations.operatorships.index.bootstrap"),
+              date: l(operatorship.created_at.to_date)) %>
+      </span>
+    </li>
+  <% end %>
+</ul>

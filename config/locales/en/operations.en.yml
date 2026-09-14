@@ -11,6 +11,7 @@ en:
       workspaces: "%{Workspaces}"
       users: "Users"
       activity: "Activity"
+      operators: "Operators"
     workspaces:
       index:
         title: "%{Workspaces}"
@@ -44,3 +45,9 @@ en:
         title: "Activity across the instance"
         description: "Newest first, every %{workspace}. Personal security events are not shown here."
         instance: "Instance"
+    operatorships:
+      index:
+        title: "Operators"
+        description: "Who can operate this instance."
+        granted_by: "granted by %{name} on %{date}"
+        bootstrap: "rake or seed"
