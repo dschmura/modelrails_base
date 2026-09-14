@@ -16,40 +16,15 @@ require "rails_helper"
 # about the write GUARANTEE a call site gets, which is the distinction
 # app/models/concerns/trackable.rb's header exists to protect.
 RSpec.describe "Code smell: security events route through record_security_event!" do
-  # Locals, not constants: a constant here lands on Object, where another spec
-  # file's same-named constant clobbers it whenever CI shards both into one
-  # worker (the ALLOWED collision that broke CI on 2026-08-14).
-  #
   # `record_security_event!` itself writes via a bare `create!` (implicit
   # receiver), so it does not match this pattern and needs no exemption.
   direct_writes = /\bActivityLog\.(create!?|insert(_all)?|upsert(_all)?)\b/
 
-  # path => why this call site legitimately writes ActivityLog directly.
-  # First four are BEST-EFFORT, workspace-domain writers — the other tier. A
-  # security-tier write does not belong here EXCEPT the fifth: Operatorship is
-  # SECURITY_ACTIONS + STRICT, but its actor is the granter/revoker, not the
-  # subject, so record_security_event! (which forces actor: user) cannot write
-  # its row — a second reviewed direct writer, not a bypass (panel 2026-09-14).
-  allowed_direct_writes = {
-    "app/models/concerns/trackable.rb" =>
-      "the best-effort, workspace-domain write shape itself — the concern this " \
-      "whole tier distinction is documented on",
-    "app/models/membership/ownership.rb" =>
-      "record_ownership_demotion, reached from a callback-skipping CAS " \
-      "update_all, so the concern's callbacks cannot fire for it",
-    "app/controllers/application_controller.rb" =>
-      "log_blocked_role_grant, which records a REFUSAL — there is no persisted " \
-      "record to track, so Trackable has nothing to hang off",
-    # The writer moved into the concern with #951's split (#915); same reason.
-    "app/models/invitation/suppression.rb" =>
-      "record_suppressed_delivery — best-effort, admin-visibility, fired from " \
-      "mailer callbacks where Trackable's hooks must not run (a block oracle " \
-      "otherwise; PR 4 spec §7)",
-    "app/models/operatorship.rb" =>
-      "grant!/revoke! — STRICT, admin-visibility; actor is the granter/revoker, " \
-      "not the subject, so record_security_event!'s forced actor: user shape " \
-      "does not fit"
-  }.freeze
+  # SecurityEventWriters::ALLOWED (spec/support/security_event_writers.rb) is
+  # the single reviewed list, shared with dynamic_i18n_keys_have_values_spec.rb
+  # (fix round 3, item 1 / R26) — see that file's header for why it is a
+  # module constant rather than a `describe`-block local.
+  allowed_direct_writes = SecurityEventWriters::ALLOWED
 
   # Files allowed to mention a security-action literal without routing it
   # through the writer. The file that defines the set qualifies, and so does

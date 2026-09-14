@@ -9,14 +9,15 @@
     <%= ui :list_group_item, class: "gap-4" do %>
       <span><%= operatorship.user.full_name %></span>
       <span class="text-text-body">
-        <%= t("operations.operatorships.index.granted_by",
-              name: operatorship.granted_by&.full_name || t("operations.operatorships.index.bootstrap")) %>
-        <%# Matches activity_logs/_activity_log.html.erb's shape: a
-            machine-readable <time> rather than a bare, timezone-less date
-            (fix round 2, item 9). %>
-        <time datetime="<%= operatorship.created_at.iso8601 %>">
-          <%= time_ago_in_words(operatorship.created_at) %> <%= t("activity.ago") %>
-        </time>
+        <%# Fix round 3, item 2 / R27: round 2 traded the visible date for
+            time_ago_in_words, which datetime= cannot stand in for — it is
+            announced to neither screen readers nor sighted users. The date
+            is the <time> element's CONTENT; %{date} carries that markup
+            through the _html-suffixed translation (fix round 2, item 9). %>
+        <%= t("operations.operatorships.index.granted_by_html",
+              name: operatorship.granted_by&.full_name || t("operations.operatorships.index.bootstrap"),
+              date: content_tag(:time, l(operatorship.created_at.to_date),
+                                 datetime: operatorship.created_at.iso8601)) %>
       </span>
     <% end %>
   <% end %>

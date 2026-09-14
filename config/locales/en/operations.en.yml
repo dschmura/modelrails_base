@@ -49,5 +49,8 @@ en:
       index:
         title: "Operators"
         description: "Who can operate this instance."
-        granted_by: "granted by %{name}"
+        # _html: interpolates a <time> element (fix round 3, item 2 / R27) —
+        # the suffix makes ActionView auto-escape %{name} while passing the
+        # already-safe %{date} markup through untouched.
+        granted_by_html: "granted by %{name} on %{date}"
         bootstrap: "rake or seed"

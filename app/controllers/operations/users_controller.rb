@@ -21,9 +21,12 @@ module Operations
       # matches the sibling workspace-member sort's case-insensitive intent
       # (fix round 2, item 8). workspaces.name is a plain column — unlike
       # User#first_name/#last_name, this can be sorted in SQL (R21).
-      # `references(:workspace)` is required here: unlike a plain String,
-      # Arel.sql isn't scanned for table references, so `includes` would
-      # preload instead of join and the ORDER BY would hit an unjoined table.
+      # `references(:workspace)` is required here: Rails only auto-detects a
+      # raw order string's table when it's a BARE `table.column` reference —
+      # `LOWER(workspaces.name)` fails that shape check whether it's a plain
+      # String or Arel.sql (verified empirically, fix round 3, item 3), so
+      # `includes` would preload instead of join and the ORDER BY would hit
+      # an unjoined table.
       @memberships = @user.memberships.kept.includes(:role, :workspace).references(:workspace)
         .order(Arel.sql("LOWER(workspaces.name)"))
     end

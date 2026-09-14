@@ -125,15 +125,19 @@ RSpec.describe "Operations activity feed", type: :request do
   # branch already had, so this raised and 500'd the WHOLE feed for every
   # operator — the row is persisted (ActivityLog#readonly? is persisted?), so
   # it can never be edited away once it ships.
+  #
+  # Fix round 3, item 4: `grantee.destroy!` produces the real dangling row —
+  # no FK violation, since trackable_id is polymorphic and carries none, and
+  # a granted user who never acted is not an actor (the actor_id FK is a
+  # separate, unrelated deferral). The prior version reached the same
+  # trackable_id-0 state via update_all, which stays legal only because the
+  # immutability guard scans {app,lib}/**/*.rb, not spec/ — imitating the
+  # bug rather than causing it, so it would keep passing even if a future
+  # trackable-side cleanup made that state unreachable in production.
   it "shows the neutral noun instead of raising when a User trackable is gone" do
     grantee = create(:user)
     Operatorship.grant!(user: grantee)
-    log = ActivityLog.find_by!(action: "operatorship.granted", trackable: grantee)
-    # Relation-level write bypasses ActivityLog#readonly? (an instance-level
-    # guard); this simulates a hard-deleted trackable without a delete path
-    # existing in app code today. The immutability code-smell guard only
-    # scans app/ and lib/, not spec/.
-    ActivityLog.where(id: log.id).update_all(trackable_id: 0)
+    grantee.destroy!
 
     get operations_activity_logs_path
     expect(response).to have_http_status(:ok)

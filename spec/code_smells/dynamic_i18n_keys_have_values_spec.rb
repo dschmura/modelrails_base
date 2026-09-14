@@ -39,21 +39,44 @@ RSpec.describe "Code smell: every dynamic i18n key has a value" do
   # ActivityLog#display_action derives three membership variants from
   # metadata — that half is enumerable from the model layer.
   #
-  # Operatorship (fix round 2, item 3) calls ActivityLog.create! directly
-  # with a literal action, bypassing Trackable entirely, and it is not alone:
-  # invitation/suppression.rb and application_controller.rb do the same for
-  # admin-visibility rows that were unreachable by any UI before this arc's
-  # operations feed existed. Every literal `action:` argument to
-  # ActivityLog.create! is derived by scanning app/ rather than hardcoded, so
-  # the next bypass writer can't ship without this guard seeing it.
+  # The remainder bypasses Trackable and writes a literal `action:` directly
+  # (fix round 2, item 3). Rebuilt in fix round 3, item 1 / R26: a regex
+  # scanning app/ for that shape is paren-fragile — ANY `)` between
+  # `ActivityLog.create!(` and `action:` blinds it, and
+  # application_controller.rb's own call was one argument swap away from
+  # doing exactly that. Rather than guess at source shape, this scans only
+  # SecurityEventWriters::ALLOWED (spec/support/security_event_writers.rb) —
+  # the SAME reviewed list security_events_route_through_writer_spec.rb uses
+  # to prove no OTHER file bypasses Trackable — with balanced_end so a nested
+  # `)` inside the call can't hide `action:`, and without_comments so prose
+  # merely naming the shape (trackable.rb's own header) can't forge a
+  # phantom action. A new bypass writer must be added to that list before
+  # either guard can see it.
   it "labels every action either activity feed can render" do
     Rails.application.eager_load!
     trackable = ApplicationRecord.descendants.select { |model| model.include?(Trackable) }
     actions = trackable.flat_map { |model| %w[created updated].map { |verb| "#{model.model_name.param_key}.#{verb}" } }
     actions += %w[membership.deactivated membership.reactivated membership.left]
+    # Enumerated from the constant, not text-scanned: SECURITY_ACTIONS already
+    # names Operatorship's two direct-write actions.
+    actions += ActivityLog::SECURITY_ACTIONS.grep(/\Aoperatorship\./)
 
-    literal_action = /ActivityLog\.create!\([^)]*?action:\s*["']([\w.]+)["']/
-    actions += Dir[Rails.root.join("app/**/*.rb")].flat_map { |file| File.read(file).scan(literal_action).flatten }
+    literal_call = /ActivityLog\.create!\(/
+    action_value = /action:\s*["']([\w.]+)["']/
+
+    SecurityEventWriters::ALLOWED.each_key do |relative|
+      source = without_comments(File.read(Rails.root.join(relative)))
+      position = 0
+      while (match = literal_call.match(source, position))
+        position = match.end(0)
+        finish = balanced_end(source, match.end(0) - 1)
+        next unless finish
+
+        call_args = source[match.end(0)...(finish - 1)]
+        found = call_args.match(action_value)
+        actions << found[1] if found
+      end
+    end
     actions.uniq!
 
     missing = actions.reject { |action| I18n.exists?("activity.actions.#{action}") }

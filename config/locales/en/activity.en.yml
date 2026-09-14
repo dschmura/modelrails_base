@@ -35,7 +35,7 @@ en:
         deactivated: "deactivated %{member}"
         reactivated: "reactivated %{member}"
         left: "left the %{workspace}"
-        role_grant_blocked: "attempted to grant a role beyond their authority"
+        role_grant_blocked: "tried to grant a role they cannot assign"
       invitation:
         created: "sent an invitation"
         updated: "updated an invitation"
