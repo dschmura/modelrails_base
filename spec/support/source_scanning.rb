@@ -13,9 +13,31 @@
 module SourceScanning
   # Blank comment lines rather than deleting them, so reported line numbers
   # still match the real file — and so a comment quoting the scanned shape
-  # isn't scanned as an occurrence of it.
+  # isn't scanned as an occurrence of it. Also blanks a same-line TRAILING
+  # comment (fix round 4, item 3: `foo # ActivityLog.create!(action: "x.y")`
+  # used to inject a phantom action), tracking ' and " string state so a `#`
+  # inside a string or a `#{}` interpolation is left alone. Conservative, not
+  # exact: it does not understand %-literals, heredocs, or regex literals, so
+  # a `#` inside one of those could still be misread — none appear in the
+  # files these specs scan.
   def without_comments(source)
-    source.lines.map { |line| line.lstrip.start_with?("#") ? "\n" : line }.join
+    source.lines.map { |line| strip_trailing_comment(line) }.join
+  end
+
+  def strip_trailing_comment(line)
+    return "\n" if line.lstrip.start_with?("#")
+
+    quote = nil
+    line.each_char.with_index do |char, index|
+      if quote
+        quote = nil if char == quote && line[index - 1] != "\\"
+      elsif char == '"' || char == "'"
+        quote = char
+      elsif char == "#"
+        return "#{line[0...index]}\n"
+      end
+    end
+    line
   end
 
   # Index just past the ")" closing the "(" at open_index, or nil when the

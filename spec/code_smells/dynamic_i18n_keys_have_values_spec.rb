@@ -52,6 +52,17 @@ RSpec.describe "Code smell: every dynamic i18n key has a value" do
   # merely naming the shape (trackable.rb's own header) can't forge a
   # phantom action. A new bypass writer must be added to that list before
   # either guard can see it.
+  #
+  # Fix round 4, item 2: this text scan cannot evaluate every Ruby shape, and
+  # four of them (create without a bang, create! without parens, a non-literal
+  # action value, a string-embedded paren that desyncs balanced_end) used to
+  # make it skip SILENTLY — a missing label ships unnoticed. Now any write
+  # shape it cannot resolve to a plain string literal fails loud, naming the
+  # file and line, instead of passing. The one legitimate non-literal is
+  # Trackable#create_activity's own `action: action` — it forwards its
+  # caller's action rather than hardcoding one, and that whole family is
+  # already enumerated above from the model descendants loop, so it is
+  # declared safe by exact value below rather than silently allowed.
   it "labels every action either activity feed can render" do
     Rails.application.eager_load!
     trackable = ApplicationRecord.descendants.select { |model| model.include?(Trackable) }
@@ -61,23 +72,62 @@ RSpec.describe "Code smell: every dynamic i18n key has a value" do
     # names Operatorship's two direct-write actions.
     actions += ActivityLog::SECURITY_ACTIONS.grep(/\Aoperatorship\./)
 
-    literal_call = /ActivityLog\.create!\(/
-    action_value = /action:\s*["']([\w.]+)["']/
+    # No trailing `\(` — a paren-less call (gap: no parens) must still be
+    # found so it can be reported, not silently missed. `(?=[\s(]|\z)`
+    # anchors the boundary instead of `\b`, which `!?` backtracks past a
+    # literal "!" (verified: `\bcreate!?\b` matches "create" and leaves "!("
+    # unconsumed).
+    write_call = /\bActivityLog\.create!?(?=[\s(]|\z)/
+    literal_value = /\A["']([\w.]+)["']\z/
+    declared_dynamic = { "app/models/concerns/trackable.rb" => [ "action" ] }.freeze
+
+    unresolved = []
 
     SecurityEventWriters::ALLOWED.each_key do |relative|
       source = without_comments(File.read(Rails.root.join(relative)))
       position = 0
-      while (match = literal_call.match(source, position))
+      while (match = write_call.match(source, position))
+        line = source[0...match.begin(0)].count("\n") + 1
         position = match.end(0)
-        finish = balanced_end(source, match.end(0) - 1)
-        next unless finish
 
-        call_args = source[match.end(0)...(finish - 1)]
-        found = call_args.match(action_value)
-        actions << found[1] if found
+        paren = source[position..].match(/\A[ \t]*\(/)
+        unless paren
+          unresolved << "#{relative}:#{line}: ActivityLog write with no parentheses"
+          next
+        end
+
+        open_index = position + paren[0].length - 1
+        finish = balanced_end(source, open_index)
+        unless finish
+          unresolved << "#{relative}:#{line}: ActivityLog write whose parentheses never balance " \
+            "(a `(` inside a string literal desyncs the depth count)"
+          next
+        end
+        position = finish
+
+        call_args = source[(open_index + 1)...(finish - 1)]
+        action_match = call_args.match(/action:\s*(.+?)\s*(?:,|\z)/m)
+        unless action_match
+          unresolved << "#{relative}:#{line}: ActivityLog write with no resolvable action: argument " \
+            "(a `)` inside an earlier string literal may have truncated the argument list)"
+          next
+        end
+
+        raw_value = action_match[1]
+        literal = raw_value.match(literal_value)
+        if literal
+          actions << literal[1]
+        elsif !declared_dynamic[relative]&.include?(raw_value)
+          unresolved << "#{relative}:#{line}: ActivityLog action `#{raw_value}` is not a string literal"
+        end
       end
     end
     actions.uniq!
+
+    expect(unresolved).to be_empty,
+      "This scan reads app/ as text and cannot evaluate a non-literal action; each of these calls must " \
+      "either use a literal action: string or have its exact value added to declared_dynamic above:\n  " \
+      "#{unresolved.join("\n  ")}"
 
     missing = actions.reject { |action| I18n.exists?("activity.actions.#{action}") }
 

@@ -18,7 +18,12 @@ require "rails_helper"
 RSpec.describe "Code smell: security events route through record_security_event!" do
   # `record_security_event!` itself writes via a bare `create!` (implicit
   # receiver), so it does not match this pattern and needs no exemption.
-  direct_writes = /\bActivityLog\.(create!?|insert(_all)?|upsert(_all)?)\b/
+  # Covers both the class-level shape (ActivityLog.create!/.new/.insert_all/
+  # .upsert_all) and the association shape (workspace.activity_logs.create!,
+  # live via Workspace has_many :activity_logs) — round 4, item 1: both
+  # escaped the narrower regex entirely (a probe file in each shape stayed
+  # off the offender list).
+  direct_writes = /\bActivityLog\.(create!?|new|insert(_all)?|upsert(_all)?)\b|\bactivity_logs\.(create!?|insert(_all)?|upsert(_all)?)\b/
 
   # SecurityEventWriters::ALLOWED (spec/support/security_event_writers.rb) is
   # the single reviewed list, shared with dynamic_i18n_keys_have_values_spec.rb
