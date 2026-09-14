@@ -9,7 +9,7 @@ module Operations
     def show
       @workspace = operated_workspaces.find_by!(slug: params[:slug])
       authorize [ :operations, @workspace ]
-      @memberships = @workspace.memberships.kept.includes(:role, :user).order("users.id")
+      @memberships = @workspace.memberships.kept.includes(:role, :user).order("users.last_name, users.first_name")
       @activities = @workspace.activity_logs.visible.recent.for_feed
     end
   end

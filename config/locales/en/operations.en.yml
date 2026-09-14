@@ -22,8 +22,8 @@ en:
           owner: "Owner"
           members: "Members"
       show:
-        description: "Status: %{status}"
         members: "Members"
+        no_members: "No members yet."
     users:
       index:
         title: "Users"
@@ -36,3 +36,4 @@ en:
         locked: "Locked"
         operator: "Operator"
         memberships: "Memberships"
+        no_memberships: "No memberships yet."

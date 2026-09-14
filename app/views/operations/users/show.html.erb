@@ -10,12 +10,25 @@
 
 <section aria-labelledby="ops-user-memberships" class="mt-6">
   <h2 id="ops-user-memberships" class="text-lg font-semibold text-text-heading"><%= t("operations.users.show.memberships") %></h2>
-  <ul class="mt-3 divide-y divide-border rounded-lg border border-border bg-surface">
-    <% @memberships.each do |membership| %>
-      <li class="flex items-center justify-between px-4 py-3 text-sm">
-        <%= link_to membership.workspace.name, operations_workspace_path(membership.workspace), class: "btn-text focus-ring" %>
-        <%= ui :badge, membership.role.name, variant: :soft, tone: :neutral %>
-      </li>
-    <% end %>
-  </ul>
+  <% if @memberships.any? %>
+    <ul class="mt-3 divide-y divide-border rounded-lg border border-border bg-surface">
+      <% @memberships.each do |membership| %>
+        <li class="flex items-center justify-between px-4 py-3 text-sm">
+          <%# operated_workspaces (Workspace.kept) can never resolve a discarded
+              workspace's slug — link only a kept one, or the operator lands on
+              a not-found redirect (fix round 1, finding 3). %>
+          <% if membership.workspace.kept? %>
+            <%= link_to membership.workspace.name, operations_workspace_path(membership.workspace), class: "btn-text focus-ring" %>
+          <% else %>
+            <span class="text-text-heading"><%= membership.workspace.name %> — <%= lifecycle_status_label(membership.workspace) %></span>
+          <% end %>
+          <%= ui :badge, membership.role.name, variant: :soft, tone: :neutral %>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <div class="mt-3">
+      <%= render "shared/empty_state", message: t("operations.users.show.no_memberships") %>
+    </div>
+  <% end %>
 </section>

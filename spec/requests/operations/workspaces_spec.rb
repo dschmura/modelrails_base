@@ -11,7 +11,7 @@ RSpec.describe "Operations workspaces", type: :request do
   end
 
   describe "GET /operations/workspaces/:slug" do
-    it "shows members with roles and recent activity" do
+    it "shows members with roles" do
       get operations_workspace_path(workspace)
       expect(response).to have_http_status(:ok)
       html = Capybara.string(response.body)
@@ -28,10 +28,14 @@ RSpec.describe "Operations workspaces", type: :request do
       expect(Capybara.string(response.body)).to have_text(I18n.t("lifecycle_status.suspended"))
     end
 
-    it "404s for a discarded workspace" do
+    it "redirects to root with a not-found alert for a discarded workspace" do
+      # record_not_found (ApplicationController) redirects HTML requests to
+      # the referer or root; a request spec sends no referer, so root is the
+      # one real outcome here (fix round 1, finding 4).
       workspace.discard!
       get operations_workspace_path(workspace)
-      expect(response).to have_http_status(:not_found).or redirect_to(root_path)
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq(I18n.t("errors.not_found"))
     end
   end
 end
