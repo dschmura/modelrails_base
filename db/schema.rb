@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_07_180000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_15_090000) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -193,6 +193,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_07_180000) do
     t.index ["recipient_type", "recipient_id"], name: "index_noticed_notifications_on_recipient"
     t.index ["recipient_type", "recipient_id"], name: "index_noticed_notifications_unread", where: "read_at IS NULL"
     t.check_constraint "recipient_type = 'User'", name: "recipient_type_user_only_v1"
+  end
+
+  create_table "operatorships", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "discarded_at"
+    t.integer "granted_by_id"
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["discarded_at"], name: "index_operatorships_on_discarded_at"
+    t.index ["granted_by_id"], name: "index_operatorships_on_granted_by_id"
+    t.index ["user_id"], name: "index_operatorships_on_user_id"
+    t.index ["user_id"], name: "index_operatorships_on_user_id_where_kept", unique: true, where: "discarded_at IS NULL"
   end
 
   create_table "project_memberships", force: :cascade do |t|
@@ -397,6 +409,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_07_180000) do
   add_foreign_key "memberships", "users"
   add_foreign_key "memberships", "workspaces"
   add_foreign_key "noticed_notifications", "noticed_events", column: "event_id", on_delete: :cascade
+  add_foreign_key "operatorships", "users"
+  add_foreign_key "operatorships", "users", column: "granted_by_id"
   add_foreign_key "project_memberships", "projects"
   add_foreign_key "project_memberships", "users"
   add_foreign_key "projects", "users", column: "created_by_id"

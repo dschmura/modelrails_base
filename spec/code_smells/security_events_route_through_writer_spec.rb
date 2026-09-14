@@ -25,8 +25,11 @@ RSpec.describe "Code smell: security events route through record_security_event!
   direct_writes = /\bActivityLog\.(create!?|insert(_all)?|upsert(_all)?)\b/
 
   # path => why this call site legitimately writes ActivityLog directly.
-  # All four are BEST-EFFORT, workspace-domain writers — the other tier.
-  # A security-tier write does not belong here; it belongs in the writer.
+  # First four are BEST-EFFORT, workspace-domain writers — the other tier. A
+  # security-tier write does not belong here EXCEPT the fifth: Operatorship is
+  # SECURITY_ACTIONS + STRICT, but its actor is the granter/revoker, not the
+  # subject, so record_security_event! (which forces actor: user) cannot write
+  # its row — a second reviewed direct writer, not a bypass (panel 2026-09-14).
   allowed_direct_writes = {
     "app/models/concerns/trackable.rb" =>
       "the best-effort, workspace-domain write shape itself — the concern this " \
@@ -41,12 +44,20 @@ RSpec.describe "Code smell: security events route through record_security_event!
     "app/models/invitation/suppression.rb" =>
       "record_suppressed_delivery — best-effort, admin-visibility, fired from " \
       "mailer callbacks where Trackable's hooks must not run (a block oracle " \
-      "otherwise; PR 4 spec §7)"
+      "otherwise; PR 4 spec §7)",
+    "app/models/operatorship.rb" =>
+      "grant!/revoke! — STRICT, admin-visibility; actor is the granter/revoker, " \
+      "not the subject, so record_security_event!'s forced actor: user shape " \
+      "does not fit"
   }.freeze
 
   # Files allowed to mention a security-action literal without routing it
-  # through the writer. Only the file that defines the set qualifies.
-  literal_definers = [ "app/models/activity_log.rb" ].freeze
+  # through the writer. The file that defines the set qualifies, and so does
+  # operatorship.rb: it is already a reviewed direct writer above, and its row
+  # shape (actor: granter, visibility: admin) is deliberately not
+  # record_security_event!'s, so requiring that call here would just be the
+  # same bypass restated.
+  literal_definers = [ "app/models/activity_log.rb", "app/models/operatorship.rb" ].freeze
 
   def ruby_sources
     Dir[Rails.root.join("{app,lib}/**/*.rb")]

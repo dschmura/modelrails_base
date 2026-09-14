@@ -110,6 +110,9 @@ en:
           signed_in_new_device_with_os: "Signed in from a new device (%{os})"
           passkey_added: "Passkey added"
           passkey_removed: "Passkey removed"
+        operatorship:
+          granted: "Operator access granted"
+          revoked: "Operator access revoked"
     other_sessions:
       destroy:
         signed_out:

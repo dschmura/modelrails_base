@@ -25,13 +25,18 @@
 #   records is written callback-free on purpose; PR 4 spec §7).
 #
 #   STRICT (no rescue; the audit row commits with the credential mutation or
-#   neither does) — User#audit_password_digest_change and
-#   WebauthnCredential#audit_added/#audit_removed.
+#   neither does) — User#audit_password_digest_change,
+#   WebauthnCredential#audit_added/#audit_removed, and
+#   Operatorship.grant!/#revoke! (write at admin visibility, not personal —
+#   an operator grant has no single workspace to scope to).
 #
 # Tier and retention are independent axes: the new-device row is best-effort
 # yet still an ActivityLog::SECURITY_ACTIONS member, so it keeps the security
 # retention floor. Every SECURITY_ACTIONS row, either tier, is written through
-# ActivityLog.record_security_event! — which owns that row shape.
+# ActivityLog.record_security_event! — which owns that row shape — except
+# Operatorship's two actions, which write ActivityLog.create! directly because
+# record_security_event! forces actor: user and these rows' actor is the
+# granter/revoker, not the subject.
 module Trackable
   extend ActiveSupport::Concern
 

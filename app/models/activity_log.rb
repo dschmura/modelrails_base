@@ -24,6 +24,8 @@ class ActivityLog < ApplicationRecord
     user.signed_in_new_device
     user.passkey_added
     user.passkey_removed
+    operatorship.granted
+    operatorship.revoked
   ].freeze
 
   # The members whose writer records the device os in metadata (Authenticatable's
