@@ -18,6 +18,7 @@ en:
         description: "Every %{workspace} on this instance, including locked and archived ones."
         caption: "All %{workspaces}"
         empty: "No %{workspaces} yet."
+        new: "New %{workspace}"
         columns:
           name: "Name"
           status: "Status"
@@ -30,6 +31,14 @@ en:
         suspend: "Lock this %{workspace}"
         suspend_confirm: "Members will be blocked until it is unlocked. Continue?"
         unsuspend: "Unlock this %{workspace}"
+      new:
+        title: "New %{workspace}"
+        name: "Name"
+        owner_email: "Owner's email address"
+        owner_email_invalid: "Enter a valid email address for the owner."
+        submit: "Create %{workspace}"
+      create:
+        success: "%{Workspace} created."
       suspensions:
         create:
           success: "%{Workspace} locked."

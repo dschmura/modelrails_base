@@ -93,4 +93,43 @@ RSpec.describe "Operations workspaces", type: :request do
       )
     end
   end
+
+  describe "POST /operations/workspaces" do
+    it "creates a workspace owned by an existing user" do
+      expect {
+        post operations_workspaces_path, params: { workspace: { name: "New Co", owner_email: owner.email_address } }
+      }.to change(Workspace, :count).by(1)
+      created = Workspace.order(:id).last
+      expect(created.owners).to contain_exactly(owner)
+      expect(response).to redirect_to(operations_workspace_path(created))
+      expect(flash[:notice]).to eq(I18n.t("operations.workspaces.create.success"))
+    end
+
+    it "creates a workspace owned by the operator and invites an unknown email as Owner" do
+      expect {
+        post operations_workspaces_path, params: { workspace: { name: "Fresh Co", owner_email: "fresh@example.com" } }
+      }.to change(Workspace, :count).by(1).and change(Invitation, :count).by(1)
+      created = Workspace.order(:id).last
+      expect(created.owners).to contain_exactly(operator)
+      invitation = created.invitations.sole
+      expect(invitation.email).to eq("fresh@example.com")
+      expect(invitation.role.slug).to eq("owner")
+    end
+
+    it "re-renders on a blank name" do
+      post operations_workspaces_path, params: { workspace: { name: "", owner_email: owner.email_address } }
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+
+    # Invitation.bulk_invite! does not raise on a malformed/blank email — it
+    # silently skips it (issuance.rb's EMAIL_FORMAT check just decrements
+    # `sent`). Left unguarded, a blank owner_email would quietly hand the new
+    # workspace to the OPERATOR with no invitation and no error shown.
+    it "re-renders on a blank owner_email rather than silently handing the workspace to the operator" do
+      expect {
+        post operations_workspaces_path, params: { workspace: { name: "Orphan Co", owner_email: "" } }
+      }.to change(Workspace, :count).by(0).and change(Invitation, :count).by(0)
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+  end
 end

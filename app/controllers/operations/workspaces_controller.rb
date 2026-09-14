@@ -19,5 +19,56 @@ module Operations
         .sort_by { |m| [ m.user.last_name.to_s.downcase, m.user.first_name.to_s.downcase ] }
       @activities = @workspace.activity_logs.visible.recent.for_feed
     end
+
+    def new
+      authorize [ :operations, Workspace ]
+      @workspace = Workspace.new
+      @owner_email = ""
+    end
+
+    # Name plus an owner email. Existing user → they own it. Unknown email →
+    # the operator owns it and the email gets a workspace invitation carrying
+    # the Owner role through the ordinary invitation path; the operator hands
+    # off later with the existing ownership-transfer or leave flows. "Invited
+    # to nothing" is not a state this product has a page for.
+    def create
+      authorize [ :operations, Workspace ]
+      @owner_email = params.dig(:workspace, :owner_email).to_s.strip
+      @workspace = Workspace.new(create_params)
+
+      # Invitation.bulk_invite! does not raise on a malformed email — it
+      # silently skips it (its own EMAIL_FORMAT check). Left unguarded, a
+      # blank/invalid owner_email would quietly hand the new workspace to the
+      # OPERATOR with no invitation and no error surfaced.
+      unless @owner_email.match?(User::EMAIL_FORMAT)
+        @workspace.errors.add(:base, t("operations.workspaces.new.owner_email_invalid"))
+        return render :new, status: :unprocessable_entity
+      end
+
+      owner = User.find_by(email_address: @owner_email)
+
+      @workspace = Workspace.transaction do
+        workspace = Workspace.create_owned(create_params, owner: owner || Current.user)
+        if workspace.persisted? && owner.nil?
+          Invitation.bulk_invite!(
+            workspace: workspace, emails: [ @owner_email ],
+            role: Role.system_default!("owner"), invited_by: Current.user
+          )
+        end
+        workspace
+      end
+
+      if @workspace.persisted?
+        redirect_to operations_workspace_path(@workspace), notice: t(".success")
+      else
+        render :new, status: :unprocessable_entity
+      end
+    end
+
+    private
+
+    def create_params
+      params.require(:workspace).permit(:name)
+    end
   end
 end
