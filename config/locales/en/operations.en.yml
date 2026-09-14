@@ -14,5 +14,5 @@ en:
         columns:
           name: "Name"
           status: "Status"
-          owners: "Owners"
+          owner: "Owner"
           members: "Members"

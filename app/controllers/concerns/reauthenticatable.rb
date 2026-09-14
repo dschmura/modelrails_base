@@ -29,16 +29,25 @@ module Reauthenticatable
     end
   end
 
-  # Return the user to the page they triggered the action from (a same-origin
-  # referer), so after confirming they can retry it. Gated actions are all
-  # mutating requests, so their own path isn't a useful landing.
+  # Return the user to the page they triggered the action from. Gated
+  # mutations still return to a same-origin referer — their own path isn't a
+  # useful landing, there's nothing to retry there. A gated GET is different:
+  # Operations (fix round 1, operator arc) is this app's first GET-gated
+  # area, so a stale-session visit to /operations must land back on
+  # /operations, not on profile settings. request.fullpath mirrors
+  # Authenticatable#request_authentication (authenticatable.rb:60), the
+  # equivalent GET-correct form for the sign-in gate.
   def store_reauthentication_return_to
-    referer_path = begin
-      url_from(request.referer)&.then { |uri| URI(uri).request_uri }
-    rescue URI::InvalidURIError
-      nil
+    session[:return_to_after_reauthentication] = if request.get?
+      request.fullpath
+    else
+      referer_path = begin
+        url_from(request.referer)&.then { |uri| URI(uri).request_uri }
+      rescue URI::InvalidURIError
+        nil
+      end
+      referer_path.presence || edit_settings_profile_path
     end
-    session[:return_to_after_reauthentication] = referer_path.presence || edit_settings_profile_path
   end
 
   def reauthentication_return_to

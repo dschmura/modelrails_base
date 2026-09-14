@@ -2,6 +2,10 @@
 <tr class="border-t border-border">
   <td class="px-4 py-3 font-medium text-text-heading"><%= workspace.name %></td>
   <td class="px-4 py-3"><%= lifecycle_status_label(workspace) %></td>
-  <td class="px-4 py-3 text-text-body"><%= workspace.owners.map(&:full_name).join(", ") %></td>
+  <%# Workspace#owner (singular) consumes the controller's memberships preload
+      (memberships.loaded? branch, workspace.rb:125-127) — #owners (plural) is
+      documented as always a fresh query and would N+1 this list; see fix
+      round 1, operator arc. %>
+  <td class="px-4 py-3 text-text-body"><%= workspace.owner&.full_name %></td>
   <td class="px-4 py-3 text-text-body"><%= workspace.memberships.select(&:kept?).size %></td>
 </tr>

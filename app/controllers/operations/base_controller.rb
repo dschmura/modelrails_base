@@ -12,8 +12,11 @@ module Operations
     layout "operations"
 
     before_action :require_operator
-    # Credential-grade area: every request, not just mutations.
-    before_action :require_reauthentication!
+    # Credential-grade area: force: true, same as passkey enrollment
+    # (reauthenticatable.rb) — granting an operatorship mints a durable
+    # credential and revokes nothing, so this gate must survive a fork
+    # turning reauth_enabled off (config/initializers/sessions.rb).
+    before_action -> { require_reauthentication!(force: true) }
 
     private
 

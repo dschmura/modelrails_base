@@ -10,8 +10,14 @@
     <%= render "shared/toasts" %>
 
     <%# Persistent banner: an operator must never mistake an operations screen
-        for a workspace screen. %>
-    <%= ui :banner, t("operations.area.banner"), variant: :default %>
+        for a workspace screen. variant: :default resolves to bg-surface-raised
+        — this body's own fill — so it would sit invisible against the page;
+        :info actually separates it. Wrapped in the same max-w-5xl column as
+        nav/main so it doesn't run bare edge-to-edge as the only unboxed
+        <body> child (fix round 1, operator arc). %>
+    <div class="max-w-5xl mx-auto px-6 pt-4">
+      <%= ui :banner, t("operations.area.banner"), variant: :info %>
+    </div>
 
     <nav aria-label="<%= t("operations.area.nav_label") %>" class="border-b border-border">
       <ul class="max-w-5xl mx-auto px-6 py-2 flex gap-4 text-sm">
