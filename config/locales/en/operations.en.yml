@@ -70,13 +70,16 @@ en:
         # already-safe %{date} markup through untouched.
         granted_by_html: "granted by %{name} on %{date}"
         bootstrap: "rake or seed"
-  # Fix round 1, item 5: owner_email moved off Workspace's :base errors onto
-  # its own virtual attribute (see Workspace#owner_email), so the form
-  # builder's error_for finds it and wires aria-invalid/describedby onto the
-  # FIELD. A fragment, not a full sentence — full_message prefixes the
-  # humanized attribute name ("Owner email"), same as every other
-  # Rails-style validation message in this app.
+  # owner_email's error attaches to the FIELD, not :base, via Workspace's own
+  # virtual attribute (see Workspace#owner_email). `invalid` is a fragment —
+  # full_message prefixes the humanized attribute name below, so that value
+  # must match the field's own label (operations.workspaces.new.owner_email)
+  # or the error summary names a field the form doesn't. First app-level
+  # override of a humanized attribute name — precedent, not a special case.
   activerecord:
+    attributes:
+      workspace:
+        owner_email: "Owner's email address"
     errors:
       models:
         workspace:

@@ -5,11 +5,10 @@ module Operations
 
       def create
         authorize [ :operations, @workspace ], :suspend?
-        # Both halves of this toggle report the RESULTING STATE, not the
-        # transition (fix round 1, items 3 and 4): calling suspend!
-        # unconditionally bumped suspended_at and wrote a second "locked" row
-        # into the tenant's feed on a repeat submit. The notice still holds on
-        # the early return — the workspace is locked, which is what it says.
+        # Report the resulting state, not the transition: an already-suspended
+        # workspace returns early so a repeat submit doesn't bump suspended_at
+        # or write a second "locked" activity row. The notice still holds —
+        # the workspace IS locked, which is what it says.
         return redirect_to operations_workspace_path(@workspace), notice: t(".success") if @workspace.suspended?
 
         @workspace.suspend!
@@ -18,7 +17,10 @@ module Operations
 
       def destroy
         authorize [ :operations, @workspace ], :unsuspend?
-        # Mirror of #create's early return — see the note there.
+        # An already-unlocked workspace returns early: unsuspend! would be a
+        # true no-op (no activity row, no updated_at change) except that
+        # Broadcastable's after_update_commit still fires on a no-op save,
+        # pushing a spurious Turbo refresh to every connected tenant member.
         return redirect_to operations_workspace_path(@workspace), notice: t(".success") unless @workspace.suspended?
 
         @workspace.unsuspend!

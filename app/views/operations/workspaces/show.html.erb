@@ -14,12 +14,11 @@
     <%= ui :badge, lifecycle_status_label(@workspace), variant: :soft, tone: :neutral,
           "aria-label": "#{t('operations.workspaces.show.status_prefix')}: #{lifecycle_status_label(@workspace)}" %>
   </div>
-  <%# button_to, not `ui :button href: data-turbo-method:` (fix round 1, item
-      6) — house convention for a destructive confirm (40 button_to sites vs.
-      3 data-turbo-method links), and without JS a link GETs a route with no
-      GET handler. ui :button can't fill in: it renders an <a>/<button>, never
-      a <form>. class: repeats ButtonComponent::COMBOS' own output for the
-      two AAA-proven cells (btn-danger, btn-secondary) for the same look. %>
+  <%# button_to, not `ui :button href: data-turbo-method:` — this app's own
+      convention for a destructive confirm, and without JS a link GETs a
+      route with no GET handler. ui :button can't fill in: it renders an
+      <a>/<button>, never a <form>. class: repeats ButtonComponent::COMBOS'
+      own output for the two AAA-proven cells (btn-danger, btn-secondary). %>
   <div class="mt-4">
     <% if @workspace.suspended? %>
       <%= button_to t("operations.workspaces.show.unsuspend"), operations_workspace_suspension_path(@workspace),

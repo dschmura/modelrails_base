@@ -238,11 +238,13 @@ ignore_unused:
   # so security_events_for's personal filter keeps them off this page today,
   # but the label is looked up unconditionally by action, same as above.
   - settings.sessions.activity.operatorship.*
-  # Consumed by Rails/Active Model rather than an explicit t() call. Caveat
-  # worth knowing: this also means a key left behind by a deleted validation
-  # will never be reported. Removing a validation means removing its key by
-  # hand — the tool cannot see that one go stale.
+  # Consumed by Rails/Active Model rather than an explicit t() call (errors.*
+  # via full_message, attributes.* via human_attribute_name). Caveat worth
+  # knowing: this also means a key left behind by a deleted validation or
+  # renamed attribute will never be reported — removing it means removing
+  # this key by hand.
   - activerecord.errors.*
+  - activerecord.attributes.*
   - errors.*
   - helpers.*
   - date.*

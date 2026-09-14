@@ -57,10 +57,10 @@ RSpec.describe "Operations workspaces", type: :request do
       expect(flash[:alert]).to eq(I18n.t("errors.not_found"))
     end
 
-    # Fix round 1, item 6: the suspend/unsuspend controls used to render as
-    # `<a href data-turbo-method>` — a GET fallback with no route, and a
-    # destructive state change announced as a link. `button_to` is the app's
-    # own convention for every other confirm-guarded mutation.
+    # The suspend/unsuspend controls used to render as `<a href
+    # data-turbo-method>` — a GET fallback with no route, and a destructive
+    # state change announced as a link. `button_to` is the app's own
+    # convention for every other confirm-guarded mutation.
     it "renders the suspend control as a form, not a link" do
       get operations_workspace_path(workspace)
       html = Capybara.string(response.body)
@@ -101,10 +101,9 @@ RSpec.describe "Operations workspaces", type: :request do
       expect(flash[:notice]).to eq(I18n.t("operations.workspaces.suspensions.destroy.success"))
     end
 
-    # Fix round 1, item 3: a repeat POST on an already-suspended workspace
-    # used to bump suspended_at to a new timestamp and write a second
-    # workspace.updated row that rendered as a second "locked" entry in the
-    # tenant's feed.
+    # A repeat POST on an already-suspended workspace used to bump
+    # suspended_at to a new timestamp and write a second "locked" entry into
+    # the tenant's feed.
     it "does not duplicate the activity row or bump the timestamp on a repeat suspend" do
       workspace.suspend!
       suspended_at = workspace.reload.suspended_at
@@ -116,17 +115,14 @@ RSpec.describe "Operations workspaces", type: :request do
       expect(response).to redirect_to(operations_workspace_path(workspace))
     end
 
-    # Fix round 1, item 4: DELETE on a workspace that was never suspended used
-    # to call unsuspend! anyway, writing a zero-change row. Both halves of this
-    # toggle now report the RESULTING STATE rather than the transition, so a
-    # repeat submit on either one is truthful and they stay symmetric — the
-    # workspace is unlocked, which is what the notice says.
+    # A no-op unsuspend! (suspended_at already nil) writes no activity row and
+    # doesn't bump updated_at, so neither one can tell a guarded destroy from
+    # an unguarded one — the only observable difference is Broadcastable's
+    # after_update_commit, which fires even on a no-op save. The broadcast
+    # expectation below is what actually fails if #destroy's early-return
+    # guard is removed; the rest of this example would pass either way.
     it "reports the unlocked state without writing a row when it is not suspended" do
-      # An intervening GET drains the sign-in flash the `before` block's
-      # sign_in(operator) sets on its OWN request (Rails carries a flash
-      # forward exactly one request) — without it, that leftover notice,
-      # not this action, is what the assertion below would be reading.
-      get operations_workspace_path(workspace)
+      expect(Turbo::StreamsChannel).not_to receive(:broadcast_refresh_to)
 
       expect {
         delete operations_workspace_suspension_path(workspace)
@@ -144,24 +140,17 @@ RSpec.describe "Operations workspaces", type: :request do
       workspace.reload.unsuspend!
       sign_in(owner)
       get workspace_path(workspace)
-      # A plain have_text substring check for the "locked" copy is satisfied
-      # by the "UNlocked" row too — both rows are on the page, since the
-      # unsuspend above is what lets the tenant reach this page at all rather
-      # than redirect. The negative lookbehind is what actually tells the two
-      # apart (fix round 1, item 1). `Vocabulary.tokens[:workspace]`, not an
-      # explicit `workspace:` option — the option would win over the backend's
-      # injected token (config/initializers/vocabulary.rb) and this example
-      # would keep computing the template's own noun in a fork that renamed
-      # it (fix round 1, item 2). Both assertions target the SAME <li>:
-      # checking the page at large for the locked copy and separately for
-      # the operator's name would still pass against an inverted ternary,
-      # where the operator
-      # is named on the (mislabeled) "unlocked" row instead.
+      # A plain have_text substring check for "locked" is satisfied by the
+      # "UNlocked" row too, since the unsuspend above is what lets this page
+      # load at all; the negative lookbehind is what tells the two apart.
+      # `Vocabulary.tokens[:workspace]`, not a literal "workspace" string, so
+      # a fork that renamed the noun (config/initializers/vocabulary.rb) still
+      # gets a real assertion. Both expectations below target the SAME <li>,
+      # so an inverted ternary — the operator named on the mislabeled
+      # "unlocked" row — can't pass either.
       locked_row_regex = /(?<!un)locked the #{Regexp.escape(Vocabulary.tokens[:workspace])}/
       row = Capybara.string(response.body).all("li").find { |li| li.text.match?(locked_row_regex) }
       expect(row).to be_present, "no activity row read \"locked the #{Vocabulary.tokens[:workspace]}\" (not \"unlocked\")"
-      # The example's name promises "the operator's action" — that row must
-      # name the operator as actor, not just describe the state.
       expect(row).to have_text(operator.full_name)
     end
   end
@@ -205,9 +194,9 @@ RSpec.describe "Operations workspaces", type: :request do
       expect(response).to have_http_status(:unprocessable_entity)
     end
 
-    # Fix round 1, item 5: the error summary and the server-side message were
-    # always right; owner_email was not a Workspace attribute, so the error
-    # landed on :base and no input on the page ever carried aria-invalid.
+    # owner_email is a real (virtual) Workspace attribute, so the error
+    # attaches to the FIELD, not :base, and the form builder wires
+    # aria-invalid/describedby onto it.
     it "marks the owner_email field invalid, with aria-describedby pointing at the message" do
       post operations_workspaces_path, params: { workspace: { name: "Orphan Co", owner_email: "not-an-email" } }
       html = Capybara.string(response.body)
@@ -218,6 +207,11 @@ RSpec.describe "Operations workspaces", type: :request do
       expect(described_by).to be_present
       expect(html).to have_selector("##{described_by}",
         text: I18n.t("activerecord.errors.models.workspace.attributes.owner_email.invalid"))
+
+      # full_message (used by the error summary) prefixes human_attribute_name,
+      # not the field's own label — pin the two together so the summary's
+      # skip link never lands on a field labelled differently.
+      expect(Workspace.human_attribute_name(:owner_email)).to eq(I18n.t("operations.workspaces.new.owner_email"))
     end
   end
 end
