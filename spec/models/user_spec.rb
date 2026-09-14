@@ -224,4 +224,49 @@ RSpec.describe User, type: :model do
       expect(queries).to eq(1)
     end
   end
+
+  describe "operator reach" do
+    # The default onboarding preset (:personal) gives every created user their
+    # own kept workspace (User::Onboarding#onboard_workspace) — noise these
+    # exact-membership assertions can't absorb. Same suppression as
+    # spec/requests/onboarding/*_spec.rb.
+    before { allow(TenancyConfig).to receive(:onboarding).and_return(:none) }
+
+    let(:user) { create(:user) }
+    let!(:workspace) { create(:workspace) }
+    let!(:suspended) { create(:workspace).tap(&:suspend!) }
+    let!(:discarded) { create(:workspace).tap(&:discard!) }
+
+    it "is not an operator by default and reaches no workspaces" do
+      expect(user).not_to be_operator
+      expect(user.operated_workspaces).to be_empty
+      expect(user.operated_workspaces).to be_a(ActiveRecord::Relation)
+    end
+
+    it "reaches every kept workspace, suspended included, once granted" do
+      Operatorship.grant!(user: user)
+
+      expect(user.reload).to be_operator
+      expect(user.operated_workspaces).to contain_exactly(workspace, suspended)
+    end
+
+    it "loses reach when the operatorship is revoked" do
+      Operatorship.grant!(user: user).revoke!
+
+      expect(user.reload).not_to be_operator
+      expect(user.operated_workspaces).to be_empty
+    end
+  end
+
+  describe "#granted_operatorships (R12)" do
+    it "survives when the granter is destroyed, with granted_by nulled" do
+      granter = create(:user)
+      subject_user = create(:user)
+      operatorship = Operatorship.grant!(user: subject_user, granted_by: granter)
+
+      granter.destroy!
+
+      expect(operatorship.reload.granted_by_id).to be_nil
+    end
+  end
 end

@@ -25,6 +25,17 @@ class User < ApplicationRecord
   has_many :projects, through: :project_memberships
   has_many :client_accesses, dependent: :destroy
   has_many :webauthn_credentials, dependent: :destroy
+  has_many :operatorships, dependent: :destroy
+  # operatorships has two FKs to users; the subject side dependent: :destroy's
+  # above owns the row, so the granter side only needs to survive the granter's
+  # destroy (R12) — :nullify matches accepted_invitations above.
+  has_many :granted_operatorships, class_name: "Operatorship", foreign_key: :granted_by_id, dependent: :nullify
+  # A second FK surfaced by the same R12 proof: ActivityLog.actor_id had no
+  # cleanup path at all, so destroying any user who had ever acted (not
+  # Operatorship-specific) already raised InvalidForeignKey. :nullify, not
+  # :destroy/:delete_all — the audit trail stays append-only, only the actor
+  # reference goes (activity_log_immutability_spec.rb doesn't gate :nullify).
+  has_many :activity_logs_as_actor, class_name: "ActivityLog", foreign_key: :actor_id, dependent: :nullify
 
   # Rails applies `normalizes` to find_by values too, so lookups get canonical matching for free.
   normalizes :email_address, with: ->(e) { EmailNormalizer.normalize(e) }
@@ -71,6 +82,17 @@ class User < ApplicationRecord
 
   def identity
     UserIdentity.new(self)
+  end
+
+  def operator?
+    operatorships.kept.exists?
+  end
+
+  # The operations area's reach, as a RELATION not a predicate: every
+  # Operations:: controller resolves workspaces through this. Arc 2 (scoped
+  # operators) changes this body and no call site.
+  def operated_workspaces
+    operator? ? Workspace.kept : Workspace.none
   end
 
   def available_reauth_factors
