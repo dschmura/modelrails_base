@@ -17,7 +17,15 @@ module Operations
     def show
       @user = User.find(params[:id])
       authorize [ :operations, @user ]
-      @memberships = @user.memberships.kept.includes(:role, :workspace).order("workspaces.name")
+      # SQLite's BINARY collation sorts uppercase before lowercase; LOWER()
+      # matches the sibling workspace-member sort's case-insensitive intent
+      # (fix round 2, item 8). workspaces.name is a plain column — unlike
+      # User#first_name/#last_name, this can be sorted in SQL (R21).
+      # `references(:workspace)` is required here: unlike a plain String,
+      # Arel.sql isn't scanned for table references, so `includes` would
+      # preload instead of join and the ORDER BY would hit an unjoined table.
+      @memberships = @user.memberships.kept.includes(:role, :workspace).references(:workspace)
+        .order(Arel.sql("LOWER(workspaces.name)"))
     end
   end
 end

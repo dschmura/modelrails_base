@@ -76,5 +76,30 @@ RSpec.describe "Operations area", type: :request do
       get operations_workspaces_path
       expect(Capybara.string(response.body)).to have_text(I18n.t("operations.area.banner"))
     end
+
+    # Fix round 2, item 2 (R24): the same preflight list-style:none trap as
+    # the activity feed's <ol> — this <ul> is the area's other raw list.
+    it "restores list semantics on the nav's raw <ul>" do
+      get operations_workspaces_path
+      expect(Capybara.string(response.body)).to have_css('nav ul[role="list"]')
+    end
+
+    # Fix round 2, item 6: WCAG 2.4.8 Location (AAA, outside the axe tag set)
+    # — the nav named no current page and had no visible current state.
+    # font-semibold, not color, is the cue: .btn-text sets no color of its
+    # own here (color inherits from <body>), so a color-only difference would
+    # be the sole distinguishing signal and fail 1.4.1.
+    it "marks the current page in the nav with aria-current and a visible cue" do
+      get operations_workspaces_path
+      html = Capybara.string(response.body)
+
+      current_link = html.find("nav a", text: I18n.t("operations.nav.workspaces"))
+      expect(current_link["aria-current"]).to eq("page")
+      expect(current_link[:class]).to include("font-semibold")
+
+      other_link = html.find("nav a", text: I18n.t("operations.nav.users"))
+      expect(other_link["aria-current"]).to be_nil
+      expect(other_link[:class]).not_to include("font-semibold")
+    end
   end
 end

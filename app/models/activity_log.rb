@@ -115,8 +115,18 @@ class ActivityLog < ApplicationRecord
     return if rows.empty?
 
     ActiveRecord::Associations::Preloader.new(records: rows, associations: :trackable).call
+    return unless block_given?
+
+    # Only read the association (and only here) when a caller needs the
+    # array — reading it unconditionally marked the hop "used" to Bullet
+    # regardless of whether anything downstream ever did, permanently
+    # masking an unused eager load (fix round 2, item 5). Even after this
+    # fix, the Membership slice's read below stays invisible to Bullet the
+    # same way: it's consumed internally to feed the nested :user preload,
+    # not because a caller read it — a clean Bullet run here proves nothing
+    # about that hop.
     trackables = rows.filter_map(&:trackable)
-    yield trackables if block_given? && trackables.any?
+    yield trackables if trackables.any?
   end
   private_class_method :preload_trackables
 
@@ -128,8 +138,11 @@ class ActivityLog < ApplicationRecord
   # the status changes from the role change; the actor tells a removal from a
   # departure. A status change outranks a role change: `reactivate!` can carry
   # both, and losing or regaining access is the more consequential half.
-  # Unknown shapes fall through to `action`, which the partial's `default:`
-  # humanizes — true, if plain.
+  # Unknown shapes fall through to `action` itself. The partial has no
+  # `default:` (the ModelRails/NoI18nDefault cop forbids it, #1022), so an
+  # action with no activity.actions label raises rather than humanizing —
+  # spec/code_smells/dynamic_i18n_keys_have_values_spec.rb is what keeps that
+  # from shipping.
   def display_action
     return action unless action == "membership.updated"
 
@@ -150,7 +163,7 @@ class ActivityLog < ApplicationRecord
   # nil for every other trackable, and for a membership that has since been
   # hard-deleted — the partial supplies the neutral noun.
   def display_member
-    return trackable.full_name if trackable_type == "User"
+    return trackable&.full_name if trackable_type == "User"
 
     tracked_membership&.user&.full_name
   end

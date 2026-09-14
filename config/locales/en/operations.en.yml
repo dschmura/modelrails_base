@@ -49,5 +49,5 @@ en:
       index:
         title: "Operators"
         description: "Who can operate this instance."
-        granted_by: "granted by %{name} on %{date}"
+        granted_by: "granted by %{name}"
         bootstrap: "rake or seed"

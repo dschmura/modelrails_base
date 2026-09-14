@@ -19,12 +19,30 @@
       <%= ui :banner, t("operations.area.banner"), variant: :info %>
     </div>
 
+    <%
+      # Fix round 2, item 6: WCAG 2.4.8 Location (AAA). font-semibold is the
+      # current-page cue, not color alone — .btn-text sets no color of its
+      # own, so a color-only difference here would be the sole distinguishing
+      # signal and fail 1.4.1.
+      nav_items = [
+        [ t("operations.nav.workspaces"), operations_workspaces_path ],
+        [ t("operations.nav.users"), operations_users_path ],
+        [ t("operations.nav.activity"), operations_activity_logs_path ],
+        [ t("operations.nav.operators"), operations_operatorships_path ]
+      ]
+    %>
     <nav aria-label="<%= t("operations.area.nav_label") %>" class="border-b border-border">
-      <ul class="max-w-5xl mx-auto px-6 py-2 flex gap-4 text-sm">
-        <li><%= link_to t("operations.nav.workspaces"), operations_workspaces_path, class: "btn-text focus-ring" %></li>
-        <li><%= link_to t("operations.nav.users"), operations_users_path, class: "btn-text focus-ring" %></li>
-        <li><%= link_to t("operations.nav.activity"), operations_activity_logs_path, class: "btn-text focus-ring" %></li>
-        <li><%= link_to t("operations.nav.operators"), operations_operatorships_path, class: "btn-text focus-ring" %></li>
+      <%# role="list": same preflight list-style:none trap as the activity
+          feed's <ol> (fix round 2, item 2 / R24). %>
+      <ul role="list" class="max-w-5xl mx-auto px-6 py-2 flex gap-4 text-sm">
+        <% nav_items.each do |label, path| %>
+          <% current = current_page?(path) %>
+          <li>
+            <%= link_to label, path,
+                  class: "btn-text focus-ring#{" font-semibold" if current}",
+                  "aria-current": (current ? "page" : nil) %>
+          </li>
+        <% end %>
       </ul>
     </nav>
 

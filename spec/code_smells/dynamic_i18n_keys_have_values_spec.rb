@@ -33,14 +33,29 @@ RSpec.describe "Code smell: every dynamic i18n key has a value" do
       "Providers without an authentication.providers label:\n  #{missing.join("\n  ")}"
   end
 
-  # The workspace activity feed renders `activity.actions.<display_action>`:
-  # Trackable writes <param_key>.created/updated for every includer, and
-  # ActivityLog#display_action derives three membership variants from metadata.
-  it "labels every action the workspace activity feed can render" do
+  # Both activity feeds (the workspace feed and this arc's cross-workspace
+  # operations feed) render `activity.actions.<display_action>`. Trackable
+  # writes <param_key>.created/updated for every includer, and
+  # ActivityLog#display_action derives three membership variants from
+  # metadata — that half is enumerable from the model layer.
+  #
+  # Operatorship (fix round 2, item 3) calls ActivityLog.create! directly
+  # with a literal action, bypassing Trackable entirely, and it is not alone:
+  # invitation/suppression.rb and application_controller.rb do the same for
+  # admin-visibility rows that were unreachable by any UI before this arc's
+  # operations feed existed. Every literal `action:` argument to
+  # ActivityLog.create! is derived by scanning app/ rather than hardcoded, so
+  # the next bypass writer can't ship without this guard seeing it.
+  it "labels every action either activity feed can render" do
     Rails.application.eager_load!
     trackable = ApplicationRecord.descendants.select { |model| model.include?(Trackable) }
     actions = trackable.flat_map { |model| %w[created updated].map { |verb| "#{model.model_name.param_key}.#{verb}" } }
     actions += %w[membership.deactivated membership.reactivated membership.left]
+
+    literal_action = /ActivityLog\.create!\([^)]*?action:\s*["']([\w.]+)["']/
+    actions += Dir[Rails.root.join("app/**/*.rb")].flat_map { |file| File.read(file).scan(literal_action).flatten }
+    actions.uniq!
+
     missing = actions.reject { |action| I18n.exists?("activity.actions.#{action}") }
 
     expect(missing).to be_empty,

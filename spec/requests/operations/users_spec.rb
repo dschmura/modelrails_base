@@ -38,5 +38,26 @@ RSpec.describe "Operations users", type: :request do
       expect(html).to have_text("Acme")
       expect(html).to have_text("Admin")
     end
+
+    # Fix round 2, item 8: SQLite's BINARY collation sorts uppercase before
+    # lowercase, so a plain `.order("workspaces.name")` reads as alphabetical
+    # but isn't. workspaces.name is a plain column (unlike User#first_name/
+    # #last_name, which are non-deterministically encrypted and can be
+    # neither searched nor ORDER BY'd in SQL — R21), so this can be fixed in
+    # SQL rather than sorted in Ruby.
+    it "orders memberships by workspace name case-insensitively" do
+      create(:membership, user: target, workspace: create(:workspace, name: "zeta"))
+      create(:membership, user: target, workspace: create(:workspace, name: "Acme"))
+      create(:membership, user: target, workspace: create(:workspace, name: "beta"))
+      create(:membership, user: target, workspace: create(:workspace, name: "Delta"))
+
+      get operations_user_path(target)
+      body = response.body
+      # Binary collation would read Acme, Delta, beta, zeta (uppercase first).
+      # Case-insensitive alphabetical is Acme, beta, Delta, zeta.
+      positions = %w[Acme beta Delta zeta].map { |name| body.index(name) }
+      expect(positions).to all(be_present)
+      expect(positions).to eq(positions.sort)
+    end
   end
 end

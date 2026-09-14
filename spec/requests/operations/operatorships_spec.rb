@@ -16,4 +16,16 @@ RSpec.describe "Operations operatorships", type: :request do
     expect(html).to have_text("Sam Second")
     expect(html).to have_text("Gil Granter")
   end
+
+  # Fix round 2, item 9: `l(operatorship.created_at.to_date)` is a bare date
+  # string — no machine-readable value, no timezone, grant time discarded.
+  # activity_logs/_activity_log.html.erb (one directory over) already uses
+  # <time datetime="...iso8601"> for the same kind of timestamp.
+  it "renders the grant date in a machine-readable <time> element" do
+    operatorship = Operatorship.kept.find_by!(user: operator)
+
+    get operations_operatorships_path
+    html = Capybara.string(response.body)
+    expect(html).to have_css("time[datetime=\"#{operatorship.created_at.iso8601}\"]")
+  end
 end

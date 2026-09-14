@@ -10,8 +10,13 @@
       <span><%= operatorship.user.full_name %></span>
       <span class="text-text-body">
         <%= t("operations.operatorships.index.granted_by",
-              name: operatorship.granted_by&.full_name || t("operations.operatorships.index.bootstrap"),
-              date: l(operatorship.created_at.to_date)) %>
+              name: operatorship.granted_by&.full_name || t("operations.operatorships.index.bootstrap")) %>
+        <%# Matches activity_logs/_activity_log.html.erb's shape: a
+            machine-readable <time> rather than a bare, timezone-less date
+            (fix round 2, item 9). %>
+        <time datetime="<%= operatorship.created_at.iso8601 %>">
+          <%= time_ago_in_words(operatorship.created_at) %> <%= t("activity.ago") %>
+        </time>
       </span>
     <% end %>
   <% end %>

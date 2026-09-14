@@ -314,4 +314,29 @@ RSpec.describe ActivityLog, type: :model do
       expect(feed.index(admin)).to be < feed.index(older)
     end
   end
+
+  # Fix round 2, item 5: .preload_trackables read the association internally
+  # (`rows.filter_map(&:trackable)`) to build the array it discards for the
+  # User slice (no block given), which marked the hop "used" to Bullet
+  # regardless of whether any caller ever read it — permanently masking a
+  # real unused eager load. Proven the way the reviewer proved the bug: run
+  # .for_feed and read nothing back, then ask Bullet's detector directly
+  # rather than relying on the implicit end-of-example raise (which fires
+  # from an after-hook this example can't wrap an expectation around).
+  describe ".for_feed Bullet visibility" do
+    it "leaves an unread User trackable hop visible to Bullet's unused-eager-load detector" do
+      2.times { Operatorship.grant!(user: create(:user)) }
+
+      Bullet.start_request
+      ActivityLog.where(action: "operatorship.granted").for_feed
+      Bullet::Detector::UnusedEagerLoading.check_unused_preload_associations
+      unused = Bullet.notification_collector.collection
+        .select { |notification| notification.base_class == "ActivityLog" }
+        .flat_map(&:associations)
+
+      expect(unused).to include(:trackable)
+    ensure
+      Bullet.end_request
+    end
+  end
 end

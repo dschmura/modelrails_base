@@ -35,6 +35,16 @@ RSpec.describe "Operations activity feed", type: :request do
     expect(html).to have_no_css("li ol")
   end
 
+  # Fix round 2, item 2 (R24): Tailwind's preflight sets list-style:none on
+  # <ol>, which strips the implicit list semantics Safari/VoiceOver relies on
+  # — axe has no rule for this, so a clean axe run is not evidence either way.
+  it "restores list semantics on the raw <ol> preflight strips" do
+    create(:workspace, name: "Alpha")
+
+    get operations_activity_logs_path
+    expect(Capybara.string(response.body)).to have_css('ol[role="list"]')
+  end
+
   it "has an index that can serve a global created_at ordering" do
     indexes = ActiveRecord::Base.connection.indexes(:activity_logs).map(&:columns)
     expect(indexes).to include([ "created_at" ])
@@ -49,7 +59,13 @@ RSpec.describe "Operations activity feed", type: :request do
 
     get operations_activity_logs_path
     expect(response).to have_http_status(:ok)
-    expect(Capybara.string(response.body)).to have_css("nav.series-nav")
+    html = Capybara.string(response.body)
+    expect(html).to have_css("nav.series-nav")
+    # Fix round 2, item 7: shared/_pagination is a card FOOTER
+    # (border-t px-4 py-3); rendered after the card's closing </div> it
+    # paints a stray rule across the bare page instead. Both sibling call
+    # sites nest it inside the card.
+    expect(html).to have_css("div.rounded-lg nav.series-nav")
   end
 
   # Fix round 1, finding 4: nothing previously bound the controller to the
@@ -71,8 +87,17 @@ RSpec.describe "Operations activity feed", type: :request do
     get operations_activity_logs_path
     expect(response).to have_http_status(:ok)
 
+    total = ActivityLog.for_operations_feed.count
+    # Fix round 2, item 10: this comparison only proves anything while the
+    # total stays under Pagy's page limit — past it, the rendered count is
+    # the PAGE's count, not the scope's, and the assertion below would pass
+    # or fail for a reason unrelated to the privacy scope it exists to
+    # prove. Pin the precondition explicitly rather than let factory or
+    # onboarding noise push it over unnoticed.
+    expect(total).to be < Pagy::OPTIONS[:limit]
+
     rendered_rows = Capybara.string(response.body).all("li time").size
-    expect(rendered_rows).to eq(ActivityLog.for_operations_feed.count)
+    expect(rendered_rows).to eq(total)
   end
 
   # Fix round 1, finding 1: this page is the first surface to render
@@ -92,5 +117,26 @@ RSpec.describe "Operations activity feed", type: :request do
 
     get operations_activity_logs_path
     expect(Capybara.string(response.body)).to have_text("granted Gale Grantee operator access")
+  end
+
+  # Fix round 2, item 1 (regression): activity_logs.trackable_id carries no FK
+  # and no cleanup association, so a hard-deleted User leaves a dangling row.
+  # #display_member's User branch lacked the safe navigation the Membership
+  # branch already had, so this raised and 500'd the WHOLE feed for every
+  # operator — the row is persisted (ActivityLog#readonly? is persisted?), so
+  # it can never be edited away once it ships.
+  it "shows the neutral noun instead of raising when a User trackable is gone" do
+    grantee = create(:user)
+    Operatorship.grant!(user: grantee)
+    log = ActivityLog.find_by!(action: "operatorship.granted", trackable: grantee)
+    # Relation-level write bypasses ActivityLog#readonly? (an instance-level
+    # guard); this simulates a hard-deleted trackable without a delete path
+    # existing in app code today. The immutability code-smell guard only
+    # scans app/ and lib/, not spec/.
+    ActivityLog.where(id: log.id).update_all(trackable_id: 0)
+
+    get operations_activity_logs_path
+    expect(response).to have_http_status(:ok)
+    expect(Capybara.string(response.body)).to have_text(I18n.t("activity.unknown_member"))
   end
 end

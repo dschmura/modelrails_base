@@ -6,7 +6,10 @@
 
 <% if @activities.any? %>
   <div class="mt-4 rounded-lg border border-border bg-surface p-4">
-    <ol class="space-y-3">
+    <%# role="list": Tailwind's preflight sets list-style:none, which drops
+        implicit list semantics in Safari/VoiceOver — axe has no rule for
+        this, so restore it explicitly (fix round 2, item 2 / R24). %>
+    <ol role="list" class="space-y-3">
       <% @activities.each do |activity_log| %>
         <%# The workspace goes INTO the row as its context local, not around it:
             the partial renders the <li>, so wrapping it to add a heading gives
@@ -18,8 +21,11 @@
                 t("operations.activity_logs.index.instance")) %>
       <% end %>
     </ol>
+    <%# shared/_pagination is a card FOOTER (border-t px-4 py-3) — it belongs
+        inside the card div, like both sibling call sites (fix round 2,
+        item 7). %>
+    <%= render "shared/pagination", pagy: @pagy %>
   </div>
-  <%= render "shared/pagination", pagy: @pagy %>
 <% else %>
   <%= render "shared/empty_state", message: t("activity.empty") %>
 <% end %>
