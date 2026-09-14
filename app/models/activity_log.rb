@@ -72,6 +72,12 @@ class ActivityLog < ApplicationRecord
       .order(created_at: :desc)
   }
   scope :recent, -> { order(created_at: :desc).limit(20) }
+  # The operations feed (arc 1): every workspace, newest first. `personal` rows
+  # are a user's own security events and are excluded on purpose — an operator
+  # reading them is a privacy decision the template does not make for a fork.
+  scope :for_operations_feed, -> {
+    where(visibility: %w[workspace admin]).order(created_at: :desc)
+  }
   # Project feed (#680): the LEADING for_workspace predicate rides
   # index_activity_logs_on_workspace_id_and_created_at, so the trackable OR
   # filters within one workspace's rows instead of scanning the global

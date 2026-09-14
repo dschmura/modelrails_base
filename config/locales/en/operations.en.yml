@@ -10,6 +10,7 @@ en:
     nav:
       workspaces: "%{Workspaces}"
       users: "Users"
+      activity: "Activity"
     workspaces:
       index:
         title: "%{Workspaces}"
@@ -38,3 +39,8 @@ en:
         operator: "Operator"
         memberships: "Memberships"
         no_memberships: "No memberships yet."
+    activity_logs:
+      index:
+        title: "Activity across the instance"
+        description: "Newest first, every %{workspace}. Personal security events are not shown here."
+        instance: "Instance"

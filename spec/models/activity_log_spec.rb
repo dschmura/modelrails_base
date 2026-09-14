@@ -278,4 +278,25 @@ RSpec.describe ActivityLog, type: :model do
       end
     end
   end
+
+  describe ".for_operations_feed" do
+    it "includes workspace and admin tiers across workspaces and excludes personal rows, newest first" do
+      w1 = create(:workspace)
+      w2 = create(:workspace)
+      # trackable is a required polymorphic belongs_to; the workspace itself is
+      # a cheap valid target here since only visibility/ordering are under test.
+      older = ActivityLog.create!(action: "project.created", workspace: w1, visibility: "workspace", created_at: 2.days.ago, trackable: w1)
+      admin = ActivityLog.create!(action: "membership.updated", workspace: w2, visibility: "admin", created_at: 1.day.ago, trackable: w2)
+      personal = ActivityLog.create!(action: "user.passkey_added", workspace: nil, visibility: "personal", trackable: create(:user))
+
+      # create(:workspace) itself writes a workspace.created row (Trackable),
+      # so an exact-array match would break on that incidental noise — assert
+      # membership and order instead, per this arc's established pattern.
+      feed = ActivityLog.for_operations_feed.to_a
+
+      expect(feed).to include(admin, older)
+      expect(feed).not_to include(personal)
+      expect(feed.index(admin)).to be < feed.index(older)
+    end
+  end
 end
