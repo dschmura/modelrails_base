@@ -57,4 +57,40 @@ RSpec.describe "Operations workspaces", type: :request do
       expect(flash[:alert]).to eq(I18n.t("errors.not_found"))
     end
   end
+
+  describe "POST/DELETE /operations/workspaces/:slug/suspension" do
+    it "suspends and writes a workspace-visible row with the operator as actor" do
+      expect {
+        post operations_workspace_suspension_path(workspace)
+      }.to change { workspace.reload.suspended? }.from(false).to(true)
+      expect(response).to redirect_to(operations_workspace_path(workspace))
+      expect(flash[:notice]).to eq(I18n.t("operations.workspaces.suspensions.create.success"))
+
+      row = workspace.activity_logs.order(:id).last
+      expect(row.visibility).to eq("workspace")
+      expect(row.actor).to eq(operator)
+      expect(row.display_action).to eq("workspace.suspended")
+    end
+
+    it "unsuspends" do
+      workspace.suspend!
+      expect {
+        delete operations_workspace_suspension_path(workspace)
+      }.to change { workspace.reload.suspended? }.from(true).to(false)
+      expect(flash[:notice]).to eq(I18n.t("operations.workspaces.suspensions.destroy.success"))
+    end
+
+    it "shows the tenant's owner the operator's action in the workspace feed" do
+      post operations_workspace_suspension_path(workspace)
+      # The controller suspends its own freshly-loaded copy; this local `workspace`
+      # is stale until reloaded, so unsuspending it directly would no-op in memory
+      # while the row stays locked in the DB.
+      workspace.reload.unsuspend!
+      sign_in(owner)
+      get workspace_path(workspace)
+      expect(Capybara.string(response.body)).to have_text(
+        I18n.t("activity.actions.workspace.suspended", workspace: I18n.t("vocabulary.workspace.singular", default: "workspace"))
+      )
+    end
+  end
 end

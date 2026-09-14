@@ -14,6 +14,18 @@
     <%= ui :badge, lifecycle_status_label(@workspace), variant: :soft, tone: :neutral,
           "aria-label": "#{t('operations.workspaces.show.status_prefix')}: #{lifecycle_status_label(@workspace)}" %>
   </div>
+  <%# ui :button (not a raw utility class) — solid/danger and outline/neutral
+      are the two AAA-proven cells for lock/unlock. %>
+  <div class="mt-4">
+    <% if @workspace.suspended? %>
+      <%= ui :button, t("operations.workspaces.show.unsuspend"), variant: :outline, tone: :neutral,
+            href: operations_workspace_suspension_path(@workspace), data: { turbo_method: :delete } %>
+    <% else %>
+      <%= ui :button, t("operations.workspaces.show.suspend"), variant: :solid, tone: :danger,
+            href: operations_workspace_suspension_path(@workspace),
+            data: { turbo_method: :post, turbo_confirm: t("operations.workspaces.show.suspend_confirm") } %>
+    <% end %>
+  </div>
 </header>
 
 <section aria-labelledby="ops-members-heading" class="mt-6">

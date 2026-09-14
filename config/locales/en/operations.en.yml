@@ -27,6 +27,14 @@ en:
         status_prefix: "Status"
         members: "Members"
         no_members: "No members yet."
+        suspend: "Lock this %{workspace}"
+        suspend_confirm: "Members will be blocked until it is unlocked. Continue?"
+        unsuspend: "Unlock this %{workspace}"
+      suspensions:
+        create:
+          success: "%{Workspace} locked."
+        destroy:
+          success: "%{Workspace} unlocked."
     users:
       index:
         title: "Users"

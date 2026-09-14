@@ -68,6 +68,11 @@ RSpec.describe "Code smell: every dynamic i18n key has a value" do
     trackable = ApplicationRecord.descendants.select { |model| model.include?(Trackable) }
     actions = trackable.flat_map { |model| %w[created updated].map { |verb| "#{model.model_name.param_key}.#{verb}" } }
     actions += %w[membership.deactivated membership.reactivated membership.left]
+    # Task 11: workspace.suspended/unsuspended are likewise derived by
+    # display_action from workspace.updated's own changes metadata, never
+    # written by a literal ActivityLog.create! — neither guard below can see
+    # them any other way.
+    actions += %w[workspace.suspended workspace.unsuspended]
     # Enumerated from the constant, not text-scanned: SECURITY_ACTIONS already
     # names Operatorship's two direct-write actions.
     actions += ActivityLog::SECURITY_ACTIONS.grep(/\Aoperatorship\./)

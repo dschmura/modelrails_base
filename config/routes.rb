@@ -180,7 +180,11 @@ Rails.application.routes.draw do
   # /docs/developer/operations and extending.md §Pattern 4.
   namespace :operations do
     root to: "workspaces#index"
-    resources :workspaces, param: :slug, only: %i[index show]
+    resources :workspaces, param: :slug, only: %i[index show] do
+      scope module: :workspaces do
+        resource :suspension, only: %i[create destroy]
+      end
+    end
     resources :users, only: %i[index show]
     resources :activity_logs, only: :index
     resources :operatorships, only: :index

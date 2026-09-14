@@ -59,6 +59,21 @@ RSpec.describe ActivityLog, type: :model do
     end
   end
 
+  # Task 11: Suspendable#suspend!/#unsuspend! are ordinary `update!` calls, so
+  # a lock/unlock arrives as workspace.updated with suspended_at in changes —
+  # the same shape membership.updated splits on discarded_at.
+  describe "#display_action for workspace suspension" do
+    it "names a suspension and an unsuspension from the row's changes" do
+      suspended = ActivityLog.new(action: "workspace.updated", metadata: { changes: { suspended_at: [ nil, Time.current ] } })
+      unsuspended = ActivityLog.new(action: "workspace.updated", metadata: { changes: { suspended_at: [ Time.current, nil ] } })
+      renamed = ActivityLog.new(action: "workspace.updated", metadata: { changes: { name: [ "a", "b" ] } })
+
+      expect(suspended.display_action).to eq("workspace.suspended")
+      expect(unsuspended.display_action).to eq("workspace.unsuspended")
+      expect(renamed.display_action).to eq("workspace.updated")
+    end
+  end
+
   describe "validations" do
     it "requires an action" do
       log = build(:activity_log, action: nil)

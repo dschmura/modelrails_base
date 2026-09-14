@@ -138,19 +138,20 @@ class ActivityLog < ApplicationRecord
   # the status changes from the role change; the actor tells a removal from a
   # departure. A status change outranks a role change: `reactivate!` can carry
   # both, and losing or regaining access is the more consequential half.
+  # A workspace lock/unlock is the same shape (Suspendable#suspend! is an
+  # ordinary update too), splitting workspace.updated on suspended_at instead
+  # of discarded_at (Task 11).
   # Unknown shapes fall through to `action` itself. The partial has no
   # `default:` (the ModelRails/NoI18nDefault cop forbids it, #1022), so an
   # action with no activity.actions label raises rather than humanizing —
   # spec/code_smells/dynamic_i18n_keys_have_values_spec.rb is what keeps that
   # from shipping.
   def display_action
-    return action unless action == "membership.updated"
-
-    transition = metadata.to_h.with_indifferent_access.dig(:changes, :discarded_at)
-    return action if transition.blank?
-    return "membership.reactivated" if transition.last.blank?
-
-    self_removal? ? "membership.left" : "membership.deactivated"
+    case action
+    when "membership.updated" then membership_display_action
+    when "workspace.updated"  then workspace_display_action
+    else action
+    end
   end
 
   # The member a membership row is ABOUT, which is not its actor: Trackable
@@ -184,6 +185,21 @@ class ActivityLog < ApplicationRecord
   end
 
   private
+
+  def membership_display_action
+    transition = metadata.to_h.with_indifferent_access.dig(:changes, :discarded_at)
+    return action if transition.blank?
+    return "membership.reactivated" if transition.last.blank?
+
+    self_removal? ? "membership.left" : "membership.deactivated"
+  end
+
+  def workspace_display_action
+    transition = metadata.to_h.with_indifferent_access.dig(:changes, :suspended_at)
+    return action if transition.blank?
+
+    transition.last.blank? ? "workspace.unsuspended" : "workspace.suspended"
+  end
 
   def tracked_membership
     return nil unless trackable_type == "Membership"
