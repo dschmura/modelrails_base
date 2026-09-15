@@ -2,7 +2,7 @@ require "rails_helper"
 require "rake"
 
 RSpec.describe "operators rake tasks" do
-  before(:all) { Rails.application.load_tasks }
+  before(:all) { RakeTasks.load_once }
 
   def run_task(name, *args)
     Rake::Task[name].reenable

@@ -2,9 +2,7 @@ require "rails_helper"
 require "rake"
 
 RSpec.describe "Admin rake tasks" do
-  before(:all) do
-    Rails.application.load_tasks
-  end
+  before(:all) { RakeTasks.load_once }
 
   describe "users:unlock" do
     it "unlocks a locked user" do

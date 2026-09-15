@@ -75,8 +75,20 @@ class ActivityLog < ApplicationRecord
   # The operations feed (arc 1): every workspace, newest first. `personal` rows
   # are a user's own security events and are excluded on purpose — an operator
   # reading them is a privacy decision the template does not make for a fork.
+  # Invariant I3 (decline-and-block): the inviter must never be able to confirm
+  # a block. These rows are admin-visibility so they drop out of the workspace
+  # feeds — but an operations feed is an admin surface, and on a :shared
+  # instance the bootstrap operator IS the inviter, so admin visibility alone
+  # stops protecting the invariant here. Excluded by action.
+  INVITER_UNREADABLE_ACTIONS = %w[invitation.delivery_suppressed].freeze
+
+  # id breaks the created_at tie: this is the app's only OFFSET-paginated feed,
+  # and rows written in one burst (bulk_invite!, a suspension's membership rows)
+  # share a timestamp, so without it a row can land on two pages or neither.
   scope :for_operations_feed, -> {
-    where(visibility: %w[workspace admin]).order(created_at: :desc)
+    where(visibility: %w[workspace admin])
+      .where.not(action: INVITER_UNREADABLE_ACTIONS)
+      .order(created_at: :desc, id: :desc)
   }
   # Project feed (#680): the LEADING for_workspace predicate rides
   # index_activity_logs_on_workspace_id_and_created_at, so the trackable OR

@@ -56,6 +56,14 @@ before anyone else exists.
   newest first, paginated. Personal security events (password changes,
   passkeys, new devices) never appear here — that split is the same `admin`
   vs. `personal` visibility the rest of the app already uses.
+
+  One kind of `admin` row is excluded on top of that split: a suppressed
+  invitation delivery. Those rows are the only evidence that a recipient
+  blocked an inviter, and on a single-operator instance the operator is
+  usually the inviter — so admin visibility alone would hand them a way to
+  confirm a block. `ActivityLog::INVITER_UNREADABLE_ACTIONS` names them and
+  the feed filters them out. If you add an action whose existence would tell
+  an inviter something a recipient chose not to tell them, add it there too.
 - **Operators** (`/operations/operatorships`) — who can do all this, and who
   granted them. Granting takes an email that must already belong to a user;
   revoking removes an `Operatorship`, except the last one — see [How it
