@@ -28,7 +28,10 @@ class User < ApplicationRecord
       locked_at > LOCK_DURATION.ago
     end
 
+    # An expired lock starts the count over: nothing else clears the counter
+    # when the hour passes, so the stale count would re-lock on the next miss.
     def register_failed_login!
+      update!(failed_login_attempts: 0, locked_at: nil) if locked_at.present? && !locked?
       increment!(:failed_login_attempts)
       update!(locked_at: Time.current) if failed_login_attempts >= MAX_FAILED_ATTEMPTS
     end
