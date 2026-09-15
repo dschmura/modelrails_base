@@ -86,4 +86,52 @@ RSpec.describe Operatorship do
   it "keeps both audit actions behind the security retention floor" do
     expect(ActivityLog::SECURITY_ACTIONS).to include("operatorship.granted", "operatorship.revoked")
   end
+
+  describe "#revoke_unless_last!" do
+    it "revokes and returns true when another kept operatorship remains" do
+      operatorship = described_class.grant!(user: user)
+      described_class.grant!(user: create(:user))
+
+      expect(operatorship.revoke_unless_last!(revoked_by: granter)).to be(true)
+      expect(operatorship.reload).to be_discarded
+    end
+
+    it "refuses and returns false when it is the last kept operatorship, writing no audit row" do
+      operatorship = described_class.grant!(user: user)
+      granter # force before the block: same lazy-let onboarding issue as R5.
+
+      expect {
+        expect(operatorship.revoke_unless_last!(revoked_by: granter)).to be(false)
+      }.not_to change(ActivityLog, :count)
+      expect(operatorship.reload).to be_kept
+    end
+
+    it "returns false without writing a second audit row for an already-discarded operatorship" do
+      operatorship = described_class.grant!(user: user)
+      described_class.grant!(user: create(:user))
+      operatorship.revoke!(revoked_by: granter)
+      discarded_at = operatorship.reload.discarded_at
+
+      expect {
+        expect(operatorship.revoke_unless_last!(revoked_by: granter)).to be(false)
+      }.not_to change(ActivityLog, :count)
+      expect(operatorship.reload.discarded_at).to eq(discarded_at)
+    end
+
+    # Sequential stand-in for the concurrent case this guard exists for
+    # (two operators revoking two DIFFERENT rows in the same window): SQLite's
+    # writer lock (BEGIN IMMEDIATE, /docs/developer/architecture) serializes
+    # any real race into some sequential order, so proving the invariant holds
+    # across every sequential order proves it for the concurrent case too.
+    it "never lets kept operators reach zero when two different rows are both revoked" do
+      first = described_class.grant!(user: user)
+      second = described_class.grant!(user: create(:user))
+
+      expect(first.revoke_unless_last!(revoked_by: granter)).to be(true)
+      expect(second.revoke_unless_last!(revoked_by: granter)).to be(false)
+
+      expect(described_class.kept.count).to eq(1)
+      expect(second.reload).to be_kept
+    end
+  end
 end

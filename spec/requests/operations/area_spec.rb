@@ -11,11 +11,26 @@ RSpec.describe "Operations area", type: :request do
     expect(response).to redirect_to(new_session_path)
   end
 
+  # Item 7a (fix round 1): titled "EVERY operations route" but exercised two
+  # GETs; Tasks 13-14 added four mutating routes and none was in it — the
+  # behaviour was already correct (require_operator gates before any action
+  # logic runs), only the claim was false.
   it "answers 404 to a signed-in non-operator on every operations route" do
+    other_operatorship = Operatorship.grant!(user: create(:user))
     sign_in(member)
+
     get operations_root_path
     expect(response).to have_http_status(:not_found)
     get operations_workspaces_path
+    expect(response).to have_http_status(:not_found)
+
+    post operations_operatorships_path, params: { email: member.email_address }
+    expect(response).to have_http_status(:not_found)
+    delete operations_operatorship_path(other_operatorship)
+    expect(response).to have_http_status(:not_found)
+    delete operations_user_lock_path(member)
+    expect(response).to have_http_status(:not_found)
+    post operations_user_suspension_path(member)
     expect(response).to have_http_status(:not_found)
   end
 

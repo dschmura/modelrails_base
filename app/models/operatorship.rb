@@ -37,4 +37,21 @@ class Operatorship < ApplicationRecord
     end
     true
   end
+
+  # Fix round 1, item 1: the panel's last-operator guard used to be a bare
+  # `Operatorship.kept.count <= 1` read in the controller, outside any
+  # transaction — two operators revoking two DIFFERENT rows could both pass
+  # that read and leave zero. Same shape as Membership#reactivate!'s guard
+  # (/docs/developer/architecture, Concurrency): BEGIN IMMEDIATE takes the
+  # writer lock before the transaction's first read, so `lock!` (forcing a
+  # fresh re-read) + the count check here are genuine check-then-act, not a
+  # TOCTOU window. `rails operators:revoke` (break-glass) keeps calling plain
+  # `revoke!`, not this, so it can still remove the last operator.
+  def revoke_unless_last!(revoked_by: nil)
+    transaction do
+      lock!
+      next false if discarded? || Operatorship.kept.count <= 1
+      revoke!(revoked_by: revoked_by)
+    end
+  end
 end

@@ -82,11 +82,13 @@ en:
         grant_label: "Grant operator access to (email)"
         grant: "Grant"
         revoke: "Revoke"
+        revoke_aria_label: "Revoke %{name}'s operator access"
         revoke_confirm: "Revoke %{name}'s operator access?"
       create:
         success: "Operator access granted."
         already: "That user is already an operator."
         not_found: "No user has that email address."
+        blank: "Enter an email address."
       destroy:
         success: "Operator access revoked."
         last_operator: "The last operator cannot be revoked from here. Use rails operators:revoke on the server."

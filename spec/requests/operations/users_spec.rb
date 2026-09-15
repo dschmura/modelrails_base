@@ -37,6 +37,23 @@ RSpec.describe "Operations users", type: :request do
       html = Capybara.string(response.body)
       expect(html).to have_text("Acme")
       expect(html).to have_text("Admin")
+      # Item 7b (fix round 1): the title claimed "lock state" but nothing
+      # asserted it — scoped to the Locked dt/dd pair, not a bare have_text,
+      # since "No" also appears in the Operator row.
+      locked_dd = html.find(:xpath, "//dt[normalize-space(text())='#{I18n.t('operations.users.show.locked')}']/following-sibling::dd[1]")
+      expect(locked_dd.text).to eq(I18n.t("operations.negative"))
+      expect(html).to have_no_button(I18n.t("operations.users.show.unlock"))
+    end
+
+    # Item 7b (fix round 1): the show page renders a lock-gated Unlock button
+    # that nothing covered — the reviewer's mutation-provable gap.
+    it "shows the Unlock button only for a locked account" do
+      5.times { target.register_failed_login! }
+      get operations_user_path(target)
+      html = Capybara.string(response.body)
+      locked_dd = html.find(:xpath, "//dt[normalize-space(text())='#{I18n.t('operations.users.show.locked')}']/following-sibling::dd[1]")
+      expect(locked_dd.text).to eq(I18n.t("operations.affirmative"))
+      expect(html).to have_button(I18n.t("operations.users.show.unlock"))
     end
 
     # Fix round 2, item 8: SQLite's BINARY collation sorts uppercase before
@@ -71,6 +88,7 @@ RSpec.describe "Operations users", type: :request do
   describe "DELETE /operations/users/:id/lock" do
     it "unlocks" do
       5.times { target.register_failed_login! }
+      expect(target.reload).to be_locked
       delete operations_user_lock_path(target)
       expect(target.reload).not_to be_locked
       expect(response).to redirect_to(operations_user_path(target))
