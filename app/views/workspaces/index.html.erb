@@ -98,7 +98,11 @@
           <% if membership.workspace.suspended? %>
             <%= render "workspaces/locked_row", workspace: membership.workspace %>
           <% else %>
-            <%= ui :list_group_item, class: "gap-4" do %>
+            <%# hover:bg-surface: the row is not the control, the Restore button
+                is, so it must not highlight like one — and the gem's row hover
+                puts the button's text-interactive at 6.85:1, below AAA
+                (modelrails_ui#197). %>
+            <%= ui :list_group_item, class: "gap-4 hover:bg-surface" do %>
               <div class="min-w-0">
                 <p class="font-medium text-text-heading truncate"><%= membership.workspace.name %></p>
                 <p class="text-sm text-text-muted"><%= lifecycle_status_label(membership.workspace) %></p>
