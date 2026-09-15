@@ -16,11 +16,17 @@
         stack of individually-bordered rows — the canonical list chrome. %>
     <%= ui :list_group, class: "mt-8", "aria-label": t("workspaces.projects.resources.index.title") do %>
       <% @resources.each do |resource| %>
-        <%= ui :list_group_item do %>
+        <%# hover:bg-surface: the row is not the control, the title link is,
+            so it must not highlight like one — and under the default palette
+            the gem's row hover puts text-interactive below AAA
+            (modelrails_ui#197). %>
+        <%= ui :list_group_item, class: "hover:bg-surface" do %>
           <div class="flex items-center gap-3">
+            <%# btn-touch-target: a bare inline link measures ~20px tall, under
+                the 44px AAA target floor (2.5.5). Invisible hit-area growth. %>
             <%= link_to resource.title,
                   workspace_project_resource_path(@workspace, @project, resource),
-                  class: "text-interactive font-medium hover:underline
+                  class: "btn-touch-target text-interactive font-medium hover:underline
                           focus-ring rounded" %>
             <% if resource.draft? %>
               <%= ui :badge, t("workspaces.projects.resources.index.draft"),

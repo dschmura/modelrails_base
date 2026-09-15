@@ -38,7 +38,11 @@
       <%# UI::ListGroup (#735): one divided container for the archived rows. %>
       <%= ui :list_group do %>
         <% @archived_projects.each do |project| %>
-          <%= ui :list_group_item, class: "gap-4" do %>
+          <%# hover:bg-surface: the row is not the control, the Restore button
+              is, so it must not highlight like one — and under the default
+              palette the gem's row hover puts text-interactive below AAA
+              (modelrails_ui#197). %>
+          <%= ui :list_group_item, class: "gap-4 hover:bg-surface" do %>
             <div class="min-w-0">
               <p class="font-medium text-text-heading truncate"><%= project.name %></p>
               <p class="text-sm text-text-muted"><%= lifecycle_status_label(project) %></p>
