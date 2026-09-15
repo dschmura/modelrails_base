@@ -422,3 +422,78 @@ real-crypto harnesses (no mocking the gem):
   `WebAuthn.addVirtualAuthenticator`). The example lives in
   `spec/system/passkey_auth_spec.rb`. Note: the virtual authenticator requires
   `Capybara.app_host` to match the configured RP origin.
+
+---
+
+## Flow 9 — Instance operations
+
+**Config:** any preset. Two accounts: an **operator** and a plain **member**; keep the member in a private window. Background: [Instance operations](/docs/developer/operations).
+
+### Bootstrap the operator
+
+1. Make sure the operator's account exists (sign up, the console one-liner in the runbook, or the `:shared` seed), then:
+
+   ```bash
+   bin/rails operators:grant[op@example.com]
+   bin/rails tenancy:owner_setup_link[op@example.com]
+   ```
+
+   **Expect:** the grant reports success; running it again reports they are already an operator. The setup link is printed to the terminal, never emailed. Open it, confirm → signed in → `/settings/password/new`. Set a password within 15 minutes: the area re-checks reauthentication on every request, and a passwordless account's only other factor is an emailed code.
+2. As the member, navigate to `/operations`, `/operations/users`, `/operations/operatorships`.
+   **Expect:** a plain 404 each time — not 403, not a redirect. No link to the area exists anywhere for a member.
+3. As the operator, navigate to `/operations`.
+   **Expect:** the banner "Instance operations — you are above the workspaces, not inside one." and a nav of Workspaces · Users · Activity · Operators. Every workspace on the instance is listed — locked and archived ones included — sorted case-insensitively, each name linking to its page.
+
+### Create a workspace for an owner
+
+1. Workspaces → **New workspace**. Name it, set **Owner's email address** to the member's address → **Create workspace**.
+   **Expect:** "Workspace created."; the workspace page lists the member as Owner; the operator is not a member of it.
+2. Repeat with an address nobody has an account for.
+   **Expect:** the operator is the Owner for now; `/letter_opener` holds an Owner-role invitation to that address. Accept it in a private window → the new person is an Owner too; the operator stays a member until they hand off (Members → Leave). This is deliberate — see [The operator becomes the owner](/docs/developer/operations#the-operator-becomes-the-owner).
+3. Submit with the owner email blank, then with `not-an-email`.
+   **Expect:** the form re-renders with the error on the **Owner's email address** field, the submitted value still in it, and no workspace created.
+
+### Lock and unlock a workspace
+
+1. Open a workspace → **Lock this workspace** → confirm ("Everyone in it is blocked until you unlock it. Nothing is deleted.").
+   **Expect:** "Workspace locked."; the status badge reads Locked; the button is now **Unlock this workspace**.
+2. As the member, open that workspace.
+   **Expect:** "This workspace is locked." — every page in it is blocked.
+3. Unlock it, then as the member open the workspace's activity.
+   **Expect:** rows naming the operator: "locked the workspace" and "unlocked the workspace". Lock it twice in quick succession (double-submit) → exactly one "locked" row.
+
+### Look a user up, suspend, reinstate
+
+1. Users → enter the member's exact email address (any case) → **Search**.
+   **Expect:** one result linking to their page. A wrong address → "No user has that email address." Without a query the page lists nobody.
+2. On the member's page: **Suspend** → confirm ("This ends their sessions and blocks sign-in until you reinstate them. Their workspaces and roles stay as they are.").
+   **Expect:** "Access suspended."; a **Suspended** badge with "since …" in your own time zone; **Reinstate** where Suspend was; the memberships list below is unchanged.
+3. As the member: their existing tab now redirects to sign-in (the session was ended). Sign in with the password.
+   **Expect:** "Your account has been suspended. Contact whoever runs this app to have it reinstated." Request a magic link and open it → the same refusal. Passkey and OAuth sign-in are refused the same way.
+4. Operator: **Reinstate**.
+   **Expect:** "Access reinstated." The member signs in normally and every workspace and role is exactly as it was.
+5. Open the page of any operator, your own included.
+   **Expect:** an **Operator** badge, no Suspend button, and "Operators can't be suspended. Revoke their operator access first." with "operator access" linking to the roster.
+
+### Clear a sign-in lockout
+
+1. As the member, enter a wrong password five times.
+   **Expect:** "Your account has been locked due to too many failed attempts. Please try again later."
+2. Operator: open the member's page.
+   **Expect:** "Sign-in blocked after 5 failed attempts — clears in about 1 hour." and **Let them try again**. Click it → "Lockout cleared."; the sentence is gone; the member can sign in at once.
+
+### Operators
+
+1. Operators → **Grant operator access to (email)** = the member → **Grant**.
+   **Expect:** "Operator access granted."; the roster shows them "granted by *you* on *date*" (a rake or seed grant shows "rake or seed"). Grant again → "That user is already an operator." An unknown address → "No user has that email address." Blank → "Enter an email address."
+2. With two operators on the roster, **Revoke** your own row.
+   **Expect:** "You cannot revoke your own operator access. Ask another operator to do it." Revoke the member instead → confirm ("Revoke *name*'s operator access?") → "Operator access revoked." Now, as the only operator left, revoke yourself → "The last operator cannot be revoked from here. Use rails operators:revoke on the server."
+3. Activity.
+   **Expect:** newest first: the grant and revoke rows ("granted *name* operator access", "revoked *name*'s operator access"), the suspension and reinstatement, the lock and unlock — each naming the operator. Personal security events (password changes, passkeys, new devices) never appear here.
+
+### Edge cases — Operations
+
+- **`TENANCY_WORKSPACE_CREATION=disabled`:** the Workspaces index shows no **New workspace**; `/operations/workspaces/new` redirects with "Workspace creation is disabled on this instance."; a member still gets 404.
+- **Break-glass:** `rails users:suspend[op@example.com]` suspends an operator (the panel refuses; the task does not check) and `rails users:unsuspend` restores them; `rails operators:revoke[email]` revokes even the last operator.
+- **Reauthentication:** sign in, wait 15 minutes, open `/operations` → the reauthentication interstitial (password, passkey, or emailed code), then the page.
+- **AAA:** every operations page is audited in both themes by `spec/system/operations_area_spec.rb`; when checking by hand, switch theme and re-read a page with the pointer resting on a list row.
