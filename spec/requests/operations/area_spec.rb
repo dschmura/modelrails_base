@@ -85,6 +85,17 @@ RSpec.describe "Operations area", type: :request do
       operator.sessions.update_all(reauthenticated_at: nil)
       get operations_workspaces_path
       expect(response).to redirect_to(new_settings_reauthentication_path)
+      expect(session[:return_to_after_reauthentication]).to eq(operations_workspaces_path)
+    end
+
+    # Rails routes HEAD to the GET action, but request.get? is false for HEAD
+    # — so the GET-correct return-to branch (R17) silently took the referer
+    # path instead. Brakeman's VerbConfusion check caught this on pre-push,
+    # after the suite had run clean all arc: it is not an rspec-visible bug.
+    it "treats a HEAD request like the GET it is routed as" do
+      operator.sessions.update_all(reauthenticated_at: nil)
+      head operations_workspaces_path
+      expect(session[:return_to_after_reauthentication]).to eq(operations_workspaces_path)
     end
 
     it "renders the operations banner so the area is unmistakable" do

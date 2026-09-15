@@ -37,8 +37,10 @@ module Reauthenticatable
   # /operations, not on profile settings. request.fullpath mirrors
   # Authenticatable#request_authentication (authenticatable.rb:60), the
   # equivalent GET-correct form for the sign-in gate.
+  # get? is false for HEAD, which Rails routes to the same GET action — so a
+  # bare get? sent HEAD down the mutation branch (Brakeman VerbConfusion).
   def store_reauthentication_return_to
-    session[:return_to_after_reauthentication] = if request.get?
+    session[:return_to_after_reauthentication] = if request.get? || request.head?
       request.fullpath
     else
       referer_path = begin
