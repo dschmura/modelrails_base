@@ -53,7 +53,13 @@ bin/rails tenancy:owner_setup_link[me@example.com]
 ```
 
 `operators:grant` grants an `Operatorship` (idempotent — running it again
-just reports they're already an operator). `tenancy:owner_setup_link` mints
+just reports they're already an operator) and records the address as
+verified — an operator typed it, the same vouching the `:shared` seed does —
+which is what sending invitations requires (`User#can_invite?`); a
+console-minted account has no verified address otherwise, and its first
+create-for-owner would be refused with "Verify your email address before
+sending invitations." When both commands finish the account can sign in,
+operate, and invite. `tenancy:owner_setup_link` mints
 a short-lived `set_password`-intent sign-in link and **prints it to your
 terminal** — it is never emailed, so this step needs no working SMTP even on
 an invite-only instance where the open-signup path above does. Opening the
