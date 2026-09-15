@@ -10,12 +10,14 @@ RSpec.describe "Code smell: every locale interpolation token is supplied" do
   caller_supplied = %w[
     accepter action added_user_name address app_name cap count current date
     decliner_email device email first_name from hours_remaining
-    invitee_email inviter limit max member metric minutes mode name
+    invitee_email inviter limit link max member metric minutes mode name
     new_email new_role nickname os percent period phrase project_name
     provider relative role sent skipped summary time title to user_name
     workspace_name
   ]
   # ^ from Step 1's measurement, minus the eight vocabulary tokens, sorted.
+  # `link`: app/views/operations/users/show.html.erb supplies a link_to for
+  # operations.users.show.operator_unsuspendable_html.
   # Two of these are filled client-side, not by a Ruby caller: `count` in
   # form_draft.restored_other and `name` in identity_picker.js.color_announce
   # are supplied by JavaScript, not a translation call argument — something

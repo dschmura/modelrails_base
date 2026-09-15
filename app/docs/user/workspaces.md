@@ -22,6 +22,8 @@ Any authenticated user can create a workspace. A URL-safe slug is generated auto
 
 **Defaults:** free plan, 5 max members, 3 max projects.
 
+An instance operator can also create a workspace on someone else's behalf — for example, setting your team up before you've signed up. If your email has no account yet, the operator becomes a real member with the Owner role in the meantime and you receive an ordinary Owner invitation to accept. You'll see them in the member list until they hand ownership over to you.
+
 ## Workspace Settings
 
 **Route:** `PATCH /workspaces/:slug/settings`  
@@ -187,7 +189,7 @@ Deleting is permanent and gated behind a **type-the-workspace-name** confirmatio
 
 ### Locked (operator hold)
 
-Locking is **operator-only** — there is no UI. An operator runs `rails "workspaces:suspend[the-slug]"` to lock a workspace and `rails "workspaces:unsuspend[the-slug]"` to release it. While locked, owners and members are blocked from acting on the workspace and see **"This workspace is locked."** Locking is a temporary hold (billing, abuse review), distinct from Archive (owner tidying) and Delete (permanent).
+Locking is **operator-only**. An operator locks or unlocks a workspace from its page in the operations area (`/operations/workspaces/<slug>`), or from the command line with `rails "workspaces:suspend[the-slug]"` and `rails "workspaces:unsuspend[the-slug]"`. While locked, owners and members are blocked from acting on the workspace and see **"This workspace is locked."** Locking is a temporary hold (billing, abuse review), distinct from Archive (owner tidying) and Delete (permanent). Both actions appear in the workspace's own activity feed as "locked the workspace" / "unlocked the workspace," naming the operator who did it.
 
 ### Home workspaces are protected
 

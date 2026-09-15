@@ -205,7 +205,7 @@ Navigate to `settings/connected_accounts`. Next to a verified provider, click **
 2. Fill in a name and submit.
    **Expect:** The workspace is created. You are assigned the `owner` role atomically with it — the controller calls `Workspace.create_owned(attrs, owner: Current.user)`, which wraps the workspace INSERT and the owner membership in one transaction (the owner role self-heals via `Role.system_default!`). You are redirected to `workspace_path(@workspace)`.
 
-**Config: `TENANCY_WORKSPACE_CREATION=disabled`.** The `before_action :ensure_workspace_creation_enabled` guard on `new` and `create` fires. Navigate to `/workspaces/new` — expect a redirect or error, not the form.
+**Config: `TENANCY_WORKSPACE_CREATION=disabled`.** The `RequiresWorkspaceCreationEnabled` gate on `new` and `create` fires. Navigate to `/workspaces/new`, and as an operator to `/operations/workspaces/new` — expect a redirect, not the form, on both.
 
 ### Joining via an open link
 

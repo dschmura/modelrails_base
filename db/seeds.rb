@@ -43,6 +43,17 @@ if TenancyConfig.shared?
   membership = workspace.memberships.find_or_create_by!(user: owner) { |m| m.role = owner_role }
   membership.update!(role: owner_role) unless membership.role_id == owner_role.id
 
+  # The bootstrap owner also operates the instance — see operations.md "Day
+  # one". Guarded on any operatorship row ever existing, kept or discarded:
+  # re-seeding must not resurrect a grant a break-glass revoke deliberately
+  # took away. A racing second seed loses to the partial unique index; treat
+  # that as already granted.
+  begin
+    Operatorship.grant!(user: owner) unless owner.operatorships.exists?
+  rescue ActiveRecord::RecordNotUnique
+    nil
+  end
+
   # Help the owner claim the account. In production we do NOT log a password
   # token: the link would be minted at deploy time (its short expiry clock
   # already ticking) and would linger as a live credential in log retention.

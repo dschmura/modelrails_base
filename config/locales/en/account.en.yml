@@ -110,6 +110,14 @@ en:
           signed_in_new_device_with_os: "Signed in from a new device (%{os})"
           passkey_added: "Passkey added"
           passkey_removed: "Passkey removed"
+          # admin-visibility rows, so these never actually render on this card; the label exists
+          # because every SECURITY_ACTIONS member needs one (activity_log_spec), keeping the two lists in sync.
+          suspended: "Access suspended by an operator"
+          unsuspended: "Access reinstated by an operator"
+          unlocked: "Sign-in lockout cleared by an operator"
+        operatorship:
+          granted: "Operator access granted"
+          revoked: "Operator access revoked"
     other_sessions:
       destroy:
         signed_out:

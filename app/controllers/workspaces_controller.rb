@@ -1,8 +1,8 @@
 class WorkspacesController < ApplicationController
   include WorkspaceScoped
   include IdentityParams
+  include RequiresWorkspaceCreationEnabled
   skip_before_action :set_workspace, only: [ :index, :new, :create ]
-  before_action :ensure_workspace_creation_enabled, only: [ :new, :create ]
 
   # Mirrors settings/avatars_controller: #update purges attachments and writes
   # blobs, so it gets the same per-user budget (2026-08-12 reauth panel fold-in).
@@ -110,14 +110,6 @@ class WorkspacesController < ApplicationController
   end
 
   private
-
-  # Posture gate: under TENANCY_WORKSPACE_CREATION=disabled (typically the
-  # :shared preset), additional workspace creation is forbidden. UI omits the
-  # links, but a direct URL still needs to be refused. See app/docs/developer/presets.md.
-  def ensure_workspace_creation_enabled
-    return if TenancyConfig.workspace_creation_enabled?
-    redirect_to root_path, alert: t("workspaces.creation_disabled")
-  end
 
   def create_params
     params.require(:workspace).permit(:name)

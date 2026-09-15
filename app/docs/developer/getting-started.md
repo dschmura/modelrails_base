@@ -27,7 +27,7 @@ Or step by step:
 ```bash
 bundle install
 rails db:prepare
-rails db:seed       # Seeds default roles
+rails db:seed       # Seeds default roles (and, under the :shared preset, the bootstrap owner's operatorship)
 bin/dev             # Start development server
 ```
 

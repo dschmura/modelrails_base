@@ -52,6 +52,8 @@ Signing in creates a session that stays valid until you sign out, or until it ex
 
 **Settings → Sessions** lists every device where you're currently signed in — browser, operating system, rough location, and when it was last active — and marks the one you're using now. From there you can sign out a single device or **sign out all other devices** at once, which is the fastest way to lock out a lost or shared machine. Changing or removing your password also signs out every other device automatically.
 
+An operator can also suspend your account — sign-in is then refused with a message, your current sessions end, and your workspaces and roles stay exactly as they are — and reinstate it just as easily. If that happens to you, contact whoever runs this app to have it reinstated.
+
 ---
 
 **Related:** [Email Flows](/docs/user/emails) · [Invitations](/docs/user/invitations) · [Passkeys (developer)](/docs/developer/passkeys)

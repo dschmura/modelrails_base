@@ -168,12 +168,32 @@ owner can still sign in with a passkey or magic link. If your fork wants a
 lock to mean "no sign-in at all", add the `locked?` check to
 `magic_link_callbacks/sessions#create` and `Passkeys::AuthenticateCeremony` as well.
 
+### Account suspension
+
+An operator hold, separate from the failed-attempt lockout above: refused at
+`start_new_session_for`, the one funnel every sign-in path uses (password,
+magic link, passkey, OAuth), and again at session resumption. Sessions are
+destroyed at suspend time; memberships, roles and project access are left
+untouched, so reinstating a user restores them exactly. The hold refuses
+sessions, not writes: a sign-in token a suspended account presents is spent
+as usual, and an OAuth callback still links the provider before the refusal.
+`user.suspended`, `user.unsuspended` and `user.unlocked` are STRICT-tier
+audit rows at `admin` visibility naming the operator as actor (none for a
+rake run). The operations area refuses to suspend an operator; `rails
+users:suspend` does not check, because it is the break-glass path.
+
 Admin rake tasks:
 
 ```bash
 rails users:unlock[email@example.com]     # Unlock a locked account
 rails users:verify[email@example.com]     # Manually verify an email
-rails users:suspend[email@example.com]    # Suspend an account (destroys sessions, deactivates memberships)
+rails users:suspend[email@example.com]    # Suspend a user (sessions end, sign-in blocked; no operator guard)
+rails users:unsuspend[email@example.com]  # Unsuspend a user (restores sign-in)
+rails workspaces:suspend[slug]            # Lock a workspace (members blocked until unsuspended)
+rails workspaces:unsuspend[slug]          # Unlock a workspace
+rails operators:grant[email@example.com]  # Grant instance-operator access to a user
+rails operators:revoke[email@example.com] # Revoke instance-operator access from a user (no last-operator guard)
+rails operators:list                      # List instance operators
 ```
 
 ### Session Lifetime
@@ -197,10 +217,11 @@ out every *other* session; users can review and revoke devices at
 Actions that add, remove, or change an authentication factor require a recent
 proof of identity, so a borrowed session can't be turned into a takeover.
 `Reauthenticatable#require_reauthentication!` gates: password change/removal,
-passkey enrollment and deletion, email change, and OAuth unlink. It checks
-`Session#reauthenticated?` (a 15-minute window on `reauthenticated_at`, set at
-sign-in and refreshed by the interstitial) and, if stale, sends the user to
-`/settings/reauthentication`.
+passkey enrollment and deletion, email change, OAuth unlink, and every
+action in the [instance-operations area](operations) (`/operations`). It
+checks `Session#reauthenticated?` (a 15-minute window on
+`reauthenticated_at`, set at sign-in and refreshed by the interstitial) and,
+if stale, sends the user to `/settings/reauthentication`.
 
 The interstitial offers only the factors the user has (`User#available_reauth_factors`):
 password, a passkey (verified through `AuthenticateCeremony` **bound to the
@@ -208,11 +229,15 @@ current user** — another account's passkey is rejected), or a one-time
 `ReauthenticationChallenge` code emailed and entered in-page (never a link, so
 it can't be replayed into a sign-in). All of it is tunable in
 `config/initializers/sessions.rb`; `reauth_enabled = false` makes the gate a
-no-op — except passkey enrollment, which stays gated regardless: enrollment
-mints a durable, phishing-resistant credential and revokes nothing, so it is
-hard-wired (`require_reauthentication!(force: true)`) and additionally fires
-`PasskeyAddedNotifier`. Email changes are gated here rather than on a
-password, so passwordless users can change their email.
+no-op — except passkey enrollment and the operations area, which stay gated
+regardless: enrollment mints a durable, phishing-resistant credential and
+revokes nothing, and the operations area suspends workspaces and mints
+operatorships, so both are hard-wired
+(`require_reauthentication!(force: true)`), and enrollment additionally
+fires `PasskeyAddedNotifier`. Email changes are gated here rather than on a
+password, so passwordless users can change their email. The operations gate
+is also the only one that fires on GET requests, not just mutations — see
+[Instance operations: How it stays safe](operations#how-it-stays-safe).
 
 Sign-ins from an unrecognized browser/OS additionally trigger a security
 notification (`SignInFromNewDeviceNotifier`). The alert is gated by
@@ -418,9 +443,9 @@ The `Trackable` concern logs workspace-domain model changes to `ActivityLog` on 
 - `token`, `password_digest`
 - `oauth_token`, `oauth_refresh_token`
 
-**Account-security events are a separate, stricter tier.** Password set/change/removal, passkey enrollment/removal, and sign-in from a new device write rows named in `ActivityLog::SECURITY_ACTIONS`, through `ActivityLog.record_security_event!`. The credential events are written **in the same transaction as the mutation they record, with no rescue** — a failed audit write fails the credential write. Sign-in detection stays best-effort, because the `Session` row is already the primary record of a sign-in.
+**Account-security events are a separate, stricter tier.** Password set/change/removal, passkey enrollment/removal, sign-in from a new device, and instance-operator grant/revocation write rows named in `ActivityLog::SECURITY_ACTIONS`, through `ActivityLog.record_security_event!`. The credential events — including operator grants and revocations — are written **in the same transaction as the mutation they record, with no rescue** — a failed audit write fails the credential write. Sign-in detection stays best-effort, because the `Session` row is already the primary record of a sign-in.
 
-These rows are retained on their own floor (`ActivityLogRetentionSweepJob::SECURITY_RETENTION_FLOOR`, 365 days) rather than the general 12-month window, and are readable by their owner on `/settings/sessions`. Full per-event table, including what corroborates each row: [Notifications § Security event audit coverage](/docs/developer/notifications). The matching in-app notification carries no retention floor of its own — it is attention state on the user's clock. The `ActivityLog` row is the record.
+These rows are retained on their own floor (`ActivityLogRetentionSweepJob::SECURITY_RETENTION_FLOOR`, 365 days) rather than the general 12-month window. Rows at `personal` visibility (the account events above) are readable by their owner on `/settings/sessions`; rows at `admin` visibility (operator grants and revocations, whose actor is the granter when there is one — a rake grant records none — rather than the subject) appear in the operations feed instead. Full per-event table, including what corroborates each row: [Notifications § Security event audit coverage](/docs/developer/notifications). The matching in-app notification carries no retention floor of its own — it is attention state on the user's clock. The `ActivityLog` row is the record.
 
 ### Image Processing (Active Storage + libvips)
 

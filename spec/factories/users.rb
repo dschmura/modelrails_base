@@ -48,6 +48,10 @@ FactoryBot.define do
       passkey_prompt_seen_at { nil }
     end
 
+    trait :suspended do
+      suspended_at { Time.current }
+    end
+
     # Magic-link / OAuth-only account — the common case in a passwordless-first
     # app, and the reason re-auth can't assume a password.
     trait :passwordless do

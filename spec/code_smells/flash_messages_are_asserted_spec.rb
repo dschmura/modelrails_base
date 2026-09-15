@@ -134,8 +134,16 @@ RSpec.describe "Flash messages are asserted, not just redirects" do
   # Asserted by key (when the point is which key was selected) or by its English
   # text (when the point is that a real sentence reached the user). The length
   # guard keeps a short shared word like "Saved." from matching incidentally.
+  #
+  # Key matching is boundary-aware, not a bare substring: a plain `include?`
+  # let a namespaced key falsely "assert" an unrelated shorter one — a spec
+  # asserting operations.workspaces.create.success made the burn-down's
+  # separate workspaces.create.success (the tenant's own create flash) read
+  # as newly-asserted, because the shorter key is a dotted SUFFIX of the
+  # longer one. Neither a `.` nor a word char may sit on either side of the
+  # match.
   def asserted?(key, values, specs)
-    return true if specs.include?(key)
+    return true if specs.match?(/(?<![\w.])#{Regexp.escape(key)}(?![\w.])/)
 
     text = values[key]
     text.present? && text.length > 8 && specs.include?(text)
@@ -143,7 +151,7 @@ RSpec.describe "Flash messages are asserted, not just redirects" do
 
   let(:values) { locale_values }
 
-  # Excludes THIS file: the burn-down list below names all 80 keys as string
+  # Excludes THIS file: the burn-down list below names all 65 keys as string
   # literals, so scanning it would report every one of them as asserted and the
   # guard would pass on an empty promise.
   let(:specs) do

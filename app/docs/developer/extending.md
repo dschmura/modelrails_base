@@ -225,6 +225,38 @@ misfire against the result — the operator names the target directly on the
 command line, and the task acts on exactly that record, not on "whatever the
 current workspace happens to be."
 
+### Pattern 4 — the operations area resolves through the actor's reach
+
+`Operations::` controllers (`/operations`) run inside a request — the
+signed-in-user case Pattern 3 is careful to rule out — but deliberately with
+**no** workspace context: they never include `WorkspaceScoped` and never set
+`Current.workspace`, because an operator administers the instance from above
+the workspaces, not from inside one. A workspace is reached only through the
+signed-in operator's own reach relation:
+
+```ruby
+# app/models/user.rb
+def operated_workspaces
+  operator? ? Workspace.kept : Workspace.none # scoped operators narrow this branch later
+end
+```
+
+```ruby
+# app/controllers/operations/workspaces_controller.rb
+@workspace = operated_workspaces.find_by!(slug: params[:slug])
+```
+
+`Workspace` isn't `Tenanted`, so `no_unscoped_tenant_loads_spec.rb` wouldn't
+flag a bare `Workspace.find_by!` here — but the relation form is the point,
+not a guard dodge. `operated_workspaces` is every kept workspace today; it's
+also the one seam a future scoped-operator model changes, and every
+operations controller reading through it (rather than each reinventing "all
+workspaces") is what makes that a one-method change instead of an audit.
+Anything *inside* the resolved workspace still hops its own
+association (`@workspace.memberships`, `@workspace.activity_logs`), exactly
+like Patterns 1 and 2. See [Instance operations](operations) for what the
+area does with this.
+
 ### Rule of thumb
 
 - **Request-context code** (controllers, helpers, views): always scope

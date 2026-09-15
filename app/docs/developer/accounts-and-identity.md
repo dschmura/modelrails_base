@@ -61,7 +61,7 @@ A password is optional (`has_secure_password validations: false`); the passwordl
 
 **Every digest-touching path notifies** (settings change, reset, removal): the notifier hangs on the model, not the controllers, so no path can forget. The audit row is strict-tier and the notice is post-commit; see [Architecture § Activity Tracking](/docs/developer/architecture) for why those two sit on different callbacks.
 
-**Lockout** is `MAX_FAILED_ATTEMPTS` (5) failed logins, held for `LOCK_DURATION` (1 hour); `register_failed_login!` and `register_successful_login!` are the only writers of the counter.
+**Lockout** is `MAX_FAILED_ATTEMPTS` (5) failed logins, held for `LOCK_DURATION` (1 hour); `register_failed_login!`, `register_successful_login!` and the operator control `unlock!` are the only writers of the counter.
 
 **The Have I Been Pwned check runs before `save`**, outside the write transaction — see [Architecture § Concurrency](/docs/developer/architecture) for the timing and [Security § Password Security](/docs/developer/security) for its fail-open posture.
 
