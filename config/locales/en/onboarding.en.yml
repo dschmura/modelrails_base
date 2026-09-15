@@ -4,7 +4,7 @@ en:
       workspace: "%{Workspace}"
       project: "%{Project}"
       tools: "Tools"
-      team: "Team"
+      team: "Invite"
     workspaces:
       new:
         title: "Name your %{workspace}"
@@ -29,10 +29,10 @@ en:
         submit: "Save tools"
     teams:
       new:
-        title: "Invite your team"
+        title: "Invite people"
         subtitle: "Add teammates by email — or skip and invite them later."
         emails_label: "Email addresses"
-        emails_placeholder: "sam@example.com, lee@example.com"
+        emails_help: "One email per line, or comma-separated."
         role_label: "Role"
         submit: "Send invites"
         skip: "Skip for now"

@@ -64,7 +64,7 @@ Five concepts the flows plug into — knowing these is usually enough to avoid f
 
 ## 2 · First-run onboarding
 
-<svg viewBox="0 0 600 410" width="100%" role="img" aria-label="First-run onboarding, four steps. Step 1 Name your workspace (field Workspace name, Continue). Step 2 Create first project (field Project name, Continue). A connector first project saved drops to step 3 Pick your tools (Docs and Files checked, Save tools). Step 4 Invite your team (Email addresses, Send invites)." fill="none" stroke="currentColor" font-family="ui-sans-serif, system-ui, sans-serif">
+<svg viewBox="0 0 600 410" width="100%" role="img" aria-label="First-run onboarding, four steps. Step 1 Name your workspace (field Workspace name, Continue). Step 2 Create first project (field Project name, Continue). A connector first project saved drops to step 3 Pick your tools (Docs and Files checked, Save tools). Step 4 Invite people (Email addresses, Send invites)." fill="none" stroke="currentColor" font-family="ui-sans-serif, system-ui, sans-serif">
   <defs><marker id="flowarrow-g2" markerWidth="9" markerHeight="9" refX="6.5" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 z" fill="currentColor" stroke="none"/></marker></defs>
   <rect x="20" y="20" width="270" height="150" rx="11" stroke-width="1.5"/>
   <line x1="20" y1="44" x2="290" y2="44" stroke-width="1"/>
@@ -97,9 +97,9 @@ Five concepts the flows plug into — knowing these is usually enough to avoid f
   <line x1="310" y1="234" x2="580" y2="234" stroke-width="1"/>
   <circle cx="330" cy="222" r="3" stroke-width="1"/><circle cx="342" cy="222" r="3" stroke-width="1"/><circle cx="354" cy="222" r="3" stroke-width="1"/>
   <rect x="370" y="216" width="200" height="12" rx="6" stroke-width="1" opacity="0.5"/>
-  <text x="330" y="262" font-size="12.5" font-weight="700" fill="currentColor" stroke="none">Invite your team</text>
+  <text x="330" y="262" font-size="12.5" font-weight="700" fill="currentColor" stroke="none">Invite people</text>
   <text x="330" y="284" font-size="9.5" fill="currentColor" stroke="none" opacity="0.7">Email addresses</text>
-  <rect x="330" y="289" width="220" height="18" rx="4" stroke-width="1"/><text x="338" y="301.5" font-size="9.5" fill="currentColor" stroke="none" opacity="0.45">sam@example.com, lee@example.com</text>
+  <rect x="330" y="289" width="220" height="18" rx="4" stroke-width="1"/>
   <rect class="text-accent" x="330" y="322" width="130" height="21" rx="6" stroke-width="2.25"/><text class="text-accent" x="395" y="336.5" text-anchor="middle" font-size="10.5" font-weight="700" fill="currentColor" stroke="none">Send invites</text>
   <circle cx="310" cy="210" r="11" stroke-width="1.5"/><text x="310" y="214" text-anchor="middle" font-size="11" font-weight="700" fill="currentColor" stroke="none">4</text>
   <path d="M290 95 H308" stroke-width="1.5" marker-end="url(#flowarrow-g2)"/><text x="299" y="88" text-anchor="middle" font-size="10" fill="currentColor" stroke="none" opacity="0.6">next</text>
@@ -113,7 +113,7 @@ Five concepts the flows plug into — knowing these is usually enough to avoid f
 - **Name your workspace** — Onboarding only runs under `WORKSPACE_ON_SIGNUP=none`; the `RequiresOnboarding` guard is posture-gated and html-only, returning early in every other posture.
 - **Create your first project** — Derive-from-data: `onboarded_at` is the only marker, and the current step is computed from what already exists — so the wizard is resumable with no per-step flags to keep in sync.
 - **Pick your tools** — Self-hides unless more than one tool is registered (never a one-option screen). It's a forward-only interstitial, not a resume step. Register tools in `config/initializers/project_tools.rb`.
-- **Invite your team** — Optional: skipping still lands a fully working project; finishing stamps `onboarded_at`. The project home's tabs follow the project's `enabled_tools`.
+- **Invite people** — Optional: skipping still lands a fully working project; finishing stamps `onboarded_at`. The project home's tabs follow the project's `enabled_tools`.
 </details>
 
 ## 3 · Project home & tools
