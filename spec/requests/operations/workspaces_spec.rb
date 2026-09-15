@@ -10,6 +10,17 @@ RSpec.describe "Operations workspaces", type: :request do
     sign_in(operator)
   end
 
+  describe "GET /operations/workspaces" do
+    # The index is where /operations lands, so it is the area's primary route
+    # to a workspace. It rendered the name as plain text, leaving show
+    # reachable only from a user's page or the activity feed (Task 16).
+    it "links each workspace to its own page" do
+      get operations_workspaces_path
+      expect(Capybara.string(response.body))
+        .to have_link("Acme", href: operations_workspace_path(workspace))
+    end
+  end
+
   describe "GET /operations/workspaces/:slug" do
     it "shows members with roles" do
       get operations_workspace_path(workspace)

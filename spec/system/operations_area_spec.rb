@@ -48,7 +48,12 @@ RSpec.describe "Operations area", type: :system do
     workspace = create(:workspace, name: "Acme Robotics")
     create(:membership, :owner, user: owner, workspace: workspace)
 
-    visit operations_workspace_path(workspace)
+    # Reached by clicking through the index, not by visiting the route: the
+    # index is where /operations lands, so this is the operator's real path
+    # to a workspace, and it is the one that was missing.
+    visit operations_workspaces_path
+    click_link "Acme Robotics"
+    expect(page).to have_current_path(operations_workspace_path(workspace))
     expect(page).to have_text(owner.full_name)
     expect(page).to have_css(
       "[aria-label='#{I18n.t('operations.workspaces.show.status_prefix')}: #{I18n.t('lifecycle_status.active')}']"

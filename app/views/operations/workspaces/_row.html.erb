@@ -1,6 +1,8 @@
 <%# locals: (workspace:) -%>
 <tr class="border-t border-border">
-  <td class="px-4 py-3 font-medium text-text-heading"><%= workspace.name %></td>
+  <td class="px-4 py-3 font-medium">
+    <%= link_to workspace.name, operations_workspace_path(workspace), class: "btn-text focus-ring" %>
+  </td>
   <td class="px-4 py-3"><%= lifecycle_status_label(workspace) %></td>
   <%# Workspace#owner (singular) consumes the controller's memberships preload
       (memberships.loaded? branch, workspace.rb:125-127) — #owners (plural) is
