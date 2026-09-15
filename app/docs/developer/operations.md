@@ -43,7 +43,8 @@ before anyone else exists.
   owner immediately; an unknown email makes *the operator* the interim
   owner and sends that email an ordinary workspace invitation carrying the
   Owner role. See [The operator becomes the owner](#the-operator-becomes-the-owner)
-  below — this is deliberate.
+  below — this is deliberate. Creation honors `TENANCY_WORKSPACE_CREATION`
+  the same as the tenant-side flow; the operations area does not bypass it.
 - **Users** (`/operations/users`) — a search box, not a browsable list: look
   a user up by their exact email address (names are encrypted
   non-deterministically and can't be searched or sorted in SQL — see

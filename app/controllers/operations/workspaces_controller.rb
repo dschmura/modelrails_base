@@ -1,5 +1,9 @@
 module Operations
   class WorkspacesController < BaseController
+    # Operators honor deploy-time tenancy posture rather than bypassing it —
+    # same as invite-only signup, which the operations area also doesn't skip.
+    include RequiresWorkspaceCreationEnabled
+
     def index
       authorize [ :operations, Workspace ]
       # SQLite's default BINARY collation sorts uppercase before lowercase —

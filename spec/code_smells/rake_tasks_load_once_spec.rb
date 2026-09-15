@@ -13,6 +13,15 @@ require "rails_helper"
 # `rspec spec/tasks/admin_spec.rb spec/tasks/operators_spec.rb --order defined`
 # exited 1 reporting "9 examples, 0 failures" while four examples never ran.
 RSpec.describe "Rake tasks are loaded once per process" do
+  # Scans one source's stripped-of-comments lines for a bare
+  # Rails.application.load_tasks call. Returns the "path:line,line" offender
+  # string, or nil when the source has none.
+  def offenders_in(source, path)
+    lines = without_comments(source).lines
+    hits = lines.each_index.select { |i| lines[i].include?("Rails.application.load_tasks") }
+    "#{path}:#{hits.map { |i| i + 1 }.join(',')}" if hits.any?
+  end
+
   it "has no direct Rails.application.load_tasks outside the shared loader" do
     loader = "spec/support/rake_tasks.rb"
 
@@ -20,9 +29,7 @@ RSpec.describe "Rake tasks are loaded once per process" do
       relative = Pathname.new(path).relative_path_from(Rails.root).to_s
       next if relative == loader || relative == "spec/code_smells/rake_tasks_load_once_spec.rb"
 
-      lines = without_comments(File.read(path)).lines
-      hits = lines.each_index.select { |i| lines[i].include?("Rails.application.load_tasks") }
-      "#{relative}:#{hits.map { |i| i + 1 }.join(',')}" if hits.any?
+      offenders_in(File.read(path), relative)
     end
 
     expect(offenders).to be_empty, <<~MESSAGE
@@ -33,9 +40,11 @@ RSpec.describe "Rake tasks are loaded once per process" do
     MESSAGE
   end
 
-  it "reports a direct call when one exists" do
-    sample = "before(:all) { Rails.application.load_tasks }"
+  it "flags a bare call but not the same call inside a comment" do
+    offending = "before(:all) { Rails.application.load_tasks }"
+    commented = "# before(:all) { Rails.application.load_tasks }"
 
-    expect(sample).to include("Rails.application.load_tasks")
+    expect(offenders_in(offending, "fixture.rb")).to eq("fixture.rb:1")
+    expect(offenders_in(commented, "fixture.rb")).to be_nil
   end
 end

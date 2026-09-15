@@ -80,13 +80,65 @@ RSpec.describe "Operations workspaces", type: :request do
     end
   end
 
+  # Operators honor deploy-time tenancy posture — mirrors
+  # spec/requests/workspaces_spec.rb's tenant-side coverage.
+  describe "workspace creation disabled (TENANCY_WORKSPACE_CREATION=disabled)" do
+    before do
+      allow(Rails.configuration.x.tenancy).to receive(:workspace_creation).and_return(:disabled)
+    end
+
+    it "omits the new-workspace control from an index that otherwise renders" do
+      get operations_workspaces_path
+      expect(response).to have_http_status(:ok)
+      html = Capybara.string(response.body)
+      expect(html).to have_link("Acme", href: operations_workspace_path(workspace))
+      expect(html).to have_no_link(href: new_operations_workspace_path)
+    end
+
+    # The gate registers after BaseController's require_operator, so a
+    # non-operator still learns nothing — not even that creation is off.
+    it "still answers 404 to a non-operator rather than the creation-disabled redirect" do
+      sign_in(create(:user))
+      get new_operations_workspace_path
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "redirects GET /operations/workspaces/new to root with an alert" do
+      get new_operations_workspace_path
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq(I18n.t("workspaces.creation_disabled"))
+    end
+
+    it "refuses POST /operations/workspaces" do
+      expect {
+        post operations_workspaces_path, params: { workspace: { name: "Blocked Co", owner_email: owner.email_address } }
+      }.not_to change(Workspace, :count)
+
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq(I18n.t("workspaces.creation_disabled"))
+    end
+  end
+
+  describe "workspace creation enabled (the default)" do
+    it "renders the new-workspace control on the index" do
+      get operations_workspaces_path
+      expect(Capybara.string(response.body)).to have_link(href: new_operations_workspace_path)
+    end
+  end
+
   describe "GET /operations/workspaces/:slug" do
     it "shows members with roles" do
       get operations_workspace_path(workspace)
       expect(response).to have_http_status(:ok)
       html = Capybara.string(response.body)
       expect(html).to have_text("Olive Owner")
-      expect(html).to have_text("Owner")
+      # A bare have_text("Owner") is satisfied by the owner's own name
+      # ("Olive Owner") whether or not the role badge renders at all — scope
+      # to the members list's role badge so this actually proves the role
+      # is shown (the activity feed below also mentions "Olive Owner").
+      members = html.find("section[aria-labelledby='ops-members-heading']")
+      row = members.find("li", text: "Olive Owner")
+      expect(row).to have_css("span[data-variant='soft'][data-tone='neutral']", text: "Owner")
     end
 
     it "orders members by name, not creation order or an SQL sort on encrypted columns" do

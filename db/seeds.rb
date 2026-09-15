@@ -45,11 +45,15 @@ if TenancyConfig.shared?
 
   # The bootstrap owner also operates the instance: on an invite-only
   # deployment somebody must be able to create workspaces and see users before
-  # anyone else exists. owner.operator? alone isn't idempotent here — it goes
-  # false again after a break-glass revoke, and re-seeding must not resurrect
-  # a grant that was deliberately taken away. Guard on any operatorship row
-  # ever existing, kept or discarded.
-  Operatorship.grant!(user: owner) unless owner.operatorships.exists?
+  # anyone else exists. Guarded on any operatorship row ever existing, kept or
+  # discarded: operator? goes false after a break-glass revoke, and re-seeding
+  # must not resurrect a grant deliberately taken away. A racing second seed
+  # loses to the partial unique index; treat that as already granted.
+  begin
+    Operatorship.grant!(user: owner) unless owner.operatorships.exists?
+  rescue ActiveRecord::RecordNotUnique
+    nil
+  end
 
   # Help the owner claim the account. In production we do NOT log a password
   # token: the link would be minted at deploy time (its short expiry clock

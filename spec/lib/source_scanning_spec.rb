@@ -23,7 +23,7 @@ RSpec.describe "SourceScanning#without_comments" do
     expect(result.lines[1]).to eq("foo = 1\n")
   end
 
-  it "leaves a #{} interpolation inside a heredoc body untouched" do
+  it "leaves a \#{} interpolation inside a heredoc body untouched" do
     source = <<~RUBY
       cdp_evaluate(<<~JS)
         document.querySelectorAll(\#{data_table_row_sel.to_json})
@@ -39,10 +39,22 @@ RSpec.describe "SourceScanning#without_comments" do
 
   # This helper also scans .erb templates (spec/code_smells/
   # one_preferences_creation_path_spec.rb), which are not valid standalone
-  # Ruby — Prism error-recovers rather than raising, so a comment before the
-  # invalid syntax is still found.
+  # Ruby. Prism does not recover on ERB — Prism.parse reports errors, and
+  # without_comments falls back to the old per-line quote scanner rather
+  # than raising.
   it "still blanks a real comment on source that isn't valid Ruby on its own" do
     result = without_comments(%(<div><%= foo %></div> # trailing comment\n))
     expect(result).not_to include("trailing comment")
+  end
+
+  # Prism finds zero comments on this input (it's not valid Ruby, so it
+  # never gets far enough to record one) — blank_comments would strip
+  # nothing. Only the fallback's naive "first unquoted #" scan removes the
+  # ERB comment tag, so this fails if without_comments ever took the Prism
+  # branch here instead.
+  it "blanks an ERB comment tag by taking the fallback scanner, not the Prism branch" do
+    result = without_comments("<%# private note %>\nfoo = 1\n")
+    expect(result).not_to include("private note")
+    expect(result.lines[1]).to eq("foo = 1\n")
   end
 end

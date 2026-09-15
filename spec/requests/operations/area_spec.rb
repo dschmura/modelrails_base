@@ -13,24 +13,55 @@ RSpec.describe "Operations area", type: :request do
 
   # "Every operations route" means every route, GET and mutating alike —
   # require_operator gates before any action logic runs, so the same 404
-  # posture must hold across the whole surface, not just the GETs.
+  # posture must hold across the whole surface, not just the GETs. The set
+  # is derived from the route table rather than hand-listed, so a route
+  # added under operations/ without an operator check is caught here without
+  # anyone remembering to extend this example.
   it "answers 404 to a signed-in non-operator on every operations route" do
     other_operatorship = Operatorship.grant!(user: create(:user))
     sign_in(member)
 
-    get operations_root_path
-    expect(response).to have_http_status(:not_found)
-    get operations_workspaces_path
-    expect(response).to have_http_status(:not_found)
+    operations_routes = Rails.application.routes.routes.select do |route|
+      route.defaults[:controller].to_s.start_with?("operations/")
+    end
+    # The exact count: an empty selection (a routes.rb typo breaking the
+    # scope) and a route quietly removed are both noticed. Update it when the
+    # surface changes on purpose.
+    expect(operations_routes.size).to eq(16)
 
-    post operations_operatorships_path, params: { email: member.email_address }
-    expect(response).to have_http_status(:not_found)
-    delete operations_operatorship_path(other_operatorship)
-    expect(response).to have_http_status(:not_found)
-    delete operations_user_lock_path(member)
-    expect(response).to have_http_status(:not_found)
-    post operations_user_suspension_path(member)
-    expect(response).to have_http_status(:not_found)
+    operations_routes.each do |route|
+      verb = route.verb.to_s.strip.downcase.to_sym
+      controller = route.defaults[:controller]
+      action = route.defaults[:action]
+      path = route.path.spec.to_s.sub("(.:format)", "")
+
+      route.required_parts.each do |part|
+        value = case part
+        when :slug, :workspace_slug
+          workspace.slug
+        when :user_id
+          member.id
+        when :id
+          case controller
+          when "operations/operatorships" then other_operatorship.id
+          when "operations/users" then member.id
+          else
+            raise "no resolver for :id on #{controller}##{action} — teach this example its value"
+          end
+        else
+          raise "no resolver for route param :#{part} on #{verb.upcase} #{path} — teach this example its value"
+        end
+        path = path.sub(":#{part}", value.to_s)
+      end
+
+      # A leftover `(` or `:` is an optional segment or an unresolved part;
+      # show_exceptions is :rescuable in test, so a path that fails to route
+      # would read as the very 404 this example expects.
+      expect(path).not_to match(/[(:]/), "unresolved segment in #{verb.upcase} #{path}"
+      process(verb, path)
+      expect(response).to have_http_status(:not_found),
+        "expected 404 for #{verb.upcase} #{path} (#{controller}##{action}), got #{response.status}"
+    end
   end
 
   context "as an operator" do

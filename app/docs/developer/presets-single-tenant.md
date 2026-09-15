@@ -60,7 +60,7 @@ Everyone shares **one** workspace. Each person (with how they **sign in**) is a 
 |---|---|---|
 | `signup.mode` | typically `:invite_only` (your call) | `config/initializers/signup.rb` |
 | `tenancy.onboarding` | `:shared` | `User#onboard_workspace` dispatches to `join_shared_workspace` |
-| `tenancy.workspace_creation` | `:disabled` | `WorkspacesController` `before_action` redirects `:new`/`:create` |
+| `tenancy.workspace_creation` | `:disabled` | `RequiresWorkspaceCreationEnabled` (included by `WorkspacesController` and `Operations::WorkspacesController`) redirects `:new`/`:create` — operators included; a second workspace on a single-tenant instance means flipping the flag or a console one-liner |
 | `permitted_join_strategies` | `[:invite]` *(implicit — only mechanism built)* | `Invitation.consume!` is the single membership-grant path |
 | `session.reauth_enabled` | `false` *(optional — your call)* | `config/initializers/sessions.rb`; internal tools often skip the "confirm it's you" interstitial |
 | `session.new_device_notification` | `false` *(optional — your call)* | same file; skips "new sign-in" alerts when every teammate's laptop would fire one |
@@ -74,7 +74,7 @@ The workspace switcher auto-hides under this preset because every user has exact
    | Variable | Required? | Example | Purpose |
    |---|---|---|---|
    | `WORKSPACE_ON_SIGNUP` | yes | `shared` | Selects this preset |
-   | `TENANCY_WORKSPACE_CREATION` | yes | `disabled` | Turns off "New workspace" UI + route |
+   | `TENANCY_WORKSPACE_CREATION` | yes | `disabled` | Turns off "New workspace" UI + route — operators included; a second workspace on a single-tenant instance means flipping the flag or a console one-liner |
    | `TENANCY_SHARED_WORKSPACE_SLUG` | yes | `acme` | URL-safe slug of the shared workspace |
    | `TENANCY_SHARED_WORKSPACE_NAME` | no | `Acme Inc.` | Display name (defaults to titleized slug) |
    | `TENANCY_OWNER_EMAIL` | yes | `admin@acme.com` | Email of the initial Owner |

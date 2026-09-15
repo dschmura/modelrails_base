@@ -349,13 +349,12 @@ RSpec.describe ActivityLog, type: :model do
     end
   end
 
-  # .preload_trackables read the association internally
-  # (`rows.filter_map(&:trackable)`) to build the array it discards for the
-  # User slice (no block given), which marked the hop "used" to Bullet
-  # regardless of whether any caller ever read it — permanently masking a
-  # real unused eager load. This asserts by calling Bullet's detector
-  # directly rather than relying on the implicit end-of-example raise, which
-  # fires from an after-hook this example can't wrap an expectation around.
+  # Pins Bullet's internals on purpose: .preload_trackables reading the
+  # association internally (`rows.filter_map(&:trackable)`) to build a
+  # discarded array previously marked the User hop "used" regardless of
+  # whether any caller read it, masking a real unused eager load. This calls
+  # Bullet::Detector::UnusedEagerLoading directly to check that marking, so a
+  # Bullet upgrade that changes it breaks here, not mysteriously elsewhere.
   describe ".for_feed Bullet visibility" do
     it "leaves an unread User trackable hop visible to Bullet's unused-eager-load detector" do
       2.times { Operatorship.grant!(user: create(:user)) }

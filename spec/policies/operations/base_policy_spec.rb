@@ -6,20 +6,24 @@ RSpec.describe "Operations policies" do
   let(:workspace) { create(:workspace) }
 
   describe Operations::WorkspacePolicy do
-    it "opens index/show/new/create/suspend/unsuspend to operators only" do
-      policy = described_class.new(operator, workspace)
-      expect(policy.index?).to be true
-      expect(policy.show?).to be true
-      expect(policy.new?).to be true
-      expect(policy.create?).to be true
-      expect(policy.suspend?).to be true
-      expect(policy.unsuspend?).to be true
-
-      denied = described_class.new(member, workspace)
-      expect(denied.index?).to be false
-      expect(denied.show?).to be false
-      expect(denied.create?).to be false
-      expect(denied.suspend?).to be false
+    # verb => [answer for an operator, answer for a non-operator]. Values are
+    # read off app/policies/operations/workspace_policy.rb, not derived from
+    # calling it, so a changed override shows up as a mismatch here.
+    {
+      index?: [ true, false ],
+      show?: [ true, false ],
+      new?: [ true, false ],
+      create?: [ true, false ],
+      update?: [ false, false ],
+      edit?: [ false, false ],
+      destroy?: [ false, false ],
+      suspend?: [ true, false ],
+      unsuspend?: [ true, false ]
+    }.each do |verb, (operator_expected, non_operator_expected)|
+      it "answers #{verb.inspect} #{operator_expected} for an operator and #{non_operator_expected} for a non-operator" do
+        expect(described_class.new(operator, workspace).public_send(verb)).to be(operator_expected)
+        expect(described_class.new(member, workspace).public_send(verb)).to be(non_operator_expected)
+      end
     end
 
     it "denies a nil user" do
@@ -43,13 +47,25 @@ RSpec.describe "Operations policies" do
   end
 
   describe Operations::UserPolicy do
-    it "opens index/show/unlock/suspend to operators only" do
-      policy = described_class.new(operator, member)
-      expect(policy.index?).to be true
-      expect(policy.show?).to be true
-      expect(policy.unlock?).to be true
-      expect(policy.suspend?).to be true
-      expect(described_class.new(member, member).show?).to be false
+    # Record is `member` throughout, including the non-operator actor rows
+    # (actor == record there, same as the original hand-written example) —
+    # values read off app/policies/operations/user_policy.rb.
+    {
+      index?: [ true, false ],
+      show?: [ true, false ],
+      new?: [ false, false ],
+      create?: [ false, false ],
+      update?: [ false, false ],
+      edit?: [ false, false ],
+      destroy?: [ false, false ],
+      unlock?: [ true, false ],
+      suspend?: [ true, false ],
+      unsuspend?: [ true, false ]
+    }.each do |verb, (operator_expected, non_operator_expected)|
+      it "answers #{verb.inspect} #{operator_expected} for an operator and #{non_operator_expected} for a non-operator" do
+        expect(described_class.new(operator, member).public_send(verb)).to be(operator_expected)
+        expect(described_class.new(member, member).public_send(verb)).to be(non_operator_expected)
+      end
     end
 
     it "refuses to suspend an operator record, the operator themself included" do
@@ -58,28 +74,44 @@ RSpec.describe "Operations policies" do
       expect(described_class.new(operator, other_operator).suspend?).to be false
       expect(described_class.new(operator, operator).suspend?).to be false
     end
-
-    it "opens unsuspend/unlock to operators only, regardless of the record" do
-      expect(described_class.new(operator, member).unsuspend?).to be true
-      expect(described_class.new(operator, member).unlock?).to be true
-      expect(described_class.new(member, member).unsuspend?).to be false
-      expect(described_class.new(member, member).unlock?).to be false
-    end
   end
 
   describe Operations::ActivityLogPolicy do
-    it "opens index to operators only" do
-      expect(described_class.new(operator, ActivityLog).index?).to be true
-      expect(described_class.new(member, ActivityLog).index?).to be false
+    # The feed is read-only: index? is the one predicate that opens, the
+    # rest are refused for everyone (app/policies/operations/activity_log_policy.rb).
+    {
+      index?: [ true, false ],
+      show?: [ false, false ],
+      create?: [ false, false ],
+      new?: [ false, false ],
+      update?: [ false, false ],
+      edit?: [ false, false ],
+      destroy?: [ false, false ]
+    }.each do |verb, (operator_expected, non_operator_expected)|
+      it "answers #{verb.inspect} #{operator_expected} for an operator and #{non_operator_expected} for a non-operator" do
+        expect(described_class.new(operator, ActivityLog).public_send(verb)).to be(operator_expected)
+        expect(described_class.new(member, ActivityLog).public_send(verb)).to be(non_operator_expected)
+      end
     end
   end
 
   describe Operations::OperatorshipPolicy do
-    it "opens index/create/destroy to operators only" do
-      expect(described_class.new(operator, Operatorship).index?).to be true
-      expect(described_class.new(operator, Operatorship).create?).to be true
-      expect(described_class.new(operator, Operatorship.new).destroy?).to be true
-      expect(described_class.new(member, Operatorship).create?).to be false
+    # Record is a plain unsaved Operatorship — every predicate here answers
+    # from the actor's operator? status alone (app/policies/operations/
+    # operatorship_policy.rb), never the record's attributes.
+    {
+      index?: [ true, false ],
+      show?: [ false, false ],
+      new?: [ true, false ],
+      create?: [ true, false ],
+      update?: [ false, false ],
+      edit?: [ false, false ],
+      destroy?: [ true, false ]
+    }.each do |verb, (operator_expected, non_operator_expected)|
+      it "answers #{verb.inspect} #{operator_expected} for an operator and #{non_operator_expected} for a non-operator" do
+        expect(described_class.new(operator, Operatorship.new).public_send(verb)).to be(operator_expected)
+        expect(described_class.new(member, Operatorship.new).public_send(verb)).to be(non_operator_expected)
+      end
     end
   end
 end

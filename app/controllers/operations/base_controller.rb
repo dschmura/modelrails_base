@@ -28,6 +28,5 @@ module Operations
     def operated_workspaces
       Current.user.operated_workspaces
     end
-    helper_method :operated_workspaces
   end
 end

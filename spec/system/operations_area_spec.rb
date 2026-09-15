@@ -37,12 +37,7 @@ RSpec.describe "Operations area", type: :system do
   end
 
   # Covers both lock states so the lock control AND the unlock control are
-  # each audited, plus the status badge's rendered aria-label. No
-  # `click_link` from the index here: operations/workspaces/_row.html.erb
-  # renders the workspace name as plain text, not a link — there is no
-  # in-app path from the list to a workspace's show page today. Visiting the
-  # show route directly is the only way in; not an axe finding (nothing is a
-  # broken link, there's simply no link), so left as-is and reported.
+  # each audited, plus the status badge's rendered aria-label.
   it "shows a workspace, locks and unlocks it, auditing both states and the status badge, AAA in both themes" do
     owner = create(:user, first_name: "Olive", last_name: "Owner")
     workspace = create(:workspace, name: "Acme Robotics")
@@ -62,7 +57,7 @@ RSpec.describe "Operations area", type: :system do
     expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
 
     # Lock control: button_to with data-turbo-confirm on the form.
-    accept_confirm { click_button I18n.t("operations.workspaces.show.suspend") }
+    accept_confirm(I18n.t("operations.workspaces.show.suspend_confirm")) { click_button I18n.t("operations.workspaces.show.suspend") }
     expect(page).to have_text(I18n.t("operations.workspaces.suspensions.create.success"))
     expect(workspace.reload).to be_suspended
     expect(page).to have_css(
@@ -126,7 +121,7 @@ RSpec.describe "Operations area", type: :system do
     expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
 
     # Suspend control: button_to with data-turbo-confirm on the form.
-    accept_confirm { click_button I18n.t("operations.users.show.suspend") }
+    accept_confirm(I18n.t("operations.users.show.suspend_confirm")) { click_button I18n.t("operations.users.show.suspend") }
     expect(page).to have_text(I18n.t("operations.users.suspensions.create.success"))
     expect(page).to have_text(I18n.t("operations.users.show.suspended"))
     expect(page).to have_button(I18n.t("operations.users.show.reinstate"))
@@ -157,7 +152,9 @@ RSpec.describe "Operations area", type: :system do
     # Two identically-labelled "Revoke" buttons now exist on the roster, so
     # the click is scoped to the grantee's own row to disambiguate.
     within("li", text: grantee.full_name) do
-      accept_confirm { click_button I18n.t("operations.operatorships.index.revoke") }
+      accept_confirm(I18n.t("operations.operatorships.index.revoke_confirm", name: grantee.full_name)) do
+        click_button I18n.t("operations.operatorships.index.revoke")
+      end
     end
     expect(page).to have_text(I18n.t("operations.operatorships.destroy.success"))
     expect(grantee.reload).not_to be_operator

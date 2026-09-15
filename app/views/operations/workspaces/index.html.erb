@@ -3,7 +3,9 @@
   <%= render "shared/settings_page_header",
         title: t("operations.workspaces.index.title"),
         description: t("operations.workspaces.index.description") %>
-  <%= ui :button, t("operations.workspaces.index.new"), href: new_operations_workspace_path, class: "whitespace-nowrap" %>
+  <% if TenancyConfig.workspace_creation_enabled? %>
+    <%= ui :button, t("operations.workspaces.index.new"), href: new_operations_workspace_path, class: "whitespace-nowrap" %>
+  <% end %>
 </div>
 
 <% if @workspaces.any? %>
