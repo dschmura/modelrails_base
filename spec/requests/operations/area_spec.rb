@@ -81,6 +81,21 @@ RSpec.describe "Operations area", type: :request do
       expect(response).to have_http_status(:ok)
     end
 
+    it "lets an un-onboarded operator finish reauthentication and land back on /operations" do
+      allow(TenancyConfig).to receive(:onboarding).and_return(:none)
+      operator.update!(onboarded_at: nil)
+      operator.sessions.update_all(reauthenticated_at: nil)
+
+      get operations_workspaces_path
+      expect(response).to redirect_to(new_settings_reauthentication_path)
+
+      get new_settings_reauthentication_path
+      expect(response).to have_http_status(:ok)
+
+      post settings_reauthentication_path, params: { password: "SecureP@ssw0rd123!" }
+      expect(response).to redirect_to(operations_workspaces_path)
+    end
+
     it "requires a fresh reauthentication" do
       operator.sessions.update_all(reauthenticated_at: nil)
       get operations_workspaces_path

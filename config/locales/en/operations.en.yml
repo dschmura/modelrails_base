@@ -93,6 +93,7 @@ en:
         success: "Operator access revoked."
         already_revoked: "That operator access was already revoked."
         last_operator: "The last operator cannot be revoked from here. Use rails operators:revoke on the server."
+        self_revoke: "You cannot revoke your own operator access. Ask another operator to do it."
   # owner_email's error attaches to the FIELD, not :base, via Workspace's own
   # virtual attribute (see Workspace#owner_email). `invalid` is a fragment —
   # full_message prefixes the humanized attribute name below, so that value

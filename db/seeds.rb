@@ -45,9 +45,11 @@ if TenancyConfig.shared?
 
   # The bootstrap owner also operates the instance: on an invite-only
   # deployment somebody must be able to create workspaces and see users before
-  # anyone else exists. Idempotent — the partial unique index makes a second
-  # grant impossible, so guard on operator?.
-  Operatorship.grant!(user: owner) unless owner.operator?
+  # anyone else exists. owner.operator? alone isn't idempotent here — it goes
+  # false again after a break-glass revoke, and re-seeding must not resurrect
+  # a grant that was deliberately taken away. Guard on any operatorship row
+  # ever existing, kept or discarded.
+  Operatorship.grant!(user: owner) unless owner.operatorships.exists?
 
   # Help the owner claim the account. In production we do NOT log a password
   # token: the link would be minted at deploy time (its short expiry clock

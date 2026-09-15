@@ -55,6 +55,7 @@ module Operations
       when :revoked then redirect_to operations_operatorships_path, notice: t(".success")
       when :already_revoked then redirect_to operations_operatorships_path, alert: t(".already_revoked")
       when :last_operator then redirect_to operations_operatorships_path, alert: t(".last_operator")
+      when :self_revoke then redirect_to operations_operatorships_path, alert: t(".self_revoke")
       end
     end
   end

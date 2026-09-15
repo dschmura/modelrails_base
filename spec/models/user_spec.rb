@@ -291,5 +291,47 @@ RSpec.describe User, type: :model do
       expect(user.sessions.count).to eq(0)
       expect(user.memberships.kept.count).to eq(0)
     end
+
+    it "revokes the user's project memberships in the suspended workspace, same as Membership#deactivate!" do
+      user = create(:user)
+      workspace = create(:workspace)
+      membership = create(:membership, :owner, user: user, workspace: workspace)
+      project = create(:project, workspace: workspace, created_by: user)
+
+      user.suspend_access!
+
+      expect(ProjectMembership.where(project: project, user: user)).not_to exist
+      expect(membership.reload).to be_discarded
+    end
+
+    it "does not let a readmitted user silently regain the project access suspension revoked" do
+      user = create(:user)
+      workspace = create(:workspace)
+      membership = create(:membership, :owner, user: user, workspace: workspace)
+      project = create(:project, workspace: workspace, created_by: user)
+
+      user.suspend_access!
+      membership.reactivate!
+
+      expect(ProjectMembership.where(project: project, user: user)).not_to exist
+    end
+
+    it "keeps sessions destroyed even when the membership work fails partway through" do
+      user = create(:user)
+      workspace_a = create(:workspace)
+      workspace_b = create(:workspace)
+      membership_a = create(:membership, :owner, user: user, workspace: workspace_a)
+      membership_b = create(:membership, :owner, user: user, workspace: workspace_b)
+      user.sessions.create!(user_agent: "test", ip_address: "127.0.0.1")
+
+      allow_any_instance_of(Membership).to receive(:discard!) do |instance|
+        raise StandardError, "boom" if instance.workspace_id == workspace_b.id
+        instance.update!(discarded_at: Time.current)
+      end
+
+      expect { user.suspend_access! }.to raise_error(StandardError, "boom")
+      expect(user.sessions.count).to eq(0)
+      expect(membership_a.reload).to be_kept
+    end
   end
 end

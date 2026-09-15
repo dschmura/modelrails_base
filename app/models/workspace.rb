@@ -135,7 +135,7 @@ class Workspace < ApplicationRecord
   def owner
     # detect over preloaded memberships, no per-row query in lists. See /docs/developer/architecture (Owner Lookup).
     ms = memberships.loaded? ? memberships : memberships.includes(:role, :user)
-    ms.detect(&:owner?)&.user
+    ms.detect { |m| m.owner? && m.kept? }&.user
   end
 
   # Always a fresh query, even when memberships is loaded. See /docs/developer/architecture (Owner Lookup).

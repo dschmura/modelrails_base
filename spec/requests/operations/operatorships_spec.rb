@@ -119,6 +119,22 @@ RSpec.describe "Operations operatorships", type: :request do
       expect(flash[:notice]).to eq(I18n.t("operations.operatorships.destroy.success"))
     end
 
+    # An operator revoking their OWN row would otherwise redirect into
+    # require_operator's 404 (they're no longer one) with the flash never
+    # rendered — a blank page indistinguishable from a crash.
+    it "refuses to let an operator revoke their own access, and the page is still reachable after" do
+      Operatorship.grant!(user: create(:user)) # not the last operator: isolates self-revoke from that refusal
+      own = operator.operatorships.kept.sole
+      delete operations_operatorship_path(own)
+      expect(operator.reload).to be_operator
+      expect(own.reload).to be_kept
+      expect(flash[:alert]).to eq(I18n.t("operations.operatorships.destroy.self_revoke"))
+      expect(response).to redirect_to(operations_operatorships_path)
+
+      follow_redirect!
+      expect(response).to have_http_status(:ok)
+    end
+
     it "refuses to revoke the last operator" do
       own = operator.operatorships.kept.sole
       delete operations_operatorship_path(own)

@@ -134,6 +134,21 @@ RSpec.describe "Operations activity feed", type: :request do
   # immutability guard scans {app,lib}/**/*.rb, not spec/ — imitating the
   # bug rather than causing it, so it would keep passing even if a future
   # trackable-side cleanup made that state unreachable in production.
+  # operated_workspaces is Workspace.kept, so a discarded workspace's slug can
+  # never resolve — but discarding one WRITES its own activity row (an
+  # ordinary update!, Trackable fires), which stays in the feed forever.
+  # Same guard as operations/users/show.html.erb's membership rows.
+  it "does not link a row whose workspace has since been discarded" do
+    workspace = create(:workspace, name: "Alpha")
+    workspace.discard!
+
+    get operations_activity_logs_path
+    expect(response).to have_http_status(:ok)
+    html = Capybara.string(response.body)
+    expect(html).to have_text("Alpha")
+    expect(html).to have_no_link(href: operations_workspace_path(workspace))
+  end
+
   it "shows the neutral noun instead of raising when a User trackable is gone" do
     grantee = create(:user)
     Operatorship.grant!(user: grantee)

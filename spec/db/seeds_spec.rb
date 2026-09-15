@@ -50,4 +50,16 @@ RSpec.describe "db/seeds.rb :shared bootstrap", type: :request do
     expect(owner).to be_operator
     expect(owner.operatorships.kept.count).to eq(1)
   end
+
+  it "does not resurrect a bootstrap owner's operatorship after it was revoked" do
+    allow(Rails.logger).to receive(:info)
+
+    Rails.application.load_seed
+    owner = User.find_by!(email_address: "owner@acme.test")
+    owner.operatorships.kept.sole.revoke!
+
+    Rails.application.load_seed
+
+    expect(owner.reload).not_to be_operator
+  end
 end

@@ -118,6 +118,16 @@ RSpec.describe Operatorship do
       expect(operatorship.reload.discarded_at).to eq(discarded_at)
     end
 
+    it "refuses and reports :self_revoke when the revoker is the operatorship's own user, writing no audit row" do
+      operatorship = described_class.grant!(user: user)
+      described_class.grant!(user: create(:user))
+
+      expect {
+        expect(operatorship.revoke_unless_last!(revoked_by: user)).to be(:self_revoke)
+      }.not_to change(ActivityLog, :count)
+      expect(operatorship.reload).to be_kept
+    end
+
     # Sequential stand-in for the concurrent case this guard exists for
     # (two operators revoking two DIFFERENT rows in the same window): SQLite's
     # writer lock (BEGIN IMMEDIATE, /docs/developer/architecture) serializes

@@ -14,11 +14,18 @@
         <%# The workspace goes INTO the row as its context local, not around it:
             the partial renders the <li>, so wrapping it to add a heading gives
             every entry its own one-item <ol>. %>
+        <%# operated_workspaces (Workspace.kept) can never resolve a discarded
+            workspace's slug — link only a kept one, same guard as
+            operations/users/show.html.erb's membership rows. %>
         <%= render "activity_logs/activity_log",
               activity_log: activity_log,
-              context: (activity_log.workspace ?
-                link_to(activity_log.workspace.name, operations_workspace_path(activity_log.workspace), class: "btn-text focus-ring") :
-                t("operations.activity_logs.index.instance")) %>
+              context: (if activity_log.workspace.nil?
+                t("operations.activity_logs.index.instance")
+              elsif activity_log.workspace.kept?
+                link_to(activity_log.workspace.name, operations_workspace_path(activity_log.workspace), class: "btn-text focus-ring")
+              else
+                "#{activity_log.workspace.name} — #{lifecycle_status_label(activity_log.workspace)}"
+              end) %>
       <% end %>
     </ol>
     <%# shared/_pagination is a card FOOTER (border-t px-4 py-3) — it belongs

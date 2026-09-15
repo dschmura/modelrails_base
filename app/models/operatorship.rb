@@ -52,11 +52,19 @@ class Operatorship < ApplicationRecord
   # that cannot tell them apart reports a refusal for a rule that did not
   # apply. lock! before the count is what makes the guard atomic — see
   # /docs/developer/architecture (Concurrency).
+  # :self_revoke, not a silent allow: an operator revoking their own
+  # operatorship would redirect straight into require_operator's 404, the
+  # success flash never rendered. Checked AFTER :last_operator, not before —
+  # require_operator means the sole kept operator revoking themselves is the
+  # only way :last_operator is ever reachable, and that refusal's
+  # break-glass advice is the true and actionable one; "ask another
+  # operator" would be advice for an operator who doesn't exist.
   def revoke_unless_last!(revoked_by: nil)
     transaction do
       lock!
       next :already_revoked if discarded?
       next :last_operator if Operatorship.kept.count <= 1
+      next :self_revoke if revoked_by == user
 
       revoke!(revoked_by: revoked_by)
       :revoked

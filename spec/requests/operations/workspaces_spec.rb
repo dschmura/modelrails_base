@@ -19,6 +19,20 @@ RSpec.describe "Operations workspaces", type: :request do
       expect(Capybara.string(response.body))
         .to have_link("Acme", href: operations_workspace_path(workspace))
     end
+
+    # Membership#owner? has no kept test, so a discarded owner membership
+    # (this PR's own suspend-access control produces exactly this) used to
+    # keep showing that person as Owner beside a member count of zero — and
+    # disagree with show, which is built from memberships.kept.
+    it "does not credit a discarded membership's user as Owner" do
+      Membership.kept.find_by!(user: owner, workspace: workspace).discard!
+
+      get operations_workspaces_path
+      html = Capybara.string(response.body)
+      row = html.find("tr", text: "Acme")
+      expect(row).to have_no_text("Olive Owner")
+      expect(row).to have_text("0")
+    end
   end
 
   describe "GET /operations/workspaces/:slug" do
