@@ -197,10 +197,11 @@ out every *other* session; users can review and revoke devices at
 Actions that add, remove, or change an authentication factor require a recent
 proof of identity, so a borrowed session can't be turned into a takeover.
 `Reauthenticatable#require_reauthentication!` gates: password change/removal,
-passkey enrollment and deletion, email change, and OAuth unlink. It checks
-`Session#reauthenticated?` (a 15-minute window on `reauthenticated_at`, set at
-sign-in and refreshed by the interstitial) and, if stale, sends the user to
-`/settings/reauthentication`.
+passkey enrollment and deletion, email change, OAuth unlink, and every
+action in the [instance-operations area](operations) (`/operations`). It
+checks `Session#reauthenticated?` (a 15-minute window on
+`reauthenticated_at`, set at sign-in and refreshed by the interstitial) and,
+if stale, sends the user to `/settings/reauthentication`.
 
 The interstitial offers only the factors the user has (`User#available_reauth_factors`):
 password, a passkey (verified through `AuthenticateCeremony` **bound to the
@@ -208,11 +209,15 @@ current user** — another account's passkey is rejected), or a one-time
 `ReauthenticationChallenge` code emailed and entered in-page (never a link, so
 it can't be replayed into a sign-in). All of it is tunable in
 `config/initializers/sessions.rb`; `reauth_enabled = false` makes the gate a
-no-op — except passkey enrollment, which stays gated regardless: enrollment
-mints a durable, phishing-resistant credential and revokes nothing, so it is
-hard-wired (`require_reauthentication!(force: true)`) and additionally fires
-`PasskeyAddedNotifier`. Email changes are gated here rather than on a
-password, so passwordless users can change their email.
+no-op — except passkey enrollment and the operations area, which stay gated
+regardless: enrollment mints a durable, phishing-resistant credential and
+revokes nothing, and the operations area suspends workspaces and mints
+operatorships, so both are hard-wired
+(`require_reauthentication!(force: true)`), and enrollment additionally
+fires `PasskeyAddedNotifier`. Email changes are gated here rather than on a
+password, so passwordless users can change their email. The operations gate
+is also the only one that fires on GET requests, not just mutations — see
+[Instance operations: How it stays safe](operations#how-it-stays-safe).
 
 Sign-ins from an unrecognized browser/OS additionally trigger a security
 notification (`SignInFromNewDeviceNotifier`). The alert is gated by
