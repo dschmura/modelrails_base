@@ -79,6 +79,12 @@ RSpec.describe WorkspaceJoinLink, type: :model do
       expect(membership.role.slug).to eq("member")
     end
 
+    # Same seam as an invitation: joining is onboarding, so a link-joiner
+    # under :none never lands in the first-run wizard either.
+    it "marks the joiner onboarded" do
+      expect { link.admit(joiner) }.to change { joiner.reload.onboarded? }.from(false).to(true)
+    end
+
     it "is a no-op for a stale link (workspace no longer accepting open joins)" do
       joiner # create outside the expect — onboarding creates its own membership
       open_workspace.update!(join_policy: "invite")
