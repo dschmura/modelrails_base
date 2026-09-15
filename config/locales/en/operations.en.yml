@@ -79,6 +79,17 @@ en:
         # already-safe %{date} markup through untouched.
         granted_by_html: "granted by %{name} on %{date}"
         bootstrap: "rake or seed"
+        grant_label: "Grant operator access to (email)"
+        grant: "Grant"
+        revoke: "Revoke"
+        revoke_confirm: "Revoke %{name}'s operator access?"
+      create:
+        success: "Operator access granted."
+        already: "That user is already an operator."
+        not_found: "No user has that email address."
+      destroy:
+        success: "Operator access revoked."
+        last_operator: "The last operator cannot be revoked from here. Use rails operators:revoke on the server."
   # owner_email's error attaches to the FIELD, not :base, via Workspace's own
   # virtual attribute (see Workspace#owner_email). `invalid` is a fragment —
   # full_message prefixes the humanized attribute name below, so that value

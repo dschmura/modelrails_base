@@ -192,7 +192,7 @@ Rails.application.routes.draw do
       end
     end
     resources :activity_logs, only: :index
-    resources :operatorships, only: :index
+    resources :operatorships, only: %i[index create destroy]
   end
 
   # Fork seam: product routes (root, marketing pages, your features) live in
