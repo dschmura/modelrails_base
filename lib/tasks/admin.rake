@@ -3,7 +3,7 @@ namespace :users do
   task :unlock, [ :email ] => :environment do |_t, args|
     abort "Usage: rails users:unlock[email@example.com]" unless args[:email]
     user = User.find_by!(email_address: args[:email])
-    user.update!(failed_login_attempts: 0, locked_at: nil)
+    user.unlock!
     puts "Unlocked #{user.email_address}"
   rescue ActiveRecord::RecordNotFound
     abort "User not found: #{args[:email]}"
@@ -29,8 +29,7 @@ namespace :users do
   task :suspend, [ :email ] => :environment do |_t, args|
     abort "Usage: rails users:suspend[email@example.com]" unless args[:email]
     user = User.find_by!(email_address: args[:email])
-    user.sessions.destroy_all
-    user.memberships.kept.find_each(&:discard!)
+    user.suspend_access!
     puts "Suspended #{user.email_address} — all sessions destroyed, all memberships deactivated"
   rescue ActiveRecord::RecordNotFound
     abort "User not found: #{args[:email]}"

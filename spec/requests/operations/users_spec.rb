@@ -60,4 +60,25 @@ RSpec.describe "Operations users", type: :request do
       expect(positions).to eq(positions.sort)
     end
   end
+
+  describe "DELETE /operations/users/:id/lock" do
+    it "unlocks" do
+      5.times { target.register_failed_login! }
+      delete operations_user_lock_path(target)
+      expect(target.reload).not_to be_locked
+      expect(response).to redirect_to(operations_user_path(target))
+      expect(flash[:notice]).to eq(I18n.t("operations.users.locks.destroy.success"))
+    end
+  end
+
+  describe "POST /operations/users/:id/suspension" do
+    it "suspends access" do
+      workspace = create(:workspace)
+      create(:membership, :owner, user: target, workspace: workspace)
+      create(:membership, :owner, workspace: workspace)
+      post operations_user_suspension_path(target)
+      expect(target.reload.memberships.kept).to be_empty
+      expect(flash[:notice]).to eq(I18n.t("operations.users.suspensions.create.success"))
+    end
+  end
 end

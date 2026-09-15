@@ -8,6 +8,21 @@
   <dd class="text-text-body"><%= @user.operator? ? t("operations.affirmative") : t("operations.negative") %></dd>
 </dl>
 
+<%# button_to, not `ui :button href: data-turbo-method:` — same house rule as
+    the workspace lock controls (operations/workspaces/show.html.erb): without
+    JS a link GETs a route with no GET handler, and ui :button can't render a
+    form. class: repeats ButtonComponent::COMBOS' own output for the two
+    AAA-proven cells (btn-secondary, btn-danger). %>
+<div class="mt-4 flex gap-3">
+  <% if @user.locked? %>
+    <%= button_to t("operations.users.show.unlock"), operations_user_lock_path(@user),
+          method: :delete, class: "btn-secondary" %>
+  <% end %>
+  <%= button_to t("operations.users.show.suspend"), operations_user_suspension_path(@user),
+        method: :post, class: "btn-danger",
+        form: { data: { turbo_confirm: t("operations.users.show.suspend_confirm") } } %>
+</div>
+
 <section aria-labelledby="ops-user-memberships" class="mt-6">
   <h2 id="ops-user-memberships" class="text-lg font-semibold text-text-heading"><%= t("operations.users.show.memberships") %></h2>
   <% if @memberships.any? %>

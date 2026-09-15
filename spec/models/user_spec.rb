@@ -267,4 +267,29 @@ RSpec.describe User, type: :model do
       expect(granter.granted_operatorships.pluck(:granted_by_id).uniq).to eq([ granter.id ])
     end
   end
+
+  describe "#unlock! and #suspend_access!" do
+    it "unlocks a locked account" do
+      user = create(:user)
+      5.times { user.register_failed_login! }
+      expect(user.reload).to be_locked
+
+      user.unlock!
+      expect(user.reload).not_to be_locked
+      expect(user.failed_login_attempts).to eq(0)
+    end
+
+    it "destroys sessions and discards kept memberships" do
+      user = create(:user)
+      workspace = create(:workspace)
+      create(:membership, :owner, user: user, workspace: workspace)
+      create(:membership, :owner, workspace: workspace)
+      user.sessions.create!(user_agent: "test", ip_address: "127.0.0.1")
+
+      user.suspend_access!
+
+      expect(user.sessions.count).to eq(0)
+      expect(user.memberships.kept.count).to eq(0)
+    end
+  end
 end

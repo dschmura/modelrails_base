@@ -56,6 +56,15 @@ en:
         operator: "Operator"
         memberships: "Memberships"
         no_memberships: "No memberships yet."
+        unlock: "Unlock account"
+        suspend: "Suspend access"
+        suspend_confirm: "Every session ends and every membership is deactivated. Continue?"
+      locks:
+        destroy:
+          success: "Account unlocked."
+      suspensions:
+        create:
+          success: "Access suspended."
     activity_logs:
       index:
         title: "Activity across the instance"

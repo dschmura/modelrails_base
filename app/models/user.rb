@@ -83,6 +83,27 @@ class User < ApplicationRecord
     operatorships.kept.exists?
   end
 
+  # Operator-grade suspension: every session gone, every membership
+  # deactivated. The user row stays (audit, FKs); they can be re-invited.
+  # Extracted from lib/tasks/admin.rake's users:suspend, now shared with
+  # Operations::Users::SuspensionsController. discard!, not deactivate!,
+  # preserves that existing behavior exactly — and empirically does NOT raise
+  # for a sole owner's membership (validate_not_last_owner! only runs inside
+  # deactivate!), so a sole owner is silently left owning nothing. Pre-existing
+  # in the rake task; flagged, not fixed here.
+  def suspend_access!
+    transaction do
+      sessions.destroy_all
+      # includes(:workspace): each discard fires Trackable's after_commit,
+      # which reads Membership#activity_workspace (its own :workspace, not
+      # Current.workspace — the operations area sets none). Unpreloaded, a
+      # user with 2+ memberships (the common case: personal workspace plus
+      # any team ones) N+1s here — invisible in the rake task's own spec
+      # because Bullet only audits request-cycle specs, not rake invocations.
+      memberships.kept.includes(:workspace).find_each(&:discard!)
+    end
+  end
+
   # The operations area's reach, as a RELATION not a predicate: every
   # Operations:: controller resolves workspaces through this. Arc 2 (scoped
   # operators) changes this body and no call site.
