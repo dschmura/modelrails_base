@@ -12,6 +12,15 @@ namespace :operators do
       Operatorship.grant!(user: user)
       puts "Granted operator access to #{user.email_address}"
     end
+    # The operator vouches for the address (they typed it), as the :shared
+    # seed does for its bootstrap owner — without a verified row the account
+    # cannot send the invitation its first create-for-owner issues. Create
+    # only: a pending round-trip is never converted. Listed in
+    # spec/requests/can_invite_gate_spec.rb's writer inventory.
+    user.authentications.find_or_create_by!(provider: "email") do |auth|
+      auth.email = user.email_address
+      auth.verified_at = Time.current
+    end
   rescue ActiveRecord::RecordNotFound
     abort "User not found: #{args[:email]}"
   end
