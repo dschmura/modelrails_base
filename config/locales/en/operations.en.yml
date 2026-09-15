@@ -65,6 +65,8 @@ en:
       suspensions:
         create:
           success: "Access suspended."
+        destroy:
+          success: "Access reinstated."
     activity_logs:
       index:
         title: "Activity across the instance"

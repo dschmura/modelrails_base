@@ -5,6 +5,13 @@ class User < ApplicationRecord
   include Avatar
   include Password
   include KnownDevices
+  include Suspension
+
+  # Raised by Authenticatable's sign-in funnel when a suspended user attempts
+  # to start a session; rescued centrally in ApplicationController. Declared
+  # on User rather than inside the Suspension concern so the constant's own
+  # name — in backtraces and the rescue_from line — is User::SuspendedError.
+  SuspendedError = Class.new(StandardError)
 
   has_many :sessions, dependent: :destroy
   has_many :authentications, dependent: :destroy
@@ -81,28 +88,6 @@ class User < ApplicationRecord
 
   def operator?
     operatorships.kept.exists?
-  end
-
-  # Operator-grade suspension: every session gone, every membership
-  # deactivated. The user row stays (audit, FKs); they can be re-invited.
-  # discard!, not deactivate!: a sole owner is left owning nothing rather than
-  # raising deactivate!'s last-owner error — deliberate gap, tracked in #1120,
-  # not fixed here. Sessions are destroyed OUTSIDE the transaction so they
-  # stay gone even if the membership/project revocation below then fails.
-  def suspend_access!
-    sessions.destroy_all
-    transaction do
-      # includes(:workspace): avoids an N+1 in Trackable's after_commit, which
-      # reads Membership#activity_workspace per discarded row.
-      memberships.kept.includes(:workspace).find_each do |membership|
-        membership.discard!
-        # Mirrors Membership#deactivate!'s project-access revocation so both
-        # paths converge on the same end state on readmission.
-        ProjectMembership.joins(:project)
-          .where(projects: { workspace_id: membership.workspace_id }, user_id: id)
-          .destroy_all
-      end
-    end
   end
 
   # The operations area's reach, as a RELATION not a predicate: every

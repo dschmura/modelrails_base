@@ -50,6 +50,10 @@ en:
       resource:
         created: "added a resource"
         updated: "updated a resource"
+      user:
+        suspended: "suspended %{member}"
+        unsuspended: "reinstated %{member}"
+        unlocked: "cleared %{member}'s sign-in lockout"
       operatorship:
         granted: "granted %{member} operator access"
         revoked: "revoked %{member}'s operator access"

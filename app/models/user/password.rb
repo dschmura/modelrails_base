@@ -33,17 +33,26 @@ class User < ApplicationRecord
       update!(locked_at: Time.current) if failed_login_attempts >= MAX_FAILED_ATTEMPTS
     end
 
+    # Clears the same two columns unlock! does, but writes no audit row: the
+    # Session row created moments later is already this event's record. The
+    # operator path below needs its own row because nothing else marks that
+    # an operator, not a login, ended the lockout.
     def register_successful_login!
-      unlock!
+      update!(failed_login_attempts: 0, locked_at: nil)
     end
 
-    # The operator control (Operations::Users::LocksController) and a
-    # successful login (above) both clear the same two columns, but they are
-    # different knowledge — "an operator cleared the lock" vs. "the login
-    # succeeded" — so this is the primitive and register_successful_login!
-    # calls it, not the other way around.
-    def unlock!
-      update!(failed_login_attempts: 0, locked_at: nil)
+    # The operator control (Operations::Users::LocksController). Guards on
+    # locked_at.nil?, not locked?: an EXPIRED lock still carries a stale
+    # failed-attempt counter, and "let them try again" should clear it too.
+    # STRICT audit, like the suspension pair in User::Suspension.
+    def unlock!(by:)
+      transaction do
+        lock!
+        next :not_locked if locked_at.nil?
+        update!(failed_login_attempts: 0, locked_at: nil)
+        ActivityLog.record_security_event!(action: "user.unlocked", user: self, actor: by, visibility: "admin")
+        :unlocked
+      end
     end
 
     # The reload is the idempotence guard (#826): a stale digest would otherwise write a second audit row.

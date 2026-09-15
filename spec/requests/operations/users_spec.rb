@@ -101,24 +101,54 @@ RSpec.describe "Operations users", type: :request do
   end
 
   describe "DELETE /operations/users/:id/lock" do
-    it "unlocks" do
+    it "unlocks and writes a user.unlocked row naming the operator" do
       5.times { target.register_failed_login! }
       expect(target.reload).to be_locked
       delete operations_user_lock_path(target)
       expect(target.reload).not_to be_locked
       expect(response).to redirect_to(operations_user_path(target))
       expect(flash[:notice]).to eq(I18n.t("operations.users.locks.destroy.success"))
+      row = ActivityLog.find_by!(action: "user.unlocked", trackable: target)
+      expect(row.actor).to eq(operator)
     end
   end
 
   describe "POST /operations/users/:id/suspension" do
-    it "suspends access" do
+    it "suspends access, ends sessions, and leaves memberships kept" do
       workspace = create(:workspace)
       create(:membership, :owner, user: target, workspace: workspace)
       create(:membership, :owner, workspace: workspace)
-      post operations_user_suspension_path(target)
-      expect(target.reload.memberships.kept).to be_empty
+      target.sessions.create!(user_agent: "test", ip_address: "127.0.0.1")
+
+      expect {
+        post operations_user_suspension_path(target)
+      }.not_to change { target.memberships.kept.count }
+
+      expect(target.reload).to be_suspended
+      expect(target.sessions.count).to eq(0)
       expect(flash[:notice]).to eq(I18n.t("operations.users.suspensions.create.success"))
+    end
+
+    it "refuses to suspend an operator" do
+      Operatorship.grant!(user: target)
+
+      post operations_user_suspension_path(target)
+
+      expect(target.reload).not_to be_suspended
+      expect(response).to redirect_to(root_path)
+      expect(flash[:alert]).to eq(I18n.t("errors.not_authorized"))
+    end
+  end
+
+  describe "DELETE /operations/users/:id/suspension" do
+    it "reinstates access" do
+      target.suspend!(by: operator)
+
+      delete operations_user_suspension_path(target)
+
+      expect(target.reload).not_to be_suspended
+      expect(response).to redirect_to(operations_user_path(target))
+      expect(flash[:notice]).to eq(I18n.t("operations.users.suspensions.destroy.success"))
     end
   end
 end

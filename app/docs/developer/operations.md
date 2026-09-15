@@ -48,10 +48,11 @@ before anyone else exists.
   a user up by their exact email address (names are encrypted
   non-deterministically and can't be searched or sorted in SQL — see
   [Security: Personal Data at Rest](security#personal-data-at-rest)). From a
-  user's page, unlock a locked account or suspend their access outright
-  (every session ends, every membership is discarded). Read [the
-  caution](#caution-suspending-a-workspaces-sole-owner) below before
-  suspending an owner.
+  user's page, unlock a locked account, or suspend or reinstate them (sign-in
+  is refused and sessions end; memberships and roles are untouched). An
+  operator can't be suspended from here — revoke their operatorship first;
+  `rails users:suspend` is the unguarded break-glass path. See
+  [Suspension keeps memberships](#suspension-keeps-memberships) below.
 - **Activity** (`/operations/activity_logs`) — every workspace's activity,
   newest first, paginated. Personal security events (password changes,
   passkeys, new devices) never appear here — that split is the same `admin`
@@ -100,22 +101,13 @@ ownership or leave the workspace once the new owner is in place. An operator
 who creates workspaces regularly and never hands off accumulates
 memberships this way; tracked as #1118.
 
-## Caution: suspending a workspace's sole owner
+## Suspension keeps memberships
 
-`suspend_access!` discards every one of a user's memberships — including an
-Owner one — without checking whether that leaves a workspace with zero kept
-owners. The guard that normally blocks removing a workspace's last owner
-lives on the ordinary deactivation path, not on the discard path suspension
-uses, so it doesn't run here.
-
-Suspending a user who is the sole owner of a workspace leaves that workspace
-with nobody who can administer it. This is pre-existing behavior — the same
-thing happened when this was only a rake task run by hand — and the
-operations area makes it reachable with one click instead of shell access.
-It isn't fixed here; it's tracked as #1120, pending a product decision.
-Before suspending a user, check their memberships (their user page lists
-every workspace they belong to) for any workspace where they're the only
-owner.
+Suspending a user discards nothing: memberships, roles and project access
+are all left exactly as they were. A suspended sole owner still owns their
+workspace, and reinstating them restores that access with no further
+repair. While they're suspended, that workspace simply has no active
+owner able to sign in — that's the point of a hold, not a gap in it.
 
 ## How it stays safe
 

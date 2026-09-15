@@ -51,6 +51,20 @@ RSpec.describe "Operations policies" do
       expect(policy.suspend?).to be true
       expect(described_class.new(member, member).show?).to be false
     end
+
+    it "refuses to suspend an operator record, the operator themself included" do
+      other_operator = create(:user).tap { |u| Operatorship.grant!(user: u) }
+
+      expect(described_class.new(operator, other_operator).suspend?).to be false
+      expect(described_class.new(operator, operator).suspend?).to be false
+    end
+
+    it "opens unsuspend/unlock to operators only, regardless of the record" do
+      expect(described_class.new(operator, member).unsuspend?).to be true
+      expect(described_class.new(operator, member).unlock?).to be true
+      expect(described_class.new(member, member).unsuspend?).to be false
+      expect(described_class.new(member, member).unlock?).to be false
+    end
   end
 
   describe Operations::ActivityLogPolicy do

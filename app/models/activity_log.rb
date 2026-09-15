@@ -24,6 +24,9 @@ class ActivityLog < ApplicationRecord
     user.signed_in_new_device
     user.passkey_added
     user.passkey_removed
+    user.suspended
+    user.unsuspended
+    user.unlocked
     operatorship.granted
     operatorship.revoked
   ].freeze
@@ -85,7 +88,7 @@ class ActivityLog < ApplicationRecord
   INVITER_UNREADABLE_ACTIONS = %w[invitation.delivery_suppressed].freeze
 
   # id breaks the created_at tie: this is the app's only OFFSET-paginated feed,
-  # and rows written in one burst (bulk_invite!, a suspension's membership rows)
+  # and rows written in one burst (bulk_invite!)
   # share a timestamp, so without it a row can land on two pages or neither.
   scope :for_operations_feed, -> {
     where(visibility: %w[workspace admin])

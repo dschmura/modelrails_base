@@ -3,8 +3,12 @@ namespace :users do
   task :unlock, [ :email ] => :environment do |_t, args|
     abort "Usage: rails users:unlock[email@example.com]" unless args[:email]
     user = User.find_by!(email_address: args[:email])
-    user.unlock!
-    puts "Unlocked #{user.email_address}"
+    case user.unlock!(by: nil)
+    when :unlocked
+      puts "Unlocked #{user.email_address}"
+    when :not_locked
+      puts "#{user.email_address} is not locked"
+    end
   rescue ActiveRecord::RecordNotFound
     abort "User not found: #{args[:email]}"
   end
@@ -25,12 +29,30 @@ namespace :users do
     abort "User not found: #{args[:email]}"
   end
 
-  desc "Suspend a user — destroy sessions, deactivate all memberships"
+  desc "Suspend a user — sessions end, sign-in is blocked, memberships are untouched"
   task :suspend, [ :email ] => :environment do |_t, args|
     abort "Usage: rails users:suspend[email@example.com]" unless args[:email]
     user = User.find_by!(email_address: args[:email])
-    user.suspend_access!
-    puts "Suspended #{user.email_address} — all sessions destroyed, all memberships deactivated"
+    case user.suspend!(by: nil)
+    when :suspended
+      puts "Suspended #{user.email_address} — sessions ended, sign-in blocked until unsuspended"
+    when :already_suspended
+      puts "#{user.email_address} is already suspended"
+    end
+  rescue ActiveRecord::RecordNotFound
+    abort "User not found: #{args[:email]}"
+  end
+
+  desc "Unsuspend a user — restores sign-in"
+  task :unsuspend, [ :email ] => :environment do |_t, args|
+    abort "Usage: rails users:unsuspend[email@example.com]" unless args[:email]
+    user = User.find_by!(email_address: args[:email])
+    case user.unsuspend!(by: nil)
+    when :unsuspended
+      puts "Unsuspended #{user.email_address}"
+    when :not_suspended
+      puts "#{user.email_address} is not suspended"
+    end
   rescue ActiveRecord::RecordNotFound
     abort "User not found: #{args[:email]}"
   end

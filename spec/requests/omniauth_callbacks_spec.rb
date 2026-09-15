@@ -136,6 +136,32 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
     end
   end
 
+  describe "existing OAuth login for a suspended user" do
+    let!(:user) { create(:user, :no_authentications, :suspended, email_address: "suspended-oauth@example.com") }
+    let!(:auth) do
+      user.authentications.create!(
+        provider: "google",
+        uid: "suspended-oauth-123",
+        verified_at: Time.current
+      )
+    end
+
+    before do
+      OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(
+        provider: "google",
+        uid: "suspended-oauth-123",
+        info: { email: "suspended-oauth@example.com", first_name: "Sus", last_name: "Pended" },
+        credentials: { token: "token", refresh_token: nil, expires_at: nil }
+      )
+    end
+
+    it "refuses sign-in with the suspended alert" do
+      get "/auth/google_oauth2/callback"
+      expect(response).to redirect_to(new_session_path)
+      expect(flash[:alert]).to eq(I18n.t("sessions.create.suspended"))
+    end
+  end
+
   describe "OAuth does not link to unverified email accounts" do
     let!(:unverified_user) { create(:user, :unverified_email, email_address: "unverified@example.com") }
 

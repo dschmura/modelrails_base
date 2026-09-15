@@ -168,12 +168,27 @@ owner can still sign in with a passkey or magic link. If your fork wants a
 lock to mean "no sign-in at all", add the `locked?` check to
 `magic_link_callbacks/sessions#create` and `Passkeys::AuthenticateCeremony` as well.
 
+### Account suspension
+
+An operator hold, separate from the failed-attempt lockout above: refused at
+`start_new_session_for`, the one funnel every sign-in path uses (password,
+magic link, passkey, OAuth), and again at session resumption. Sessions are
+destroyed at suspend time; memberships, roles and project access are left
+untouched, so reinstating a user restores them exactly. The hold refuses
+sessions, not writes: a sign-in token a suspended account presents is spent
+as usual, and an OAuth callback still links the provider before the refusal.
+`user.suspended`, `user.unsuspended` and `user.unlocked` are STRICT-tier
+audit rows at `admin` visibility naming the operator as actor (none for a
+rake run). The operations area refuses to suspend an operator; `rails
+users:suspend` does not check, because it is the break-glass path.
+
 Admin rake tasks:
 
 ```bash
 rails users:unlock[email@example.com]     # Unlock a locked account
 rails users:verify[email@example.com]     # Manually verify an email
-rails users:suspend[email@example.com]    # Suspend an account (destroys sessions, deactivates memberships)
+rails users:suspend[email@example.com]    # Suspend a user (sessions end, sign-in blocked; no operator guard)
+rails users:unsuspend[email@example.com]  # Unsuspend a user (restores sign-in)
 ```
 
 ### Session Lifetime

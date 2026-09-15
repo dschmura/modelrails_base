@@ -188,7 +188,7 @@ Rails.application.routes.draw do
     resources :users, only: %i[index show] do
       scope module: :users do
         resource :lock,       only: :destroy
-        resource :suspension, only: :create
+        resource :suspension, only: %i[create destroy]
       end
     end
     resources :activity_logs, only: :index
