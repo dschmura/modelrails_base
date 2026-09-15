@@ -43,12 +43,11 @@ if TenancyConfig.shared?
   membership = workspace.memberships.find_or_create_by!(user: owner) { |m| m.role = owner_role }
   membership.update!(role: owner_role) unless membership.role_id == owner_role.id
 
-  # The bootstrap owner also operates the instance: on an invite-only
-  # deployment somebody must be able to create workspaces and see users before
-  # anyone else exists. Guarded on any operatorship row ever existing, kept or
-  # discarded: operator? goes false after a break-glass revoke, and re-seeding
-  # must not resurrect a grant deliberately taken away. A racing second seed
-  # loses to the partial unique index; treat that as already granted.
+  # The bootstrap owner also operates the instance — see operations.md "Day
+  # one". Guarded on any operatorship row ever existing, kept or discarded:
+  # re-seeding must not resurrect a grant a break-glass revoke deliberately
+  # took away. A racing second seed loses to the partial unique index; treat
+  # that as already granted.
   begin
     Operatorship.grant!(user: owner) unless owner.operatorships.exists?
   rescue ActiveRecord::RecordNotUnique

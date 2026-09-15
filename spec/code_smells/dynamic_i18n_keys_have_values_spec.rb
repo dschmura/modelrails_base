@@ -33,41 +33,19 @@ RSpec.describe "Code smell: every dynamic i18n key has a value" do
       "Providers without an authentication.providers label:\n  #{missing.join("\n  ")}"
   end
 
-  # Both activity feeds (the workspace feed and the operations area's
-  # cross-workspace feed) render `activity.actions.<display_action>`.
-  # Trackable writes <param_key>.created/updated for every includer, and
-  # ActivityLog#display_action derives three membership variants from
-  # metadata — that half is enumerable from the model layer.
+  # Both activity feeds render `activity.actions.<display_action>`.
+  # Trackable-derived actions are enumerable from the model layer; the rest
+  # bypass Trackable with a literal `action:`. Two scans read the SAME two
+  # reviewed sources security_events_route_through_writer_spec.rb pins —
+  # SecurityEventWriters::ALLOWED for the `ActivityLog.create!` shape, and
+  # every `record_security_event!` call under app/ for a non-personal
+  # `visibility:` — using balanced_end (a nested `)` can't hide `action:`)
+  # and without_comments (prose can't forge a phantom action).
   #
-  # The remainder bypasses Trackable and writes a literal `action:` directly.
-  # A regex scanning app/ for that shape is paren-fragile — ANY `)` between
-  # `ActivityLog.create!(` and `action:` blinds it, and
-  # application_controller.rb's own call was one argument swap away from
-  # doing exactly that. Rather than guess at source shape, two scans read
-  # two reviewed sources: the `ActivityLog.create!` shape only in
-  # SecurityEventWriters::ALLOWED (spec/support/security_event_writers.rb) —
-  # the SAME list security_events_route_through_writer_spec.rb uses to prove
-  # no OTHER file bypasses Trackable — and `ActivityLog.record_security_event!`
-  # calls anywhere under app/, keeping only those whose visibility: literal is
-  # not personal (the ones that reach a feed). Both use balanced_end so a
-  # nested `)` inside the call can't hide `action:`, and without_comments so
-  # prose merely naming the shape (trackable.rb's own header) can't forge a
-  # phantom action. A new bypass writer must be added to ALLOWED before either
-  # guard can see it; a new feed-visible security write is seen where it is.
-  #
-  # This text scan cannot evaluate every Ruby shape — create without a bang,
-  # create! without parens, a non-literal action value, a string-embedded
-  # paren that desyncs balanced_end. Any write shape it cannot resolve to a
-  # plain string literal fails loud, naming the file and line, rather than
-  # skipping silently and shipping a missing label unnoticed. The one
-  # legitimate non-literal is Trackable#create_activity's own `action:
-  # action` — it forwards its caller's action rather than hardcoding one,
-  # and that whole family is already enumerated above from the model
-  # descendants loop, so it is declared safe by exact value below rather
-  # than silently allowed. Shared with the scan below so the two can't drift
-  # apart. `\b` anchors the left edge: without it, "transaction:" or
-  # "redaction:" — any kwarg whose name merely ENDS in "action:" — matches
-  # before the real action: does.
+  # Neither scan can resolve every Ruby shape (no parens, a non-literal
+  # value, a string-embedded paren). Anything unresolved to a plain string
+  # literal fails loud, naming the file and line, rather than skipping
+  # silently and shipping a missing label unnoticed.
   def action_arg_pattern
     /\baction:\s*(.+?)\s*(?:,|\z)/m
   end
@@ -123,6 +101,10 @@ RSpec.describe "Code smell: every dynamic i18n key has a value" do
     # unconsumed).
     write_call = /\bActivityLog\.create!?(?=[\s(]|\z)/
     literal_value = /\A["']([\w.]+)["']\z/
+    # The one legitimate non-literal: Trackable#create_activity forwards its
+    # caller's action rather than hardcoding one — already enumerated above
+    # from the model descendants loop, so declared safe by exact value here
+    # instead of silently allowed.
     declared_dynamic = { "app/models/concerns/trackable.rb" => [ "action" ] }.freeze
 
     unresolved = []

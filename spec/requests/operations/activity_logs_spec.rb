@@ -127,23 +127,8 @@ RSpec.describe "Operations activity feed", type: :request do
     expect(Capybara.string(response.body)).to have_text("granted Gale Grantee operator access")
   end
 
-  # activity_logs.trackable_id carries no FK and no cleanup association, so
-  # a hard-deleted User leaves a dangling row. Without safe navigation on
-  # #display_member's User branch (the Membership branch already has it),
-  # this raises and 500s the WHOLE feed for every operator — the row is
-  # persisted (ActivityLog#readonly? is persisted?), so it can never be
-  # edited away once it ships.
-  #
-  # `grantee.destroy!` produces the real dangling row — no FK violation,
-  # since trackable_id is polymorphic and carries none, and a granted user
-  # who never acted is not an actor (the actor_id FK is a separate,
-  # unrelated deferral). Faking the same trackable_id-0 state via update_all
-  # instead would stay legal only because the immutability guard scans
-  # {app,lib}/**/*.rb, not spec/ — imitating the bug's symptom rather than
-  # its cause, so it would keep passing even after a future trackable-side
-  # cleanup made the real scenario unreachable in production.
-  # operated_workspaces is Workspace.kept, so a discarded workspace's slug can
-  # never resolve — but discarding one WRITES its own activity row (an
+  # operated_workspaces is Workspace.kept, so a discarded workspace's slug
+  # can never resolve — but discarding one WRITES its own activity row (an
   # ordinary update!, Trackable fires), which stays in the feed forever.
   # Same guard as operations/users/show.html.erb's membership rows.
   it "does not link a row whose workspace has since been discarded" do
@@ -157,6 +142,12 @@ RSpec.describe "Operations activity feed", type: :request do
     expect(html).to have_no_link(href: operations_workspace_path(workspace))
   end
 
+  # activity_logs.trackable_id has no FK, so a hard-deleted User leaves a
+  # dangling row; #display_member's User branch needs safe navigation, or
+  # this 500s the whole feed (the row is persisted, so it can't be edited
+  # away once it ships). `grantee.destroy!` produces the real dangling
+  # state — update_all would fake it only because the immutability guard
+  # scans {app,lib}, not spec/, imitating the symptom, not the cause.
   it "shows the neutral noun instead of raising when a User trackable is gone" do
     grantee = create(:user)
     Operatorship.grant!(user: grantee)

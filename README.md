@@ -112,6 +112,7 @@ workspace-visible activity trail — on top of the authentication below.
 - Multi-tenant workspaces with four system roles (Owner, Admin, Member, Viewer), role permissions, member management, invitations (email + magic-link), open join links, and workspace branding (logo, primary color)
 - Tenancy presets (personal / shared / none) selected by env, with onboarding to match
 - Suspension/archive/soft-delete lifecycle with guarded transitions
+- An instance-operator area (`/operations`) above the workspaces: create and lock workspaces, look users up, suspend and reinstate accounts, grant other operators — 404 to everyone else, reauthenticated on every request, every action in the audit trail
 
 ### Projects & resources
 - Projects as collaboration spaces with creator/editor/viewer memberships, pinning, capacity limits, and per-project tool toggles

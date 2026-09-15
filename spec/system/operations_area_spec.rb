@@ -4,16 +4,14 @@ require "rails_helper"
 
 # The WCAG 2.2 AAA gate over the whole instance-operations area, both themes.
 #
-# Never pass a literal noun as a vocabulary interpolation —
-# `I18n.t(key, workspace: "workspace")` would WIN over the backend's own
-# injection (config/initializers/vocabulary.rb merges the caller's options
-# over Vocabulary.tokens) and silently stop discriminating in a fork that
-# renamed the noun. Every I18n.t call below passes no noun keyword and lets
-# the backend supply %{workspace}/%{workspaces}/etc.
+# Every I18n.t call below passes no vocabulary noun keyword (workspace:,
+# project:) — the backend injects %{workspace}/%{workspaces}/etc itself, and
+# a caller's literal would win over it and stop discriminating in a fork
+# that renamed the noun. See /docs/developer/i18n (Vocabulary).
 #
-# The operator is built with :with_zero_workspaces so the operations area's
-# own workspace list starts genuinely empty — the default trait onboards a
-# personal workspace, which would make "no workspaces yet" unreachable.
+# :with_zero_workspaces keeps the operator's own workspace list genuinely
+# empty — the default trait onboards a personal workspace, which would make
+# "no workspaces yet" unreachable.
 RSpec.describe "Operations area", type: :system do
   let(:operator) { create(:user, :with_zero_workspaces).tap { |u| Operatorship.grant!(user: u) } }
 

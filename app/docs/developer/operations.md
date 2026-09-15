@@ -16,24 +16,55 @@ queries](extending#cross-workspace-queries), Pattern 4.
 
 ## Day one on an invite-only instance
 
-Nobody can reach `/operations` until an operator exists, so the first one is
-minted from the command line:
+Nobody can reach `/operations` until an operator exists, and both
+`operators:grant` and `tenancy:owner_setup_link` abort with "User not found"
+if the email has no account yet — so a person must exist first.
+
+Under the `:shared` preset (see [App Presets](presets)) the grant already
+happened: the seed gives the bootstrap Owner an operatorship at boot, because
+on that preset someone has to be able to create workspaces and see users
+before anyone else exists. The seed also gives that account a placeholder
+password nobody knows, so you still claim it with the
+`tenancy:owner_setup_link` line below — skip only `operators:grant`.
+
+On any other preset, `db:seed` creates no user, so pick the path that matches
+your `SIGNUP_MODE`:
+
+- **Signup is open.** Register through the normal flow first
+  (`/session/new` → registration magic link → name), then continue below.
+- **Signup is invite-only.** Nobody can register yet, so mint the
+  account from the console — `User.create!` needs only `email_address`,
+  `first_name` and `last_name`; a password is optional. This also runs
+  `User#onboard_workspace` like any other signup, so depending on your
+  `WORKSPACE_ON_SIGNUP` preset it may hand the new account a personal
+  workspace or a shared-workspace membership as a side effect — harmless for
+  an operator account, but worth knowing before you're surprised by it in
+  the member list.
+
+  ```sh
+  bin/rails runner 'User.create!(email_address: "me@example.com", first_name: "Me", last_name: "Operator")'
+  ```
+
+Either way, then:
 
 ```sh
 bin/rails operators:grant[me@example.com]
 bin/rails tenancy:owner_setup_link[me@example.com]
 ```
 
-`operators:grant` looks the user up by email and grants an `Operatorship`
-(idempotent — running it again just reports they're already an operator).
-`tenancy:owner_setup_link` mints a short-lived sign-in link so the first
-operator doesn't need a password to get in. Sign in with the link, then open
-`/operations`.
-
-Under the `:shared` preset (see [App Presets](presets)) this already happened
-for you: the seed grants the bootstrap Owner an operatorship at boot, because
-on that preset someone has to be able to create workspaces and see users
-before anyone else exists.
+`operators:grant` grants an `Operatorship` (idempotent — running it again
+just reports they're already an operator). `tenancy:owner_setup_link` mints
+a short-lived `set_password`-intent sign-in link and **prints it to your
+terminal** — it is never emailed, so this step needs no working SMTP even on
+an invite-only instance where the open-signup path above does. Opening the
+link and confirming signs you in (satisfying the reauthentication the area
+force-checks on every request, [below](#how-it-stays-safe)) and lands you on
+`/settings/password/new` to set one; open `/operations` from there, or
+navigate there directly while that sign-in is still fresh. If you let the 15-minute
+reauth window lapse before setting a password, the next `/operations`
+request bounces you to the reauthentication interstitial, and a
+still-passwordless account's only factor there is an emailed one-time code —
+so set a password in that first window if outbound mail isn't wired up yet.
 
 ## What the area does
 
@@ -126,10 +157,8 @@ owner able to sign in — that's the point of a hold, not a gap in it.
   [Extending: Cross-workspace queries](extending#cross-workspace-queries),
   Pattern 4.
 - The last operator can't be revoked from the panel — the roster refuses, so
-  an instance can't lock everyone out through the UI. `bin/rails
-  operators:revoke[email]` still can, deliberately: it's the break-glass
-  path for an instance whose last operator has left or lost access, and
-  it's a server-access operation, not a click.
+  an instance can't lock everyone out through the UI. See [Locked out
+  (break-glass)](#locked-out-break-glass) below for the server-access path.
 
   The guard (`Operatorship#revoke_by_operator!`) is atomic under
   concurrency: `BEGIN IMMEDIATE` opens the transaction at the block's first
@@ -151,3 +180,26 @@ owner able to sign in — that's the point of a hold, not a gap in it.
 - An operator locking or unlocking a workspace shows up in that workspace's
   *own* activity feed too, named as the actor — a tenant owner can see that
   an operator touched their workspace, not just that it happened.
+
+## Locked out (break-glass)
+
+Three rake tasks are the server-access door the panel deliberately can't
+open:
+
+```sh
+bin/rails operators:list             # who currently operates the instance
+bin/rails operators:revoke[email]    # take operator access away
+bin/rails operators:grant[email]     # give operator access
+```
+
+- **The last operator left, or an instance somehow has none:** `grant` a
+  known user directly — it doesn't require an existing operator to run it.
+- **An operator lost access** (locked account, gone email, anything short of
+  a compromise): `list` to confirm who currently holds it, then `grant` a
+  replacement.
+- **An operatorship needs to be pulled** (compromise, off-boarding, or just
+  cleaning up a stale grant): `revoke`.
+
+`revoke` deliberately has **no** last-operator guard the way the panel does
+— it's the break-glass path precisely for the case the panel refuses to
+handle, so it always does what you ask.

@@ -1,10 +1,8 @@
 module Operations
-  # The operations area sits ABOVE the workspaces. Operators are Users who are
-  # not (necessarily) members of anything, so this area never includes
-  # WorkspaceScoped and never sets Current.workspace — the same posture as
-  # Clientside::BaseController. Workspaces are reached only through
-  # Current.user.operated_workspaces (a seam for scoped operators later), and
-  # everything inside a workspace still hops the association.
+  # The operations area sits ABOVE the workspaces: never includes
+  # WorkspaceScoped, never sets Current.workspace. A workspace is reached
+  # only through Current.user.operated_workspaces. See operations.md "How it
+  # stays safe".
   class BaseController < ApplicationController
     # An operator under the :none preset may have onboarded_at: nil; they must
     # reach the operations area rather than the onboarding wizard.

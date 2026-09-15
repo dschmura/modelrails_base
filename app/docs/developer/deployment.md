@@ -90,6 +90,8 @@ bin/kamal deploy    # Subsequent deploys
 
 The `docker_build` CI job (see [Getting Started](/docs/developer/getting-started)) verifies your production image builds successfully on every PR, so the first time you run `kamal deploy` you're not also debugging Dockerfile issues.
 
+Once the app is up, mint the first instance operator — see [Instance operations: Day one](operations#day-one-on-an-invite-only-instance).
+
 ## Production-safety invariants
 
 The template ships two Kamal settings that aren't obvious from the Rails scaffold:

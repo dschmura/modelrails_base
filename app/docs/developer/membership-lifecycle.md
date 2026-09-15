@@ -33,6 +33,14 @@ Re-admission is **not** gated on `Workspace#admittable?`, and that asymmetry wit
 
 `self_join` has a closed grade set (`SELF_JOIN_GRADES`): a grade outside it is a typo, and the validation makes it fail loudly rather than read as a chosen self-join and mail somebody.
 
+## User suspension is not a membership transition
+
+An operator suspending a user touches no membership row at all — memberships,
+roles and project access are left exactly as they were, and a suspended sole
+owner still owns their workspace. Suspension is a hold on the *user*'s
+ability to sign in, not a step in this state machine. See [Instance
+operations: Suspension keeps memberships](operations#suspension-keeps-memberships).
+
 ## Where these are pinned
 
 - `spec/models/membership_spec.rb` — "deactivation" (replay idempotence), "reactivation of an archived workspace's member", "exclusive grant provenance … as a model invariant", "grant provenance on the audit row".

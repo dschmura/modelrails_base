@@ -77,9 +77,8 @@ en:
       index:
         title: "Operators"
         description: "Who can operate this instance."
-        # _html: interpolates a <time> element — the suffix makes ActionView
-        # auto-escape %{name} while passing the already-safe %{date} markup
-        # through untouched.
+        # _html: %{date} carries real markup here. See i18n.md (the _html
+        # suffix convention).
         granted_by_html: "granted by %{name} on %{date}"
         bootstrap: "rake or seed"
         grant_label: "Grant operator access to (email)"
@@ -97,12 +96,9 @@ en:
         already_revoked: "That operator access was already revoked."
         last_operator: "The last operator cannot be revoked from here. Use rails operators:revoke on the server."
         self_revoke: "You cannot revoke your own operator access. Ask another operator to do it."
-  # owner_email's error attaches to the FIELD, not :base, via Workspace's own
-  # virtual attribute (see Workspace#owner_email). `invalid` is a fragment —
-  # full_message prefixes the humanized attribute name below, so that value
-  # must match the field's own label (operations.workspaces.new.owner_email)
-  # or the error summary names a field the form doesn't. First app-level
-  # override of a humanized attribute name — precedent, not a special case.
+  # First app-level override of a humanized attribute name — must match
+  # workspaces.new.owner_email above, or the error summary names a field the
+  # form doesn't. See i18n.md (ignore_unused caveat) for why.
   activerecord:
     attributes:
       workspace:

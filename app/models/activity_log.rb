@@ -77,18 +77,15 @@ class ActivityLog < ApplicationRecord
       .order(created_at: :desc)
   }
   scope :recent, -> { order(created_at: :desc).limit(20) }
-  # The operations feed: every workspace, newest first. `personal` rows are a
-  # user's own security events and are excluded on purpose — an operator
-  # reading them is a privacy decision the template does not make for a fork.
-  # Invariant I3 (decline-and-block): the inviter must never be able to confirm
-  # a block. These rows are admin-visibility so they drop out of the workspace
-  # feeds — but an operations feed is an admin surface, and on a :shared
-  # instance the bootstrap operator IS the inviter, so admin visibility alone
-  # stops protecting the invariant here. Excluded by action.
+  # Invariant I3 (decline-and-block): admin visibility alone doesn't keep a
+  # suppressed-delivery row from an inviter here, since the operator IS often
+  # the inviter. See operations.md "What the area does" (Activity).
   INVITER_UNREADABLE_ACTIONS = %w[invitation.delivery_suppressed].freeze
 
-  # id breaks the created_at tie: this is the app's only OFFSET-paginated feed,
-  # and rows written in one burst (bulk_invite!)
+  # The operations feed: workspace and admin rows, never personal — an
+  # operator reading a user's own security events is a privacy decision the
+  # template leaves to a fork. id breaks the created_at tie: this is the app's
+  # only OFFSET-paginated feed, and rows written in one burst (bulk_invite!)
   # share a timestamp, so without it a row can land on two pages or neither.
   scope :for_operations_feed, -> {
     where(visibility: %w[workspace admin])
@@ -108,16 +105,13 @@ class ActivityLog < ApplicationRecord
     )
   }
 
-  # The feed's loader — call it last in a chain
-  # (`ActivityLog.visible.for_workspace(w).recent.for_feed`). It returns an
-  # Array because the membership hop cannot be one `includes`: `trackable` is
-  # polymorphic and Membership is the only tracked model carrying `user`, so a
-  # blanket `preload(trackable: :user)` raises AssociationNotFoundError the
-  # first time a Project or Invitation row shares the page. Restricting the hop
-  # to the membership slice also keeps the eager-load off pages that have no
-  # membership rows, where Bullet would report it as unused. An operatorship
-  # row's trackable is a User read directly by display_member, so it needs the
-  # same slice treatment — one hop, no nested :user (#1120).
+  # The feed's loader — call last in a chain
+  # (`ActivityLog.visible.for_workspace(w).recent.for_feed`). Returns an
+  # Array, not a Relation: `trackable` is polymorphic and only Membership
+  # carries `user`, so a blanket `preload(trackable: :user)` raises
+  # AssociationNotFoundError the moment a Project or Invitation row shares
+  # the page — the membership hop, and separately an operatorship row's User
+  # trackable, are preloaded on their own slice instead (#1120).
   def self.for_feed
     logs = includes(:actor).to_a
     preload_trackables(logs, "Membership") do |members|
@@ -134,13 +128,11 @@ class ActivityLog < ApplicationRecord
     ActiveRecord::Associations::Preloader.new(records: rows, associations: :trackable).call
     return unless block_given?
 
-    # Only read the association (and only here) when a caller needs the
-    # array — reading it unconditionally would mark the hop "used" to
-    # Bullet regardless of whether anything downstream did, permanently
-    # masking an unused eager load. The Membership slice's read below stays
-    # invisible to Bullet the same way: it's consumed internally to feed the
-    # nested :user preload, not because a caller read it — a clean Bullet
-    # run here proves nothing about that hop.
+    # Reads the association only when a caller needs it — reading it
+    # unconditionally would mark the hop "used" to Bullet regardless of
+    # whether anything downstream did, permanently masking an unused eager
+    # load. The Membership slice above stays invisible to Bullet the same
+    # way, consumed only to feed the nested :user preload.
     trackables = rows.filter_map(&:trackable)
     yield trackables if trackables.any?
   end

@@ -189,6 +189,11 @@ rails users:unlock[email@example.com]     # Unlock a locked account
 rails users:verify[email@example.com]     # Manually verify an email
 rails users:suspend[email@example.com]    # Suspend a user (sessions end, sign-in blocked; no operator guard)
 rails users:unsuspend[email@example.com]  # Unsuspend a user (restores sign-in)
+rails workspaces:suspend[slug]            # Lock a workspace (members blocked until unsuspended)
+rails workspaces:unsuspend[slug]          # Unlock a workspace
+rails operators:grant[email@example.com]  # Grant instance-operator access to a user
+rails operators:revoke[email@example.com] # Revoke instance-operator access from a user (no last-operator guard)
+rails operators:list                      # List instance operators
 ```
 
 ### Session Lifetime
