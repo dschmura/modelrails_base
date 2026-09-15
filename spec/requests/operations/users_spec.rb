@@ -38,18 +38,23 @@ RSpec.describe "Operations users", type: :request do
   end
 
   describe "GET /operations/users/:id" do
-    it "shows memberships with roles and lock state" do
+    it "shows memberships with roles, no badges, no lockout line, and a Suspend form for a plain user" do
       workspace = create(:workspace, name: "Acme")
       create(:membership, :admin, user: target, workspace: workspace)
       get operations_user_path(target)
       html = Capybara.string(response.body)
       expect(html).to have_text("Acme")
       expect(html).to have_text("Admin")
-      # Scoped to the Locked dt/dd pair, not a bare have_text, since "No"
-      # also appears in the Operator row.
-      locked_dd = html.find(:xpath, "//dt[normalize-space(text())='#{I18n.t('operations.users.show.locked')}']/following-sibling::dd[1]")
-      expect(locked_dd.text).to eq(I18n.t("operations.negative"))
-      expect(html).to have_no_button(I18n.t("operations.users.show.unlock"))
+      # Scoped to #main-content, not the whole body: the operations nav's
+      # own "Operators" link is a substring match on "Operator" otherwise.
+      main = html.find("#main-content")
+      expect(main).to have_no_text(I18n.t("operations.users.show.operator"))
+      expect(main).to have_no_text(I18n.t("operations.users.show.suspended"))
+      expect(html).to have_no_css("form[action='#{operations_user_lock_path(target)}']")
+      expect(html).to have_css("form[action='#{operations_user_suspension_path(target)}']",
+        text: I18n.t("operations.users.show.suspend"))
+      expect(html).to have_no_css("form[action='#{operations_user_suspension_path(target)}']",
+        text: I18n.t("operations.users.show.reinstate"))
     end
 
     # .btn-text sets no colour of its own — .btn-text-interactive is what
@@ -62,13 +67,50 @@ RSpec.describe "Operations users", type: :request do
       expect(link[:class]).to include("btn-text-interactive")
     end
 
-    it "shows the Unlock button only for a locked account" do
-      5.times { target.register_failed_login! }
+    it "shows the lockout sentence and a 'Let them try again' form only for a locked account, alongside the Suspend form" do
+      freeze_time do
+        5.times { target.register_failed_login! }
+        get operations_user_path(target)
+        html = Capybara.string(response.body)
+        expect(html).to have_text(I18n.t("operations.users.show.lockout",
+          count: User::MAX_FAILED_ATTEMPTS,
+          time: ActionController::Base.helpers.distance_of_time_in_words(Time.current, target.reload.locked_at + User::LOCK_DURATION)))
+        expect(html).to have_css("form[action='#{operations_user_lock_path(target)}']",
+          text: I18n.t("operations.users.show.clear_lockout"))
+        expect(html).to have_css("form[action='#{operations_user_suspension_path(target)}']",
+          text: I18n.t("operations.users.show.suspend"))
+      end
+    end
+
+    it "shows the Suspended badge, the since sentence in the operator's zone, and a Reinstate form — no Suspend form" do
+      # A zone that differs from the test default (UTC), so the assertion
+      # only passes if the view converts through the viewer's preference.
+      (operator.preferences || operator.create_preferences!).update!(timezone: "America/Chicago")
+      freeze_time do
+        target.suspend!(by: operator)
+        get operations_user_path(target)
+        html = Capybara.string(response.body)
+        expect(html).to have_text(I18n.t("operations.users.show.suspended"))
+        expect(html).to have_text(I18n.t("operations.users.show.suspended_since",
+          time: I18n.l(target.reload.suspended_at.in_time_zone("America/Chicago"), format: :account_activity)))
+        expect(html).to have_css("form[action='#{operations_user_suspension_path(target)}']",
+          text: I18n.t("operations.users.show.reinstate"))
+        expect(html).to have_no_css("form[action='#{operations_user_suspension_path(target)}']",
+          text: I18n.t("operations.users.show.suspend"))
+      end
+    end
+
+    it "shows the Operator badge, no Suspend form, and the revoke-first sentence linking to the roster" do
+      Operatorship.grant!(user: target)
       get operations_user_path(target)
       html = Capybara.string(response.body)
-      locked_dd = html.find(:xpath, "//dt[normalize-space(text())='#{I18n.t('operations.users.show.locked')}']/following-sibling::dd[1]")
-      expect(locked_dd.text).to eq(I18n.t("operations.affirmative"))
-      expect(html).to have_button(I18n.t("operations.users.show.unlock"))
+      expect(html).to have_text(I18n.t("operations.users.show.operator"))
+      expect(html).to have_no_css("form[action='#{operations_user_suspension_path(target)}']")
+      link = html.find_link(I18n.t("operations.users.show.operator_access"))
+      expect(link[:href]).to eq(operations_operatorships_path)
+      # An in-prose link, underlined — not the action-row .btn-text utility.
+      expect(link[:class]).to include("underline")
+      expect(link[:class]).not_to include("btn-text")
     end
 
     # SQLite's BINARY collation sorts uppercase before lowercase, so a plain

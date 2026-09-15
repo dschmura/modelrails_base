@@ -97,30 +97,45 @@ RSpec.describe "Operations area", type: :system do
     expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
   end
 
-  # Covers the Unlock button (locked-account branch) and the Suspend-access
-  # button. The target's own onboarding membership supplies a non-empty
-  # memberships list for free.
-  it "shows a locked user and audits the Unlock and Suspend-access controls, AAA in both themes" do
+  # Covers the lockout sentence + "Let them try again" control, then the
+  # Suspend/Reinstate cycle and the Suspended badge. The target's own
+  # onboarding membership supplies a non-empty memberships list for free.
+  it "shows a locked user, clears the lockout, then suspends and reinstates them, AAA in both themes" do
     target = create(:user, first_name: "Tess", last_name: "Target")
     5.times { target.register_failed_login! }
 
     visit operations_user_path(target)
-    locked_dd = page.find(:xpath,
-      "//dt[normalize-space(text())='#{I18n.t('operations.users.show.locked')}']/following-sibling::dd[1]")
-    expect(locked_dd.text).to eq(I18n.t("operations.affirmative"))
-    expect(page).to have_button(I18n.t("operations.users.show.unlock"))
+    expect(page).to have_text(I18n.t("operations.users.show.lockout",
+      count: User::MAX_FAILED_ATTEMPTS,
+      time: ActionController::Base.helpers.distance_of_time_in_words(Time.current, target.reload.locked_at + User::LOCK_DURATION)))
+    expect(page).to have_button(I18n.t("operations.users.show.clear_lockout"))
+    # Pointer on a membership row: a static list_group_item highlights on
+    # hover unless told not to, and text-interactive over that highlight is
+    # below AAA — so the row is audited hovered, not at rest.
+    page.find("section[aria-labelledby='ops-user-memberships'] li", match: :first).hover
     expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
 
-    # Unlock control: no confirm on this form.
-    click_button I18n.t("operations.users.show.unlock")
+    # Clear-lockout control: no confirm on this form.
+    click_button I18n.t("operations.users.show.clear_lockout")
     expect(page).to have_text(I18n.t("operations.users.locks.destroy.success"))
     expect(target.reload).not_to be_locked
-    expect(page).to have_no_button(I18n.t("operations.users.show.unlock"))
+    expect(page).to have_no_button(I18n.t("operations.users.show.clear_lockout"))
+    # After each click the cursor rests wherever the reflow left it — often on
+    # a membership row. That is a state a real visitor reaches too, so it is
+    # scored, not parked.
     expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
 
-    # Suspend-access control: button_to with data-turbo-confirm on the form.
+    # Suspend control: button_to with data-turbo-confirm on the form.
     accept_confirm { click_button I18n.t("operations.users.show.suspend") }
     expect(page).to have_text(I18n.t("operations.users.suspensions.create.success"))
+    expect(page).to have_text(I18n.t("operations.users.show.suspended"))
+    expect(page).to have_button(I18n.t("operations.users.show.reinstate"))
+    expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
+
+    # Reinstate control: no confirm on this form.
+    click_button I18n.t("operations.users.show.reinstate")
+    expect(page).to have_text(I18n.t("operations.users.suspensions.destroy.success"))
+    expect(page).to have_button(I18n.t("operations.users.show.suspend"))
     expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
   end
 

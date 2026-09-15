@@ -187,7 +187,7 @@ Deleting is permanent and gated behind a **type-the-workspace-name** confirmatio
 
 ### Locked (operator hold)
 
-Locking is **operator-only** — there is no UI. An operator runs `rails "workspaces:suspend[the-slug]"` to lock a workspace and `rails "workspaces:unsuspend[the-slug]"` to release it. While locked, owners and members are blocked from acting on the workspace and see **"This workspace is locked."** Locking is a temporary hold (billing, abuse review), distinct from Archive (owner tidying) and Delete (permanent).
+Locking is **operator-only**. An operator locks or unlocks a workspace from its page in the operations area (`/operations/workspaces/<slug>`), or from the command line with `rails "workspaces:suspend[the-slug]"` and `rails "workspaces:unsuspend[the-slug]"`. While locked, owners and members are blocked from acting on the workspace and see **"This workspace is locked."** Locking is a temporary hold (billing, abuse review), distinct from Archive (owner tidying) and Delete (permanent). Both the lock and the unlock appear in the workspace's own activity feed, naming the operator who did it.
 
 ### Home workspaces are protected
 

@@ -12,7 +12,7 @@ en:
       success: "Signed in successfully."
       failure: "Invalid email or password."
       locked: "Your account has been locked due to too many failed attempts. Please try again later."
-      suspended: "This account is suspended. Contact the people who run this app."
+      suspended: "Your account has been suspended. Contact whoever runs this app to have it reinstated."
       rate_limited: "Too many attempts. Please try again later."
       oauth_failure: "Authentication failed. Please try again."
     lookups:

@@ -48,11 +48,12 @@ before anyone else exists.
   a user up by their exact email address (names are encrypted
   non-deterministically and can't be searched or sorted in SQL — see
   [Security: Personal Data at Rest](security#personal-data-at-rest)). From a
-  user's page, unlock a locked account, or suspend or reinstate them (sign-in
-  is refused and sessions end; memberships and roles are untouched). An
-  operator can't be suspended from here — revoke their operatorship first;
-  `rails users:suspend` is the unguarded break-glass path. See
-  [Suspension keeps memberships](#suspension-keeps-memberships) below.
+  user's page, let a locked-out account try again, or suspend or reinstate
+  them (sign-in is refused and sessions end; memberships and roles are
+  untouched). An operator can't be suspended from here — revoke their
+  operator access first; `rails users:suspend` is the unguarded break-glass
+  path. See [Suspension keeps memberships](#suspension-keeps-memberships)
+  below.
 - **Activity** (`/operations/activity_logs`) — every workspace's activity,
   newest first, paginated. Personal security events (password changes,
   passkeys, new devices) never appear here — that split is the same `admin`

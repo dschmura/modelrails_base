@@ -3,10 +3,6 @@ en:
     area:
       banner: "Instance operations — you are above the %{workspaces}, not inside one."
       nav_label: "Operations"
-    # Bare `yes`/`no` parse as YAML booleans, not string keys — Psych would
-    # turn `yes:` into a `true` key and break the t() lookup.
-    affirmative: "Yes"
-    negative: "No"
     nav:
       workspaces: "%{Workspaces}"
       users: "Users"
@@ -29,7 +25,7 @@ en:
         members: "Members"
         no_members: "No members yet."
         suspend: "Lock this %{workspace}"
-        suspend_confirm: "Members will be blocked until it is unlocked. Continue?"
+        suspend_confirm: "Everyone in it is blocked until you unlock it. Nothing is deleted."
         unsuspend: "Unlock this %{workspace}"
       new:
         title: "New %{workspace}"
@@ -52,16 +48,21 @@ en:
         search: "Search"
         no_match: "No user has that email address."
       show:
-        locked: "Locked"
         operator: "Operator"
+        suspended: "Suspended"
+        suspended_since: "since %{time}"
         memberships: "Memberships"
         no_memberships: "No memberships yet."
-        unlock: "Unlock account"
-        suspend: "Suspend access"
-        suspend_confirm: "Every session ends and every membership is deactivated. Continue?"
+        reinstate: "Reinstate"
+        suspend: "Suspend"
+        suspend_confirm: "This ends their sessions and blocks sign-in until you reinstate them. Their workspaces and roles stay as they are."
+        operator_unsuspendable_html: "Operators can't be suspended. Revoke their %{link} first."
+        operator_access: "operator access"
+        lockout: "Sign-in blocked after %{count} failed attempts — clears in %{time}."
+        clear_lockout: "Let them try again"
       locks:
         destroy:
-          success: "Account unlocked."
+          success: "Lockout cleared."
       suspensions:
         create:
           success: "Access suspended."
