@@ -17,10 +17,10 @@ RSpec.describe "Operations operatorships", type: :request do
     expect(html).to have_text("Gil Granter")
   end
 
-  # Item 2 (fix round 1): the roster's whole job is who-granted-what-when, so
-  # N identically-named "Revoke" buttons need distinct accessible names — the
-  # same precedent (settings/sessions, settings/passkeys) this view already
-  # cites for its button classes carries an aria-label too. Capybara's
+  # The roster's whole job is who-granted-what-when, so N identically-named
+  # "Revoke" buttons need distinct accessible names — the same precedent
+  # (settings/sessions, settings/passkeys) this view already cites for its
+  # button classes carries an aria-label too. Capybara's
   # has_button? aria-label matching needs Capybara.enable_aria_label, which
   # this suite doesn't set (see spec/system/docs_spec.rb) — Nokogiri directly,
   # matching spec/requests/settings/passkeys_spec.rb's own aria-label assertion.
@@ -34,14 +34,13 @@ RSpec.describe "Operations operatorships", type: :request do
     expect(doc.at_css('[aria-label="Revoke Sam Second\'s operator access"]')).to be_present
   end
 
-  # Fix round 2, item 9 added the machine-readable <time datetime="...iso8601">
-  # (activity_logs/_activity_log.html.erb, one directory over, already used
-  # one). Fix round 3, item 2 / R27: round 2 also replaced the VISIBLE date
-  # with time_ago_in_words, which round 1 never asked for — datetime is not
-  # announced by screen readers or shown by browsers, so a roster whose whole
-  # job is who-granted-what-when lost the date for every human and every AT
-  # user. Both assertions matter: datetime alone would pass even with the
-  # visible text reading "about 6 months ago".
+  # The machine-readable <time datetime="...iso8601"> mirrors
+  # activity_logs/_activity_log.html.erb, one directory over. datetime is
+  # not announced by screen readers or shown by browsers, so the VISIBLE
+  # date must be asserted too — a roster whose whole job is
+  # who-granted-what-when needs the date for every human and every AT user.
+  # Both assertions matter: datetime alone would pass even with the visible
+  # text reading "about 6 months ago".
   it "renders the grant date in a machine-readable <time> element, with the date visible as its content" do
     operatorship = Operatorship.kept.find_by!(user: operator)
 
@@ -67,9 +66,9 @@ RSpec.describe "Operations operatorships", type: :request do
       expect(flash[:alert]).to eq(I18n.t("operations.operatorships.create.not_found"))
     end
 
-    # Item 5 (fix round 1): a blank submission used to fall through to the
-    # not_found branch, blaming an email that was never entered. Own branch,
-    # own posture-neutral copy — doesn't say whether an account exists.
+    # A blank submission must not fall through to the not_found branch and
+    # blame an email that was never entered. Own branch, own
+    # posture-neutral copy — doesn't say whether an account exists.
     it "does not blame the email for a blank submission" do
       post operations_operatorships_path, params: { email: "" }
       expect(response).to redirect_to(operations_operatorships_path)
@@ -87,9 +86,9 @@ RSpec.describe "Operations operatorships", type: :request do
       expect(user.operatorships.kept.count).to eq(1)
     end
 
-    # C1 (carried from Task 1, R13): the operator? pre-check above cannot
-    # close the window between two requests' reads and the partial unique
-    # index on operatorships.user_id — a double submit still reaches
+    # The operator? pre-check above cannot close the window between two
+    # requests' reads and the partial unique index on
+    # operatorships.user_id — a double submit still reaches
     # Operatorship.grant! twice. Forcing user.operator? to always read false
     # (rather than threading real concurrency through a single-process spec)
     # simulates that race window deterministically: both requests see "not
@@ -142,11 +141,10 @@ RSpec.describe "Operations operatorships", type: :request do
       expect(flash[:alert]).to eq(I18n.t("operations.operatorships.destroy.last_operator"))
     end
 
-    # Item 6 (fix round 1): DELETE used to resolve through the `kept` scope,
-    # so a replayed delete 404'd instead of reaching revoke_unless_last!'s own
-    # idempotence guard (Task 1's "double-submit, or two operators racing the
-    # same person"). The unscoped find lets the second request find the
-    # already-discarded row instead of raising.
+    # DELETE resolves through an unscoped find, not the `kept` scope: a
+    # replayed delete must reach revoke_unless_last!'s own idempotence
+    # guard instead of 404ing before it can answer — the unscoped find lets
+    # the second request find the already-discarded row instead of raising.
     it "does not raise on a double submit for the same operatorship" do
       other = create(:user)
       operatorship = Operatorship.grant!(user: other)

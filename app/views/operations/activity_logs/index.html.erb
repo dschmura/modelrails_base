@@ -8,7 +8,7 @@
   <div class="mt-4 rounded-lg border border-border bg-surface p-4">
     <%# role="list": Tailwind's preflight sets list-style:none, which drops
         implicit list semantics in Safari/VoiceOver — axe has no rule for
-        this, so restore it explicitly (fix round 2, item 2 / R24). %>
+        this, so restore it explicitly. %>
     <ol role="list" class="space-y-3">
       <% @activities.each do |activity_log| %>
         <%# The workspace goes INTO the row as its context local, not around it:
@@ -29,8 +29,7 @@
       <% end %>
     </ol>
     <%# shared/_pagination is a card FOOTER (border-t px-4 py-3) — it belongs
-        inside the card div, like both sibling call sites (fix round 2,
-        item 7). %>
+        inside the card div, like both sibling call sites. %>
     <%= render "shared/pagination", pagy: @pagy %>
   </div>
 <% else %>

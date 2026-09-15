@@ -5,9 +5,9 @@
 # spec/code_smells/security_events_route_through_writer_spec.rb proves no
 # OTHER file writes directly; dynamic_i18n_keys_have_values_spec.rb derives
 # the literal actions these five files may write FROM this same list, rather
-# than regex-scanning app/ for the `ActivityLog.create!` shape (fix round 3,
-# item 1 / R26). A new bypass writer must be added here first, so it cannot
-# ship invisible to either guard.
+# than regex-scanning app/ for the `ActivityLog.create!` shape. A new bypass
+# writer must be added here first, so it cannot ship invisible to either
+# guard.
 #
 # A module constant, not a `describe`-block local: a bare constant assigned
 # inside a top-level `describe` block lands on Object, not the block's own

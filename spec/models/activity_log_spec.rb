@@ -59,8 +59,8 @@ RSpec.describe ActivityLog, type: :model do
     end
   end
 
-  # Task 11: Suspendable#suspend!/#unsuspend! are ordinary `update!` calls, so
-  # a lock/unlock arrives as workspace.updated with suspended_at in changes —
+  # Suspendable#suspend!/#unsuspend! are ordinary `update!` calls, so a
+  # lock/unlock arrives as workspace.updated with suspended_at in changes —
   # the same shape membership.updated splits on discarded_at.
   describe "#display_action for workspace suspension" do
     it "names a suspension and an unsuspension from the row's changes" do
@@ -309,11 +309,11 @@ RSpec.describe ActivityLog, type: :model do
   end
 
   describe "#display_member" do
-    # Fix round 1, finding 1: the operations feed is the first surface to
-    # render admin-visibility rows (the workspace feed is workspace-only, the
-    # account security card is personal-only), and an operatorship grant's
-    # trackable is the grantee User — not a Membership — so display_member
-    # returned nil and the sentence substituted "a member".
+    # The operations feed is the first surface to render admin-visibility
+    # rows (the workspace feed is workspace-only, the account security card
+    # is personal-only), and an operatorship grant's trackable is the
+    # grantee User — not a Membership — so without this case
+    # display_member returns nil and the sentence substitutes "a member".
     it "names the grantee for an operatorship grant, whose trackable is a User" do
       grantee = create(:user, first_name: "Gale", last_name: "Grantee")
       Operatorship.grant!(user: grantee)
@@ -335,7 +335,7 @@ RSpec.describe ActivityLog, type: :model do
 
       # create(:workspace) itself writes a workspace.created row (Trackable),
       # so an exact-array match would break on that incidental noise — assert
-      # membership and order instead, per this arc's established pattern.
+      # membership and order instead.
       feed = ActivityLog.for_operations_feed.to_a
 
       expect(feed).to include(admin, older)
@@ -344,14 +344,13 @@ RSpec.describe ActivityLog, type: :model do
     end
   end
 
-  # Fix round 2, item 5: .preload_trackables read the association internally
+  # .preload_trackables read the association internally
   # (`rows.filter_map(&:trackable)`) to build the array it discards for the
   # User slice (no block given), which marked the hop "used" to Bullet
   # regardless of whether any caller ever read it — permanently masking a
-  # real unused eager load. Proven the way the reviewer proved the bug: run
-  # .for_feed and read nothing back, then ask Bullet's detector directly
-  # rather than relying on the implicit end-of-example raise (which fires
-  # from an after-hook this example can't wrap an expectation around).
+  # real unused eager load. This asserts by calling Bullet's detector
+  # directly rather than relying on the implicit end-of-example raise, which
+  # fires from an after-hook this example can't wrap an expectation around.
   describe ".for_feed Bullet visibility" do
     it "leaves an unread User trackable hop visible to Bullet's unused-eager-load detector" do
       2.times { Operatorship.grant!(user: create(:user)) }

@@ -4,12 +4,12 @@ require "rails_helper"
 
 # The WCAG 2.2 AAA gate over the whole instance-operations area, both themes.
 #
-# C1 (task-16 ledger correction): never pass a literal noun as a vocabulary
-# interpolation — `I18n.t(key, workspace: "workspace")` would WIN over the
-# backend's own injection (config/initializers/vocabulary.rb merges the
-# caller's options over Vocabulary.tokens) and silently stop discriminating
-# in a fork that renamed the noun. Every I18n.t call below passes no noun
-# keyword and lets the backend supply %{workspace}/%{workspaces}/etc.
+# Never pass a literal noun as a vocabulary interpolation —
+# `I18n.t(key, workspace: "workspace")` would WIN over the backend's own
+# injection (config/initializers/vocabulary.rb merges the caller's options
+# over Vocabulary.tokens) and silently stop discriminating in a fork that
+# renamed the noun. Every I18n.t call below passes no noun keyword and lets
+# the backend supply %{workspace}/%{workspaces}/etc.
 #
 # The operator is built with :with_zero_workspaces so the operations area's
 # own workspace list starts genuinely empty — the default trait onboards a
@@ -37,8 +37,8 @@ RSpec.describe "Operations area", type: :system do
   end
 
   # Covers both lock states so the lock control AND the unlock control are
-  # each audited (C2/C3), plus the status badge's rendered aria-label (C4b).
-  # No `click_link` from the index here: operations/workspaces/_row.html.erb
+  # each audited, plus the status badge's rendered aria-label. No
+  # `click_link` from the index here: operations/workspaces/_row.html.erb
   # renders the workspace name as plain text, not a link — there is no
   # in-app path from the list to a workspace's show page today. Visiting the
   # show route directly is the only way in; not an axe finding (nothing is a
@@ -50,7 +50,7 @@ RSpec.describe "Operations area", type: :system do
 
     # Reached by clicking through the index, not by visiting the route: the
     # index is where /operations lands, so this is the operator's real path
-    # to a workspace, and it is the one that was missing.
+    # to a workspace.
     visit operations_workspaces_path
     click_link "Acme Robotics"
     expect(page).to have_current_path(operations_workspace_path(workspace))
@@ -61,7 +61,7 @@ RSpec.describe "Operations area", type: :system do
     expect(page).to have_button(I18n.t("operations.workspaces.show.suspend"))
     expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
 
-    # Lock control: button_to with data-turbo-confirm on the form (C5).
+    # Lock control: button_to with data-turbo-confirm on the form.
     accept_confirm { click_button I18n.t("operations.workspaces.show.suspend") }
     expect(page).to have_text(I18n.t("operations.workspaces.suspensions.create.success"))
     expect(workspace.reload).to be_suspended
@@ -98,9 +98,8 @@ RSpec.describe "Operations area", type: :system do
   end
 
   # Covers the Unlock button (locked-account branch) and the Suspend-access
-  # button (C2/C3) — neither had ever been through the axe gate before this
-  # arc's Tasks 13-14. The target's own onboarding membership supplies a
-  # non-empty memberships list for free.
+  # button. The target's own onboarding membership supplies a non-empty
+  # memberships list for free.
   it "shows a locked user and audits the Unlock and Suspend-access controls, AAA in both themes" do
     target = create(:user, first_name: "Tess", last_name: "Target")
     5.times { target.register_failed_login! }
@@ -125,8 +124,7 @@ RSpec.describe "Operations area", type: :system do
     expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
   end
 
-  # Covers the grant form and the revoke button (C2/C3) — neither had ever
-  # been through the axe gate before this arc's Tasks 13-14.
+  # Covers the grant form and the revoke button.
   it "grants and revokes an operator from the roster, AAA in both themes" do
     grantee = create(:user, first_name: "Sam", last_name: "Second")
 
@@ -140,7 +138,7 @@ RSpec.describe "Operations area", type: :system do
     expect(grantee.reload).to be_operator
     expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
 
-    # Revoke control: button_to with data-turbo-confirm on the form (C5).
+    # Revoke control: button_to with data-turbo-confirm on the form.
     # Two identically-labelled "Revoke" buttons now exist on the roster, so
     # the click is scoped to the grantee's own row to disambiguate.
     within("li", text: grantee.full_name) do
@@ -151,11 +149,10 @@ RSpec.describe "Operations area", type: :system do
     expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
   end
 
-  # The paginated state has never been audited (no example has ever crossed a
-  # page boundary on this feed with an axe assertion attached). 25 distinct
-  # workspaces mirrors spec/requests/operations/activity_logs_spec.rb's own
-  # pagination example — each plain `create(:workspace, ...)` writes one
-  # workspace-visible "workspace.created" row, crossing Pagy's 20-item limit.
+  # 25 distinct workspaces mirrors spec/requests/operations/activity_logs_spec.rb's
+  # own pagination example — each plain `create(:workspace, ...)` writes one
+  # workspace-visible "workspace.created" row, crossing Pagy's 20-item limit,
+  # so this proves the paginated state itself is AAA-clean, not just page one.
   it "shows the cross-workspace activity feed, including its paginated state, AAA in both themes" do
     25.times { |i| create(:workspace, name: format("WS %02d", i)) }
 

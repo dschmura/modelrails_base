@@ -38,27 +38,15 @@ class Operatorship < ApplicationRecord
     true
   end
 
-  # Fix round 1, item 1: the panel's last-operator guard used to be a bare
-  # `Operatorship.kept.count <= 1` read in the controller, outside any
-  # transaction — two operators revoking two DIFFERENT rows could both pass
-  # that read and leave zero. Same shape as Membership#reactivate!'s guard
-  # (/docs/developer/architecture, Concurrency): BEGIN IMMEDIATE takes the
-  # writer lock before the transaction's first read, so `lock!` (forcing a
-  # fresh re-read) + the count check here are genuine check-then-act, not a
-  # TOCTOU window. `rails operators:revoke` (break-glass) keeps calling plain
-  # `revoke!`, not this, so it can still remove the last operator.
-  # Returns which of the three things happened, not a boolean: "already
-  # revoked" and "this is the last one" are different answers, and a caller
-  # that cannot tell them apart reports a refusal for a rule that did not
-  # apply. lock! before the count is what makes the guard atomic — see
+  # Guards, atomically: the last kept operatorship can't be revoked (`lock!`
+  # before the count avoids a two-operators-race TOCTOU), and an operator can
+  # never revoke their own row through here — checked in that order, so a
+  # sole operator revoking themselves gets the more useful :last_operator
+  # refusal instead of a generic self-revoke one. Returns which case fired,
+  # not a boolean: a caller has to tell "already revoked" apart from "last
+  # one" to avoid reporting a refusal for a rule that didn't apply. See
+  # app/docs/developer/operations.md (How it stays safe) and
   # /docs/developer/architecture (Concurrency).
-  # :self_revoke, not a silent allow: an operator revoking their own
-  # operatorship would redirect straight into require_operator's 404, the
-  # success flash never rendered. Checked AFTER :last_operator, not before —
-  # require_operator means the sole kept operator revoking themselves is the
-  # only way :last_operator is ever reachable, and that refusal's
-  # break-glass advice is the true and actionable one; "ask another
-  # operator" would be advice for an operator who doesn't exist.
   def revoke_unless_last!(revoked_by: nil)
     transaction do
       lock!

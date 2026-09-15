@@ -33,15 +33,14 @@ RSpec.describe "Code smell: every dynamic i18n key has a value" do
       "Providers without an authentication.providers label:\n  #{missing.join("\n  ")}"
   end
 
-  # Both activity feeds (the workspace feed and this arc's cross-workspace
-  # operations feed) render `activity.actions.<display_action>`. Trackable
-  # writes <param_key>.created/updated for every includer, and
+  # Both activity feeds (the workspace feed and the operations area's
+  # cross-workspace feed) render `activity.actions.<display_action>`.
+  # Trackable writes <param_key>.created/updated for every includer, and
   # ActivityLog#display_action derives three membership variants from
   # metadata — that half is enumerable from the model layer.
   #
-  # The remainder bypasses Trackable and writes a literal `action:` directly
-  # (fix round 2, item 3). Rebuilt in fix round 3, item 1 / R26: a regex
-  # scanning app/ for that shape is paren-fragile — ANY `)` between
+  # The remainder bypasses Trackable and writes a literal `action:` directly.
+  # A regex scanning app/ for that shape is paren-fragile — ANY `)` between
   # `ActivityLog.create!(` and `action:` blinds it, and
   # application_controller.rb's own call was one argument swap away from
   # doing exactly that. Rather than guess at source shape, this scans only
@@ -53,19 +52,19 @@ RSpec.describe "Code smell: every dynamic i18n key has a value" do
   # phantom action. A new bypass writer must be added to that list before
   # either guard can see it.
   #
-  # Fix round 4, item 2: this text scan cannot evaluate every Ruby shape, and
-  # four of them (create without a bang, create! without parens, a non-literal
-  # action value, a string-embedded paren that desyncs balanced_end) used to
-  # make it skip SILENTLY — a missing label ships unnoticed. Now any write
-  # shape it cannot resolve to a plain string literal fails loud, naming the
-  # file and line, instead of passing. The one legitimate non-literal is
-  # Trackable#create_activity's own `action: action` — it forwards its
-  # caller's action rather than hardcoding one, and that whole family is
-  # already enumerated above from the model descendants loop, so it is
-  # declared safe by exact value below rather than silently allowed.
-  # Shared with the scan below so the two can't drift apart. `\b` anchors the
-  # left edge: without it, "transaction:" or "redaction:" — any kwarg whose
-  # name merely ENDS in "action:" — matches before the real action: does.
+  # This text scan cannot evaluate every Ruby shape — create without a bang,
+  # create! without parens, a non-literal action value, a string-embedded
+  # paren that desyncs balanced_end. Any write shape it cannot resolve to a
+  # plain string literal fails loud, naming the file and line, rather than
+  # skipping silently and shipping a missing label unnoticed. The one
+  # legitimate non-literal is Trackable#create_activity's own `action:
+  # action` — it forwards its caller's action rather than hardcoding one,
+  # and that whole family is already enumerated above from the model
+  # descendants loop, so it is declared safe by exact value below rather
+  # than silently allowed. Shared with the scan below so the two can't drift
+  # apart. `\b` anchors the left edge: without it, "transaction:" or
+  # "redaction:" — any kwarg whose name merely ENDS in "action:" — matches
+  # before the real action: does.
   def action_arg_pattern
     /\baction:\s*(.+?)\s*(?:,|\z)/m
   end
@@ -87,10 +86,10 @@ RSpec.describe "Code smell: every dynamic i18n key has a value" do
     trackable = ApplicationRecord.descendants.select { |model| model.include?(Trackable) }
     actions = trackable.flat_map { |model| %w[created updated].map { |verb| "#{model.model_name.param_key}.#{verb}" } }
     actions += %w[membership.deactivated membership.reactivated membership.left]
-    # Task 11: workspace.suspended/unsuspended are likewise derived by
-    # display_action from workspace.updated's own changes metadata, never
-    # written by a literal ActivityLog.create! — neither guard below can see
-    # them any other way.
+    # workspace.suspended/unsuspended are likewise derived by display_action
+    # from workspace.updated's own changes metadata, never written by a
+    # literal ActivityLog.create! — neither guard below can see them any
+    # other way.
     actions += %w[workspace.suspended workspace.unsuspended]
     # Enumerated from the constant, not text-scanned: SECURITY_ACTIONS already
     # names Operatorship's two direct-write actions.

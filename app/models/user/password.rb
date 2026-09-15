@@ -41,7 +41,7 @@ class User < ApplicationRecord
     # successful login (above) both clear the same two columns, but they are
     # different knowledge — "an operator cleared the lock" vs. "the login
     # succeeded" — so this is the primitive and register_successful_login!
-    # calls it, not the other way around (C3).
+    # calls it, not the other way around.
     def unlock!
       update!(failed_login_attempts: 0, locked_at: nil)
     end

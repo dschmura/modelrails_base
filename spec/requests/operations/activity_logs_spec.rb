@@ -29,12 +29,11 @@ RSpec.describe "Operations activity feed", type: :request do
     expect(link[:class]).to include("btn-text-interactive")
   end
 
-  # Re-derived after a session restart lost the reviewer's findings list, so it
-  # carries no finding number. activity_logs/_activity_log renders a top-level
-  # <li>, and this page wrapped each one in its own <ol> to give that <li> a
-  # legal parent — making every entry a nested one-item list, which a screen
-  # reader announces as "list, 1 item" on every row. Valid HTML, so axe passes
-  # it: the structure has to be asserted directly.
+  # activity_logs/_activity_log renders a top-level <li>, and this page
+  # wrapped each one in its own <ol> to give that <li> a legal parent —
+  # making every entry a nested one-item list, which a screen reader
+  # announces as "list, 1 item" on every row. Valid HTML, so axe passes it:
+  # the structure has to be asserted directly.
   it "renders each row in one flat list, not a nested one-item list per row" do
     workspace = create(:workspace, name: "Alpha")
     create(:project, workspace: workspace)
@@ -46,9 +45,9 @@ RSpec.describe "Operations activity feed", type: :request do
     expect(html).to have_no_css("li ol")
   end
 
-  # Fix round 2, item 2 (R24): Tailwind's preflight sets list-style:none on
-  # <ol>, which strips the implicit list semantics Safari/VoiceOver relies on
-  # — axe has no rule for this, so a clean axe run is not evidence either way.
+  # Tailwind's preflight sets list-style:none on <ol>, which strips the
+  # implicit list semantics Safari/VoiceOver relies on — axe has no rule for
+  # this, so a clean axe run is not evidence either way.
   it "restores list semantics on the raw <ol> preflight strips" do
     create(:workspace, name: "Alpha")
 
@@ -61,10 +60,9 @@ RSpec.describe "Operations activity feed", type: :request do
     expect(indexes).to include([ "created_at" ])
   end
 
-  # Fix round 1, finding 5: 20 is Pagy::OPTIONS[:limit] (config/initializers/pagy.rb);
-  # the original example created about 6 rows and was named for pagination
-  # without ever crossing a page boundary, so the nav's locals contract went
-  # unexercised. 25 distinct workspaces guarantees a real second page.
+  # 20 is Pagy::OPTIONS[:limit] (config/initializers/pagy.rb); 25 distinct
+  # workspaces guarantees a real second page, so the nav's locals contract is
+  # actually exercised.
   it "paginates once rows cross a page boundary" do
     25.times { |i| create(:workspace, name: "WS #{i}") }
 
@@ -72,16 +70,15 @@ RSpec.describe "Operations activity feed", type: :request do
     expect(response).to have_http_status(:ok)
     html = Capybara.string(response.body)
     expect(html).to have_css("nav.series-nav")
-    # Fix round 2, item 7: shared/_pagination is a card FOOTER
-    # (border-t px-4 py-3); rendered after the card's closing </div> it
-    # paints a stray rule across the bare page instead. Both sibling call
-    # sites nest it inside the card.
+    # shared/_pagination is a card FOOTER (border-t px-4 py-3); rendered
+    # after the card's closing </div> it paints a stray rule across the bare
+    # page instead. Both sibling call sites nest it inside the card.
     expect(html).to have_css("div.rounded-lg nav.series-nav")
   end
 
-  # Fix round 1, finding 4: nothing previously bound the controller to the
-  # privacy-bearing scope — swapping for_operations_feed for ActivityLog.all
-  # left both other examples green, since neither creates a personal row.
+  # Nothing else binds the controller to the privacy-bearing scope —
+  # swapping for_operations_feed for ActivityLog.all would leave both other
+  # examples green, since neither creates a personal row.
   #
   # Not a bare name-absence check: create(:user) itself onboards a personal
   # workspace and writes a legitimate membership.created row naming that same
@@ -99,22 +96,22 @@ RSpec.describe "Operations activity feed", type: :request do
     expect(response).to have_http_status(:ok)
 
     total = ActivityLog.for_operations_feed.count
-    # Fix round 2, item 10: this comparison only proves anything while the
-    # total stays under Pagy's page limit — past it, the rendered count is
-    # the PAGE's count, not the scope's, and the assertion below would pass
-    # or fail for a reason unrelated to the privacy scope it exists to
-    # prove. Pin the precondition explicitly rather than let factory or
-    # onboarding noise push it over unnoticed.
+    # This comparison only proves anything while the total stays under
+    # Pagy's page limit — past it, the rendered count is the PAGE's count,
+    # not the scope's, and the assertion below would pass or fail for a
+    # reason unrelated to the privacy scope it exists to prove. Pin the
+    # precondition explicitly rather than let factory or onboarding noise
+    # push it over unnoticed.
     expect(total).to be < Pagy::OPTIONS[:limit]
 
     rendered_rows = Capybara.string(response.body).all("li time").size
     expect(rendered_rows).to eq(total)
   end
 
-  # Fix round 1, finding 1: this page is the first surface to render
-  # admin-visibility rows, and an operatorship grant's trackable is the
-  # grantee User (not a Membership), so the row used to say "a member" instead
-  # of naming anyone.
+  # This page is the first surface to render admin-visibility rows, and an
+  # operatorship grant's trackable is the grantee User (not a Membership),
+  # so without this case the row would read "a member" instead of naming
+  # anyone.
   #
   # Asserts the composed sentence, not a bare name-presence check: create(:user)
   # onboards its own workspace and writes a membership.created row that ALSO
@@ -130,21 +127,21 @@ RSpec.describe "Operations activity feed", type: :request do
     expect(Capybara.string(response.body)).to have_text("granted Gale Grantee operator access")
   end
 
-  # Fix round 2, item 1 (regression): activity_logs.trackable_id carries no FK
-  # and no cleanup association, so a hard-deleted User leaves a dangling row.
-  # #display_member's User branch lacked the safe navigation the Membership
-  # branch already had, so this raised and 500'd the WHOLE feed for every
-  # operator — the row is persisted (ActivityLog#readonly? is persisted?), so
-  # it can never be edited away once it ships.
+  # activity_logs.trackable_id carries no FK and no cleanup association, so
+  # a hard-deleted User leaves a dangling row. Without safe navigation on
+  # #display_member's User branch (the Membership branch already has it),
+  # this raises and 500s the WHOLE feed for every operator — the row is
+  # persisted (ActivityLog#readonly? is persisted?), so it can never be
+  # edited away once it ships.
   #
-  # Fix round 3, item 4: `grantee.destroy!` produces the real dangling row —
-  # no FK violation, since trackable_id is polymorphic and carries none, and
-  # a granted user who never acted is not an actor (the actor_id FK is a
-  # separate, unrelated deferral). The prior version reached the same
-  # trackable_id-0 state via update_all, which stays legal only because the
-  # immutability guard scans {app,lib}/**/*.rb, not spec/ — imitating the
-  # bug rather than causing it, so it would keep passing even if a future
-  # trackable-side cleanup made that state unreachable in production.
+  # `grantee.destroy!` produces the real dangling row — no FK violation,
+  # since trackable_id is polymorphic and carries none, and a granted user
+  # who never acted is not an actor (the actor_id FK is a separate,
+  # unrelated deferral). Faking the same trackable_id-0 state via update_all
+  # instead would stay legal only because the immutability guard scans
+  # {app,lib}/**/*.rb, not spec/ — imitating the bug's symptom rather than
+  # its cause, so it would keep passing even after a future trackable-side
+  # cleanup made the real scenario unreachable in production.
   # operated_workspaces is Workspace.kept, so a discarded workspace's slug can
   # never resolve — but discarding one WRITES its own activity row (an
   # ordinary update!, Trackable fires), which stays in the feed forever.

@@ -234,9 +234,9 @@ ignore_unused:
   # spec/requests/settings/sessions_spec.rb.
   - settings.sessions.activity.user.*
   # Same dynamic lookup, for the operatorship.granted/revoked SECURITY_ACTIONS
-  # pair (2026-09-14 instance-operator arc) — these rows are admin-visibility
-  # so security_events_for's personal filter keeps them off this page today,
-  # but the label is looked up unconditionally by action, same as above.
+  # pair — these rows are admin-visibility so security_events_for's personal
+  # filter keeps them off this page today, but the label is looked up
+  # unconditionally by action, same as above.
   - settings.sessions.activity.operatorship.*
   # Consumed by Rails/Active Model rather than an explicit t() call (errors.*
   # via full_message, attributes.* via human_attribute_name). Caveat worth

@@ -3,8 +3,8 @@ en:
     area:
       banner: "Instance operations — you are above the %{workspaces}, not inside one."
       nav_label: "Operations"
-    # R19: bare `yes`/`no` parse as YAML booleans, not string keys — Psych
-    # would turn `yes:` into a `true` key and break the t() lookup.
+    # Bare `yes`/`no` parse as YAML booleans, not string keys — Psych would
+    # turn `yes:` into a `true` key and break the t() lookup.
     affirmative: "Yes"
     negative: "No"
     nav:
@@ -74,9 +74,9 @@ en:
       index:
         title: "Operators"
         description: "Who can operate this instance."
-        # _html: interpolates a <time> element (fix round 3, item 2 / R27) —
-        # the suffix makes ActionView auto-escape %{name} while passing the
-        # already-safe %{date} markup through untouched.
+        # _html: interpolates a <time> element — the suffix makes ActionView
+        # auto-escape %{name} while passing the already-safe %{date} markup
+        # through untouched.
         granted_by_html: "granted by %{name} on %{date}"
         bootstrap: "rake or seed"
         grant_label: "Grant operator access to (email)"

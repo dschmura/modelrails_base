@@ -11,9 +11,9 @@ RSpec.describe "Operations workspaces", type: :request do
   end
 
   describe "GET /operations/workspaces" do
-    # The index is where /operations lands, so it is the area's primary route
-    # to a workspace. It rendered the name as plain text, leaving show
-    # reachable only from a user's page or the activity feed (Task 16).
+    # The index is where /operations lands, so it is the area's primary
+    # route to a workspace. Without this link, show is reachable only from
+    # a user's page or the activity feed.
     it "links each workspace to its own page" do
       get operations_workspaces_path
       expect(Capybara.string(response.body))
@@ -66,9 +66,9 @@ RSpec.describe "Operations workspaces", type: :request do
     end
 
     # Membership#owner? has no kept test, so a discarded owner membership
-    # (this PR's own suspend-access control produces exactly this) used to
-    # keep showing that person as Owner beside a member count of zero — and
-    # disagree with show, which is built from memberships.kept.
+    # (suspend-access produces exactly this) would otherwise still show
+    # that person as Owner beside a member count of zero — disagreeing with
+    # show, which is built from memberships.kept.
     it "does not credit a discarded membership's user as Owner" do
       Membership.kept.find_by!(user: owner, workspace: workspace).discard!
 
@@ -90,10 +90,10 @@ RSpec.describe "Operations workspaces", type: :request do
     end
 
     it "orders members by name, not creation order or an SQL sort on encrypted columns" do
-      # first_name/last_name are non-deterministically encrypted (fix round 2,
-      # finding 7), so this must be created in an order where insertion order
-      # (and any accidental sort on ciphertext) disagrees with alphabetical
-      # order — otherwise the assertion below would pass by coincidence.
+      # first_name/last_name are non-deterministically encrypted, so this
+      # must be created in an order where insertion order (and any
+      # accidental sort on ciphertext) disagrees with alphabetical order —
+      # otherwise the assertion below would pass by coincidence.
       create(:membership, user: create(:user, first_name: "Zoe", last_name: "Young"), workspace: workspace)
       create(:membership, user: create(:user, first_name: "Amy", last_name: "Adams"), workspace: workspace)
       create(:membership, user: create(:user, first_name: "Ben", last_name: "Baker"), workspace: workspace)
@@ -112,25 +112,24 @@ RSpec.describe "Operations workspaces", type: :request do
       workspace.suspend!
       get operations_workspace_path(workspace)
       expect(response).to have_http_status(:ok)
-      # R3: the brief's key (lifecycle.status.suspended) does not exist;
-      # config/locales/en/lifecycle.en.yml roots this under lifecycle_status.
+      # lifecycle.en.yml roots this key under lifecycle_status, not
+      # lifecycle.status.
       expect(Capybara.string(response.body)).to have_text(I18n.t("lifecycle_status.suspended"))
     end
 
     it "redirects to root with a not-found alert for a discarded workspace" do
       # record_not_found (ApplicationController) redirects HTML requests to
-      # the referer or root; a request spec sends no referer, so root is the
-      # one real outcome here (fix round 1, finding 4).
+      # the referer or root; a request spec sends no referer, so root is
+      # the one real outcome here.
       workspace.discard!
       get operations_workspace_path(workspace)
       expect(response).to redirect_to(root_path)
       expect(flash[:alert]).to eq(I18n.t("errors.not_found"))
     end
 
-    # The suspend/unsuspend controls used to render as `<a href
-    # data-turbo-method>` — a GET fallback with no route, and a destructive
-    # state change announced as a link. `button_to` is the app's own
-    # convention for every other confirm-guarded mutation.
+    # `<a href data-turbo-method>` would be a GET fallback with no route,
+    # and a destructive state change announced as a link. `button_to` is
+    # the app's own convention for every other confirm-guarded mutation.
     it "renders the suspend control as a form, not a link" do
       get operations_workspace_path(workspace)
       html = Capybara.string(response.body)
@@ -171,8 +170,8 @@ RSpec.describe "Operations workspaces", type: :request do
       expect(flash[:notice]).to eq(I18n.t("operations.workspaces.suspensions.destroy.success"))
     end
 
-    # A repeat POST on an already-suspended workspace used to bump
-    # suspended_at to a new timestamp and write a second "locked" entry into
+    # A repeat POST on an already-suspended workspace must not bump
+    # suspended_at to a new timestamp or write a second "locked" entry into
     # the tenant's feed.
     it "does not duplicate the activity row or bump the timestamp on a repeat suspend" do
       workspace.suspend!

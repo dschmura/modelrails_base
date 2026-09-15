@@ -20,25 +20,23 @@
     <%= ui :list_group_item, class: "gap-4" do %>
       <span><%= operatorship.user.full_name %></span>
       <span class="text-text-body">
-        <%# Fix round 3, item 2 / R27: round 2 traded the visible date for
-            time_ago_in_words, which datetime= cannot stand in for — it is
-            announced to neither screen readers nor sighted users. The date
-            is the <time> element's CONTENT; %{date} carries that markup
-            through the _html-suffixed translation (fix round 2, item 9). %>
+        <%# The <time> element's CONTENT is the absolute date, not a relative
+            "time ago" string — that's what's announced to screen readers and
+            shown to sighted users. %{date} carries that <time> markup
+            through the _html-suffixed translation key. %>
         <%= t("operations.operatorships.index.granted_by_html",
               name: operatorship.granted_by&.full_name || t("operations.operatorships.index.bootstrap"),
               date: content_tag(:time, l(operatorship.created_at.to_date),
                                  datetime: operatorship.created_at.iso8601)) %>
       </span>
-      <%# button_to, not a link (C5) — same house rule as the workspace/user
-          lock controls. btn-text + btn-text-danger, not the solid btn-danger:
+      <%# button_to, not a link — same house rule as the workspace/user lock
+          controls. btn-text + btn-text-danger (not solid btn-danger): the
           precedent for a per-row destructive action inside a list is
           settings/sessions/index.html.erb and settings/passkeys/index.html.erb
           ("Revoke"/"Remove"), not the standalone workspace suspend button.
-          aria-label (fix round 1, item 2): both precedents carry one — an
-          N-identical-buttons roster needs distinct accessible names. No
-          btn-touch-target/focus-ring: .btn-text already carries both (verified
-          from compiled CSS), so either would be redundant. %>
+          aria-label: an N-identical-buttons roster needs distinct accessible
+          names. No separate btn-touch-target/focus-ring — .btn-text already
+          carries both. %>
       <%= button_to t("operations.operatorships.index.revoke"), operations_operatorship_path(operatorship),
             method: :delete, class: "btn-text btn-text-danger text-sm",
             "aria-label": t("operations.operatorships.index.revoke_aria_label", name: operatorship.user.full_name),

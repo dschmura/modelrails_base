@@ -1,9 +1,8 @@
 # frozen_string_literal: true
 
-# Instance operator (arc 1, spec 2026-09-14-instance-operator-design.md). A
-# row rather than a users column so grant/revoke carry their own provenance and
-# so arc 2 (scoped operators) is an additive nullable FK on this table, not a
-# column-to-rows data migration every fork absorbs.
+# A dedicated row rather than a users column, so grant/revoke carry their own
+# provenance and a future scoped-operator model is an additive nullable FK on
+# this table, not a column-to-rows data migration every fork absorbs.
 class CreateOperatorships < ActiveRecord::Migration[8.1]
   def change
     create_table :operatorships do |t|

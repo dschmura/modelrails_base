@@ -18,7 +18,7 @@ en:
         created: "created the %{workspace}"
         updated: "updated %{workspace} settings"
         # Suspend/unsuspend arrive as workspace.updated; ActivityLog#display_action
-        # derives these two from suspended_at in the row's own changes (Task 11).
+        # derives these two from suspended_at in the row's own changes.
         suspended: "locked the %{workspace}"
         unsuspended: "unlocked the %{workspace}"
       # The row's SUBJECT is ActivityLog#display_subject: the actor when there

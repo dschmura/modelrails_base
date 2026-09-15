@@ -237,7 +237,7 @@ signed-in operator's own reach relation:
 ```ruby
 # app/models/user.rb
 def operated_workspaces
-  operator? ? Workspace.kept : Workspace.none # arc 2 narrows the kept branch
+  operator? ? Workspace.kept : Workspace.none # scoped operators narrow this branch later
 end
 ```
 
@@ -249,10 +249,10 @@ end
 `Workspace` isn't `Tenanted`, so `no_unscoped_tenant_loads_spec.rb` wouldn't
 flag a bare `Workspace.find_by!` here — but the relation form is the point,
 not a guard dodge. `operated_workspaces` is every kept workspace today; it's
-also the one seam a later scoped-operator arc changes, and every operations
-controller reading through it (rather than each reinventing "all
-workspaces") is what makes that arc a one-method change instead of an
-audit. Anything *inside* the resolved workspace still hops its own
+also the one seam a future scoped-operator model changes, and every
+operations controller reading through it (rather than each reinventing "all
+workspaces") is what makes that a one-method change instead of an audit.
+Anything *inside* the resolved workspace still hops its own
 association (`@workspace.memberships`, `@workspace.activity_logs`), exactly
 like Patterns 1 and 2. See [Instance operations](operations) for what the
 area does with this.

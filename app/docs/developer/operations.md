@@ -136,6 +136,17 @@ owner.
   operators:revoke[email]` still can, deliberately: it's the break-glass
   path for an instance whose last operator has left or lost access, and
   it's a server-access operation, not a click.
+
+  The guard (`Operatorship#revoke_unless_last!`) is atomic under
+  concurrency: it locks the row before counting, so two operators revoking
+  two *different* rows can't both pass the count check and leave zero (same
+  shape as `Membership#reactivate!`'s guard — see [Architecture §
+  Concurrency](architecture)). It also refuses an operator revoking
+  their own row outright, and checks that case AFTER the last-operator one:
+  when only one operator remains, that operator is necessarily the one
+  attempting the revoke, so `:last_operator` is the more useful refusal — it
+  names the break-glass path, where a generic self-revoke refusal would
+  point at a second operator who doesn't exist.
 - Granting and revoking an operatorship writes an audit row in the same
   transaction as the grant or revoke, and those rows sit behind the
   security retention floor described in [Security: Activity

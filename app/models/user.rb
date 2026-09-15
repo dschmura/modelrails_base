@@ -106,8 +106,8 @@ class User < ApplicationRecord
   end
 
   # The operations area's reach, as a RELATION not a predicate: every
-  # Operations:: controller resolves workspaces through this. Arc 2 (scoped
-  # operators) changes this body and no call site.
+  # Operations:: controller resolves workspaces through this. A future
+  # scoped-operator model can change this body and no call site.
   def operated_workspaces
     operator? ? Workspace.kept : Workspace.none
   end

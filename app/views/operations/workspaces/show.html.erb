@@ -2,12 +2,11 @@
 <%# shared/settings_page_header has no slot for inline content beside the
     title, so the lifecycle signal — the design system's badge treatment,
     not prose — needs a small bespoke header; same type scale as the shared
-    partial (fix round 1, finding 6). The badge's own text ("Locked") carries
-    no "this is a status" context on its own, so it gets an explicit
-    aria-label rather than relying on surrounding text (fix round 2). Built
-    by concatenation, not an i18n %{status} interpolation — round 1 dropped
-    that token from caller_supplied deliberately, and a plain string doesn't
-    need it back. %>
+    partial. The badge's own text ("Locked") carries no "this is a status"
+    context on its own, so it gets an explicit aria-label rather than
+    relying on surrounding text. Built by string concatenation, not an i18n
+    %{status} interpolation: lifecycle_status_label already returns a
+    translated string, so it doesn't need one. %>
 <header class="mb-8">
   <div class="flex items-center gap-3">
     <h1 class="text-2xl font-semibold text-text-heading"><%= @workspace.name %></h1>

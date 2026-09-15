@@ -3,8 +3,8 @@ module Operations
   # not (necessarily) members of anything, so this area never includes
   # WorkspaceScoped and never sets Current.workspace — the same posture as
   # Clientside::BaseController. Workspaces are reached only through
-  # Current.user.operated_workspaces (the arc 2 seam), and everything inside a
-  # workspace still hops the association.
+  # Current.user.operated_workspaces (a seam for scoped operators later), and
+  # everything inside a workspace still hops the association.
   class BaseController < ApplicationController
     # An operator under the :none preset may have onboarded_at: nil; they must
     # reach the operations area rather than the onboarding wizard.

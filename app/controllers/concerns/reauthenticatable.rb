@@ -29,16 +29,16 @@ module Reauthenticatable
     end
   end
 
-  # Return the user to the page they triggered the action from. Gated
-  # mutations still return to a same-origin referer — their own path isn't a
-  # useful landing, there's nothing to retry there. A gated GET is different:
-  # Operations (fix round 1, operator arc) is this app's first GET-gated
-  # area, so a stale-session visit to /operations must land back on
-  # /operations, not on profile settings. request.fullpath mirrors
-  # Authenticatable#request_authentication (authenticatable.rb:60), the
-  # equivalent GET-correct form for the sign-in gate.
-  # get? is false for HEAD, which Rails routes to the same GET action — so a
-  # bare get? sent HEAD down the mutation branch (Brakeman VerbConfusion).
+  # Return the user to the page they triggered the action from. Mutations
+  # return to a same-origin referer — their own path isn't a useful landing,
+  # there's nothing to retry there. A GET-gated page returns to itself via
+  # request.fullpath (mirrors Authenticatable#request_authentication's
+  # GET-correct form for the sign-in gate), so a stale-session visit lands
+  # back on the page that gated it, not on profile settings.
+  #
+  # request.head? matters here: HEAD routes to the same action as GET, so a
+  # bare `get?` check would send HEAD down the mutation branch instead
+  # (Brakeman: VerbConfusion).
   def store_reauthentication_return_to
     session[:return_to_after_reauthentication] = if request.get? || request.head?
       request.fullpath

@@ -46,11 +46,11 @@ class Workspace < ApplicationRecord
   # See /docs/developer/notifications (The actor rule).
   attr_accessor :created_by
 
-  # Virtual, never persisted: the operator-create form's target-owner email
-  # (Operations::WorkspacesController#create). Fix round 1, item 5 — giving
-  # it a real attribute (rather than a controller-local variable) is what
-  # lets the format failure attach to THIS field instead of :base, so
-  # UI::FormBuilder's error_for finds it and wires aria-invalid/describedby.
+  # Virtual, never persisted: backs the operator-create form's target-owner
+  # email (Operations::WorkspacesController#create). A real attribute (not a
+  # controller-local variable) lets a format failure attach to THIS field
+  # instead of :base, so UI::FormBuilder's error_for finds it and wires
+  # aria-invalid/describedby.
   attr_accessor :owner_email
 
   # _commit, not after_create: enqueuing into Solid Queue's SQLite under the primary write lock is a lock-ordering hazard.

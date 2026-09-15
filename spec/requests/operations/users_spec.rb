@@ -45,9 +45,8 @@ RSpec.describe "Operations users", type: :request do
       html = Capybara.string(response.body)
       expect(html).to have_text("Acme")
       expect(html).to have_text("Admin")
-      # Item 7b (fix round 1): the title claimed "lock state" but nothing
-      # asserted it — scoped to the Locked dt/dd pair, not a bare have_text,
-      # since "No" also appears in the Operator row.
+      # Scoped to the Locked dt/dd pair, not a bare have_text, since "No"
+      # also appears in the Operator row.
       locked_dd = html.find(:xpath, "//dt[normalize-space(text())='#{I18n.t('operations.users.show.locked')}']/following-sibling::dd[1]")
       expect(locked_dd.text).to eq(I18n.t("operations.negative"))
       expect(html).to have_no_button(I18n.t("operations.users.show.unlock"))
@@ -63,8 +62,6 @@ RSpec.describe "Operations users", type: :request do
       expect(link[:class]).to include("btn-text-interactive")
     end
 
-    # Item 7b (fix round 1): the show page renders a lock-gated Unlock button
-    # that nothing covered — the reviewer's mutation-provable gap.
     it "shows the Unlock button only for a locked account" do
       5.times { target.register_failed_login! }
       get operations_user_path(target)
@@ -74,12 +71,12 @@ RSpec.describe "Operations users", type: :request do
       expect(html).to have_button(I18n.t("operations.users.show.unlock"))
     end
 
-    # Fix round 2, item 8: SQLite's BINARY collation sorts uppercase before
-    # lowercase, so a plain `.order("workspaces.name")` reads as alphabetical
-    # but isn't. workspaces.name is a plain column (unlike User#first_name/
-    # #last_name, which are non-deterministically encrypted and can be
-    # neither searched nor ORDER BY'd in SQL — R21), so this can be fixed in
-    # SQL rather than sorted in Ruby.
+    # SQLite's BINARY collation sorts uppercase before lowercase, so a plain
+    # `.order("workspaces.name")` reads as alphabetical but isn't.
+    # workspaces.name is a plain column (unlike User#first_name/#last_name,
+    # which are non-deterministically encrypted and can be neither searched
+    # nor ORDER BY'd in SQL), so this can be fixed in SQL rather than sorted
+    # in Ruby.
     it "orders memberships by workspace name case-insensitively" do
       create(:membership, user: target, workspace: create(:workspace, name: "zeta"))
       create(:membership, user: target, workspace: create(:workspace, name: "Acme"))

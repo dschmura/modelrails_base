@@ -85,8 +85,8 @@ class ActivityLog < ApplicationRecord
       .order(created_at: :desc)
   }
   scope :recent, -> { order(created_at: :desc).limit(20) }
-  # The operations feed (arc 1): every workspace, newest first. `personal` rows
-  # are a user's own security events and are excluded on purpose — an operator
+  # The operations feed: every workspace, newest first. `personal` rows are a
+  # user's own security events and are excluded on purpose — an operator
   # reading them is a privacy decision the template does not make for a fork.
   # Invariant I3 (decline-and-block): the inviter must never be able to confirm
   # a block. These rows are admin-visibility so they drop out of the workspace
@@ -143,13 +143,12 @@ class ActivityLog < ApplicationRecord
     return unless block_given?
 
     # Only read the association (and only here) when a caller needs the
-    # array — reading it unconditionally marked the hop "used" to Bullet
-    # regardless of whether anything downstream ever did, permanently
-    # masking an unused eager load (fix round 2, item 5). Even after this
-    # fix, the Membership slice's read below stays invisible to Bullet the
-    # same way: it's consumed internally to feed the nested :user preload,
-    # not because a caller read it — a clean Bullet run here proves nothing
-    # about that hop.
+    # array — reading it unconditionally would mark the hop "used" to
+    # Bullet regardless of whether anything downstream did, permanently
+    # masking an unused eager load. The Membership slice's read below stays
+    # invisible to Bullet the same way: it's consumed internally to feed the
+    # nested :user preload, not because a caller read it — a clean Bullet
+    # run here proves nothing about that hop.
     trackables = rows.filter_map(&:trackable)
     yield trackables if trackables.any?
   end
@@ -164,8 +163,8 @@ class ActivityLog < ApplicationRecord
   # departure. A status change outranks a role change: `reactivate!` can carry
   # both, and losing or regaining access is the more consequential half.
   # A workspace lock/unlock is the same shape (Suspendable#suspend! is an
-  # ordinary update too), splitting workspace.updated on suspended_at instead
-  # of discarded_at (Task 11).
+  # ordinary update too), splitting workspace.updated on suspended_at
+  # instead of discarded_at.
   # Unknown shapes fall through to `action` itself. The partial has no
   # `default:` (the ModelRails/NoI18nDefault cop forbids it, #1022), so an
   # action with no activity.actions label raises rather than humanizing —
@@ -182,10 +181,9 @@ class ActivityLog < ApplicationRecord
   # The member a membership row is ABOUT, which is not its actor: Trackable
   # records the actor as whoever performed the change, so an owner removing
   # someone produced a row whose only name was the owner's. An operatorship
-  # grant/revoke's trackable is a User directly, not a Membership — Operatorship
-  # is above the workspace layer (#1120 fix round 1: the operations feed is the
-  # first surface to render these admin-visibility rows, and without this case
-  # the row read "granted a member operator access", naming neither party).
+  # grant/revoke's trackable is a User directly, not a Membership —
+  # Operatorship is above the workspace layer (#1120): without this case the
+  # row read "granted a member operator access", naming neither party.
   # nil for every other trackable, and for a membership that has since been
   # hard-deleted — the partial supplies the neutral noun.
   def display_member

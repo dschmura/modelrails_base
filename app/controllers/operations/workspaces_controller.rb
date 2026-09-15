@@ -13,10 +13,10 @@ module Operations
       authorize [ :operations, @workspace ]
       # first_name/last_name are non-deterministically encrypted (user.rb's
       # `encrypts :pending_email, :first_name, :last_name` carries no
-      # `deterministic: true`), so an SQL ORDER BY on either sorts ciphertext,
-      # not names (fix round 2, finding 7 — a prior instruction to sort in SQL
-      # was wrong). Sort in Ruby on the decrypted values instead; the eager
-      # loads below are unchanged, so this doesn't reintroduce a query per row.
+      # `deterministic: true`), so an SQL ORDER BY on either sorts
+      # ciphertext, not names. Sort in Ruby on the decrypted values instead;
+      # the eager loads below are unchanged, so this doesn't reintroduce a
+      # query per row.
       @memberships = @workspace.memberships.kept.includes(:role, :user).to_a
         .sort_by { |m| [ m.user.last_name.to_s.downcase, m.user.first_name.to_s.downcase ] }
       @activities = @workspace.activity_logs.visible.recent.for_feed
@@ -43,10 +43,9 @@ module Operations
       # silently skips it (its own EMAIL_FORMAT check). Left unguarded, a
       # blank/invalid owner_email would quietly hand the new workspace to the
       # OPERATOR with no invitation and no error surfaced. Workspace itself
-      # validates the format (fix round 1, item 5 — the error now attaches
-      # to the FIELD via the owner_email attribute, not :base); checked here
-      # first only to skip the owner lookup and transaction on input already
-      # known to be bad.
+      # validates the format, attaching the error to the FIELD via the
+      # owner_email attribute (not :base); checked here first only to skip
+      # the owner lookup and transaction on input already known to be bad.
       return render :new, status: :unprocessable_entity if @workspace.invalid?
 
       owner = User.find_by(email_address: @owner_email)

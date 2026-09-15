@@ -14,7 +14,7 @@
         — this body's own fill — so it would sit invisible against the page;
         :info actually separates it. Wrapped in the same max-w-5xl column as
         nav/main so it doesn't run bare edge-to-edge as the only unboxed
-        <body> child (fix round 1, operator arc). %>
+        <body> child. %>
     <div class="max-w-5xl mx-auto px-6 pt-4">
       <%= ui :banner, t("operations.area.banner"), variant: :info %>
     </div>
@@ -34,7 +34,7 @@
     %>
     <nav aria-label="<%= t("operations.area.nav_label") %>" class="border-b border-border">
       <%# role="list": same preflight list-style:none trap as the activity
-          feed's <ol> (fix round 2, item 2 / R24). %>
+          feed's <ol>. %>
       <ul role="list" class="max-w-5xl mx-auto px-6 py-2 flex gap-4 text-sm">
         <% nav_items.each do |label, path| %>
           <% current = current_page?(path) %>
