@@ -142,7 +142,7 @@ RSpec.describe "Operations operatorships", type: :request do
     end
 
     # DELETE resolves through an unscoped find, not the `kept` scope: a
-    # replayed delete must reach revoke_unless_last!'s own idempotence
+    # replayed delete must reach revoke_by_operator!'s own idempotence
     # guard instead of 404ing before it can answer — the unscoped find lets
     # the second request find the already-discarded row instead of raising.
     it "does not raise on a double submit for the same operatorship" do

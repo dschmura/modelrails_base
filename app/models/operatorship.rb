@@ -1,7 +1,7 @@
 # "This user operates the instance." Deliberately NOT a Membership and NOT a
 # Role: memberships.workspace_id is null: false and Role(workspace_id: nil)
 # already means "system default template", so neither can carry an
-# instance-level grant without changing what it means (panel 2026-09-14).
+# instance-level grant without changing what it means.
 class Operatorship < ApplicationRecord
   include Discardable
 
@@ -13,9 +13,9 @@ class Operatorship < ApplicationRecord
   def self.grant!(user:, granted_by: nil)
     transaction do
       create!(user: user, granted_by: granted_by).tap do |operatorship|
-        ActivityLog.create!(
-          action: "operatorship.granted", actor: granted_by, trackable: user,
-          workspace: nil, visibility: "admin", metadata: { operatorship_id: operatorship.id }
+        ActivityLog.record_security_event!(
+          action: "operatorship.granted", user: user, actor: granted_by,
+          visibility: "admin", metadata: { operatorship_id: operatorship.id }
         )
       end
     end
@@ -30,31 +30,28 @@ class Operatorship < ApplicationRecord
 
     transaction do
       discard!
-      ActivityLog.create!(
-        action: "operatorship.revoked", actor: revoked_by, trackable: user,
-        workspace: nil, visibility: "admin", metadata: { operatorship_id: id }
+      ActivityLog.record_security_event!(
+        action: "operatorship.revoked", user: user, actor: revoked_by,
+        visibility: "admin", metadata: { operatorship_id: id }
       )
     end
     true
   end
 
-  # Guards, atomically: the last kept operatorship can't be revoked (`lock!`
-  # before the count avoids a two-operators-race TOCTOU), and an operator can
-  # never revoke their own row through here — checked in that order, so a
-  # sole operator revoking themselves gets the more useful :last_operator
-  # refusal instead of a generic self-revoke one. Returns which case fired,
-  # not a boolean: a caller has to tell "already revoked" apart from "last
-  # one" to avoid reporting a refusal for a rule that didn't apply. See
-  # app/docs/developer/operations.md (How it stays safe) and
+  # Refuses the last kept operatorship and a self-revoke, reporting which
+  # rule fired. Atomic on SQLite because BEGIN IMMEDIATE opens at this block's
+  # first statement, so the count runs under the writer lock (`lock!` is only
+  # a reload here) and a count of two or more followed by one discard cannot
+  # reach zero. A Postgres fork needs an explicit lock — see
   # /docs/developer/architecture (Concurrency).
-  def revoke_unless_last!(revoked_by: nil)
+  def revoke_by_operator!(operator)
     transaction do
       lock!
       next :already_revoked if discarded?
       next :last_operator if Operatorship.kept.count <= 1
-      next :self_revoke if revoked_by == user
+      next :self_revoke if operator == user
 
-      revoke!(revoked_by: revoked_by)
+      revoke!(revoked_by: operator)
       :revoked
     end
   end

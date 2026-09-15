@@ -37,23 +37,19 @@ module Operations
       end
     end
 
-    # The last kept operatorship cannot be revoked from the panel — that
-    # would lock everyone out of the area. The guard lives in
-    # Operatorship#revoke_unless_last!, not this controller: a bare count
-    # check here, outside any transaction, would let two operators revoking
-    # two DIFFERENT rows both pass. `rails operators:revoke` still calls
-    # plain `revoke!` (break-glass), keeping its documented ability to
-    # remove the last one.
+    # The last kept operatorship can't be revoked from the panel — the guard
+    # lives in Operatorship#revoke_by_operator!, not here: a bare count
+    # check outside a transaction would let two operators revoking two
+    # DIFFERENT rows both pass. `rails operators:revoke` still calls plain
+    # `revoke!` (break-glass), keeping its documented ability to remove the
+    # last one.
     #
     # Unscoped find, not `.kept`: a replayed delete must reach
-    # revoke_unless_last!'s own discarded? guard instead of 404ing before it
-    # can answer. That guard returns false for "already discarded" the same
-    # as "last operator" — one message covers both rather than a third
-    # branch.
+    # revoke_by_operator!'s own discarded? branch instead of 404ing first.
     def destroy
       operatorship = Operatorship.find(params[:id])
       authorize [ :operations, operatorship ]
-      case operatorship.revoke_unless_last!(revoked_by: Current.user)
+      case operatorship.revoke_by_operator!(Current.user)
       when :revoked then redirect_to operations_operatorships_path, notice: t(".success")
       when :already_revoked then redirect_to operations_operatorships_path, alert: t(".already_revoked")
       when :last_operator then redirect_to operations_operatorships_path, alert: t(".last_operator")

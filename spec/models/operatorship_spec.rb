@@ -6,8 +6,7 @@ RSpec.describe Operatorship do
 
   describe ".grant!" do
     it "creates a kept operatorship and a STRICT admin-tier audit row in one transaction" do
-      # Force before the block: both are lazy lets, and creating a user fires
-      # onboarding callbacks that write their own activity rows (R5).
+      # Force before the block: creating a user writes its own activity rows.
       user
       granter
 
@@ -49,7 +48,7 @@ RSpec.describe Operatorship do
   describe "#revoke!" do
     it "discards the row and writes the revoked audit row with the revoker as actor" do
       operatorship = described_class.grant!(user: user)
-      granter # force before the block: same lazy-let onboarding issue as R5.
+      granter # force before the block: creating a user writes its own activity rows.
 
       expect { operatorship.revoke!(revoked_by: granter) }.to change(ActivityLog, :count).by(1)
       expect(operatorship.reload).to be_discarded
@@ -61,7 +60,7 @@ RSpec.describe Operatorship do
 
     it "rolls back the discard when the audit row cannot be written" do
       operatorship = described_class.grant!(user: user)
-      granter # force before the stub: same lazy-let onboarding issue as R5.
+      granter # force before the stub: creating a user writes its own activity rows.
       allow(ActivityLog).to receive(:create!).and_raise(ActiveRecord::RecordInvalid)
 
       expect { operatorship.revoke!(revoked_by: granter) }.to raise_error(ActiveRecord::RecordInvalid)
@@ -87,21 +86,21 @@ RSpec.describe Operatorship do
     expect(ActivityLog::SECURITY_ACTIONS).to include("operatorship.granted", "operatorship.revoked")
   end
 
-  describe "#revoke_unless_last!" do
+  describe "#revoke_by_operator!" do
     it "revokes and reports :revoked when another kept operatorship remains" do
       operatorship = described_class.grant!(user: user)
       described_class.grant!(user: create(:user))
 
-      expect(operatorship.revoke_unless_last!(revoked_by: granter)).to be(:revoked)
+      expect(operatorship.revoke_by_operator!(granter)).to be(:revoked)
       expect(operatorship.reload).to be_discarded
     end
 
     it "refuses and reports :last_operator for the last kept operatorship, writing no audit row" do
       operatorship = described_class.grant!(user: user)
-      granter # force before the block: same lazy-let onboarding issue as R5.
+      granter # force before the block: creating a user writes its own activity rows.
 
       expect {
-        expect(operatorship.revoke_unless_last!(revoked_by: granter)).to be(:last_operator)
+        expect(operatorship.revoke_by_operator!(granter)).to be(:last_operator)
       }.not_to change(ActivityLog, :count)
       expect(operatorship.reload).to be_kept
     end
@@ -113,7 +112,7 @@ RSpec.describe Operatorship do
       discarded_at = operatorship.reload.discarded_at
 
       expect {
-        expect(operatorship.revoke_unless_last!(revoked_by: granter)).to be(:already_revoked)
+        expect(operatorship.revoke_by_operator!(granter)).to be(:already_revoked)
       }.not_to change(ActivityLog, :count)
       expect(operatorship.reload.discarded_at).to eq(discarded_at)
     end
@@ -123,25 +122,32 @@ RSpec.describe Operatorship do
       described_class.grant!(user: create(:user))
 
       expect {
-        expect(operatorship.revoke_unless_last!(revoked_by: user)).to be(:self_revoke)
+        expect(operatorship.revoke_by_operator!(user)).to be(:self_revoke)
       }.not_to change(ActivityLog, :count)
       expect(operatorship.reload).to be_kept
     end
 
-    # Sequential stand-in for the concurrent case this guard exists for
-    # (two operators revoking two DIFFERENT rows in the same window): SQLite's
+    # Sequential stand-in for the concurrent case this guard exists for (two
+    # operators revoking two DIFFERENT rows in the same window): SQLite's
     # writer lock (BEGIN IMMEDIATE, /docs/developer/architecture) serializes
-    # any real race into some sequential order, so proving the invariant holds
-    # across every sequential order proves it for the concurrent case too.
-    it "never lets kept operators reach zero when two different rows are both revoked" do
+    # any real race into some sequential order, so proving the invariant
+    # holds across both possible orders proves it for the concurrent case.
+    it "never lets kept operators reach zero, revoking the first row before the second" do
       first = described_class.grant!(user: user)
       second = described_class.grant!(user: create(:user))
 
-      expect(first.revoke_unless_last!(revoked_by: granter)).to be(:revoked)
-      expect(second.revoke_unless_last!(revoked_by: granter)).to be(:last_operator)
-
+      expect(first.revoke_by_operator!(granter)).to be(:revoked)
+      expect(second.revoke_by_operator!(granter)).to be(:last_operator)
       expect(described_class.kept.count).to eq(1)
-      expect(second.reload).to be_kept
+    end
+
+    it "never lets kept operators reach zero, revoking the second row before the first" do
+      first = described_class.grant!(user: user)
+      second = described_class.grant!(user: create(:user))
+
+      expect(second.revoke_by_operator!(granter)).to be(:revoked)
+      expect(first.revoke_by_operator!(granter)).to be(:last_operator)
+      expect(described_class.kept.count).to eq(1)
     end
   end
 end

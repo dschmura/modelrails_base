@@ -8,7 +8,6 @@ require "rails_helper"
 # `ActivityLog.create!(action: "user.password_changed", visibility: "personal")`
 # directly — or writing a near-miss literal like "user.passkey_add" — produces a
 # row the retention sweep deletes at 12 months instead of the security floor,
-# renders plausibly in the activity card via its humanizing `default:` fallback,
 # and leaves the whole suite green. Audit evidence lost silently. That path was
 # reachable the day the guard shipped (#824); no fourth writer was needed.
 #
@@ -32,12 +31,10 @@ RSpec.describe "Code smell: security events route through record_security_event!
   allowed_direct_writes = SecurityEventWriters::ALLOWED
 
   # Files allowed to mention a security-action literal without routing it
-  # through the writer. The file that defines the set qualifies, and so does
-  # operatorship.rb: it is already a reviewed direct writer above, and its row
-  # shape (actor: granter, visibility: admin) is deliberately not
-  # record_security_event!'s, so requiring that call here would just be the
-  # same bypass restated.
-  literal_definers = [ "app/models/activity_log.rb", "app/models/operatorship.rb" ].freeze
+  # through the writer. Only the file that defines the set qualifies —
+  # operatorship.rb now calls record_security_event! like every other writer,
+  # so it satisfies the third example below on its own.
+  literal_definers = [ "app/models/activity_log.rb" ].freeze
 
   def ruby_sources
     Dir[Rails.root.join("{app,lib}/**/*.rb")]

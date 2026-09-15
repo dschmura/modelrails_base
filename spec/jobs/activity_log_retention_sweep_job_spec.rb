@@ -89,11 +89,10 @@ RSpec.describe ActivityLogRetentionSweepJob, type: :job do
       expect(ActivityLog.exists?(admin_row.id)).to be(false)
     end
 
-    # Operatorship writes its rows directly, never through
-    # record_security_event! (its actor is the granter, not the subject) —
-    # this proves the retention floor still protects them regardless of
-    # which writer produced the row.
-    it "protects an operatorship row past the general window but inside the floor, even though Operatorship writes it directly" do
+    # Operatorship's rows are written at admin visibility (the actor is the
+    # granter, not the subject) — this proves the retention floor keys off
+    # action membership, not off the personal visibility the other members use.
+    it "protects an operatorship row past the general window but inside the floor, whatever its visibility" do
       stub_const("ActivityLogRetentionSweepJob::RETENTION_WINDOW", 30.days)
       travel_to(60.days.ago) { Operatorship.grant!(user: user, granted_by: create(:user)) }
       row = ActivityLog.find_by!(action: "operatorship.granted", trackable: user)

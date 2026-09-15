@@ -43,14 +43,17 @@ RSpec.describe "Code smell: every dynamic i18n key has a value" do
   # A regex scanning app/ for that shape is paren-fragile — ANY `)` between
   # `ActivityLog.create!(` and `action:` blinds it, and
   # application_controller.rb's own call was one argument swap away from
-  # doing exactly that. Rather than guess at source shape, this scans only
+  # doing exactly that. Rather than guess at source shape, two scans read
+  # two reviewed sources: the `ActivityLog.create!` shape only in
   # SecurityEventWriters::ALLOWED (spec/support/security_event_writers.rb) —
-  # the SAME reviewed list security_events_route_through_writer_spec.rb uses
-  # to prove no OTHER file bypasses Trackable — with balanced_end so a nested
-  # `)` inside the call can't hide `action:`, and without_comments so prose
-  # merely naming the shape (trackable.rb's own header) can't forge a
-  # phantom action. A new bypass writer must be added to that list before
-  # either guard can see it.
+  # the SAME list security_events_route_through_writer_spec.rb uses to prove
+  # no OTHER file bypasses Trackable — and `ActivityLog.record_security_event!`
+  # calls anywhere under app/, keeping only those whose visibility: literal is
+  # not personal (the ones that reach a feed). Both use balanced_end so a
+  # nested `)` inside the call can't hide `action:`, and without_comments so
+  # prose merely naming the shape (trackable.rb's own header) can't forge a
+  # phantom action. A new bypass writer must be added to ALLOWED before either
+  # guard can see it; a new feed-visible security write is seen where it is.
   #
   # This text scan cannot evaluate every Ruby shape — create without a bang,
   # create! without parens, a non-literal action value, a string-embedded
@@ -69,6 +72,12 @@ RSpec.describe "Code smell: every dynamic i18n key has a value" do
     /\baction:\s*(.+?)\s*(?:,|\z)/m
   end
 
+  # Sibling to action_arg_pattern, same shape, for pulling a call's
+  # visibility: argument instead of its action: one.
+  def visibility_arg_pattern
+    /\bvisibility:\s*(.+?)\s*(?:,|\z)/m
+  end
+
   describe "the action: extraction regex" do
     it "is not fooled by a preceding kwarg ending in \"action:\"" do
       call_args = %(transaction: true, action: "workspace.updated")
@@ -78,6 +87,21 @@ RSpec.describe "Code smell: every dynamic i18n key has a value" do
     it "does not match a kwarg ending in \"action:\" when no real action: is present" do
       call_args = %(redaction: "a.b")
       expect(call_args.match(action_arg_pattern)).to be_nil
+    end
+  end
+
+  describe "the visibility: extraction regex" do
+    it "is not fooled by a preceding kwarg ending in \"visibility:\"" do
+      call_args = %(default_visibility: "admin", action: "a.b", visibility: "personal")
+      expect(call_args.match(visibility_arg_pattern)[1]).to eq('"personal"')
+    end
+
+    # A visibility: nested inside metadata: is captured with its closing
+    # brace, which the literal check rejects — the scan then fails loud rather
+    # than treating the row as personal.
+    it "captures a nested metadata visibility: as a non-literal, not as personal" do
+      call_args = %(action: "a.b", metadata: { visibility: "admin" }, visibility: "personal")
+      expect(call_args.match(visibility_arg_pattern)[1]).not_to match(/\A["'][\w.]+["']\z/)
     end
   end
 
@@ -91,9 +115,6 @@ RSpec.describe "Code smell: every dynamic i18n key has a value" do
     # literal ActivityLog.create! — neither guard below can see them any
     # other way.
     actions += %w[workspace.suspended workspace.unsuspended]
-    # Enumerated from the constant, not text-scanned: SECURITY_ACTIONS already
-    # names Operatorship's two direct-write actions.
-    actions += ActivityLog::SECURITY_ACTIONS.grep(/\Aoperatorship\./)
 
     # No trailing `\(` — a paren-less call (gap: no parens) must still be
     # found so it can be reported, not silently missed. `(?=[\s(]|\z)`
@@ -142,6 +163,70 @@ RSpec.describe "Code smell: every dynamic i18n key has a value" do
           actions << literal[1]
         elsif !declared_dynamic[relative]&.include?(raw_value)
           unresolved << "#{relative}:#{line}: ActivityLog action `#{raw_value}` is not a string literal"
+        end
+      end
+    end
+
+    # A record_security_event! row reaches a feed only when a writer
+    # overrides the personal default — a literal visibility: other than
+    # "personal" — so the call site, not ActivityLog::SECURITY_ACTIONS, is
+    # the source of truth for which actions need a feed label. No
+    # visibility: argument, or a literal "personal", is an account-card row:
+    # activity_log_spec's SECURITY_ACTIONS label check already guards it.
+    # Receiver-anchored, like write_call above, so the writer's own `def`
+    # line in activity_log.rb is not read as a call site.
+    security_write = /\bActivityLog\.record_security_event!/
+    Dir[Rails.root.join("app/**/*.rb")].each do |file|
+      relative = Pathname(file).relative_path_from(Rails.root).to_s
+      raw = File.read(file)
+      next unless raw.include?("record_security_event!")
+
+      source = without_comments(raw)
+      position = 0
+      while (match = security_write.match(source, position))
+        line = source[0...match.begin(0)].count("\n") + 1
+        position = match.end(0)
+
+        paren = source[position..].match(/\A[ \t]*\(/)
+        unless paren
+          unresolved << "#{relative}:#{line}: record_security_event! call with no parentheses"
+          next
+        end
+
+        open_index = position + paren[0].length - 1
+        finish = balanced_end(source, open_index)
+        unless finish
+          unresolved << "#{relative}:#{line}: record_security_event! call whose parentheses never balance"
+          next
+        end
+        position = finish
+
+        call_args = source[(open_index + 1)...(finish - 1)]
+        visibility_match = call_args.match(visibility_arg_pattern)
+        next unless visibility_match # no visibility: -> personal default -> account card, guarded elsewhere
+
+        raw_visibility = visibility_match[1]
+        visibility_literal = raw_visibility.match(literal_value)
+        next if visibility_literal && visibility_literal[1] == "personal"
+
+        unless visibility_literal
+          unresolved << "#{relative}:#{line}: record_security_event! call with a non-literal visibility: argument"
+          next
+        end
+
+        action_match = call_args.match(action_arg_pattern)
+        unless action_match
+          unresolved << "#{relative}:#{line}: record_security_event! call with a non-personal visibility " \
+            "but no resolvable action: argument"
+          next
+        end
+
+        raw_action = action_match[1]
+        action_literal = raw_action.match(literal_value)
+        if action_literal
+          actions << action_literal[1]
+        else
+          unresolved << "#{relative}:#{line}: record_security_event! action `#{raw_action}` is not a string literal"
         end
       end
     end

@@ -137,12 +137,15 @@ owner.
   path for an instance whose last operator has left or lost access, and
   it's a server-access operation, not a click.
 
-  The guard (`Operatorship#revoke_unless_last!`) is atomic under
-  concurrency: it locks the row before counting, so two operators revoking
-  two *different* rows can't both pass the count check and leave zero (same
-  shape as `Membership#reactivate!`'s guard — see [Architecture §
-  Concurrency](architecture)). It also refuses an operator revoking
-  their own row outright, and checks that case AFTER the last-operator one:
+  The guard (`Operatorship#revoke_by_operator!`) is atomic under
+  concurrency: `BEGIN IMMEDIATE` opens the transaction at the block's first
+  statement, so the count runs under the writer lock (`lock!` is only a
+  reload on SQLite, not the mechanism) — two operators revoking two
+  *different* rows can't both pass the count check and leave zero (the
+  lock-then-check shape of every guarded mutator — see [Architecture §
+  Concurrency](architecture); a Postgres fork must add an explicit lock). It
+  also refuses an operator revoking their own row outright, and checks that
+  case AFTER the last-operator one:
   when only one operator remains, that operator is necessarily the one
   attempting the revoke, so `:last_operator` is the more useful refusal — it
   names the break-glass path, where a generic self-revoke refusal would

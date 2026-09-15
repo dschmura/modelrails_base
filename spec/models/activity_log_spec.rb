@@ -270,7 +270,7 @@ RSpec.describe ActivityLog, type: :model do
     # write a plausible row that the retention sweep deletes at 12 months
     # instead of the security floor, with every other spec still green.
     it "raises instead of writing when the action is outside SECURITY_ACTIONS" do
-      user # Ruling R7: materialize before the count block — onboarding writes its own rows.
+      user # materialize before the count block — creating a user writes its own activity rows.
       expect {
         expect {
           ActivityLog.record_security_event!(action: "user.passkey_add", user: user)
@@ -278,18 +278,23 @@ RSpec.describe ActivityLog, type: :model do
       }.not_to change(ActivityLog, :count)
     end
 
-    # Operatorship is a SECURITY_ACTIONS member (the sweep must protect its
-    # rows) but its actor is the granter, not the subject — this writer's
-    # fixed shape (actor: user, visibility: personal) would misrepresent it
-    # as self-granted. Operatorship.grant!/revoke! write it directly instead
-    # (SecurityEventWriters::ALLOWED); this method must refuse it.
-    it "raises for an operatorship action, whose actor is the granter rather than the subject" do
-      user
-      expect {
-        expect {
-          ActivityLog.record_security_event!(action: "operatorship.granted", user: user)
-        }.to raise_error(ArgumentError, /SECURITY_ACTIONS/)
-      }.not_to change(ActivityLog, :count)
+    # Operatorship's actor is the granter/revoker, not the subject — actor:
+    # and visibility: let a caller override the self-event default so the
+    # row still fits that writer's shape.
+    it "writes an operator-actor row at admin visibility when given actor: and visibility:" do
+      operator = create(:user)
+      log = ActivityLog.record_security_event!(action: "operatorship.granted", user: user,
+                                              actor: operator, visibility: "admin",
+                                              metadata: { operatorship_id: 1 })
+
+      expect(log).to have_attributes(actor: operator, trackable: user, visibility: "admin", workspace_id: nil)
+    end
+
+    it "accepts an explicit nil actor (a rake grant has no granter)" do
+      log = ActivityLog.record_security_event!(action: "operatorship.granted", user: user,
+                                              actor: nil, visibility: "admin")
+
+      expect(log.actor).to be_nil
     end
   end
 

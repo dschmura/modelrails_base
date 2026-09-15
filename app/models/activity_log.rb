@@ -32,38 +32,26 @@ class ActivityLog < ApplicationRecord
   # new-device sign-in); the account activity card renders their _with_os label.
   SECURITY_ACTIONS_WITH_OS = %w[user.signed_in_new_device].freeze
 
-  # SECURITY_ACTIONS members this writer's fixed shape (actor: user,
-  # visibility: personal) would misrepresent — Operatorship's actor is the
-  # granter/revoker, not the subject, so it writes these two directly
-  # (SecurityEventWriters::ALLOWED). Membership in SECURITY_ACTIONS still
-  # governs the retention floor for them; this constant only narrows what
-  # record_security_event! itself may accept.
-  UNSHAPEABLE_SECURITY_ACTIONS = %w[operatorship.granted operatorship.revoked].freeze
-
   # The one writer for security-tier rows (User password callbacks,
-  # WebauthnCredential, Authenticatable all route here). Two reasons it exists:
-  # the row shape lives in exactly one place, and an action this shape doesn't
-  # fit raises instead of writing. Without the guard a drifted literal
-  # ("user.passkey_add") would still write a plausible-looking row that the
-  # sweep deletes at 12 months instead of the security floor — audit evidence
-  # lost silently, with the whole suite green.
+  # WebauthnCredential, Authenticatable, Operatorship all route here); the
+  # row shape lives in exactly one place. `actor:` and `visibility:` default
+  # to the self-event shape — the subject is the actor, personal visibility —
+  # and a writer whose actor is someone else (an operator acting on a user)
+  # overrides both, writing admin visibility so the row lands in the
+  # operations feed rather than the subject's account card.
   #
-  # ArgumentError is deliberate: a non-member action is a programmer error, so
-  # it propagates through Authenticatable's ActiveRecord-only rescue rather
-  # than being swallowed. This method does not choose the write guarantee —
-  # callers do, by rescuing or not.
-  def self.record_security_event!(action:, user:, metadata: {})
+  # A non-member action raises: a drifted literal ("user.passkey_add") would
+  # otherwise write a plausible row the sweep deletes at 12 months instead of
+  # the security floor, with the suite green. ArgumentError on purpose — a
+  # programmer error propagates rather than being swallowed; callers choose
+  # the write guarantee by rescuing or not.
+  def self.record_security_event!(action:, user:, actor: user, visibility: "personal", metadata: {})
     unless SECURITY_ACTIONS.include?(action)
       raise ArgumentError, "#{action.inspect} is not in ActivityLog::SECURITY_ACTIONS"
     end
-    if UNSHAPEABLE_SECURITY_ACTIONS.include?(action)
-      raise ArgumentError,
-        "#{action.inspect} is a SECURITY_ACTIONS member this writer cannot shape (actor is not " \
-        "the subject) — see ActivityLog::UNSHAPEABLE_SECURITY_ACTIONS for its direct writer"
-    end
 
-    create!(action: action, actor: user, trackable: user,
-            visibility: "personal", workspace_id: nil, metadata: metadata)
+    create!(action: action, actor: actor, trackable: user,
+            visibility: visibility, workspace_id: nil, metadata: metadata)
   end
 
   validates :action, presence: true
@@ -77,9 +65,10 @@ class ActivityLog < ApplicationRecord
   # returns "admin" through it — so a fork returning "personal" for a domain
   # event had its rows rendered under a security heading.
   # `visibility` is kept as a second, narrowing predicate rather than dropped:
-  # record_security_event! always writes personal, so a security action at any
-  # other visibility is malformed, and an existing spec deliberately pins that
-  # such a row stays out of this card.
+  # the self-event default is personal, but an operator-actor row
+  # (Operatorship's grant/revoke) is written at admin visibility on purpose,
+  # so it belongs in the operations feed, not this card — this predicate is
+  # what keeps it out.
   scope :security_events_for, ->(user) {
     where(action: SECURITY_ACTIONS, trackable: user, visibility: :personal)
       .order(created_at: :desc)
@@ -166,10 +155,11 @@ class ActivityLog < ApplicationRecord
   # ordinary update too), splitting workspace.updated on suspended_at
   # instead of discarded_at.
   # Unknown shapes fall through to `action` itself. The partial has no
-  # `default:` (the ModelRails/NoI18nDefault cop forbids it, #1022), so an
-  # action with no activity.actions label raises rather than humanizing —
-  # spec/code_smells/dynamic_i18n_keys_have_values_spec.rb is what keeps that
-  # from shipping.
+  # `default:` (the ModelRails/NoI18nDefault cop forbids it, #1022); in test
+  # (`raise_on_missing_translations`) a missing activity.actions label raises,
+  # while dev/prod render a "translation missing" marker instead.
+  # spec/code_smells/dynamic_i18n_keys_have_values_spec.rb is what keeps a
+  # missing label from shipping in the first place.
   def display_action
     case action
     when "membership.updated" then membership_display_action

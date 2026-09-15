@@ -33,10 +33,7 @@
 # Tier and retention are independent axes: the new-device row is best-effort
 # yet still an ActivityLog::SECURITY_ACTIONS member, so it keeps the security
 # retention floor. Every SECURITY_ACTIONS row, either tier, is written through
-# ActivityLog.record_security_event! — which owns that row shape — except
-# Operatorship's two actions, which write ActivityLog.create! directly because
-# record_security_event! forces actor: user and these rows' actor is the
-# granter/revoker, not the subject.
+# ActivityLog.record_security_event! — which owns that row shape.
 module Trackable
   extend ActiveSupport::Concern
 
