@@ -52,12 +52,19 @@ RSpec.describe "Operations users", type: :request do
       create(:membership, user: target, workspace: create(:workspace, name: "Delta"))
 
       get operations_user_path(target)
-      body = response.body
+
+      # Scoped to the membership list, not the whole body: target's own
+      # onboarding workspace is in this list under a Faker name, and a raw
+      # body.index search matched it first whenever that name happened to
+      # contain one of these tokens (deterministic failure on seed 58938).
+      # Array#& keeps the receiver's order, so this reads the rendered order
+      # and ignores the unrelated row.
+      rendered = Capybara.string(response.body)
+                         .find("section[aria-labelledby='ops-user-memberships']")
+                         .all("li a").map(&:text)
       # Binary collation would read Acme, Delta, beta, zeta (uppercase first).
       # Case-insensitive alphabetical is Acme, beta, Delta, zeta.
-      positions = %w[Acme beta Delta zeta].map { |name| body.index(name) }
-      expect(positions).to all(be_present)
-      expect(positions).to eq(positions.sort)
+      expect(rendered & %w[Acme beta Delta zeta]).to eq(%w[Acme beta Delta zeta])
     end
   end
 
