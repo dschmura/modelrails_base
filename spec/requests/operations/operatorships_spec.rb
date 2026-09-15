@@ -142,6 +142,11 @@ RSpec.describe "Operations operatorships", type: :request do
       expect(response).to redirect_to(operations_operatorships_path)
       expect(operatorship.reload).to be_discarded
       expect(ActivityLog.where(action: "operatorship.revoked", trackable: other).count).to eq(1)
+      # The replay must say what actually happened. Conflating "already
+      # revoked" with "that is the last operator" tells the operator their
+      # click was refused on a rule that did not apply — and there are two
+      # operators here, so the last_operator message would be a plain lie.
+      expect(flash[:alert]).to eq(I18n.t("operations.operatorships.destroy.already_revoked"))
     end
   end
 end

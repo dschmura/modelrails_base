@@ -88,32 +88,32 @@ RSpec.describe Operatorship do
   end
 
   describe "#revoke_unless_last!" do
-    it "revokes and returns true when another kept operatorship remains" do
+    it "revokes and reports :revoked when another kept operatorship remains" do
       operatorship = described_class.grant!(user: user)
       described_class.grant!(user: create(:user))
 
-      expect(operatorship.revoke_unless_last!(revoked_by: granter)).to be(true)
+      expect(operatorship.revoke_unless_last!(revoked_by: granter)).to be(:revoked)
       expect(operatorship.reload).to be_discarded
     end
 
-    it "refuses and returns false when it is the last kept operatorship, writing no audit row" do
+    it "refuses and reports :last_operator for the last kept operatorship, writing no audit row" do
       operatorship = described_class.grant!(user: user)
       granter # force before the block: same lazy-let onboarding issue as R5.
 
       expect {
-        expect(operatorship.revoke_unless_last!(revoked_by: granter)).to be(false)
+        expect(operatorship.revoke_unless_last!(revoked_by: granter)).to be(:last_operator)
       }.not_to change(ActivityLog, :count)
       expect(operatorship.reload).to be_kept
     end
 
-    it "returns false without writing a second audit row for an already-discarded operatorship" do
+    it "reports :already_revoked without writing a second audit row for a discarded operatorship" do
       operatorship = described_class.grant!(user: user)
       described_class.grant!(user: create(:user))
       operatorship.revoke!(revoked_by: granter)
       discarded_at = operatorship.reload.discarded_at
 
       expect {
-        expect(operatorship.revoke_unless_last!(revoked_by: granter)).to be(false)
+        expect(operatorship.revoke_unless_last!(revoked_by: granter)).to be(:already_revoked)
       }.not_to change(ActivityLog, :count)
       expect(operatorship.reload.discarded_at).to eq(discarded_at)
     end
@@ -127,8 +127,8 @@ RSpec.describe Operatorship do
       first = described_class.grant!(user: user)
       second = described_class.grant!(user: create(:user))
 
-      expect(first.revoke_unless_last!(revoked_by: granter)).to be(true)
-      expect(second.revoke_unless_last!(revoked_by: granter)).to be(false)
+      expect(first.revoke_unless_last!(revoked_by: granter)).to be(:revoked)
+      expect(second.revoke_unless_last!(revoked_by: granter)).to be(:last_operator)
 
       expect(described_class.kept.count).to eq(1)
       expect(second.reload).to be_kept

@@ -47,11 +47,19 @@ class Operatorship < ApplicationRecord
   # fresh re-read) + the count check here are genuine check-then-act, not a
   # TOCTOU window. `rails operators:revoke` (break-glass) keeps calling plain
   # `revoke!`, not this, so it can still remove the last operator.
+  # Returns which of the three things happened, not a boolean: "already
+  # revoked" and "this is the last one" are different answers, and a caller
+  # that cannot tell them apart reports a refusal for a rule that did not
+  # apply. lock! before the count is what makes the guard atomic — see
+  # /docs/developer/architecture (Concurrency).
   def revoke_unless_last!(revoked_by: nil)
     transaction do
       lock!
-      next false if discarded? || Operatorship.kept.count <= 1
+      next :already_revoked if discarded?
+      next :last_operator if Operatorship.kept.count <= 1
+
       revoke!(revoked_by: revoked_by)
+      :revoked
     end
   end
 end

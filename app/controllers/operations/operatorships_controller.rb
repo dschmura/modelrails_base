@@ -51,10 +51,10 @@ module Operations
     def destroy
       operatorship = Operatorship.find(params[:id])
       authorize [ :operations, operatorship ]
-      if operatorship.revoke_unless_last!(revoked_by: Current.user)
-        redirect_to operations_operatorships_path, notice: t(".success")
-      else
-        redirect_to operations_operatorships_path, alert: t(".last_operator")
+      case operatorship.revoke_unless_last!(revoked_by: Current.user)
+      when :revoked then redirect_to operations_operatorships_path, notice: t(".success")
+      when :already_revoked then redirect_to operations_operatorships_path, alert: t(".already_revoked")
+      when :last_operator then redirect_to operations_operatorships_path, alert: t(".last_operator")
       end
     end
   end
