@@ -151,8 +151,8 @@ class ActivityLog < ApplicationRecord
   # the status changes from the role change; the actor tells a removal from a
   # departure. A status change outranks a role change: `reactivate!` can carry
   # both, and losing or regaining access is the more consequential half.
-  # A workspace lock/unlock is the same shape (Suspendable#suspend! is an
-  # ordinary update too), splitting workspace.updated on suspended_at
+  # A workspace lock/unlock is the same shape (Suspendable#suspend! is a
+  # guarded update! too), splitting workspace.updated on suspended_at
   # instead of discarded_at.
   # Unknown shapes fall through to `action` itself. The partial has no
   # `default:` (the ModelRails/NoI18nDefault cop forbids it, #1022); in test

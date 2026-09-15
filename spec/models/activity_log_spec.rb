@@ -59,7 +59,7 @@ RSpec.describe ActivityLog, type: :model do
     end
   end
 
-  # Suspendable#suspend!/#unsuspend! are ordinary `update!` calls, so a
+  # Suspendable#suspend!/#unsuspend! are guarded `update!` calls, so a
   # lock/unlock arrives as workspace.updated with suspended_at in changes —
   # the same shape membership.updated splits on discarded_at.
   describe "#display_action for workspace suspension" do

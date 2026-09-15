@@ -188,8 +188,8 @@ RSpec.describe "Operations workspaces", type: :request do
     # doesn't bump updated_at, so neither one can tell a guarded destroy from
     # an unguarded one — the only observable difference is Broadcastable's
     # after_update_commit, which fires even on a no-op save. The broadcast
-    # expectation below is what actually fails if #destroy's early-return
-    # guard is removed; the rest of this example would pass either way.
+    # expectation below is what actually fails if Suspendable#unsuspend!'s
+    # `next :not_suspended` guard is removed; the rest would pass either way.
     it "reports the unlocked state without writing a row when it is not suspended" do
       expect(Turbo::StreamsChannel).not_to receive(:broadcast_refresh_to)
 
@@ -203,10 +203,7 @@ RSpec.describe "Operations workspaces", type: :request do
 
     it "shows the tenant's owner the operator's action in the workspace feed" do
       post operations_workspace_suspension_path(workspace)
-      # The controller suspends its own freshly-loaded copy; this local `workspace`
-      # is stale until reloaded, so unsuspending it directly would no-op in memory
-      # while the row stays locked in the DB.
-      workspace.reload.unsuspend!
+      workspace.unsuspend!
       sign_in(owner)
       get workspace_path(workspace)
       # A plain have_text substring check for "locked" is satisfied by the
@@ -244,6 +241,7 @@ RSpec.describe "Operations workspaces", type: :request do
       invitation = created.invitations.sole
       expect(invitation.email).to eq("fresh@example.com")
       expect(invitation.role.slug).to eq("owner")
+      expect(invitation.invited_by).to eq(operator)
     end
 
     it "re-renders on a blank name" do
@@ -281,6 +279,15 @@ RSpec.describe "Operations workspaces", type: :request do
       # not the field's own label — pin the two together so the summary's
       # skip link never lands on a field labelled differently.
       expect(Workspace.human_attribute_name(:owner_email)).to eq(I18n.t("operations.workspaces.new.owner_email"))
+    end
+
+    # create_for_owner_email returns the invalid record it validated, so the
+    # form re-renders with the submitted owner_email still in the field; a
+    # bare Workspace.new before render would blank it.
+    it "re-renders a malformed owner_email with the submitted value still in the field" do
+      post operations_workspaces_path, params: { workspace: { name: "Orphan Co", owner_email: "not-an-email" } }
+      html = Capybara.string(response.body)
+      expect(html.find_field("workspace_owner_email").value).to eq("not-an-email")
     end
   end
 end

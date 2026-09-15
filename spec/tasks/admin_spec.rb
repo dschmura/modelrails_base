@@ -58,6 +58,17 @@ RSpec.describe "Admin rake tasks" do
       expect(workspace.reload).to be_suspended
       expect(project.reload.attributes.slice("archived_at", "discarded_at").values).to all(be_nil)
     end
+
+    it "reports a repeat suspend as a no-op rather than an error" do
+      workspace = create(:workspace).tap(&:suspend!)
+      suspended_at = workspace.suspended_at
+
+      Rake::Task["workspaces:suspend"].reenable
+      expect { Rake::Task["workspaces:suspend"].invoke(workspace.slug) }
+        .to output(/already suspended/).to_stdout
+
+      expect(workspace.reload.suspended_at).to eq(suspended_at)
+    end
   end
 
   describe "workspaces:unsuspend" do
@@ -68,6 +79,16 @@ RSpec.describe "Admin rake tasks" do
       Rake::Task["workspaces:unsuspend"].invoke(workspace.slug)
 
       expect(workspace.reload).not_to be_suspended
+    end
+
+    it "reports a repeat unsuspend as a no-op rather than an error" do
+      workspace = create(:workspace)
+
+      Rake::Task["workspaces:unsuspend"].reenable
+      expect { Rake::Task["workspaces:unsuspend"].invoke(workspace.slug) }
+        .to output(/is not suspended/).to_stdout
+
+      expect(workspace.reload.suspended_at).to be_nil
     end
   end
 end

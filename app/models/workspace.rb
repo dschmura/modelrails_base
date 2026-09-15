@@ -47,7 +47,7 @@ class Workspace < ApplicationRecord
   attr_accessor :created_by
 
   # Virtual, never persisted: backs the operator-create form's target-owner
-  # email (Operations::WorkspacesController#create). A real attribute (not a
+  # email (Workspace.create_for_owner_email). A real attribute (not a
   # controller-local variable) lets a format failure attach to THIS field
   # instead of :base, so UI::FormBuilder's error_for finds it and wires
   # aria-invalid/describedby.
@@ -64,7 +64,8 @@ class Workspace < ApplicationRecord
   validate :join_policy_must_be_permitted_by_instance
   # allow_nil, not allow_blank: every OTHER Workspace creation path never
   # touches owner_email (stays nil) and must stay unaffected by this rule;
-  # the operator-create controller always assigns a String, possibly "".
+  # create_for_owner_email coerces its input to a String (a missing key
+  # becomes ""), so the operator path never takes the exemption.
   validates :owner_email, format: { with: User::EMAIL_FORMAT }, allow_nil: true
 
   def self.broadcast_events
@@ -165,6 +166,32 @@ class Workspace < ApplicationRecord
       if workspace.save
         workspace.memberships.create!(user: owner, role: Role.system_default!("owner"))
       end
+    end
+    workspace
+  end
+
+  # The operator-create verb: an existing user owns the workspace outright;
+  # an unknown email makes the operator the interim owner and gets an
+  # Owner-role invitation. The invitation is issued AFTER create_owned's
+  # transaction commits because bulk_invite! enqueues mail, and enqueuing
+  # inside the primary write transaction is the hazard the
+  # after_create_commit note above describes. A failed invitation leaves a
+  # workspace the operator owns and can invite from by hand. See
+  # /docs/developer/operations (The operator becomes the owner).
+  def self.create_for_owner_email(attrs, operator:)
+    # Coerced to a String first: a missing key would otherwise arrive as nil,
+    # pass the format validation's allow_nil, and — because bulk_invite!
+    # skips a blank instead of raising — hand the workspace to the operator
+    # with no invitation and no error.
+    attrs = attrs.to_h.symbolize_keys
+    attrs[:owner_email] = attrs[:owner_email].to_s.strip
+    owner = User.find_by(email_address: attrs[:owner_email])
+    workspace = create_owned(attrs, owner: owner || operator)
+    if workspace.persisted? && owner.nil?
+      Invitation.bulk_invite!(
+        workspace: workspace, emails: [ attrs[:owner_email] ],
+        role: Role.system_default!("owner"), invited_by: operator
+      )
     end
     workspace
   end

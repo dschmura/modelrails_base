@@ -25,41 +25,14 @@ module Operations
     def new
       authorize [ :operations, Workspace ]
       @workspace = Workspace.new
-      @owner_email = ""
     end
 
-    # Name plus an owner email. Existing user → they own it. Unknown email →
-    # the operator owns it and the email gets a workspace invitation carrying
-    # the Owner role through the ordinary invitation path; the operator hands
-    # off later with the existing ownership-transfer or leave flows. "Invited
-    # to nothing" is not a state this product has a page for.
+    # What the verb does (existing user vs. unknown email, the transaction
+    # boundary) lives on Workspace.create_for_owner_email; this action only
+    # renders the outcome.
     def create
       authorize [ :operations, Workspace ]
-      @owner_email = params.dig(:workspace, :owner_email).to_s.strip
-      @workspace = Workspace.new(create_params)
-      @workspace.owner_email = @owner_email
-
-      # Invitation.bulk_invite! does not raise on a malformed email — it
-      # silently skips it (its own EMAIL_FORMAT check). Left unguarded, a
-      # blank/invalid owner_email would quietly hand the new workspace to the
-      # OPERATOR with no invitation and no error surfaced. Workspace itself
-      # validates the format, attaching the error to the FIELD via the
-      # owner_email attribute (not :base); checked here first only to skip
-      # the owner lookup and transaction on input already known to be bad.
-      return render :new, status: :unprocessable_entity if @workspace.invalid?
-
-      owner = User.find_by(email_address: @owner_email)
-
-      @workspace = Workspace.transaction do
-        workspace = Workspace.create_owned(create_params, owner: owner || Current.user)
-        if workspace.persisted? && owner.nil?
-          Invitation.bulk_invite!(
-            workspace: workspace, emails: [ @owner_email ],
-            role: Role.system_default!("owner"), invited_by: Current.user
-          )
-        end
-        workspace
-      end
+      @workspace = Workspace.create_for_owner_email(create_params, operator: Current.user)
 
       if @workspace.persisted?
         redirect_to operations_workspace_path(@workspace), notice: t(".success")
@@ -71,7 +44,7 @@ module Operations
     private
 
     def create_params
-      params.require(:workspace).permit(:name)
+      params.require(:workspace).permit(:name, :owner_email)
     end
   end
 end

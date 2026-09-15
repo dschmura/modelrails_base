@@ -41,8 +41,12 @@ namespace :workspaces do
   task :suspend, [ :slug ] => :environment do |_t, args|
     abort "Usage: rails workspaces:suspend[slug]" unless args[:slug]
     workspace = Workspace.find_by!(slug: args[:slug])
-    workspace.suspend!
-    puts "Suspended #{workspace.slug} — owner lifecycle actions and all workspace pages are blocked"
+    case workspace.suspend!
+    when :suspended
+      puts "Suspended #{workspace.slug} — owner lifecycle actions and all workspace pages are blocked"
+    when :already_suspended
+      puts "#{workspace.slug} is already suspended"
+    end
   rescue ActiveRecord::RecordNotFound
     abort "Workspace not found: #{args[:slug]}"
   end
@@ -51,8 +55,12 @@ namespace :workspaces do
   task :unsuspend, [ :slug ] => :environment do |_t, args|
     abort "Usage: rails workspaces:unsuspend[slug]" unless args[:slug]
     workspace = Workspace.find_by!(slug: args[:slug])
-    workspace.unsuspend!
-    puts "Unsuspended #{workspace.slug}"
+    case workspace.unsuspend!
+    when :unsuspended
+      puts "Unsuspended #{workspace.slug}"
+    when :not_suspended
+      puts "#{workspace.slug} is not suspended"
+    end
   rescue ActiveRecord::RecordNotFound
     abort "Workspace not found: #{args[:slug]}"
   end
