@@ -63,6 +63,25 @@ RSpec.describe "Code smell: every dynamic i18n key has a value" do
   # caller's action rather than hardcoding one, and that whole family is
   # already enumerated above from the model descendants loop, so it is
   # declared safe by exact value below rather than silently allowed.
+  # Shared with the scan below so the two can't drift apart. `\b` anchors the
+  # left edge: without it, "transaction:" or "redaction:" — any kwarg whose
+  # name merely ENDS in "action:" — matches before the real action: does.
+  def action_arg_pattern
+    /\baction:\s*(.+?)\s*(?:,|\z)/m
+  end
+
+  describe "the action: extraction regex" do
+    it "is not fooled by a preceding kwarg ending in \"action:\"" do
+      call_args = %(transaction: true, action: "workspace.updated")
+      expect(call_args.match(action_arg_pattern)[1]).to eq('"workspace.updated"')
+    end
+
+    it "does not match a kwarg ending in \"action:\" when no real action: is present" do
+      call_args = %(redaction: "a.b")
+      expect(call_args.match(action_arg_pattern)).to be_nil
+    end
+  end
+
   it "labels every action either activity feed can render" do
     Rails.application.eager_load!
     trackable = ApplicationRecord.descendants.select { |model| model.include?(Trackable) }
@@ -111,7 +130,7 @@ RSpec.describe "Code smell: every dynamic i18n key has a value" do
         position = finish
 
         call_args = source[(open_index + 1)...(finish - 1)]
-        action_match = call_args.match(/action:\s*(.+?)\s*(?:,|\z)/m)
+        action_match = call_args.match(action_arg_pattern)
         unless action_match
           unresolved << "#{relative}:#{line}: ActivityLog write with no resolvable action: argument " \
             "(a `)` inside an earlier string literal may have truncated the argument list)"

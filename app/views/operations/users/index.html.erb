@@ -19,7 +19,7 @@
 <% if @query.present? %>
   <div class="mt-6">
     <% if @user %>
-      <%= link_to @user.full_name, operations_user_path(@user), class: "btn-text focus-ring" %>
+      <%= link_to @user.full_name, operations_user_path(@user), class: "btn-text btn-text-interactive" %>
     <% else %>
       <%= render "shared/empty_state", message: t("operations.users.index.no_match") %>
     <% end %>

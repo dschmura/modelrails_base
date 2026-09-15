@@ -23,6 +23,14 @@ RSpec.describe "Operations users", type: :request do
       expect(html).to have_no_text("Otto Other")
     end
 
+    # .btn-text sets no colour of its own — .btn-text-interactive is what
+    # makes it read as a link rather than plain text (1.4.1).
+    it "renders the found user's name link as visibly a link" do
+      get operations_users_path(q: "Target@Example.com")
+      link = Capybara.string(response.body).find_link("Tess Target")
+      expect(link[:class]).to include("btn-text-interactive")
+    end
+
     it "says so when nothing matches" do
       get operations_users_path(q: "nobody@example.com")
       expect(Capybara.string(response.body)).to have_text(I18n.t("operations.users.index.no_match"))
@@ -43,6 +51,16 @@ RSpec.describe "Operations users", type: :request do
       locked_dd = html.find(:xpath, "//dt[normalize-space(text())='#{I18n.t('operations.users.show.locked')}']/following-sibling::dd[1]")
       expect(locked_dd.text).to eq(I18n.t("operations.negative"))
       expect(html).to have_no_button(I18n.t("operations.users.show.unlock"))
+    end
+
+    # .btn-text sets no colour of its own — .btn-text-interactive is what
+    # makes it read as a link rather than plain text (1.4.1).
+    it "renders a membership's workspace name link as visibly a link" do
+      workspace = create(:workspace, name: "Acme")
+      create(:membership, :admin, user: target, workspace: workspace)
+      get operations_user_path(target)
+      link = Capybara.string(response.body).find_link("Acme")
+      expect(link[:class]).to include("btn-text-interactive")
     end
 
     # Item 7b (fix round 1): the show page renders a lock-gated Unlock button

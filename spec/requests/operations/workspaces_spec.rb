@@ -20,6 +20,51 @@ RSpec.describe "Operations workspaces", type: :request do
         .to have_link("Acme", href: operations_workspace_path(workspace))
     end
 
+    # .btn-text sets no colour of its own — .btn-text-interactive is what
+    # makes it read as a link rather than plain table text (1.4.1).
+    it "renders the workspace name link as visibly a link" do
+      get operations_workspaces_path
+      link = Capybara.string(response.body).find_link("Acme")
+      expect(link[:class]).to include("btn-text-interactive")
+    end
+
+    # SQLite's default BINARY collation sorts every uppercase-initial name
+    # before every lowercase one — matches the sibling fix on
+    # Operations::UsersController#show (Arel.sql("LOWER(workspaces.name)")).
+    it "orders case-insensitively rather than uppercase-first" do
+      # "Acme" (the outer `let!`) sorts BEFORE every lowercase name under
+      # SQLite's default BINARY collation, which is the defect: a
+      # case-insensitive sort interleaves it as "amber, beta, Zebra Corp".
+      create(:workspace, name: "beta")
+      create(:workspace, name: "Zebra Corp")
+      create(:workspace, name: "amber")
+      relevant = [ "amber", "beta", workspace.name, "Zebra Corp" ]
+
+      get operations_workspaces_path
+      # Onboarding gives `operator`/`owner` their own workspaces too (random
+      # Faker names) — scope down to just the rows this example created.
+      all_names = Capybara.string(response.body).all("tbody tr td:first-child").map { |td| td.text.strip }
+      names = all_names.select { |name| relevant.include?(name) }
+
+      expect(names).to eq(relevant.sort_by(&:downcase))
+    end
+
+    # Only the name column carries a link (the other three are plain text),
+    # so a keyboard user tabbing through the page skips straight over this
+    # table without ever reaching Status/Owner/Members — axe has no rule for
+    # an unreachable scroll region, so this asserts the ScrollArea contract's
+    # attributes directly (spec/system/responsive/tables_overflow_spec.rb is
+    # the sibling tables' geometry-level proof).
+    it "wraps the table in a focusable, named scroll region a keyboard user can reach" do
+      get operations_workspaces_path
+      label = I18n.t("operations.workspaces.index.caption")
+      region = Capybara.string(response.body).find("[role='region'][aria-label='#{label}']")
+
+      expect(region[:tabindex]).to eq("0")
+      expect(region[:class]).to include("focus-ring")
+      expect(region).to have_css("table")
+    end
+
     # Membership#owner? has no kept test, so a discarded owner membership
     # (this PR's own suspend-access control produces exactly this) used to
     # keep showing that person as Owner beside a member count of zero — and

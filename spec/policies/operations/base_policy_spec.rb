@@ -27,8 +27,14 @@ RSpec.describe "Operations policies" do
     end
 
     it "does not read Current.workspace" do
-      Current.workspace = nil
-      expect(described_class.new(operator, workspace).show?).to be true
+      # A spy on the reader, not a value assertion (spec/requests/operations/
+      # area_spec.rb's "never establishes a workspace context" is the
+      # symmetric fix on the setter side): Current.workspace already reads
+      # nil in this non-request example whether or not the policy touches
+      # it, so only observing the call itself can fail.
+      allow(Current).to receive(:workspace).and_call_original
+      described_class.new(operator, workspace).show?
+      expect(Current).not_to have_received(:workspace)
     end
 
     it "does not descend from ApplicationPolicy" do

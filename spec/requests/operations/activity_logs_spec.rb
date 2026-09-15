@@ -18,6 +18,17 @@ RSpec.describe "Operations activity feed", type: :request do
     expect(html).to have_text("Beta")
   end
 
+  # .btn-text sets no colour of its own — .btn-text-interactive is what
+  # makes it read as a link rather than plain text (1.4.1).
+  it "renders a row's workspace name link as visibly a link" do
+    workspace = create(:workspace, name: "Alpha")
+    create(:project, workspace: workspace)
+
+    get operations_activity_logs_path
+    link = Capybara.string(response.body).first(:link, "Alpha")
+    expect(link[:class]).to include("btn-text-interactive")
+  end
+
   # Re-derived after a session restart lost the reviewer's findings list, so it
   # carries no finding number. activity_logs/_activity_log renders a top-level
   # <li>, and this page wrapped each one in its own <ol> to give that <li> a

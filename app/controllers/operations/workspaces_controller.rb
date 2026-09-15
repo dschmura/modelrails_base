@@ -2,8 +2,10 @@ module Operations
   class WorkspacesController < BaseController
     def index
       authorize [ :operations, Workspace ]
+      # SQLite's default BINARY collation sorts uppercase before lowercase —
+      # matches the sibling fix on Operations::UsersController#show.
       @pagy, @workspaces = pagy(:offset,
-        operated_workspaces.includes(memberships: %i[role user]).order(:name))
+        operated_workspaces.includes(memberships: %i[role user]).order(Arel.sql("LOWER(workspaces.name)")))
     end
 
     def show

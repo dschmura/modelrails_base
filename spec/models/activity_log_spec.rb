@@ -277,6 +277,20 @@ RSpec.describe ActivityLog, type: :model do
         }.to raise_error(ArgumentError, /SECURITY_ACTIONS/)
       }.not_to change(ActivityLog, :count)
     end
+
+    # Operatorship is a SECURITY_ACTIONS member (the sweep must protect its
+    # rows) but its actor is the granter, not the subject — this writer's
+    # fixed shape (actor: user, visibility: personal) would misrepresent it
+    # as self-granted. Operatorship.grant!/revoke! write it directly instead
+    # (SecurityEventWriters::ALLOWED); this method must refuse it.
+    it "raises for an operatorship action, whose actor is the granter rather than the subject" do
+      user
+      expect {
+        expect {
+          ActivityLog.record_security_event!(action: "operatorship.granted", user: user)
+        }.to raise_error(ArgumentError, /SECURITY_ACTIONS/)
+      }.not_to change(ActivityLog, :count)
+    end
   end
 
   # settings/sessions/index.html.erb builds its row label from this constant

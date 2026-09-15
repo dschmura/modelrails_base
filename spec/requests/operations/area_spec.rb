@@ -103,6 +103,28 @@ RSpec.describe "Operations area", type: :request do
       expect(session[:return_to_after_reauthentication]).to eq(operations_workspaces_path)
     end
 
+    describe "reauthentication gate is hard-wired" do
+      # force: true (base_controller.rb) is the guarantee this gate survives
+      # a fork disabling reauth — same rule and proving pattern as passkey
+      # enrollment (spec/requests/passkeys/registration_ceremony_spec.rb).
+      # With reauth_enabled true (the test default) the ordinary branch
+      # already fires regardless of force:, so only flipping the flag off
+      # can catch force: silently dropped to false.
+      around do |example|
+        original = Rails.configuration.x.session.reauth_enabled
+        Rails.configuration.x.session.reauth_enabled = false
+        example.run
+      ensure
+        Rails.configuration.x.session.reauth_enabled = original
+      end
+
+      it "still requires a fresh factor to enter the area when reauth_enabled is false" do
+        operator.sessions.update_all(reauthenticated_at: nil)
+        get operations_workspaces_path
+        expect(response).to redirect_to(new_settings_reauthentication_path)
+      end
+    end
+
     # Rails routes HEAD to the GET action, but request.get? is false for HEAD
     # — so the GET-correct return-to branch (R17) silently took the referer
     # path instead. Brakeman's VerbConfusion check caught this on pre-push,
@@ -142,6 +164,22 @@ RSpec.describe "Operations area", type: :request do
       other_link = html.find("nav a", text: I18n.t("operations.nav.users"))
       expect(other_link["aria-current"]).to be_nil
       expect(other_link[:class]).not_to include("bg-surface-sunken")
+    end
+
+    # .btn-text sets no colour of its own — .btn-text-interactive is what
+    # makes a nav link read as a link rather than plain text (1.4.1). Both
+    # states carry it; text-text-heading (a Tailwind utility, compiled after
+    # .btn-text-interactive's components-layer rule) is what still wins the
+    # current page's colour — verified against the compiled stylesheet, not
+    # asserted here since cascade order isn't request-spec-observable.
+    it "keeps the link colour on every nav item, current page included" do
+      get operations_workspaces_path
+      html = Capybara.string(response.body)
+      operations_nav = html.find("nav[aria-label='#{I18n.t('operations.area.nav_label')}']")
+
+      operations_nav.all("a").each do |link|
+        expect(link[:class]).to include("btn-text-interactive")
+      end
     end
   end
 end

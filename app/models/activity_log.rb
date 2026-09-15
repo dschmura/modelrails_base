@@ -32,13 +32,21 @@ class ActivityLog < ApplicationRecord
   # new-device sign-in); the account activity card renders their _with_os label.
   SECURITY_ACTIONS_WITH_OS = %w[user.signed_in_new_device].freeze
 
+  # SECURITY_ACTIONS members this writer's fixed shape (actor: user,
+  # visibility: personal) would misrepresent — Operatorship's actor is the
+  # granter/revoker, not the subject, so it writes these two directly
+  # (SecurityEventWriters::ALLOWED). Membership in SECURITY_ACTIONS still
+  # governs the retention floor for them; this constant only narrows what
+  # record_security_event! itself may accept.
+  UNSHAPEABLE_SECURITY_ACTIONS = %w[operatorship.granted operatorship.revoked].freeze
+
   # The one writer for security-tier rows (User password callbacks,
   # WebauthnCredential, Authenticatable all route here). Two reasons it exists:
-  # the row shape lives in exactly one place, and an action outside
-  # SECURITY_ACTIONS raises instead of writing. Without the guard a drifted
-  # literal ("user.passkey_add") would still write a plausible-looking row that
-  # the sweep deletes at 12 months instead of the security floor — audit
-  # evidence lost silently, with the whole suite green.
+  # the row shape lives in exactly one place, and an action this shape doesn't
+  # fit raises instead of writing. Without the guard a drifted literal
+  # ("user.passkey_add") would still write a plausible-looking row that the
+  # sweep deletes at 12 months instead of the security floor — audit evidence
+  # lost silently, with the whole suite green.
   #
   # ArgumentError is deliberate: a non-member action is a programmer error, so
   # it propagates through Authenticatable's ActiveRecord-only rescue rather
@@ -47,6 +55,11 @@ class ActivityLog < ApplicationRecord
   def self.record_security_event!(action:, user:, metadata: {})
     unless SECURITY_ACTIONS.include?(action)
       raise ArgumentError, "#{action.inspect} is not in ActivityLog::SECURITY_ACTIONS"
+    end
+    if UNSHAPEABLE_SECURITY_ACTIONS.include?(action)
+      raise ArgumentError,
+        "#{action.inspect} is a SECURITY_ACTIONS member this writer cannot shape (actor is not " \
+        "the subject) — see ActivityLog::UNSHAPEABLE_SECURITY_ACTIONS for its direct writer"
     end
 
     create!(action: action, actor: user, trackable: user,

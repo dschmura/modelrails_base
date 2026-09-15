@@ -22,7 +22,7 @@
               context: (if activity_log.workspace.nil?
                 t("operations.activity_logs.index.instance")
               elsif activity_log.workspace.kept?
-                link_to(activity_log.workspace.name, operations_workspace_path(activity_log.workspace), class: "btn-text focus-ring")
+                link_to(activity_log.workspace.name, operations_workspace_path(activity_log.workspace), class: "btn-text btn-text-interactive")
               else
                 "#{activity_log.workspace.name} — #{lifecycle_status_label(activity_log.workspace)}"
               end) %>

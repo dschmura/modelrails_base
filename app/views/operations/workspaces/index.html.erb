@@ -7,7 +7,13 @@
 </div>
 
 <% if @workspaces.any? %>
-  <div class="rounded-lg border border-border bg-surface overflow-x-auto">
+  <div class="rounded-lg border border-border bg-surface overflow-hidden">
+    <%# Only the name column links anywhere — the "content already
+        focusable throughout" exemption doesn't apply, so this needs the
+        same keyboard-reachable scroll region as the other overflowing
+        tables (workspaces/members, projects/memberships). %>
+    <%= ui :scroll_area, orientation: :horizontal, max_h: nil,
+          aria_label: t("operations.workspaces.index.caption") do %>
     <table class="min-w-full text-sm">
       <caption class="sr-only"><%= t("operations.workspaces.index.caption") %></caption>
       <thead>
@@ -22,6 +28,7 @@
         <%= render partial: "operations/workspaces/row", collection: @workspaces, as: :workspace %>
       </tbody>
     </table>
+    <% end %>
     <%= render "shared/pagination", pagy: @pagy %>
   </div>
 <% else %>
