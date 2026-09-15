@@ -12,8 +12,8 @@
   <%= form_with(model: @invitation, url: onboarding_team_path, class: "mt-8 space-y-6") do |form| %>
     <%= form.text_area :emails,
           label: t("onboarding.teams.new.emails_label"),
-          rows: 3,
-          placeholder: t("onboarding.teams.new.emails_placeholder") %>
+          help: t("onboarding.teams.new.emails_help"),
+          rows: 3 %>
 
     <%= form.select :role_id,
           options_from_collection_for_select(@roles, :id, :name, @roles.find { |r| r.slug == "member" }&.id),

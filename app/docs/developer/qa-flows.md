@@ -327,7 +327,7 @@ This step only appears when the registry has more than one toggleable tool.
 2. Select the tools you want and submit (`POST /onboarding/tools`).
    **Expect:** The project's `enabled_tools` are updated and you are redirected to `/onboarding/teams/new`.
 
-### Wizard step 4 — Invite your team (or skip)
+### Wizard step 4 — Invite people (or skip)
 
 1. **Expect:** A form to invite teammates by email. A "Skip for now" link (`PATCH /onboarding`) is present.
 2. Either enter one or more email addresses (comma- or newline-separated), choose a role, and submit (`POST /onboarding/teams`) — **or** click **Skip for now**.
