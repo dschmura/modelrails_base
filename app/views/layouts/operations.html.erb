@@ -20,10 +20,11 @@
     </div>
 
     <%
-      # Fix round 2, item 6: WCAG 2.4.8 Location (AAA). font-semibold is the
-      # current-page cue, not color alone — .btn-text sets no color of its
-      # own, so a color-only difference here would be the sole distinguishing
-      # signal and fail 1.4.1.
+      # WCAG 2.4.8 Location (AAA). The current-page cue matches
+      # shared/_settings_sidebar_item — filled surface + weight + heading
+      # colour — because that is what this app's other horizontal navs use and
+      # one step of weight at 14px is a weak signal alone. Not colour alone
+      # (1.4.1); text-text-heading on bg-surface-sunken is a proven AAA pair.
       nav_items = [
         [ t("operations.nav.workspaces"), operations_workspaces_path ],
         [ t("operations.nav.users"), operations_users_path ],
@@ -39,7 +40,7 @@
           <% current = current_page?(path) %>
           <li>
             <%= link_to label, path,
-                  class: "btn-text focus-ring#{" font-semibold" if current}",
+                  class: "btn-text focus-ring#{" bg-surface-sunken font-semibold text-text-heading" if current}",
                   "aria-current": (current ? "page" : nil) %>
           </li>
         <% end %>

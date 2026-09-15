@@ -99,22 +99,23 @@ RSpec.describe "Operations area", type: :request do
       expect(Capybara.string(response.body)).to have_css('nav ul[role="list"]')
     end
 
-    # Fix round 2, item 6: WCAG 2.4.8 Location (AAA, outside the axe tag set)
-    # — the nav named no current page and had no visible current state.
-    # font-semibold, not color, is the cue: .btn-text sets no color of its
-    # own here (color inherits from <body>), so a color-only difference would
-    # be the sole distinguishing signal and fail 1.4.1.
-    it "marks the current page in the nav with aria-current and a visible cue" do
+    # WCAG 2.4.8 Location (AAA, outside the axe tag set). The cue matches
+    # shared/_settings_sidebar_item — a filled surface, a weight bump and a
+    # heading-colour shift together — rather than weight alone: this app's
+    # other horizontal navs all use that treatment, and one step of weight at
+    # 14px is a weak signal on its own. text-text-heading on bg-surface-sunken
+    # is a proven AAA pairing (tokens/_semantic.css, ~21:1).
+    it "marks the current page in the nav with aria-current and the house visible cue" do
       get operations_workspaces_path
       html = Capybara.string(response.body)
 
       current_link = html.find("nav a", text: I18n.t("operations.nav.workspaces"))
       expect(current_link["aria-current"]).to eq("page")
-      expect(current_link[:class]).to include("font-semibold")
+      expect(current_link[:class]).to include("bg-surface-sunken", "font-semibold", "text-text-heading")
 
       other_link = html.find("nav a", text: I18n.t("operations.nav.users"))
       expect(other_link["aria-current"]).to be_nil
-      expect(other_link[:class]).not_to include("font-semibold")
+      expect(other_link[:class]).not_to include("bg-surface-sunken")
     end
   end
 end
