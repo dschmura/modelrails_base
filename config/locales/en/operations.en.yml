@@ -55,7 +55,7 @@ en:
         no_memberships: "No memberships yet."
         reinstate: "Reinstate"
         suspend: "Suspend"
-        suspend_confirm: "This ends their sessions and blocks sign-in until you reinstate them. Their workspaces and roles stay as they are."
+        suspend_confirm: "This ends their sessions and blocks sign-in until you reinstate them. Their %{workspaces} and roles stay as they are."
         operator_unsuspendable_html: "Operators can't be suspended. Revoke their %{link} first."
         operator_access: "operator access"
         lockout: "Sign-in blocked after %{count} failed attempts — clears in %{time}."
