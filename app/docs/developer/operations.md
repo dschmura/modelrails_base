@@ -48,9 +48,13 @@ your `SIGNUP_MODE`:
 Either way, then:
 
 ```sh
-bin/rails operators:grant[me@example.com]
-bin/rails tenancy:owner_setup_link[me@example.com]
+bin/rails 'operators:grant[me@example.com]'
+bin/rails 'tenancy:owner_setup_link[me@example.com]'
 ```
+
+The quotes matter in zsh, the shell a Mac opens by default: unquoted square
+brackets are a glob pattern, and the command stops at "no matches found"
+before Rails sees it.
 
 `operators:grant` grants an `Operatorship` (idempotent — running it again
 just reports they're already an operator) and records the address as
@@ -194,8 +198,8 @@ open:
 
 ```sh
 bin/rails operators:list             # who currently operates the instance
-bin/rails operators:revoke[email]    # take operator access away
-bin/rails operators:grant[email]     # give operator access
+bin/rails 'operators:revoke[email]'  # take operator access away
+bin/rails 'operators:grant[email]'   # give operator access
 ```
 
 - **The last operator left, or an instance somehow has none:** `grant` a

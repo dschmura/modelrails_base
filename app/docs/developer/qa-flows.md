@@ -434,8 +434,8 @@ real-crypto harnesses (no mocking the gem):
 1. Make sure the operator's account exists (sign up, the console one-liner in the runbook, or the `:shared` seed), then:
 
    ```bash
-   bin/rails operators:grant[op@example.com]
-   bin/rails tenancy:owner_setup_link[op@example.com]
+   bin/rails 'operators:grant[op@example.com]'
+   bin/rails 'tenancy:owner_setup_link[op@example.com]'
    ```
 
    **Expect:** the grant reports success; running it again reports they are already an operator. The setup link is printed to the terminal, never emailed. Open it, confirm → signed in → `/settings/password/new`. Set a password within 15 minutes: the area re-checks reauthentication on every request, and a passwordless account's only other factor is an emailed code.
@@ -494,6 +494,6 @@ real-crypto harnesses (no mocking the gem):
 ### Edge cases — Operations
 
 - **`TENANCY_WORKSPACE_CREATION=disabled`:** the Workspaces index shows no **New workspace**; `/operations/workspaces/new` redirects with "Workspace creation is disabled on this instance."; a member still gets 404.
-- **Break-glass:** `rails users:suspend[op@example.com]` suspends an operator (the panel refuses; the task does not check) and `rails users:unsuspend` restores them; `rails operators:revoke[email]` revokes even the last operator.
+- **Break-glass:** `rails 'users:suspend[op@example.com]'` suspends an operator (the panel refuses; the task does not check) and `rails users:unsuspend` restores them; `rails 'operators:revoke[email]'` revokes even the last operator.
 - **Reauthentication:** sign in, wait 15 minutes, open `/operations` → the reauthentication interstitial (password, passkey, or emailed code), then the page.
 - **AAA:** every operations page is audited in both themes by `spec/system/operations_area_spec.rb`; when checking by hand, switch theme and re-read a page with the pointer resting on a list row.
