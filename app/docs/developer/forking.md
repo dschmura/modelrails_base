@@ -159,6 +159,9 @@ bin/setup
 remote (push disabled), activates the merge driver, and writes the fork's
 recorded tenancy preset into their `.env`. Those three things are per-clone, not
 per-fork, which is why they live in setup rather than in the one-time script.
+The git hooks are not among them: `bundle exec lefthook install` is a separate
+one-time step per clone (see [Getting started](getting-started#gate-1-local-lefthook-pre-push)),
+and until it runs a push runs nothing.
 
 > Teammates need **read access to the upstream template repository** for the
 > remote to be useful. If your template is private, grant it before they try to
@@ -188,7 +191,7 @@ find again.
 | PWA app name | `public/manifest.webmanifest` (`name` / `short_name`) | Shown on the home screen if users install the PWA |
 | CI image tags | `.github/workflows/ci.yml` + `image_scan.yml` (`tags:`) | Local-only build tags; cosmetic but confusing if stale |
 | Devcontainer bundle-cache volume | `.devcontainer/devcontainer.json` | Optional; the invariant spec only checks the `bundle-cache` suffix |
-| Fork provenance | `.fork.yml` | Written by `bin/fork`: your name, tenancy preset, and the template commit you forked from. Committed so every clone inherits the decisions — `bin/setup` reads the preset. Nothing gates on it; live state is derived from the repository |
+| Fork provenance | `.fork.yml` | Written by `bin/fork`: your name, tenancy preset, and the template commit you forked from. Committed so every clone inherits the decisions — `bin/setup` reads the preset. Two template invariants read it: the placeholder-support-address check runs only when it exists, and the check that `bin/fork`'s rename targets still exist upstream skips when it does. Everything else is derived from the repository |
 | Session cookie key | optional `config/initializers/session_store.rb` | Only if multiple forks will share a cookie domain |
 
 Then verify nothing was missed:
