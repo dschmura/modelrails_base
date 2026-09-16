@@ -26,6 +26,15 @@ RSpec.describe "Project Memberships", type: :request do
         expect(response).to have_http_status(:ok)
         expect(response.body).to include(CGI.escapeHTML(user.full_name))
       end
+
+      # #1150: the button linked to the index it sat on, so clicking it
+      # reloaded the list instead of opening the form.
+      it "links Add member to the new-membership form" do
+        get workspace_project_memberships_path(workspace, project)
+
+        add = Capybara.string(response.body).find_link(I18n.t("workspaces.projects.memberships.index.add_member"))
+        expect(add[:href]).to eq(new_workspace_project_membership_path(workspace, project))
+      end
     end
 
     describe "POST create membership" do

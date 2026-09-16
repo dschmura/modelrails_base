@@ -6,7 +6,7 @@
     </h1>
     <% if policy(ProjectMembership).create? %>
       <%= link_to t("workspaces.projects.memberships.index.add_member"),
-            workspace_project_memberships_path(@workspace, @project),
+            new_workspace_project_membership_path(@workspace, @project),
             class: "btn-primary" %>
     <% end %>
   </div>
