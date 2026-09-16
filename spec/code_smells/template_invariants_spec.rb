@@ -1007,7 +1007,13 @@ RSpec.describe "Template invariants" do
         "forks would abort in preflight"
     end
 
+    # In a fork these tokens are gone BECAUSE bin/fork ran; the check is about
+    # the template's own tree, so it goes inert on the same .fork.yml signal
+    # the placeholder-hygiene group below switches on. Without this every
+    # fork's first CI run failed here, whatever it pushed.
     it "searches for tokens that are still present in each file" do
+      skip "fork — bin/fork already consumed these tokens" if root.join(".fork.yml").exist?
+
       stale = ForkFlow::SUBSTITUTIONS.flat_map do |path, substitutions|
         content = File.read(root.join(path))
         substitutions.reject { |from, _| content.include?(from) }.map { |from, _| "#{path}: #{from.inspect}" }
