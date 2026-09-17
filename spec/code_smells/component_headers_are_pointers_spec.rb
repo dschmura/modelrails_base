@@ -41,7 +41,10 @@ RSpec.describe "Component headers are pointers" do
     # class), and an in-class doc comment right below `class` (e.g. range's
     # constant rationale) can otherwise out-length the real header above. An
     # already-migrated pointer block anywhere in the module-to-class region
-    # wins outright, mirroring the gem's `locate`.
+    # wins outright, mirroring the gem's `locate`. Comments below `class` are
+    # in-body implementation notes and out of scope here: a re-pasted heading
+    # is caught by the heading sweep below, a misindented one by
+    # Layout/CommentIndentation.
     mod_idx = lines[0...i].rindex { |l| l.match?(/\A\s*module\s+\S/) }
     region_start = mod_idx ? mod_idx + 1 : 0
     marked = comment_blocks(lines, region_start, i).find { |r| lines[r].any? { |l| l.include?("docs/components/") } }
@@ -87,6 +90,6 @@ RSpec.describe "Component headers are pointers" do
     end
 
     expect(offenders.map { |f| f.delete_prefix("#{Rails.root}/") }).to be_empty,
-      "A markdown heading comment survived migration: #{offenders.join("\n  ")}"
+      "A markdown heading comment survived migration — the prose lives in the gem's docs/components/<name>.md:\n  #{offenders.join("\n  ")}"
   end
 end
