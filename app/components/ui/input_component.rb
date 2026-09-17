@@ -2,8 +2,9 @@
 
 module UI
   class InputComponent < ApplicationComponent
-    # Styling matches the form builder's (`UI::FormBuilder`) field rendering exactly,
-    # so `f.text_field`/`f.email_field`/etc. and this component render identically.
+    # Styling matches the form builder's (`UI::FormBuilder`) field rendering exactly, so `f.text_field`/`f.email_field`/etc. and this component render identically.
+    # Usage, options and the accessibility contract: docs/components/input.md in the
+    # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
     BASE   = "block w-full rounded-md border px-3 py-2 placeholder:text-text-muted " \
              "disabled:cursor-not-allowed disabled:opacity-50 " \
              "focus-ring min-h-[var(--form-input-height)]"

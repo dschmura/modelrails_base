@@ -3,6 +3,8 @@
 module UI
   class PictureComponent < ApplicationComponent
     # Each source is added via p.with_source(srcset:, type:, media:, sizes:)
+    # Usage, options and the accessibility contract: docs/components/picture.md in the
+    # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
     renders_many :sources, "UI::PictureComponent::SourceComponent"
 
     # src:     fallback <img> URL (required)

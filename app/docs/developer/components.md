@@ -44,6 +44,49 @@ for you. Reach for it before `ui`:
 Use `ui :input` / `ui :dialog` / `ui :avatar` directly only for standalone cases outside those
 flows (a filter box outside a form, a non-user avatar, etc.).
 
+### Where the component docs live
+
+Each vendored component's class comment is three lines: a summary and a pointer.
+The full reference — usage, options, when to use it, and the accessibility
+contract — is `docs/components/<name>.md` in the modelrails_ui gem
+(`bundle show modelrails_ui`), and the live examples are in Lookbook at
+`/lookbook`. Do not grow the class comment back into prose; the
+`component_headers_are_pointers` code-smell spec fails when one does.
+
+A handful of vendored components carry a genuine fork-local divergence from the
+gem's shipped version — a real difference in behavior or markup, not just
+rewording — that has no home in the gem doc because it would misdescribe the
+gem's default component. Those live here instead.
+
+#### Fork notes
+
+- **Badge** — the `[:soft, :neutral]` cell's AAA proof (and the tenth cell in
+  general) is pending this app's 0b axe row, since gem CI disables
+  `color-contrast` (see `docs/testing.md`).
+- **Button** — this is an app-local copy that intentionally diverges from
+  modelrails_ui's self-contained (raw-utility) `ButtonComponent`: this app owns
+  its design tokens, so the component applies the app's button-family CSS
+  classes (`app/assets/tailwind/application.css` `@layer components`) instead
+  of re-listing them. The proven `(variant, tone)` cells map to those classes
+  — see the `COMBOS` constant in `button_component.rb` for the exact mapping
+  (solid/primary → the primary fill, solid/danger → the danger fill,
+  outline/neutral → the secondary bordered style, text/primary and
+  text/danger → the two text-style treatments).
+- **Chart** — `bin/importmap pin chart.js` downloads the library to
+  `vendor/javascript`, since production CSP allows no CDN.
+- **Combobox** — options are not tab stops (`tabindex="-1"`): Tab leaves the
+  widget and closes it, as does any focus leaving it. This is a real
+  accessibility fix this app made (`#684`) that the gem's shipped combobox
+  doesn't yet have — `combobox_component.rb` adds `tabindex: "-1"` to each
+  option button, and `combobox_controller.js` adds a `closeOnFocusOut` action
+  and a `keepFocus` mousedown guard.
+- **Error summary** — this app's DOM shape genuinely differs from the gem's:
+  the outer container (`data-slot="error-summary"`) is the focusable,
+  autofocused element, and `role="alert"` sits on an inner block, not the same
+  element. This splits the two roles so a screen reader doesn't announce the
+  same content twice (once as the alert, once as the focused element) — see
+  `docs/components/error_summary.md` ("Why it exists") for the full rationale.
+
 ## Adding a component
 
 1. **Discover** — `bin/rails g modelrails_ui:list` shows the catalog and which are `installed`.

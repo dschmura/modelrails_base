@@ -1,19 +1,9 @@
 # frozen_string_literal: true
 
 module UI
-  # # ListGroup
-  #
   # A styled vertical list of rows — static items, navigation links, or actions.
-  # Renders a real `<ul>`; each child is a `list_group_item` (`<li>`, or an `<a>`
-  # wrapped in `<li>` when navigable). Accessibility hinges on this semantics: a
-  # static list is a `<ul>`/`<li>`, a list of links is a `<ul>` of `<a>`, and
-  # interactive rows are real focusable elements — never `<div>` rows.
-  #
-  # ## Accessibility contract
-  # - **Guarantees:** a semantic `<ul>` on a token surface (`bg-surface`,
-  #   `border-border`, `divide-border` between rows). Row semantics and focus
-  #   handling live in `list_group_item`.
-  # - **You supply:** the rows, via `list_group_item` (slot/block content).
+  # Usage, options and the accessibility contract: docs/components/list_group.md in the
+  # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
   class ListGroupComponent < ApplicationComponent
     BASE = "divide-y divide-border overflow-hidden rounded-lg border border-border bg-surface"
 

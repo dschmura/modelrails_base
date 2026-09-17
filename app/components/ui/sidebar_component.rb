@@ -3,14 +3,8 @@
 module UI
   class SidebarComponent < ApplicationComponent
     # Collapsible application sidebar with nav groups.
-    #
-    # Usage:
-    #   ui :sidebar do |s|
-    #     s.with_group(label: "Main") do |g|
-    #       g.with_item(label: "Dashboard", href: "/", icon: :home, active: true)
-    #       g.with_item(label: "Settings",  href: "/settings", icon: :settings)
-    #     end
-    #   end
+    # Usage, options and the accessibility contract: docs/components/sidebar.md in the
+    # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
 
     RAIL_CLS = "group peer fixed inset-y-0 left-0 z-30 flex h-full flex-col " \
                "border-r border-border bg-surface-raised transition-[width] duration-300 " \

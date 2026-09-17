@@ -2,9 +2,9 @@
 
 module UI
   class FileInputComponent < ApplicationComponent
-    # Matches the host app's FILE_FIELD_CLASSES (state-independent). a11y params
-    # added so the builder can wire aria-invalid/describedby — closing the gap
-    # where the app's plain file_field skipped ARIA.
+    # Matches the host app's FILE_FIELD_CLASSES (state-independent). a11y params added so the builder can wire aria-invalid/describedby — closing the gap where the app's plain file_field skipped ARIA.
+    # Usage, options and the accessibility contract: docs/components/file_input.md in the
+    # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
     BASE = "block w-full text-sm text-text-body " \
            "file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium " \
            "file:bg-interactive file:text-text-on-interactive hover:file:bg-interactive-hover " \
