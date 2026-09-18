@@ -4,6 +4,10 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+### Added
+
+- The operations ledger names the most active people for whatever filter is applied, above the table. Counts come from a grouped count over the whole filtered scope on an indexed column, so they describe every matching row rather than the rows on the current page, and only the handful of names shown are decrypted. Each entry narrows to that person through the same `q` pivot the row details use. Rows with no actor are left out — the strip answers *who*, and System is not a who. (#1179)
+
 ### Changed
 
 - The operations ledger's Workspace filter becomes a server-side search past 100 workspaces, instead of rendering every kept workspace into the filter band on every full-page navigation. The switch is automatic because a fork's instance is not being watched for the day it crosses the line. The list is never silently capped — a search offering more matches than it shows says how many it left out — and `?workspace=<slug>` keeps working on both shapes. (#1166)

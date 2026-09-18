@@ -97,6 +97,9 @@ en:
           best_effort: "Rows are written best-effort, so an empty result rules nothing out on its own."
           derived: "Locks and deactivations are stored as %{workspace} and member updates — filter by those kinds."
           names: "Names are matched after decryption on instances under %{limit} users; above that, search by exact email address."
+        top_actors:
+          label: "Most active"
+          entry_aria_label: "Show only activity by %{name} (%{count} in this view)"
         filters:
           label: "Filter activity"
           search_label: "Search by email, name, %{workspace} or %{project}"

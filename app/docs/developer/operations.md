@@ -152,7 +152,11 @@ so set a password in that first window if outbound mail isn't wired up yet.
   loads and decrypts the whole result only works under the 500-row cap — a
   header that works on some filters and not others is worse than none. To
   see one person's rows, search for them (the row details offer that pivot);
-  time and workspace are the two sorts.
+  time and workspace are the two sorts. The question a Who sort is usually
+  reached for — *who has been busiest here* — is answered instead by the
+  **Most active** strip above the table: a count per person over whatever
+  filter is applied, which states the answer rather than asking you to eyeball
+  which alphabetical block is tallest across pages.
 - Scope an operator to some workspaces rather than all of them. An
   operator's reach is the whole instance today — `operated_workspaces` is
   every kept workspace, with no notion of "some." A scoped-operator arc that

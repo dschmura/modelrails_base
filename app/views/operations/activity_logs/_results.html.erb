@@ -34,6 +34,10 @@
 <% end %>
 
 <% if @activities.any? %>
+  <%# Above the table, inside the frame: the counts describe the applied filter,
+      so they have to change with it. %>
+  <%= render "operations/activity_logs/top_actors" if @top_actors.any? %>
+
   <%# scroll: on the component, not a scroll_area around it: only the columns
       scroll at phone width; the toolbar (Clear) and the footer (Rows, pager)
       stay put. Every full-page control below names, with data-focus-key, where
