@@ -53,4 +53,32 @@ RSpec.describe UI::TableComponent, type: :component do
     render_table(data: { controller: "x" })
     expect(page).to have_css("div[data-size=default][data-controller=x]")
   end
+
+  # scroll: :horizontal wraps only the <table> in the scroll region, so the
+  # toolbar and footer stay pinned at phone width instead of scrolling off
+  # with the columns. The region is a named, focusable tab stop (the
+  # ScrollArea contract), named distinctly from the caption so a screen
+  # reader does not hear the same words twice.
+  it "scrolls only the table when asked, leaving toolbar and footer pinned" do
+    render_table(scroll: :horizontal) do |t|
+      t.with_toolbar { "Summary" }
+      t.with_footer { "Showing 1–1 of 1" }
+    end
+    region = page.find("div[role=region][tabindex='0']")
+    expect(region[:"aria-label"]).to eq(I18n.t("modelrails_ui.table.scroll_region", name: "All widgets"))
+    expect(region[:class]).to include("overflow-x-auto").and include("focus-ring")
+    expect(region).to have_css("table")
+    expect(page).to have_css("div.rounded-lg > div[data-slot=toolbar] + div[role=region] + div[data-slot=footer]", visible: :all)
+  end
+
+  it "renders no scroll region by default" do
+    render_table
+    expect(page).to have_no_css("[role=region]")
+    expect(page).to have_css("div[data-size] > table")
+  end
+
+  it "is a filled card — the list_group's surface, not the page's" do
+    expect(UI::TableComponent::WRAPPER).to include("bg-surface ").or end_with("bg-surface")
+    expect(UI::TableComponent::WRAPPER).not_to include("bg-surface-raised")
+  end
 end
