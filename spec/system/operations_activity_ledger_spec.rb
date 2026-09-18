@@ -148,6 +148,25 @@ RSpec.describe "Operations activity ledger", type: :system do
     expect(page).to have_current_path(/from=2026-09-03/)
   end
 
+  # Enter in a text field clicks the form's DEFAULT button — the first submit
+  # button in tree order owning the form. The range group's submitters are
+  # form-associated, so before the band grew a nameless default button that was
+  # "24h", and pressing Enter after typing an email silently narrowed the window.
+  it "keeps the applied range when Enter submits from the Person field" do
+    visit operations_activity_logs_path(range: "all")
+    within_results { expect(page).to have_css("h2", text: I18n.t("operations.activity_logs.index.ranges.all")) }
+
+    fill_in "person", with: priya.email_address
+    find("#person").send_keys(:enter)
+
+    # The summary naming the person is what proves the submit landed, so the
+    # path assertions below are about a page that actually re-filtered.
+    within_results { expect(page).to have_css("h2", text: priya.email_address) }
+    expect(page).to have_current_path(/person=#{Regexp.escape(CGI.escape(priya.email_address))}/)
+    expect(page).to have_current_path(/range=all/)
+    expect(page).to have_no_current_path(/range=24h/)
+  end
+
   # The custom-range state is the one where the band and the popover both hold a
   # control named `from`/`to`. While the band carried its own hidden from/to,
   # `hidden_field_tag` gave them id="from"/id="to", so the popover's <label for>
