@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module UI
-  # Bordered container with composable header, title, description, content, and footer sub-components.
+  # The bottom row of a card — a padded flex row that holds its actions.
   # Usage, options and the accessibility contract: docs/components/card.md in the
   # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
   class CardFooterComponent < ApplicationComponent
