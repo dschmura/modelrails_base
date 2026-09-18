@@ -57,10 +57,18 @@ class ActivityLog < ApplicationRecord
     # without the clause SQLite reads that backslash as a literal character.
     ESCAPED_LIKE = "ESCAPE '\\'".freeze
 
-    def self.matching_workspaces(needle, reach)
+    # PUBLIC, and a relation rather than an array: the ledger's workspace picker
+    # needs the same match with its own limit and a count, and the LIKE/ESCAPE
+    # doctrine above must have exactly one home. Workspace names are plaintext
+    # (unlike user names), so this is ordinary SQL.
+    def self.workspaces_matching(needle, reach:)
       reach.where("LOWER(workspaces.name) LIKE :name #{ESCAPED_LIKE} OR workspaces.slug = :slug",
-                  name: "%#{Workspace.sanitize_sql_like(needle)}%", slug: needle)
-           .limit(RESULT_LIMIT).to_a
+                  name: "%#{Workspace.sanitize_sql_like(needle.to_s.strip.downcase)}%",
+                  slug: needle.to_s.strip.downcase)
+    end
+
+    def self.matching_workspaces(needle, reach)
+      workspaces_matching(needle, reach: reach).limit(RESULT_LIMIT).to_a
     end
     private_class_method :matching_workspaces
 

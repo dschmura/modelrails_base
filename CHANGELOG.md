@@ -4,6 +4,10 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+### Changed
+
+- The operations ledger's Workspace filter becomes a server-side search past 100 workspaces, instead of rendering every kept workspace into the filter band on every full-page navigation. The switch is automatic because a fork's instance is not being watched for the day it crosses the line. The list is never silently capped — a search offering more matches than it shows says how many it left out — and `?workspace=<slug>` keeps working on both shapes. (#1166)
+
 ### Breaking
 
 - **Fork invariant — an instance has operators, and `/operations` is theirs.** `Operatorship` (a `Discardable` row per operator in a new `operatorships` table, partial unique index on kept rows) marks who administers the instance from above the workspaces. `Operations::` controllers under `/operations` — workspaces, users, activity, operators; 16 routes — answer 404 to anyone else and force reauthentication on every request. Under the `:shared` preset the seed grants the bootstrap owner an operatorship; elsewhere `rails operators:grant[email]` mints the first one. Landing with it: user suspension is a reversible hold (`users.suspended_at`; `User#suspend!(by:)` / `#unsuspend!(by:)` — sign-in refused at the one session funnel, sessions ended, memberships untouched) and replaces the evicting `users:suspend`; `User#unlock!(by:)` is the audited administrative lockout clear; `ActivityLog.record_security_event!` takes `actor:` and `visibility:` and is the one writer for every `SECURITY_ACTIONS` member (five new: `user.suspended`, `user.unsuspended`, `user.unlocked`, `operatorship.granted`, `operatorship.revoked`); `Suspendable#suspend!` / `#unsuspend!` are guarded inside their transaction and return an outcome; `Workspace#owner` ignores discarded memberships; `Workspace.create_for_owner_email` is the operator-create verb; `Settings::ReauthenticationsController` and `Settings::ReauthenticationCodesController` skip the onboarding requirement; `TENANCY_WORKSPACE_CREATION=disabled` binds operators too. (#1127; closes #1120)

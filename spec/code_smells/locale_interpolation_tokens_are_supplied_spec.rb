@@ -12,7 +12,7 @@ RSpec.describe "Code smell: every locale interpolation token is supplied" do
     decliner_email device email first_name from hours_remaining
     invitee_email inviter limit link max member metric minutes mode name
     names new_email new_role nickname os percent period phrase project_name
-    provider query relative role sent skipped summary time title to user_name
+    provider query relative role sent shown skipped summary time title to user_name
     workspace_name zone
   ]
   # ^ from Step 1's measurement, minus the eight vocabulary tokens, sorted.
@@ -20,6 +20,9 @@ RSpec.describe "Code smell: every locale interpolation token is supplied" do
   # operations.users.show.operator_unsuspendable_html.
   # `zone`: the activity ledger's filters partial passes the operator's time
   # zone name to ...index.ranges.popover_zone.
+  # `shown`: the ledger's workspace search partial passes how many candidates it
+  # rendered alongside `count`, the number that matched
+  # (...index.filters.workspace_more) — an honest cap states both.
   # `query` / `names`: Operations::ActivityLedgerHelper#ledger_search_parts
   # supplies the needle and the records it resolved to
   # (...index.summary.matching / .no_match).

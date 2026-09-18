@@ -53,15 +53,25 @@
       <p id="q-hint" class="sr-only"><%= t("operations.activity_logs.index.filters.search_hint") %></p>
     </div>
 
-    <%# No <label for> here: the combobox's own id lands on its WRAPPER, not on
-        a labelable control, so a `for` would dangle. Its accessible name is the
-        `label:` it carries onto the role=combobox input and the listbox. %>
-    <div class="w-full min-w-0 lg:flex-1 lg:basis-44 lg:max-w-56">
-      <%= ui :combobox, name: "workspace", id: "workspace", value: @workspace_param, data: { focus_key: "workspace" },
-            label: t("operations.activity_logs.index.filters.workspace_label"),
-            placeholder: t("operations.activity_logs.index.filters.workspace_any"),
-            options: [ { value: "", label: t("operations.activity_logs.index.filters.workspace_any") },
-                       { value: "instance", label: t("operations.activity_logs.index.instance") } ] + @workspace_options %>
+    <%# Two shapes for one control (#1166). Under WORKSPACE_PICKER_LIMIT it is the
+        option list it has always been. Over it the list is NOT rendered — the
+        reach is every tenant on the instance, so the list grew with the
+        business and rode along on every full-page navigation. Capping it was
+        not an option: a workspace missing from a capped list is unselectable
+        with nothing to say so. %>
+    <div class="w-full min-w-0 lg:flex-1 lg:basis-44 lg:max-w-56" data-filter="workspace">
+      <% if @workspace_picker_search %>
+        <%= render "operations/activity_logs/workspace_search" %>
+      <% else %>
+        <%# No <label for> here: the combobox's own id lands on its WRAPPER, not on
+            a labelable control, so a `for` would dangle. Its accessible name is the
+            `label:` it carries onto the role=combobox input and the listbox. %>
+        <%= ui :combobox, name: "workspace", id: "workspace", value: @workspace_param, data: { focus_key: "workspace" },
+              label: t("operations.activity_logs.index.filters.workspace_label"),
+              placeholder: t("operations.activity_logs.index.filters.workspace_any"),
+              options: [ { value: "", label: t("operations.activity_logs.index.filters.workspace_any") },
+                         { value: "instance", label: t("operations.activity_logs.index.instance") } ] + @workspace_options %>
+      <% end %>
     </div>
 
     <div class="w-full min-w-0 lg:flex-1 lg:basis-44 lg:max-w-56">

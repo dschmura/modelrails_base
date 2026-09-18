@@ -391,4 +391,39 @@ RSpec.describe "Operations activity ledger", type: :system do
     end
     expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
   end
+  # The search shape of the Workspace filter is what a GROWN instance sees, and
+  # nothing else in this suite ever renders it — so without this example the AAA
+  # gate would score only the shape small instances get, and a fork would be the
+  # first to find out. Every state the shape can reach is audited here: the bare
+  # search box, several candidates offered, no match, and a filter applied.
+  it "audits the large-instance workspace search in every state it can reach" do
+    stub_const("Operations::ActivityLogsController::WORKSPACE_PICKER_LIMIT", 1)
+
+    visit operations_activity_logs_path
+    expect(page).to have_field("workspace_q")
+    expect(page).to have_no_css("[data-filter=workspace] [role=option]")
+    expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
+
+    # Several matches: the choices are offered rather than one being guessed.
+    visit operations_activity_logs_path(workspace_q: "o")
+    expect(page).to have_css("[data-role=workspace-candidate]", minimum: 2)
+    expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
+
+    # No match — a message, not a silently unfiltered page.
+    visit operations_activity_logs_path(workspace_q: "zzz-no-such-workspace")
+    expect(page).to have_text(
+      I18n.t("operations.activity_logs.index.filters.workspace_no_match", query: "zzz-no-such-workspace")
+    )
+    expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
+
+    # Applied, with the clear affordance — the state that replaces a selected
+    # option, since there is no option list here to hold one.
+    visit operations_activity_logs_path(workspace: acme.slug)
+    expect(page).to have_text(I18n.t("operations.activity_logs.index.filters.workspace_applied", name: acme.name))
+    expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
+
+    # And it clears back to the search box.
+    find("[data-filter=workspace] a").click
+    expect(page).to have_field("workspace_q")
+  end
 end

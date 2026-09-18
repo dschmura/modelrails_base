@@ -4,7 +4,7 @@ module Operations
     # a denylist: pagy reads `limit` straight off the query string, so passing
     # the whole of query_parameters through put a foreign `limit` on every Rows
     # link — where it wins over `rows` and makes the aria-current="true" a lie.
-    FILTER_KEYS = %i[q workspace kind range from to sort direction rows].freeze
+    FILTER_KEYS = %i[q workspace workspace_q kind range from to sort direction rows].freeze
 
     # How many matches of one kind the summary names before it counts the rest.
     SUMMARY_NAMES = 3

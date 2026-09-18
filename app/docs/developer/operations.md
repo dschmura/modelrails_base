@@ -159,6 +159,32 @@ so set a password in that first window if outbound mail isn't wired up yet.
   narrows this is planned, not built.
 - Impersonate a user.
 
+## The Workspace filter changes shape as you grow
+
+On a small instance the Workspace filter is a dropdown of every workspace.
+Past `Operations::ActivityLogsController::WORKSPACE_PICKER_LIMIT` (100) it
+becomes a search box instead, and the list is not rendered at all.
+
+That switch is automatic, and it is automatic **because you are a fork**. An
+operator's reach is every kept workspace on the instance, so the dropdown grew
+with your business and was re-sent on every full-page navigation — and sorting
+and paging both are. Nobody is watching your instance for the day that starts to
+hurt, so the page watches for itself.
+
+What it does *not* do is quietly shorten the list. A workspace missing from a
+capped dropdown would be unselectable with nothing on screen to say so, which
+trades a slow page for a wrong one. When the search offers more matches than it
+shows, it states the number it left out.
+
+Searching is server-side and matches a name fragment or an exact slug.
+Workspace names are plaintext, so this is ordinary SQL — unlike people's
+names, which are encrypted and searched the slower way described above. A search
+matching exactly one workspace applies the filter; several offer you the
+choice rather than guessing; none says so.
+
+`?workspace=<slug>` keeps working on both shapes, so links and bookmarks survive
+the switch.
+
 ## The operator becomes the owner
 
 Creating a workspace for an email with no account doesn't leave that
