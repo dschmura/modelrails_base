@@ -62,7 +62,9 @@ RSpec.describe "Operations activity ledger", type: :system do
   # Its accessible name is the `label:` the component puts on `aria-label`,
   # which is what this addresses it by (and therefore asserts).
   # The band's one range control states the APPLIED window: a preset reads its
-  # long label ("last 30 days"), a custom range the bounds themselves
+  # sentence-case control label ("Last 30 days" — ranges_menu.*, NOT the
+  # lowercase ranges_long.* the summary sentence uses), a custom range the
+  # bounds themselves
   # (ActivityLedgerHelper#ledger_range_label). So the trigger's accessible name
   # changes with the filter, and every click_button below names the window that
   # is currently on.
@@ -137,14 +139,14 @@ RSpec.describe "Operations activity ledger", type: :system do
 
   it "switches the range from the one trigger and accepts a custom range from its panel" do
     visit operations_activity_logs_path
-    # The trigger names the applied window, so on a fresh visit it is "last 30
+    # The trigger names the applied window, so on a fresh visit it is "Last 30
     # days" — the default — and the presets live behind it.
-    click_button I18n.t("operations.activity_logs.index.ranges_long.30d")
-    click_button I18n.t("operations.activity_logs.index.ranges_long.all")
+    click_button I18n.t("operations.activity_logs.index.ranges_menu.30d")
+    click_button I18n.t("operations.activity_logs.index.ranges_menu.all")
     expect(page).to have_current_path(/range=all/)
     within_results { expect(page).to have_css("h2", text: I18n.t("operations.activity_logs.index.ranges_long.all")) }
 
-    click_button I18n.t("operations.activity_logs.index.ranges_long.all")
+    click_button I18n.t("operations.activity_logs.index.ranges_menu.all")
     fill_in "from", with: "2026-09-03"
     fill_in "to", with: Date.current.iso8601
     expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
@@ -199,8 +201,8 @@ RSpec.describe "Operations activity ledger", type: :system do
     within_results { expect(page).to have_css("h2", text: I18n.t("activity.kinds.project")) }
 
     # A range click must carry the Kind that was applied through the frame.
-    click_button I18n.t("operations.activity_logs.index.ranges_long.30d")
-    click_button I18n.t("operations.activity_logs.index.ranges_long.all")
+    click_button I18n.t("operations.activity_logs.index.ranges_menu.30d")
+    click_button I18n.t("operations.activity_logs.index.ranges_menu.all")
     expect(page).to have_current_path(/kind=project/)
     expect(page).to have_current_path(/range=all/)
     within_results { expect(page).to have_css("h2", text: I18n.t("operations.activity_logs.index.ranges_long.all")) }
@@ -208,10 +210,10 @@ RSpec.describe "Operations activity ledger", type: :system do
     # And the band itself re-rendered: the trigger reads the new window, and the
     # panel marks it current.
     range_trigger = find("button[aria-haspopup=dialog]")
-    expect(range_trigger).to have_text(I18n.t("operations.activity_logs.index.ranges_long.all"))
+    expect(range_trigger).to have_text(I18n.t("operations.activity_logs.index.ranges_menu.all"))
     range_trigger.click
     expect(page).to have_css("[role=dialog] nav button[aria-current='true']",
-      text: I18n.t("operations.activity_logs.index.ranges_long.all"))
+      text: I18n.t("operations.activity_logs.index.ranges_menu.all"))
     # Closed by its own trigger's state, not by "no dialog on the page" — the
     # cookie banner is a role=dialog too.
     range_trigger.send_keys(:escape)
@@ -261,7 +263,7 @@ RSpec.describe "Operations activity ledger", type: :system do
     visit operations_activity_logs_path
     within_results { expect(page).to have_css("tbody tr", minimum: 1) }
 
-    click_button I18n.t("operations.activity_logs.index.ranges_long.30d")
+    click_button I18n.t("operations.activity_logs.index.ranges_menu.30d")
     expect(page).to have_css("[role=dialog]")
 
     box = page.evaluate_script(<<~JS)

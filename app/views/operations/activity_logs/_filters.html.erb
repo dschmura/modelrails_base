@@ -73,7 +73,7 @@
         class: "w-full lg:ml-auto lg:w-auto",
         trigger_class: "inline-flex w-full items-center justify-between gap-2 rounded-md border border-border-strong bg-transparent px-3 py-1 text-sm text-text-body shadow-sm cursor-pointer hover:bg-surface-sunken focus-visible:border-border-focus lg:w-auto lg:min-w-52 lg:max-w-64") do |pop| %>
     <% pop.with_trigger do %>
-      <span class="truncate"><%= @range.custom? ? ledger_range_label : t("operations.activity_logs.index.ranges_long.#{@range.key}") %></span>
+      <span class="truncate"><%= @range.custom? ? ledger_range_label : t("operations.activity_logs.index.ranges_menu.#{@range.key}") %></span>
       <svg class="size-4 shrink-0 text-text-muted" aria-hidden="true" viewBox="0 0 24 24"
            fill="none" stroke="currentColor" stroke-width="2">
         <path d="M6 9l6 6 6-6" />
@@ -86,7 +86,7 @@
           through the frame; submitting the band carries the LIVE control values. %>
       <nav aria-label="<%= t("operations.activity_logs.index.filters.range_label") %>" class="flex flex-col">
         <% ActivityLog::Range::KEYS.without("custom").each do |key| %>
-          <%= button_tag t("operations.activity_logs.index.ranges_long.#{key}"),
+          <%= button_tag t("operations.activity_logs.index.ranges_menu.#{key}"),
                 type: "submit", name: "range", value: key, form: "activity_filters",
                 data: { turbo_frame: "_top" },
                 class: "btn-cell-link w-full mx-0 px-3#{" bg-surface-sunken font-semibold text-text-heading" if @range.key == key}",

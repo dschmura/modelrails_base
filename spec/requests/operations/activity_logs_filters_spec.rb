@@ -183,9 +183,9 @@ RSpec.describe "Operations activity ledger filters", type: :request do
     html = Capybara.string(response.body)
     current = html.all("[role=dialog] nav button[aria-current='true']", visible: :all)
 
-    expect(current.map(&:text)).to eq([ I18n.t("operations.activity_logs.index.ranges_long.all") ])
+    expect(current.map(&:text)).to eq([ I18n.t("operations.activity_logs.index.ranges_menu.all") ])
     expect(html.find("button[aria-haspopup=dialog]", visible: :all).text)
-      .to include(I18n.t("operations.activity_logs.index.ranges_long.all"))
+      .to include(I18n.t("operations.activity_logs.index.ranges_menu.all"))
   end
 
   # A link in a table cell is left-aligned and 44px tall (.btn-cell-link), not

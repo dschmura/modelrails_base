@@ -90,6 +90,16 @@ en:
           from: "From date"
           to: "To date, inclusive"
           use: "Use this range"
+        # Two cases of the same four windows, and they are not
+        # interchangeable: ranges_menu.* labels CONTROLS (the range trigger and
+        # its four preset buttons), ranges_long.* reads mid-sentence in the
+        # results summary ("14 events · last 30 days") and in
+        # ActivityLedgerHelper#ledger_range_label.
+        ranges_menu:
+          24h: "Last 24 hours"
+          7d: "Last 7 days"
+          30d: "Last 30 days"
+          all: "All time"
         ranges_long:
           24h: "last 24 hours"
           7d: "last 7 days"
