@@ -311,27 +311,30 @@ RSpec.describe "Operations activity ledger", type: :system do
   # itself — or to the choice it just made — in the new document (2.4.3), via
   # data-focus-key (navigation_focus.js). Read from document.activeElement:
   # the one fact a keyboard user experiences.
+  # Each step waits for the NEW page's rendered state before reading focus:
+  # an advance visit changes the URL when it starts, not when it renders, so
+  # have_current_path alone can be satisfied while the old page is still up.
   it "returns focus to the control that navigated the page" do
     visit operations_activity_logs_path
     within_results { click_link I18n.t("operations.activity_logs.index.columns.when") }
-    expect(page).to have_current_path(/direction=asc/)
+    within_results { expect(page).to have_css("th[aria-sort='ascending']") }
     expect(active_element("closest('th').getAttribute('aria-sort')")).to eq("ascending")
 
     within_results { click_link "100" }
-    expect(page).to have_current_path(/rows=100/)
+    within_results { expect(page).to have_css("nav a[aria-current='true']", text: "100") }
     expect(active_element("getAttribute('aria-current')")).to eq("true")
     expect(active_element("textContent.trim()")).to eq("100")
 
     find("button[aria-controls=activity_range]").click
     click_button I18n.t("operations.activity_logs.index.ranges_menu.7d")
-    expect(page).to have_current_path(/range=7d/)
+    expect(page).to have_css("button[aria-controls=activity_range]", text: I18n.t("operations.activity_logs.index.ranges_menu.7d"))
     expect(active_element("getAttribute('aria-controls')")).to eq("activity_range")
 
     rename_row.find("summary").click
     within("details[open]") do
       click_link I18n.t("operations.activity_logs.index.details.only_person", email: priya.email_address)
     end
-    expect(page).to have_current_path(/q=/)
+    within_results { expect(page).to have_css("h2", text: priya.email_address) }
     expect(active_element("id")).to eq("q")
   end
 
