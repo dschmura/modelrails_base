@@ -1,31 +1,9 @@
 # frozen_string_literal: true
 
 module UI
-  # # Popover
-  #
-  # A non-modal floating panel anchored to a trigger button. Behavior lives in the
-  # `floating` Stimulus controller shipped alongside this component. Placement is CSS
-  # anchor positioning: the panel is `position: fixed` (so its containing block is the
-  # viewport), tethered to the trigger via `anchor-name`/`position-anchor`; `position-area`
-  # places it and `position-try-fallbacks` keeps it on-screen. Being viewport-positioned is
-  # also what lets it be promoted to the browser top layer, so a `sticky`/`backdrop-blur`
-  # ancestor cannot bury it.
-  #
-  # ## Use when
-  # - You need a small interactive overlay (a menu of actions, a filter form, details)
-  #   tied to a trigger that does NOT need to block the page.
-  #
-  # ## Don't use when
-  # - The content must block interaction until dismissed — use `dialog` (`role: :alertdialog` for a confirm gate).
-  # - You only need a hint describing a control — use `tooltip`.
-  #
-  # ## Accessibility contract
-  # - **Guarantees:** a real `<button>` trigger with `aria-haspopup="dialog"`,
-  #   `aria-expanded` (kept in sync), and `aria-controls` to the panel; the panel is
-  #   `role="dialog"` named by `label:`; Escape and outside-click close and return
-  #   focus to the trigger. Non-modal — focus is NOT trapped.
-  # - **You supply:** a `label:` (the panel's accessible name) and a `with_trigger`
-  #   slot (the button's visible content).
+  # A non-modal floating panel anchored to a trigger button.
+  # Usage, options and the accessibility contract: docs/components/popover.md in the
+  # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
   class PopoverComponent < ApplicationComponent
     renders_one :trigger
 

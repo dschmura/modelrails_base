@@ -1,37 +1,9 @@
 # frozen_string_literal: true
 
 module UI
-  # # Combobox
-  #
-  # An autocomplete select: a text input that filters a dropdown of options and
-  # writes the chosen value to a hidden field for form submission. Filtering and
-  # keyboard navigation live in the `combobox` Stimulus controller shipped
-  # alongside this component.
-  #
-  # ## Use when
-  # - You need a single-choice control over a long, known list where free-text
-  #   filtering beats scrolling a native `<select>`.
-  #
-  # ## Don't use when
-  # - The list is short and needs no search — use a native `select`.
-  # - It's a keyboard-first launcher for *actions* (the ⌘K pattern) — use `command`.
-  #
-  # ## Accessibility contract (WAI-ARIA APG combobox + listbox)
-  # - **Guarantees:** the text input is a `role="combobox"` with `aria-expanded`,
-  #   `aria-controls` (→ the list) and `aria-autocomplete="list"`, named by an i18n
-  #   `aria-label` (override via `label:`). The popup is a named `role="listbox"`;
-  #   each option is a `role="option"` with `aria-selected`. The controller tracks
-  #   the highlighted option via `aria-activedescendant` (DOM focus stays on the
-  #   input — ↑/↓/Home/End move the active option, Enter selects it, Escape closes).
-  #   Options are not tab stops (`tabindex="-1"`): Tab leaves the widget and closes
-  #   it, as does any focus leaving it. The input and options carry the AAA
-  #   `focus-ring`; the empty state is an i18n live region.
-  # - **You supply:** `name:` (hidden-field name), `options:` (array of
-  #   `{ value:, label: }`), optional `value:` (pre-selected), `placeholder:`,
-  #   `label:` (accessible name), and `size:`.
-  #
-  # ## Sizes
-  # `sm` · `md` · `lg` — the input height.
+  # An autocomplete select: a text input that filters a dropdown of options and writes the chosen value to a hidden field for form submission.
+  # Usage, options and the accessibility contract: docs/components/combobox.md in the
+  # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
   class ComboboxComponent < ApplicationComponent
     # `focus-ring` is the AAA offset outline (never a clipped box-shadow ring).
     INPUT = "flex w-full rounded-md border border-border-strong bg-transparent px-3 py-2 text-sm shadow-xs " \

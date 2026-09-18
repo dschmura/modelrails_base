@@ -1,22 +1,9 @@
 # frozen_string_literal: true
 
 module UI
-  # # ListGroupItem
-  #
-  # A single row inside a `list_group`. Semantics follow interactivity: a static
-  # row is a plain `<li>`; a navigable row is an `<a>` wrapped in its `<li>` (an
-  # `<a>` is not a valid direct child of `<ul>`). A clickable row is a real focusable
-  # element, never a `<div>` with a click handler.
-  #
-  # ## Accessibility contract
-  # - **Guarantees:** AAA-contrast tokens (`text-text-heading`/`text-text-muted` on
-  #   `bg-surface`; the active row is a solid `bg-interactive` fill with adaptive
-  #   `text-text-on-interactive`). Link rows are real `<a>` elements inside `<li>`,
-  #   carry the `focus-ring` utility, and — when active — `aria-current="page"`.
-  #   A non-interactive row is never made focusable. An unknown `variant` raises
-  #   in development.
-  # - **You supply:** the row text (positional arg, `label:`, or slot content); an
-  #   `href:` to make the row a link; `active: true` to mark the current row.
+  # A single row inside a `list_group`.
+  # Usage, options and the accessibility contract: docs/components/list_group.md in the
+  # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
   class ListGroupItemComponent < ApplicationComponent
     BASE = "flex items-center justify-between px-4 py-3 text-sm"
 
