@@ -426,4 +426,23 @@ RSpec.describe "Operations activity ledger", type: :system do
     find("[data-filter=workspace] a").click
     expect(page).to have_field("workspace_q")
   end
+
+  # The "most active" strip is new UI, so it needs its own row in the gate: the
+  # existing examples render a ledger whose rows all share one actor, where the
+  # strip is a single chip and its wrapping, target size and contrast are never
+  # exercised.
+  it "audits the most-active strip, and its entries narrow to one person" do
+    other = create(:user, first_name: "Grace", last_name: "Hopper")
+    acting_as(other) { plan_named(acme, "Grace plan") }
+
+    visit operations_activity_logs_path(range: "all")
+    expect(page).to have_css("[data-role=top-actor]", minimum: 2)
+    expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
+
+    # A way INTO the ledger: clicking a name applies the person filter through the
+    # same `q` pivot the row details use, and the box outside the frame shows it.
+    within("[data-role=top-actors]") { click_link(match: :first) }
+    expect(page).to have_field("q", with: priya.email_address).or have_field("q", with: other.email_address)
+    expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
+  end
 end

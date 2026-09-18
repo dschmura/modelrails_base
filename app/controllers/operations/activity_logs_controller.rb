@@ -25,6 +25,9 @@ module Operations
     # How many candidates a search offers before it says there are more. Honest
     # truncation: the page states the count it did not show.
     WORKSPACE_CANDIDATE_LIMIT = 20
+    # How many people the "most active" strip names. Few enough to read at a
+    # glance — it answers "who has been busiest here", not "here is a breakdown".
+    TOP_ACTORS = 5
 
     def index
       authorize [ :operations, ActivityLog ]
@@ -34,6 +37,7 @@ module Operations
       # Page 1 only: "the first 500 of N" is true of the first page and false of
       # every one after it, which shows the ordinary Showing 501–1000 copy.
       @capped = @rows == "all" && @pagy.count > ALL_ROWS && @pagy.page == 1
+      @top_actors = top_actors
     end
 
     private
@@ -115,6 +119,35 @@ module Operations
     def search_scope
       ActivityLog.matching_any(users: @search.users, workspaces: @search.workspaces,
                                projects: @search.projects)
+    end
+
+    # The question an operator actually asks of a filtered window is "who has been
+    # busiest here", and a Who sort answers it badly: it clusters names
+    # alphabetically and then asks you to eyeball which block is tallest, across
+    # pages. A count states it. (A Who sort is also impossible — actor names are
+    # encrypted; see SORTS above.)
+    #
+    # A grouped count over the SAME filtered scope the table uses, on
+    # `activity_logs.actor_id`, which is indexed. Two properties follow and both
+    # matter: it counts every row that MATCHED rather than the rows that fitted on
+    # this page, and only the handful of names actually shown are ever decrypted.
+    def top_actors
+      # `unscope(:includes)` — the workspace eager load exists to render rows, and
+      # dragging it into a GROUP BY makes Rails build a query it cannot group.
+      counts = filtered_scope.unscope(:includes)
+                 .where.not(actor_id: nil)
+                 .group(:actor_id)
+                 # REORDER, not order: `for_operations_feed` already sorts by
+                 # created_at DESC, and appending to that ranks by recency first
+                 # and volume second — the most RECENT actor wins, not the
+                 # busiest. actor_id breaks ties so the strip is stable.
+                 .reorder(Arel.sql("COUNT(*) DESC, actor_id ASC"))
+                 .limit(TOP_ACTORS)
+                 .count
+      return [] if counts.empty?
+
+      actors = User.where(id: counts.keys).index_by(&:id)
+      counts.filter_map { |id, count| actors[id] && [ actors[id], count ] }
     end
 
     def row_limit
