@@ -45,6 +45,65 @@ RSpec.describe ActivityLog, "ledger filters" do
     end
   end
 
+  describe ".matching_any" do
+    # Acting AS someone is a session, not an assignment: Current.user delegates
+    # to Current.session.
+    def acting_as(user)
+      Current.session = user.sessions.create!(user_agent: "test", ip_address: "127.0.0.1")
+      yield
+    ensure
+      Current.session = nil
+    end
+
+    it "matches a user as actor, as trackable, and through a membership of theirs" do
+      actor = create(:user)
+      workspace = create(:workspace)
+      membership = create(:membership, user: actor, workspace: workspace)
+      acting_as(create(:user)) { membership.update!(role: Role.system_default!("admin")) }
+      described_class.record_security_event!(action: "user.unlocked", user: actor,
+                                             actor: create(:user), visibility: "admin")
+      acting_as(actor) { create(:project, workspace: workspace) }
+
+      scoped = described_class.matching_any(users: [ actor ], workspaces: [], projects: [])
+      expect(scoped.where(actor_id: actor.id)).to exist
+      expect(scoped.where(trackable: actor)).to exist
+      expect(scoped.where(trackable: membership)).to exist
+      expect(described_class.matching_any(users: [ create(:user) ], workspaces: [], projects: [])
+               .where(trackable: membership)).not_to exist
+    end
+
+    it "matches a workspace's rows and a project's own rows" do
+      acme = create(:workspace)
+      beta = create(:workspace)
+      project = create(:project, workspace: acme)
+
+      by_workspace = described_class.matching_any(users: [], workspaces: [ acme ], projects: [])
+      expect(by_workspace.pluck(:workspace_id).uniq).to eq([ acme.id ])
+      expect(by_workspace.where(workspace_id: beta.id)).not_to exist
+
+      by_project = described_class.matching_any(users: [], workspaces: [], projects: [ project ])
+      expect(by_project.where(trackable: project)).to exist
+      expect(by_project.where(trackable_type: "Workspace")).not_to exist
+    end
+
+    it "ORs the groups rather than intersecting them" do
+      acme = create(:workspace)
+      beta = create(:workspace)
+      person = create(:user)
+      acting_as(person) { create(:project, workspace: beta) }
+
+      scoped = described_class.matching_any(users: [ person ], workspaces: [ acme ], projects: [])
+      expect(scoped.where(workspace_id: acme.id)).to exist
+      expect(scoped.where(actor_id: person.id)).to exist
+    end
+
+    it "matches nothing when every group is empty" do
+      create(:workspace)
+
+      expect(described_class.matching_any(users: [], workspaces: [], projects: [])).to be_empty
+    end
+  end
+
   describe ".within and .oldest_first" do
     it "bounds by created_at and can reverse the feed order" do
       workspace = create(:workspace)

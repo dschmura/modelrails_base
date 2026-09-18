@@ -89,20 +89,38 @@ so set a password in that first window if outbound mail isn't wired up yet.
 - **Users** (`/operations/users`) — a search box, not a browsable list: look
   a user up by their exact email address (names are encrypted
   non-deterministically and can't be searched or sorted in SQL — see
-  [Security: Personal Data at Rest](security#personal-data-at-rest)). From a
-  user's page, let a locked-out account try again, or suspend or reinstate
-  them (sign-in is refused and sessions end; memberships and roles are
-  untouched). An operator can't be suspended from here — revoke their
-  operator access first; `rails users:suspend` is the unguarded break-glass
-  path. See [Suspension keeps memberships](#suspension-keeps-memberships)
-  below.
+  [Security: Personal Data at Rest](security#personal-data-at-rest)); when
+  no account has that address the page offers the activity ledger's search,
+  which also matches names. A user's page opens with their states as badges
+  (operator, suspended, sign-in blocked), says since when, and holds every
+  control in one row: let a locked-out account try again, or suspend or
+  reinstate them (sign-in is refused and sessions end; memberships and roles
+  are untouched). A membership in a locked workspace is badged, since that
+  is the other reason someone cannot get in. "View activity" opens the
+  ledger narrowed to them, and a ledger row's details link back to this
+  page. An operator can't be suspended from here — revoke their operator
+  access first; `rails users:suspend` is the unguarded break-glass path. See
+  [Suspension keeps memberships](#suspension-keeps-memberships) below.
 - **Activity** (`/operations/activity_logs`) — every workspace's activity as a
-  ledger: newest first, the last 30 days by default, filterable by person
-  (exact email — names are encrypted and cannot be searched), workspace or
-  the instance level, kind, and date range; sortable by time; 25 to 500 rows
-  a page. Filters apply as you change them. Each row opens to the change it
-  recorded, the record it is about, its tier, and links that narrow the
-  ledger to that person. Two things the page says on its face and that an
+  ledger: newest first, the last 30 days by default, filterable by one search
+  box, workspace or the instance level, kind, and date range; sortable by
+  time; 25 to 500 rows a page. The search box resolves an email address, a
+  person's name, a workspace or a project, and shows the rows for any of them
+  — an email matches exactly (the column is deterministically encrypted),
+  everything else matches anywhere in the text. Names are matched after
+  decryption in Ruby, the same technique as the members page
+  (`ActivityLog::Search`, `WorkspaceRoster` — see
+  [Security: Personal Data at Rest](security#personal-data-at-rest)), so they
+  are searched only on instances under `ActivityLog::Search::NAME_SEARCH_LIMIT`
+  users (2,000); above that the summary says names were not searched and the
+  box answers exact addresses only. Filters apply as you change them. Each row
+  opens to the change it recorded, the record it is about, its tier, the
+  person's own page, and links that narrow the ledger to that person or to
+  that workspace. Controls that must navigate the whole page (sort, rows,
+  the pager, a range preset, a pivot) hand focus back to themselves — or to
+  the choice just made — in the new document (`data-focus-key`, read by
+  `navigation_focus.js`), so a keyboard user is not walked back to the top
+  after every sort. Two things the page says on its face and that an
   operator ruling something out must remember: locks and deactivations are
   stored as workspace and member *updates* (filter by those kinds), and rows
   are written best-effort, so an empty result is not proof. Personal security

@@ -13,7 +13,9 @@ module UI
     end
 
     def call
-      content_tag(:ul, content, class: cn(BASE, @extra_class), **@html_attrs)
+      # role="list": the preflight's list-style:none strips the implicit list
+      # role in Safari/VoiceOver, and with it the item count.
+      content_tag(:ul, content, role: "list", class: cn(BASE, @extra_class), **@html_attrs)
     end
   end
 end

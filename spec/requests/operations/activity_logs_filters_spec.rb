@@ -83,19 +83,131 @@ RSpec.describe "Operations activity ledger filters", type: :request do
     expect(Capybara.string(response.body)).to have_text(joined)
   end
 
-  it "filters by an exact email and says so when no user has it" do
+  it "resolves an exact email address, whatever its case" do
     person = create(:user, first_name: "Priya", last_name: "Nair")
     workspace = create(:workspace, name: "Alpha")
     acting_as(person) { plan_named(workspace, "Priya plan") }
     plan_named(workspace, "Other plan")
 
-    get operations_activity_logs_path(person: person.email_address.upcase)
+    get operations_activity_logs_path(q: person.email_address.upcase)
+    expect(response.body).to include("Priya plan")
+    expect(response.body).not_to include("Other plan")
+    expect(Capybara.string(response.body)).to have_text(
+      I18n.t("operations.activity_logs.index.summary.matching",
+             query: person.email_address, names: "Priya Nair")
+    )
+  end
+
+  it "resolves a name to every user who carries it" do
+    nair  = create(:user, first_name: "Priya", last_name: "Nair")
+    patel = create(:user, first_name: "Priya", last_name: "Patel")
+    workspace = create(:workspace, name: "Alpha")
+    acting_as(nair)  { plan_named(workspace, "Nair plan") }
+    acting_as(patel) { plan_named(workspace, "Patel plan") }
+    plan_named(workspace, "Other plan")
+
+    get operations_activity_logs_path(q: "priya")
+    expect(response.body).to include("Nair plan")
+    expect(response.body).to include("Patel plan")
+    expect(response.body).not_to include("Other plan")
+    expect(Capybara.string(response.body)).to have_text(
+      I18n.t("operations.activity_logs.index.summary.matching",
+             query: "priya", names: "Priya Nair, Priya Patel")
+    )
+  end
+
+  it "resolves a workspace name fragment and a project name" do
+    alpha = create(:workspace, name: "Acme Robotics")
+    beta  = create(:workspace, name: "Beta Works")
+    plan_named(alpha, "Alpha plan")
+    plan_named(beta, "Beta plan")
+
+    get operations_activity_logs_path(q: "robot")
+    expect(response.body).to include("Alpha plan")
+    expect(response.body).not_to include("Beta plan")
+    expect(Capybara.string(response.body)).to have_text(
+      I18n.t("operations.activity_logs.index.summary.matching", query: "robot", names: "Acme Robotics")
+    )
+
+    # A project name reaches the project's OWN rows, wherever they sit.
+    get operations_activity_logs_path(q: "beta plan")
+    expect(response.body).to include("Beta plan")
+    expect(response.body).not_to include("Alpha plan")
+  end
+
+  it "says so when a query matches nothing, rather than looking like an empty instance" do
+    plan_named(create(:workspace, name: "Alpha"), "Alpha plan")
+
+    get operations_activity_logs_path(q: "zzz")
+    expect(rows(response.body)).to be_empty
+    html = Capybara.string(response.body)
+    expect(html).to have_text(I18n.t("operations.activity_logs.index.summary.no_match", query: "zzz"))
+    expect(html).to have_text(I18n.t("operations.activity_logs.index.empty"))
+  end
+
+  it "keeps `person` working as an alias and carries the filter forward as `q`" do
+    person = create(:user, first_name: "Priya", last_name: "Nair")
+    workspace = create(:workspace, name: "Alpha")
+    acting_as(person) { plan_named(workspace, "Priya plan") }
+    plan_named(workspace, "Other plan")
+
+    get operations_activity_logs_path(person: person.email_address)
     expect(response.body).to include("Priya plan")
     expect(response.body).not_to include("Other plan")
 
-    get operations_activity_logs_path(person: "nobody@example.com")
+    rows_links = Capybara.string(response.body)
+      .all("nav[aria-label='#{I18n.t('operations.activity_logs.index.rows.label')}'] a")
+      .map { |link| link[:href] }
+    expect(rows_links).to all(include("q=#{CGI.escape(person.email_address)}"))
+    expect(rows_links.join(" ")).not_to include("person=")
+  end
+
+  it "pivots out of a row's details on `q`" do
+    person = create(:user, first_name: "Priya", last_name: "Nair")
+    workspace = create(:workspace, name: "Alpha")
+    create(:membership, user: person, workspace: workspace)
+
+    get operations_activity_logs_path
+    pivot = Capybara.string(response.body)
+      .first("tbody a", text: I18n.t("operations.activity_logs.index.details.only_person",
+                                     email: person.email_address), visible: :all)
+    expect(pivot[:href]).to include("q=#{CGI.escape(person.email_address)}")
+  end
+
+  # A row's details link out both ways: to the person's own operations page,
+  # and back into the ledger narrowed to them or to the workspace. The pivot
+  # links say what they narrow (2.4.9) — two "only ‹email›" links can share a
+  # row — with the visible words kept inside the name (2.5.3).
+  it "links a row's details to the person's page and names what each pivot narrows" do
+    person = create(:user, first_name: "Priya", last_name: "Nair")
+    workspace = create(:workspace, name: "Alpha")
+    create(:membership, user: person, workspace: workspace)
+
+    get operations_activity_logs_path
+    details = Capybara.string(response.body).first("tbody details", visible: :all)
+    expect(details).to have_link("Priya Nair", href: operations_user_path(person), visible: :all)
+    pivot = details.find("a", text: I18n.t("operations.activity_logs.index.details.only_person", email: person.email_address), visible: :all)
+    expect(pivot[:"aria-label"]).to eq(I18n.t("operations.activity_logs.index.details.only_person_aria_label", email: person.email_address))
+    scope = details.find("a", text: I18n.t("operations.activity_logs.index.details.only_workspace"), visible: :all)
+    expect(scope[:href]).to include("workspace=#{workspace.slug}")
+    expect(scope[:"aria-label"]).to eq(I18n.t("operations.activity_logs.index.details.only_workspace_aria_label", name: "Alpha"))
+  end
+
+  # Over the cap the decrypt pass is not run at all; the box still answers an
+  # exact address, and the summary says which half of it is off.
+  it "stops searching names on an instance over the name limit and says so" do
+    stub_const("ActivityLog::Search::NAME_SEARCH_LIMIT", 0)
+    person = create(:user, first_name: "Priya", last_name: "Nair")
+    workspace = create(:workspace, name: "Alpha")
+    acting_as(person) { plan_named(workspace, "Priya plan") }
+
+    get operations_activity_logs_path(q: "nair")
     expect(rows(response.body)).to be_empty
-    expect(Capybara.string(response.body)).to have_text(I18n.t("operations.activity_logs.index.summary.no_user"))
+    html = Capybara.string(response.body)
+    expect(html).to have_text(I18n.t("operations.activity_logs.index.summary.names_skipped"))
+
+    get operations_activity_logs_path(q: person.email_address)
+    expect(response.body).to include("Priya plan")
   end
 
   it "sorts oldest first on direction=asc" do
@@ -172,7 +284,7 @@ RSpec.describe "Operations activity ledger filters", type: :request do
 
     # The trigger's label IS the applied window, so the band states its own state
     # with no second control to read.
-    expect(html.find("button[aria-haspopup=dialog]", visible: :all).text).to include(
+    expect(html.find("button[aria-controls=activity_range]", visible: :all).text).to include(
       I18n.t("operations.activity_logs.index.ranges.custom_trigger",
              from: I18n.l(Date.new(2026, 9, 3), format: :ledger_short),
              to: I18n.l(Date.new(2026, 9, 17), format: :ledger_day))
@@ -184,7 +296,7 @@ RSpec.describe "Operations activity ledger filters", type: :request do
     current = html.all("[role=dialog] nav button[aria-current='true']", visible: :all)
 
     expect(current.map(&:text)).to eq([ I18n.t("operations.activity_logs.index.ranges_menu.all") ])
-    expect(html.find("button[aria-haspopup=dialog]", visible: :all).text)
+    expect(html.find("button[aria-controls=activity_range]", visible: :all).text)
       .to include(I18n.t("operations.activity_logs.index.ranges_menu.all"))
   end
 
@@ -201,7 +313,7 @@ RSpec.describe "Operations activity ledger filters", type: :request do
 
     get operations_workspaces_path
     expect(Capybara.string(response.body))
-      .to have_css("tbody td a.btn-cell-link[href='#{operations_workspace_path(workspace)}']")
+      .to have_css("tbody th[scope=row] a.btn-cell-link[href='#{operations_workspace_path(workspace)}']")
   end
 
   # `hidden_field_tag` derives an id from the name, so a hidden `from` shadowed

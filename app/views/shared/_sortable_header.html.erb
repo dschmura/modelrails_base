@@ -2,7 +2,9 @@
 <%# Renders the full <th> so aria-sort (the screen-reader sortability contract,
     ARIA 1.2) stays adjacent to the link that drives it. frame: names the
     Turbo Frame the sort link targets; nil (a link already inside the frame it
-    should swap, or a full-page table) emits no data-turbo-frame at all (#1164). %>
+    should swap, or a full-page table) emits no data-turbo-frame at all (#1164).
+    data-focus-key: a sort that navigates the whole page lands focus back on
+    this link (navigation_focus.js); inside a frame it is inert. %>
 <%
   active = current_sort == column
   next_direction = active && current_direction == "asc" ? "desc" : "asc"
@@ -19,8 +21,8 @@
 %>
 <th scope="col" aria-sort="<%= aria_sort %>" class="<%= th_class %>">
   <%= link_to url.call(sort: column, direction: next_direction),
-        data: { turbo_frame: frame }.compact,
-        class: "group flex min-h-11 w-full items-center gap-1 text-sm font-medium text-text-muted
+        data: { turbo_frame: frame, focus_key: "sort-#{column}" }.compact,
+        class: "group flex min-h-input w-full items-center gap-1 text-sm font-medium text-text-muted
                 hover:text-interactive-hover
                 focus-ring rounded" do %>
     <%= title %>
