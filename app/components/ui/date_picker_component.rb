@@ -1,40 +1,9 @@
 # frozen_string_literal: true
 
 module UI
-  # # Date Picker
-  #
-  # A disclosure button that opens an inline calendar popover, driven by the
-  # `date-picker` Stimulus controller shipped alongside this component. The button is
-  # the accessible control (it carries the selected-date label); the calendar grid
-  # itself is owned by `UI::CalendarComponent` (this component does not re-implement it).
-  #
-  # ## Use when
-  # - A form needs a single date and a month-grid affordance is friendlier than a bare
-  #   `<input type="date">`.
-  #
-  # ## Don't use when
-  # - You only need a native date field with no custom calendar — use `input` with
-  #   `type: "date"`.
-  # - You need a range (two bounds) — compose two pickers or a range calendar.
-  #
-  # ## Accessibility contract
-  # - **Guarantees:** a real `<button>` trigger with `aria-haspopup="dialog"`,
-  #   `aria-expanded` (kept in sync by the controller), and `aria-controls` → the
-  #   popover id; the popover is a `role="dialog"` named by `label:`; a visible caption
-  #   `<label>`-style heading and a format hint wired via `aria-describedby`; the
-  #   decorative calendar icon is `aria-hidden`; Escape and outside-click close the
-  #   popover and return focus to the trigger. The trigger carries the offset
-  #   `focus-ring` (never a box-shadow ring).
-  # - **You supply:** an optional `label:` (the field caption / popover name; defaults
-  #   to an i18n string) and a `name:` if the value must post back.
-  #
-  # value:       Date or nil — initial selected date
-  # name:        form field name for the hidden input
-  # label:       visible caption + popover/trigger accessible name (i18n default)
-  # placeholder: trigger text when no date is selected (i18n default)
-  # format:      :long | :short | :iso — Ruby strftime for the initial label AND the
-  #              format hint shown to the user (fail-loud on an unknown key)
-  # min/max:     Date bounds passed to the calendar
+  # A disclosure button that opens an inline calendar popover, driven by the `date-picker` Stimulus controller shipped alongside this component.
+  # Usage, options and the accessibility contract: docs/components/date_picker.md in the
+  # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
   class DatePickerComponent < ApplicationComponent
     WRAPPER = "relative inline-block"
     CAPTION = "mb-1.5 block text-sm font-medium text-text-heading"

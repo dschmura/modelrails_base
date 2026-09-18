@@ -1,31 +1,9 @@
 # frozen_string_literal: true
 
 module UI
-  # # Switch
-  #
   # A binary on/off toggle backed by a native `<input type="checkbox" role="switch">`.
-  # The visually-hidden checkbox is the `peer`; a clickable track `<label>` and an
-  # `aria-hidden` thumb render the visual switch and react via `peer-checked:` /
-  # `peer-focus-visible:` / `peer-disabled:`.
-  #
-  # ## Use when
-  # - You need an immediate on/off setting (notifications on, dark mode on) that takes
-  #   effect on toggle — not a value collected for later form submission.
-  #
-  # ## Don't use when
-  # - The choice is part of a form the user submits, or it isn't strictly binary —
-  #   use a checkbox or radio group instead.
-  #
-  # ## Accessibility contract
-  # - **Guarantees:** a real `role="switch"` checkbox whose **native `checked` state**
-  #   conveys on/off to assistive tech (no JS, no stale ARIA), and a >=44px clickable
-  #   target (AAA 2.5.5) even though the visual track is smaller.
-  # - **You supply:** an accessible name via `label:` (or `aria-label:` on a label-less
-  #   switch), the initial `checked:` state, and a `name:` so the value posts.
-  #
-  # ## State
-  # `checked:` (default `false`) sets the initial on/off; the native checkbox tracks
-  # the rest. No variant axis, so no fail-loud guard is needed.
+  # Usage, options and the accessibility contract: docs/components/switch.md in the
+  # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
   class SwitchComponent < ApplicationComponent
     # The OUTER <label for=@id> is the >=44px click target (AAA 2.5.5): a transparent
     # flex box that centers the smaller visual switch, so the hit area grows without
