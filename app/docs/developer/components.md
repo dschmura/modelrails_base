@@ -50,8 +50,12 @@ Each vendored component's class comment is three lines: a summary and a pointer.
 The full reference — usage, options, when to use it, and the accessibility
 contract — is `docs/components/<name>.md` in the modelrails_ui gem
 (`bundle show modelrails_ui`), and the live examples are in Lookbook at
-`/lookbook`. Do not grow the class comment back into prose; the
-`component_headers_are_pointers` code-smell spec fails when one does.
+`/lookbook`. Sub-components share their parent's file: accordion items point
+to `accordion.md`, list-group items to `list_group.md`, menubar menus to
+`menubar.md`, tab items to `tabs.md`, and the five card parts (content,
+description, footer, header, title) to `card.md`. Do not grow the class
+comment back into prose; the `component_headers_are_pointers` code-smell spec
+fails when one does.
 
 A handful of vendored components carry a genuine fork-local divergence from the
 gem's shipped version — a real difference in behavior or markup, not just
@@ -62,7 +66,7 @@ gem's default component. Those live here instead.
 
 - **Badge** — the `[:soft, :neutral]` cell's AAA proof (and the tenth cell in
   general) is pending this app's 0b axe row, since gem CI disables
-  `color-contrast` (see `docs/testing.md`).
+  `color-contrast` (see `docs/testing.md` in the modelrails_ui gem).
 - **Button** — this is an app-local copy that intentionally diverges from
   modelrails_ui's self-contained (raw-utility) `ButtonComponent`: this app owns
   its design tokens, so the component applies the app's button-family CSS
@@ -71,7 +75,11 @@ gem's default component. Those live here instead.
   — see the `COMBOS` constant in `button_component.rb` for the exact mapping
   (solid/primary → the primary fill, solid/danger → the danger fill,
   outline/neutral → the secondary bordered style, text/primary and
-  text/danger → the two text-style treatments).
+  text/danger → the two text-style treatments). This page deliberately names
+  none of those CSS classes: the `btn_text_is_action_row_only` code-smell
+  spec (underline doctrine #772) fails any `app/docs` page that contains the
+  de-emphasized text button's class name, so `COMBOS` is the source of truth
+  for the mapping instead.
 - **Chart** — `bin/importmap pin chart.js` downloads the library to
   `vendor/javascript`, since production CSP allows no CDN.
 - **Combobox** — options are not tab stops (`tabindex="-1"`): Tab leaves the
