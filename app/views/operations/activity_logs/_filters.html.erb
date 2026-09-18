@@ -38,7 +38,12 @@
     <div class="w-full min-w-0 lg:flex-1 lg:basis-44 lg:max-w-56">
       <%= form.label :person, t("operations.activity_logs.index.filters.person_label"), class: "sr-only" %>
       <%= ui :input, type: "email", name: "person", id: "person", value: @person_email,
-            placeholder: t("operations.activity_logs.index.filters.person_placeholder"), autocomplete: "off" %>
+            placeholder: t("operations.activity_logs.index.filters.person_placeholder"),
+            autocomplete: "off", describedby: "person-hint" %>
+      <%# What this control matches, on the control itself rather than in a
+          page footnote nobody reads before typing a name. sr-only: the
+          placeholder already says "(email)" to a sighted operator. %>
+      <p id="person-hint" class="sr-only"><%= t("operations.activity_logs.index.filters.person_hint") %></p>
     </div>
 
     <%# No <label for> here: the combobox's own id lands on its WRAPPER, not on
@@ -69,8 +74,11 @@
       link in here targets _top — a range change has to re-render this band (the
       hidden range field, and which choice reads aria-current), which a frame swap
       cannot do. %>
+  <%# id: the page holds two popovers now (the card's caveats is the other), so
+      the panel — and through aria-controls its trigger — carries a stable
+      handle rather than a generated one. %>
   <%= render UI::PopoverComponent.new(label: t("operations.activity_logs.index.ranges.popover_label"), align: :end,
-        class: "w-full lg:ml-auto lg:w-auto",
+        id: "activity_range", class: "w-full lg:ml-auto lg:w-auto",
         trigger_class: "inline-flex w-full items-center justify-between gap-2 rounded-md border border-border-strong bg-transparent px-3 py-1 text-sm text-text-body shadow-sm cursor-pointer hover:bg-surface-sunken focus-visible:border-border-focus lg:w-auto lg:min-w-52 lg:max-w-64") do |pop| %>
     <% pop.with_trigger do %>
       <span class="truncate"><%= @range.custom? ? ledger_range_label : t("operations.activity_logs.index.ranges_menu.#{@range.key}") %></span>

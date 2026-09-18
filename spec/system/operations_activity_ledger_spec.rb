@@ -91,6 +91,19 @@ RSpec.describe "Operations activity ledger", type: :system do
     expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
   end
 
+  # The caveats popover is the one control on the card whose trigger carries no
+  # visible text, so its open state is where an unnamed icon button or an
+  # unreadable panel would show up. Audited open, both themes.
+  it "opens the results caveats from the toolbar, AAA in both themes" do
+    visit operations_activity_logs_path
+    within_results { expect(page).to have_css("tbody tr", minimum: 1) }
+
+    click_button I18n.t("operations.activity_logs.index.about.label")
+    expect(page).to have_text(I18n.t("operations.activity_logs.index.about.best_effort"))
+    expect(page).to have_text(I18n.t("operations.activity_logs.index.about.derived"))
+    expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
+  end
+
   it "applies a select change inside the frame, advances the URL, keeps focus, and announces the count" do
     visit operations_activity_logs_path
     # Positive control: the sentence the kind filter must remove is on the
@@ -209,7 +222,7 @@ RSpec.describe "Operations activity ledger", type: :system do
 
     # And the band itself re-rendered: the trigger reads the new window, and the
     # panel marks it current.
-    range_trigger = find("button[aria-haspopup=dialog]")
+    range_trigger = find("button[aria-controls=activity_range]")
     expect(range_trigger).to have_text(I18n.t("operations.activity_logs.index.ranges_menu.all"))
     range_trigger.click
     expect(page).to have_css("[role=dialog] nav button[aria-current='true']",
@@ -217,7 +230,7 @@ RSpec.describe "Operations activity ledger", type: :system do
     # Closed by its own trigger's state, not by "no dialog on the page" — the
     # cookie banner is a role=dialog too.
     range_trigger.send_keys(:escape)
-    expect(page).to have_css("button[aria-haspopup=dialog][aria-expanded=false]")
+    expect(page).to have_css("button[aria-controls=activity_range][aria-expanded=false]")
 
     # …and a Kind change afterwards must not silently revert the range to 30d.
     cdp_execute("document.getElementById('kind').focus()")

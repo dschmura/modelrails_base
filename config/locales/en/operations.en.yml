@@ -2,6 +2,7 @@ en:
   operations:
     area:
       banner: "Instance operations — you are above the %{workspaces}, not inside one."
+      banner_label: "Where you are"
       nav_label: "Operations"
     nav:
       workspaces: "%{Workspaces}"
@@ -74,10 +75,15 @@ en:
         instance: "Instance"
         system: "System"
         caption: "Activity across the instance, filtered"
+        about:
+          label: "About these results"
+          best_effort: "Rows are written best-effort, so an empty result rules nothing out on its own."
+          derived: "Locks and deactivations are stored as %{workspace} and member updates — filter by those kinds."
         filters:
           label: "Filter activity"
           person_label: "Person, actor or subject (exact email address)"
           person_placeholder: "Anyone (email)"
+          person_hint: "Exact email address. Names can’t be searched."
           workspace_label: "%{Workspace}"
           workspace_any: "Any %{workspace}"
           kind_label: "Kind"
@@ -134,7 +140,6 @@ en:
           showing: "Showing %{from}–%{to} of %{count}"
           capped: "Showing the first %{limit} of %{count} — narrow the range"
         empty: "No events match these filters."
-        footnote: "Times in %{zone}. Names can’t be searched; use the exact email address. Locks and deactivations are stored as %{workspace} and member updates. Rows are written best-effort, so an empty result rules nothing out on its own."
     operatorships:
       index:
         title: "Operators"

@@ -9,7 +9,23 @@
     the component's toolbar slot, and the empty state hand-rolls the same row —
     Clear has to be reachable exactly when a filter matched nothing. %>
 <% toolbar = capture do %>
-  <h2 class="text-sm font-semibold text-text-heading"><%= ledger_summary %></h2>
+  <div class="flex items-center gap-2">
+    <h2 class="text-sm font-semibold text-text-heading"><%= ledger_summary %></h2>
+    <%# The two caveats that qualify what a result MEANS sit on the result, not
+        in a footnote below the table: they are read when a count surprises
+        someone. Icon-only — the sentences are the panel, not the trigger. %>
+    <%= render(UI::PopoverComponent.new(label: t("operations.activity_logs.index.about.label"), align: :start,
+          id: "activity_about", trigger_class: "btn-text btn-text-interactive px-2 -ml-2")) do |pop| %>
+      <% pop.with_trigger do %>
+        <%= icon(:information_circle, size: :sm, class: "shrink-0") %>
+        <span class="sr-only"><%= t("operations.activity_logs.index.about.label") %></span>
+      <% end %>
+      <ul role="list" class="flex flex-col gap-2 text-sm text-text-body">
+        <li><%= t("operations.activity_logs.index.about.best_effort") %></li>
+        <li><%= t("operations.activity_logs.index.about.derived") %></li>
+      </ul>
+    <% end %>
+  </div>
   <% if request.query_parameters.except("page").present? %>
     <%= link_to t("operations.activity_logs.index.summary.clear"), operations_activity_logs_path,
           data: { turbo_frame: "_top" }, class: "btn-text btn-text-interactive px-3 -mr-3" %>
@@ -67,5 +83,11 @@
   <div class="mt-6 rounded-lg border border-border bg-surface-raised overflow-hidden">
     <div class="<%= UI::TableComponent::TOOLBAR %>"><%= toolbar %></div>
     <%= render "shared/empty_state", message: t("operations.activity_logs.index.empty") %>
+    <%# The one caveat an empty result needs on sight, not behind a control:
+        no rows is not proof nothing happened. Outside the shared partial,
+        which takes a message and an action and is used app-wide. %>
+    <p class="mt-2 px-8 pb-8 text-sm text-text-body text-center">
+      <%= t("operations.activity_logs.index.about.best_effort") %>
+    </p>
   </div>
 <% end %>

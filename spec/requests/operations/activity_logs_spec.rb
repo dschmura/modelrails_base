@@ -61,6 +61,45 @@ RSpec.describe "Operations activity feed", type: :request do
     expect(Capybara.string(response.body)).to have_css('turbo-frame#activity_results turbo-stream[action="update"][target="activity_results_status"]', visible: :all)
   end
 
+  # The two caveats that qualify what a count MEANS used to be a footnote under
+  # the table; they now hang off the summary, where a surprising count is read.
+  # The trigger is icon-only, so its accessible name is the assertion — an icon
+  # with no name is a control nobody can ask about.
+  it "offers the results caveats from the card toolbar, named and holding both sentences" do
+    create(:workspace, name: "Alpha")
+
+    get operations_activity_logs_path
+    html = Capybara.string(response.body)
+    trigger = html.find("button[aria-haspopup=dialog]", text: I18n.t("operations.activity_logs.index.about.label"))
+    panel = html.find("##{trigger["aria-controls"]}", visible: :all)
+    expect(panel[:role]).to eq("dialog")
+    expect(panel).to have_text(I18n.t("operations.activity_logs.index.about.best_effort"))
+    expect(panel).to have_text(I18n.t("operations.activity_logs.index.about.derived"))
+  end
+
+  # An empty result is the one state where "absence is not proof" has to be
+  # read without opening anything, so that sentence is on the card itself —
+  # and the caveats control is still reachable when a filter matched nothing.
+  it "states the best-effort caveat on the empty state, inside the frame" do
+    get operations_activity_logs_path(person: "nobody@example.com")
+    html = Capybara.string(response.body)
+    frame = html.find("turbo-frame#activity_results")
+    expect(frame).to have_text(I18n.t("operations.activity_logs.index.empty"))
+    expect(frame).to have_text(I18n.t("operations.activity_logs.index.about.best_effort"))
+    expect(frame).to have_css("button[aria-haspopup=dialog]", text: I18n.t("operations.activity_logs.index.about.label"))
+  end
+
+  # The hint moved onto the control it qualifies: aria-describedby is what
+  # makes it reach a screen-reader user at the moment they type, which a page
+  # footnote never did.
+  it "describes the Person field with what it matches" do
+    get operations_activity_logs_path
+    html = Capybara.string(response.body)
+    expect(html.find("#person")["aria-describedby"]).to eq("person-hint")
+    expect(html.find("#person-hint", visible: :all).text(:all))
+      .to eq(I18n.t("operations.activity_logs.index.filters.person_hint"))
+  end
+
   it "has an index that can serve a global created_at ordering" do
     indexes = ActiveRecord::Base.connection.indexes(:activity_logs).map(&:columns)
     expect(indexes).to include([ "created_at" ])

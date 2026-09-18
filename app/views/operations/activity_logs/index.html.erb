@@ -16,7 +16,3 @@
 <%= turbo_frame_tag "activity_results" do %>
   <%= render "operations/activity_logs/results" %>
 <% end %>
-
-<p class="mt-4 text-xs text-text-muted">
-  <%= t("operations.activity_logs.index.footnote", zone: @zone.name) %>
-</p>

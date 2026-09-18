@@ -18,8 +18,8 @@ RSpec.describe "Code smell: every locale interpolation token is supplied" do
   # ^ from Step 1's measurement, minus the eight vocabulary tokens, sorted.
   # `link`: app/views/operations/users/show.html.erb supplies a link_to for
   # operations.users.show.operator_unsuspendable_html.
-  # `zone`: the activity ledger's index and filters partial pass the operator's
-  # time zone name to ...index.footnote and ...index.ranges.popover_zone.
+  # `zone`: the activity ledger's filters partial passes the operator's time
+  # zone name to ...index.ranges.popover_zone.
   # Two of these are filled client-side, not by a Ruby caller: `count` in
   # form_draft.restored_other and `name` in identity_picker.js.color_announce
   # are supplied by JavaScript, not a translation call argument — something

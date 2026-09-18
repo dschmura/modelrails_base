@@ -172,7 +172,7 @@ RSpec.describe "Operations activity ledger filters", type: :request do
 
     # The trigger's label IS the applied window, so the band states its own state
     # with no second control to read.
-    expect(html.find("button[aria-haspopup=dialog]", visible: :all).text).to include(
+    expect(html.find("button[aria-controls=activity_range]", visible: :all).text).to include(
       I18n.t("operations.activity_logs.index.ranges.custom_trigger",
              from: I18n.l(Date.new(2026, 9, 3), format: :ledger_short),
              to: I18n.l(Date.new(2026, 9, 17), format: :ledger_day))
@@ -184,7 +184,7 @@ RSpec.describe "Operations activity ledger filters", type: :request do
     current = html.all("[role=dialog] nav button[aria-current='true']", visible: :all)
 
     expect(current.map(&:text)).to eq([ I18n.t("operations.activity_logs.index.ranges_menu.all") ])
-    expect(html.find("button[aria-haspopup=dialog]", visible: :all).text)
+    expect(html.find("button[aria-controls=activity_range]", visible: :all).text)
       .to include(I18n.t("operations.activity_logs.index.ranges_menu.all"))
   end
 
