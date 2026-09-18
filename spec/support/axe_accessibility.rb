@@ -528,8 +528,23 @@ module AxeAccessibility
   # document. Waits for all of it to clear so the audit sees the page the
   # user lands on; false if it never did within the budget, in which case
   # the audit runs anyway and its report says why.
+  # One quiet moment is not a settled page: a frame swap that advances history
+  # clears aria-busy, and only then does Turbo start the history visit and mark
+  # <html> busy again. So each time the page goes quiet, look again after
+  # QUIET_FOR and only believe it if it is still quiet.
+  QUIET_FOR = 0.15
+
   def wait_for_turbo_to_settle(wait: Capybara.default_max_wait_time)
-    page.has_no_css?("[aria-busy='true']", wait: wait)
+    deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + wait
+
+    loop do
+      remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      return false if remaining <= 0
+      return false unless page.has_no_css?("[aria-busy='true']", wait: remaining)
+
+      sleep QUIET_FOR
+      return true if page.has_no_css?("[aria-busy='true']", wait: 0)
+    end
   end
 
   # Real (non-memoized) audits this example has run — the observability handle
