@@ -15,16 +15,16 @@
         class: "flex w-full flex-col gap-3 sm:grid sm:grid-cols-2 lg:flex lg:flex-row lg:flex-1 lg:items-center min-w-0" do |form| %>
     <%# The form's default button: Enter in a text or date field clicks the FIRST
         submit button in tree order, which would otherwise be the range panel's
-        first preset — so Enter in Person silently applied a 24h window. Nameless,
-        it submits the hidden `range` as-is; "Use this range" stays the only way
-        to commit typed dates. `hidden`, not
-        `sr-only`: a rendered 1x1 focusable fails the axe gate (2.5.5, 2.4.7), and
-        a non-rendered button is still the default. %>
+        first preset — so Enter in the search box silently applied a 24h
+        window. Nameless, it submits the hidden `range` as-is; "Use this range"
+        stays the only way to commit typed dates. `hidden`, not `sr-only`: a
+        rendered 1x1 focusable fails the axe gate (2.5.5, 2.4.7), and a
+        non-rendered button is still the default. %>
     <button type="submit" hidden></button>
 
     <%# Seeded from the RESOLVED state, never raw params: a submit without a
         submitter (any control's change) carries the current window forward, so
-        picking a Person does not silently drop a sort or a page size.
+        typing a search does not silently drop a sort or a page size.
         id: nil on every one of them — hidden_field_tag derives an id from the
         name, and `id="from"`/`id="rows"` would shadow the visible control of
         that name, leaving the real input's <label for> pointing at a hidden
@@ -35,15 +35,17 @@
     <%= hidden_field_tag :direction, @direction, id: nil if @direction == "asc" %>
     <%= hidden_field_tag :rows, @rows, id: nil unless @rows == Operations::ActivityLogsController::DEFAULT_ROWS %>
 
+    <%# No <label for> here either: SearchInputComponent always emits its own
+        aria-label, so a second sr-only <label> of the same text would be a
+        duplicate name for one control. The `label:` IS the sr-only label. %>
     <div class="w-full min-w-0 lg:flex-1 lg:basis-44 lg:max-w-56">
-      <%= form.label :person, t("operations.activity_logs.index.filters.person_label"), class: "sr-only" %>
-      <%= ui :input, type: "email", name: "person", id: "person", value: @person_email,
-            placeholder: t("operations.activity_logs.index.filters.person_placeholder"),
-            autocomplete: "off", describedby: "person-hint" %>
+      <%= ui :search_input, name: "q", id: "q", value: @query,
+            label: t("operations.activity_logs.index.filters.search_label"),
+            placeholder: t("operations.activity_logs.index.filters.search_placeholder"),
+            autocomplete: "off", describedby: "q-hint" %>
       <%# What this control matches, on the control itself rather than in a
-          page footnote nobody reads before typing a name. sr-only: the
-          placeholder already says "(email)" to a sighted operator. %>
-      <p id="person-hint" class="sr-only"><%= t("operations.activity_logs.index.filters.person_hint") %></p>
+          page footnote nobody reads before typing a name. %>
+      <p id="q-hint" class="sr-only"><%= t("operations.activity_logs.index.filters.search_hint") %></p>
     </div>
 
     <%# No <label for> here: the combobox's own id lands on its WRAPPER, not on
@@ -89,7 +91,7 @@
     <% end %>
     <div class="flex flex-col gap-3">
       <%# Submitters, not links: the band is OUTSIDE the results frame and so is
-          not re-rendered by a frame-local Person/Workspace/Kind change. A link's
+          not re-rendered by a frame-local search/workspace/kind change. A link's
           href is frozen at page load, which silently dropped the Kind applied
           through the frame; submitting the band carries the LIVE control values. %>
       <nav aria-label="<%= t("operations.activity_logs.index.filters.range_label") %>" class="flex flex-col">

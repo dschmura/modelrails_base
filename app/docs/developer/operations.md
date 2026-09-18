@@ -97,12 +97,20 @@ so set a password in that first window if outbound mail isn't wired up yet.
   path. See [Suspension keeps memberships](#suspension-keeps-memberships)
   below.
 - **Activity** (`/operations/activity_logs`) — every workspace's activity as a
-  ledger: newest first, the last 30 days by default, filterable by person
-  (exact email — names are encrypted and cannot be searched), workspace or
-  the instance level, kind, and date range; sortable by time; 25 to 500 rows
-  a page. Filters apply as you change them. Each row opens to the change it
-  recorded, the record it is about, its tier, and links that narrow the
-  ledger to that person. Two things the page says on its face and that an
+  ledger: newest first, the last 30 days by default, filterable by one search
+  box, workspace or the instance level, kind, and date range; sortable by
+  time; 25 to 500 rows a page. The search box resolves an email address, a
+  person's name, a workspace or a project, and shows the rows for any of them
+  — an email matches exactly (the column is deterministically encrypted),
+  everything else matches anywhere in the text. Names are matched after
+  decryption in Ruby, the same technique as the members page
+  (`ActivityLog::Search`, `WorkspaceRoster` — see
+  [Security: Personal Data at Rest](security#personal-data-at-rest)), so they
+  are searched only on instances under `ActivityLog::Search::NAME_SEARCH_LIMIT`
+  users (2,000); above that the summary says names were not searched and the
+  box answers exact addresses only. Filters apply as you change them. Each row
+  opens to the change it recorded, the record it is about, its tier, and links
+  that narrow the ledger to that person. Two things the page says on its face and that an
   operator ruling something out must remember: locks and deactivations are
   stored as workspace and member *updates* (filter by those kinds), and rows
   are written best-effort, so an empty result is not proof. Personal security

@@ -173,19 +173,40 @@ RSpec.describe "Operations activity ledger", type: :system do
   # button in tree order owning the form. The range group's submitters are
   # form-associated, so before the band grew a nameless default button that was
   # "24h", and pressing Enter after typing an email silently narrowed the window.
-  it "keeps the applied range when Enter submits from the Person field" do
+  it "keeps the applied range when Enter submits from the search box" do
     visit operations_activity_logs_path(range: "all")
     within_results { expect(page).to have_css("h2", text: I18n.t("operations.activity_logs.index.ranges_long.all")) }
 
-    fill_in "person", with: priya.email_address
-    find("#person").send_keys(:enter)
+    fill_in "q", with: priya.email_address
+    find("#q").send_keys(:enter)
 
     # The summary naming the person is what proves the submit landed, so the
     # path assertions below are about a page that actually re-filtered.
     within_results { expect(page).to have_css("h2", text: priya.email_address) }
-    expect(page).to have_current_path(/person=#{Regexp.escape(CGI.escape(priya.email_address))}/)
+    expect(page).to have_current_path(/q=#{Regexp.escape(CGI.escape(priya.email_address))}/)
     expect(page).to have_current_path(/range=all/)
     expect(page).to have_no_current_path(/range=24h/)
+  end
+
+  # The box resolves a name, not just an address. Two people share a first name
+  # here on purpose: the summary has to name both, or an operator cannot tell
+  # which Priya the rows in front of them belong to.
+  it "resolves a typed first name to everyone who carries it, AAA in both themes" do
+    patel = create(:user, first_name: "Priya", last_name: "Patel")
+    acting_as(patel) { plan_named(beta, "Patel plan") }
+    visit operations_activity_logs_path
+
+    fill_in "q", with: "priya"
+    find("#q").send_keys(:enter)
+
+    within_results do
+      expect(page).to have_css("h2", text: I18n.t("operations.activity_logs.index.summary.matching",
+        query: "priya", names: "Priya Nair, Priya Patel"))
+      expect(page).to have_link("Acme Robotics")
+      expect(page).to have_link("Beta Works")
+    end
+    expect(page).to have_current_path(/q=priya/)
+    expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
   end
 
   # The custom-range state is the one where the band and the popover both hold a
@@ -252,9 +273,9 @@ RSpec.describe "Operations activity ledger", type: :system do
       expect(page).to have_link("Acme Robotics")
       expect(page).to have_no_text("Beta Works")
     end
-    expect(page).to have_current_path(/person=#{Regexp.escape(CGI.escape(priya.email_address))}/)
+    expect(page).to have_current_path(/q=#{Regexp.escape(CGI.escape(priya.email_address))}/)
 
-    visit operations_activity_logs_path(person: "nobody@example.com")
+    visit operations_activity_logs_path(q: "nobody@example.com")
     within_results { expect(page).to have_text(I18n.t("operations.activity_logs.index.empty")) }
     expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
   end

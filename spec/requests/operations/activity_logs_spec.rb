@@ -92,12 +92,12 @@ RSpec.describe "Operations activity feed", type: :request do
   # The hint moved onto the control it qualifies: aria-describedby is what
   # makes it reach a screen-reader user at the moment they type, which a page
   # footnote never did.
-  it "describes the Person field with what it matches" do
+  it "describes the search field with what it matches" do
     get operations_activity_logs_path
     html = Capybara.string(response.body)
-    expect(html.find("#person")["aria-describedby"]).to eq("person-hint")
-    expect(html.find("#person-hint", visible: :all).text(:all))
-      .to eq(I18n.t("operations.activity_logs.index.filters.person_hint"))
+    expect(html.find("#q")["aria-describedby"]).to eq("q-hint")
+    expect(html.find("#q-hint", visible: :all).text(:all))
+      .to eq(I18n.t("operations.activity_logs.index.filters.search_hint"))
   end
 
   it "has an index that can serve a global created_at ordering" do

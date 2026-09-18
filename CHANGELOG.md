@@ -165,6 +165,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- The operations activity ledger filters on one search box (`q`, with `person` kept as an alias for a release) that resolves an email address, a person's name, a workspace or a project — names matched after decryption in Ruby under a 2,000-user cap (`ActivityLog::Search`, `ActivityLog.matching_any`).
 - The first-run wizard's invite step is labelled "Invite" and headed "Invite people", and its email box carries the members page's hint instead of two example addresses, so a fork whose project noun is "team" no longer reads Course · Team · Tools · Team. (#1147)
 - Docs: QA flow 9 walks the operations area end to end (#1139); every bracketed rake command in the developer docs is quoted, because zsh globs `task[arg]` and never reaches Rails; the forking guide names the two invariants that read `.fork.yml` and says `bin/setup` leaves the git hooks to `bundle exec lefthook install`.
 - The vocabulary gates teach when they fail. Each of the three code-smell specs behind `config/vocabulary.local.yml` now says what went wrong, why it matters (a renamed product shows the old word; a JS-filled key raises), the corrected line, the escape hatch, and the doc link; the bare-noun gate lists the placeholders from `Vocabulary.tokens` rather than by hand, no longer calls a fork's own locale file "upstream-owned", and the spec-copy gate derives its nouns from `Vocabulary::NOUNS`. The forking guide and `bin/fork`'s TODO now say the rule covers a fork's own locale files too.
