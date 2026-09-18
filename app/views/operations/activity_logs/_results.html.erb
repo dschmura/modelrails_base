@@ -1,0 +1,65 @@
+<%# Frame requests carry the summary to the status node outside the frame as
+    a stream; Turbo runs a <turbo-stream> the moment it connects, so no script
+    of ours is involved. A full-page load leaves the node empty (nothing changed). %>
+<% if turbo_frame_request? %>
+  <%= turbo_stream.update "activity_results_status", ledger_summary %>
+<% end %>
+
+<div class="mt-4 flex flex-wrap items-center justify-between gap-3 min-h-11">
+  <h2 class="text-sm font-semibold text-text-heading"><%= ledger_summary %></h2>
+  <% if request.query_parameters.except("page").present? %>
+    <%= link_to t("operations.activity_logs.index.summary.clear"), operations_activity_logs_path,
+          data: { turbo_frame: "_top" }, class: "btn-text btn-text-interactive px-3" %>
+  <% end %>
+</div>
+
+<% if @activities.any? %>
+  <%= ui :scroll_area, orientation: :horizontal, max_h: nil, aria_label: t("operations.activity_logs.index.caption") do %>
+    <%= render UI::TableComponent.new(caption: t("operations.activity_logs.index.caption"), class: "mt-3") do |table| %>
+      <% table.with_header do %>
+        <%# frame: "_top" — sorting has to re-render the filter band with the new
+            direction, which a frame-local swap cannot do. %>
+        <%= render "shared/sortable_header",
+              title: t("operations.activity_logs.index.columns.when"), column: "created_at",
+              current_sort: "created_at", current_direction: @direction, frame: "_top",
+              url: ->(sort_params) { operations_activity_logs_path(ledger_filter_params(**sort_params.symbolize_keys)) } %>
+        <th scope="col" class="<%= UI::TableComponent::TH %>"><%= t("operations.activity_logs.index.columns.workspace") %></th>
+        <th scope="col" class="<%= UI::TableComponent::TH %>"><%= t("operations.activity_logs.index.columns.who") %></th>
+        <th scope="col" class="<%= UI::TableComponent::TH %> w-full"><%= t("operations.activity_logs.index.columns.what") %></th>
+      <% end %>
+      <% table.with_body do %>
+        <%= render partial: "operations/activity_logs/row", collection: @activities, as: :activity_log %>
+      <% end %>
+      <% table.with_footer do %>
+        <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-2">
+          <div class="flex items-center gap-2 text-sm text-text-muted">
+            <% if @capped %>
+              <span><%= t("operations.activity_logs.index.rows.capped", limit: Operations::ActivityLogsController::ALL_ROWS, count: @pagy.count) %></span>
+            <% else %>
+              <span><%= t("operations.activity_logs.index.rows.showing", from: @pagy.from, to: @pagy.to, count: @pagy.count) %></span>
+            <% end %>
+            <nav aria-label="<%= t("operations.activity_logs.index.rows.label") %>" class="flex items-center gap-1">
+              <span class="px-2"><%= t("operations.activity_logs.index.rows.label") %></span>
+              <% Operations::ActivityLogsController::ROWS.each do |value| %>
+                <%= link_to (value == "all" ? t("operations.activity_logs.index.rows.all") : value),
+                      operations_activity_logs_path(ledger_filter_params(rows: value)),
+                      data: { turbo_frame: "_top" },
+                      class: "btn-text btn-text-interactive px-3#{" bg-surface-sunken font-semibold text-text-heading" if @rows == value}",
+                      aria: { current: (@rows == value ? "true" : nil) } %>
+              <% end %>
+            </nav>
+          </div>
+          <% if @pagy.pages > 1 %>
+            <%# anchor_string is pagy's raw-attribute seam (a_lambda.rb): the pager
+                is a link like any other here, so it navigates _top too. %>
+            <%== @pagy.series_nav(aria_label: t("pagination.aria_label"), anchor_string: 'data-turbo-frame="_top"') %>
+          <% end %>
+        </div>
+      <% end %>
+    <% end %>
+  <% end %>
+<% else %>
+  <div class="mt-3">
+    <%= render "shared/empty_state", message: t("operations.activity_logs.index.empty") %>
+  </div>
+<% end %>

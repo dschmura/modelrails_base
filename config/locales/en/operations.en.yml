@@ -71,8 +71,59 @@ en:
     activity_logs:
       index:
         title: "Activity across the instance"
-        description: "Newest first, every %{workspace}. Personal security events are not shown here."
         instance: "Instance"
+        system: "System"
+        caption: "Activity across the instance, filtered"
+        filters:
+          label: "Filter activity"
+          person_label: "Person, actor or subject (exact email address)"
+          person_placeholder: "Anyone (email)"
+          workspace_label: "%{Workspace}"
+          workspace_any: "Any %{workspace}"
+          kind_label: "Kind"
+          kind_any: "Any kind"
+          range_label: "Date range"
+        ranges:
+          24h: "24h"
+          7d: "7d"
+          30d: "30d"
+          all: "All time"
+          custom_trigger: "%{from} – %{to}"
+          popover_label: "Between two dates"
+          popover_zone: "Times in %{zone}"
+          from: "From date"
+          to: "To date, inclusive"
+          use: "Use this range"
+        summary:
+          events:
+            zero: "No events"
+            one: "1 event"
+            other: "%{count} events"
+          no_user: "no user has that email address"
+          clear: "Clear filters"
+          separator: " · "
+        columns:
+          when: "When"
+          workspace: "%{Workspace}"
+          who: "Who"
+          what: "What"
+        details:
+          suffix: ", details"
+          change: "Change"
+          about: "About"
+          tier: "Tier"
+          recorded: "Recorded"
+          stored_as: "stored as %{action}"
+          only_person: "only %{email}"
+          tier_admin: "Admin"
+          tier_workspace: "%{Workspace}"
+        rows:
+          label: "Rows"
+          all: "All"
+          showing: "Showing %{from}–%{to} of %{count}"
+          capped: "Showing the first %{limit} of %{count} — narrow the range"
+        empty: "No events match these filters."
+        footnote: "Times in %{zone}. Names can’t be searched; use the exact email address. Locks and deactivations are stored as %{workspace} and member updates. Rows are written best-effort, so an empty result rules nothing out on its own."
     operatorships:
       index:
         title: "Operators"

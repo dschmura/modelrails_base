@@ -70,7 +70,15 @@ RSpec.describe "Code smell: invitation.delivery_suppressed stays admin-only" do
     covered = %w[visible for_project security_events_for for_operations_feed]
     # for_workspace and recent are composable fragments, not read surfaces:
     # neither filters visibility, and both are always chained onto one above.
-    fragments = %w[for_workspace recent]
+    # The ledger's five filters are the same shape: of_kind narrows the action
+    # prefix, involving the actor/subject, within the created_at window,
+    # oldest_first only reorders, at_instance_level only drops workspace rows.
+    # None reads `visibility`, and Operations::ActivityLogsController chains
+    # every one of them onto for_operations_feed, which is covered above.
+    fragments = %w[
+      for_workspace recent
+      of_kind involving within oldest_first at_instance_level
+    ]
 
     declared = File.read(Rails.root.join("app/models/activity_log.rb"))
                    .scan(/^  scope :(\w+)/).flatten
