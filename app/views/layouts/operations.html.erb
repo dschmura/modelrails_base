@@ -33,18 +33,24 @@
       ]
     %>
     <nav aria-label="<%= t("operations.area.nav_label") %>" class="border-b border-border">
-      <%# role="list": same preflight list-style:none trap as the activity
-          feed's <ol>. %>
-      <ul role="list" class="max-w-5xl mx-auto px-6 py-2 flex gap-4 text-sm">
-        <% nav_items.each do |label, path| %>
-          <% current = current_page?(path) %>
-          <li>
-            <%= link_to label, path,
-                  class: "btn-text btn-text-interactive px-3#{" bg-surface-sunken font-semibold text-text-heading" if current}",
-                  "aria-current": (current ? "page" : nil) %>
-          </li>
-        <% end %>
-      </ul>
+      <%# The column wrapper carries the page gutter; the <ul> pulls back by the
+          links' own px-3 (-mx-3) so the first item's TEXT sits on the gutter
+          rather than its padding box, and gap-1 keeps the filled current-page
+          cue reading as one band. %>
+      <div class="max-w-5xl mx-auto px-6 py-2">
+        <%# role="list": same preflight list-style:none trap as the activity
+            feed's <ol>. %>
+        <ul role="list" class="flex gap-1 -mx-3 text-sm">
+          <% nav_items.each do |label, path| %>
+            <% current = current_page?(path) %>
+            <li>
+              <%= link_to label, path,
+                    class: "btn-text btn-text-interactive px-3#{" bg-surface-sunken font-semibold text-text-heading" if current}",
+                    "aria-current": (current ? "page" : nil) %>
+            </li>
+          <% end %>
+        </ul>
+      </div>
     </nav>
 
     <main id="main-content" tabindex="-1" class="flex-1 max-w-5xl w-full mx-auto px-6 pb-16">

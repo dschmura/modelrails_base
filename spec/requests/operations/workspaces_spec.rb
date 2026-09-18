@@ -20,7 +20,7 @@ RSpec.describe "Operations workspaces", type: :request do
         .to have_link("Acme", href: operations_workspace_path(workspace))
     end
 
-    # .btn-text sets no colour of its own — .btn-text-interactive is what
+    # .btn-cell-link sets no colour of its own — .btn-text-interactive is what
     # makes it read as a link rather than plain table text (1.4.1).
     it "renders the workspace name link as visibly a link" do
       get operations_workspaces_path

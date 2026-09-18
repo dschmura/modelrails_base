@@ -12,8 +12,12 @@ module UI
     TH      = "h-11 px-4 text-left align-middle text-sm font-medium text-text-muted whitespace-nowrap"
     # No border-t: the pagination partial that lives here draws its own.
     FOOTER  = "text-sm text-text-muted"
+    # The card's own top band — summary, filters-applied state, a Clear link —
+    # so the table's context sits inside the border instead of floating above it.
+    TOOLBAR = "flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface-raised px-4 py-3"
     SIZES   = { default: "default", compact: "compact" }.freeze
 
+    renders_one :toolbar
     renders_one :header
     renders_one :body
     renders_one :footer
@@ -35,6 +39,7 @@ module UI
 
     def call
       content_tag(:div, class: cn(WRAPPER, @extra_class), data: @data, **@html_attrs) do
+        concat content_tag(:div, toolbar, class: TOOLBAR, data: { slot: "toolbar" }) if toolbar?
         concat table
         concat content_tag(:div, footer, class: FOOTER, data: { slot: "footer" }) if footer?
       end

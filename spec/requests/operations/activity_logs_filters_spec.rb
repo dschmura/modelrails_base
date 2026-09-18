@@ -148,23 +148,60 @@ RSpec.describe "Operations activity ledger filters", type: :request do
     expect(nav_links.map { |link| link[:"data-turbo-frame"] }.uniq).to eq([ "_top" ])
   end
 
-  # Every range control submits the band form from OUTSIDE it (form=), so the
-  # live Person/Workspace/Kind values ride along instead of fields frozen at
-  # page load — and each targets _top so the band re-renders with the new range.
-  it "form-associates the range submitters with the band and points them at _top" do
+  # The band holds ONE range control now: its panel carries the four presets and
+  # the custom window. All five stay submitters of the band form from OUTSIDE it
+  # (form=) — a plain link's href is frozen at page load, and the band is not
+  # re-rendered by a frame-local Kind change, so links silently dropped it.
+  # Each targets _top so the band re-renders with the new range.
+  it "keeps every range control in the panel a _top submitter of the band form" do
     create(:workspace, name: "Alpha")
 
     get operations_activity_logs_path(range: "custom", from: "2026-09-03", to: "2026-09-17")
     html = Capybara.string(response.body)
-    submitters = html.all("nav button[name=range]", visible: :all)
+    submitters = html.all("[role=dialog] button[name=range]", visible: :all)
 
     expect(submitters.size).to eq(ActivityLog::Range::KEYS.size) # four presets + "Use this range"
+    expect(submitters.map { |b| b[:value] })
+      .to eq(ActivityLog::Range::KEYS.without("custom") + [ "custom" ])
     expect(submitters.map { |b| b[:form] }.uniq).to eq([ "activity_filters" ])
     expect(submitters.map { |b| b[:"data-turbo-frame"] }.uniq).to eq([ "_top" ])
+    # Nothing outside the panel submits a range — the band is one trigger.
+    expect(html.all("button[name=range]", visible: :all).size).to eq(submitters.size)
     # The date inputs are the from/to carriers and reach the form the same way.
     expect(html.all("input[type=date]", visible: :all).map { |i| i[:form] }.uniq).to eq([ "activity_filters" ])
-    # Under a custom range the popover trigger is the current range control.
-    expect(html).to have_css("button[aria-haspopup=dialog][aria-current='true']", visible: :all)
+
+    # The trigger's label IS the applied window, so the band states its own state
+    # with no second control to read.
+    expect(html.find("button[aria-haspopup=dialog]", visible: :all).text).to include(
+      I18n.t("operations.activity_logs.index.ranges.custom_trigger",
+             from: I18n.l(Date.new(2026, 9, 3), format: :ledger_short),
+             to: I18n.l(Date.new(2026, 9, 17), format: :ledger_day))
+    )
+
+    # A preset window: exactly one panel control is current, and the trigger reads it.
+    get operations_activity_logs_path(range: "all")
+    html = Capybara.string(response.body)
+    current = html.all("[role=dialog] nav button[aria-current='true']", visible: :all)
+
+    expect(current.map(&:text)).to eq([ I18n.t("operations.activity_logs.index.ranges_menu.all") ])
+    expect(html.find("button[aria-haspopup=dialog]", visible: :all).text)
+      .to include(I18n.t("operations.activity_logs.index.ranges_menu.all"))
+  end
+
+  # A link in a table cell is left-aligned and 44px tall (.btn-cell-link), not
+  # the centred .btn-text — that one is fenced to action rows (#772), where its
+  # rest-state affordance is sitting beside a primary button.
+  it "styles the cell links with .btn-cell-link on the ledger and the workspaces list" do
+    workspace = create(:workspace, name: "Alpha")
+    plan_named(workspace, "Alpha plan")
+
+    get operations_activity_logs_path
+    expect(Capybara.string(response.body))
+      .to have_css("tbody td a.btn-cell-link[href='#{operations_workspace_path(workspace)}']")
+
+    get operations_workspaces_path
+    expect(Capybara.string(response.body))
+      .to have_css("tbody td a.btn-cell-link[href='#{operations_workspace_path(workspace)}']")
   end
 
   # `hidden_field_tag` derives an id from the name, so a hidden `from` shadowed
