@@ -32,6 +32,7 @@
         No from/to here: the popover's date inputs are the carriers, and they
         are always in the submission. %>
     <%= hidden_field_tag :range, @range.key, id: nil %>
+    <%= hidden_field_tag :sort, @sort, id: nil unless @sort == Operations::ActivityLogsController::DEFAULT_SORT %>
     <%= hidden_field_tag :direction, @direction, id: nil if @direction == "asc" %>
     <%= hidden_field_tag :rows, @rows, id: nil unless @rows == Operations::ActivityLogsController::DEFAULT_ROWS %>
 

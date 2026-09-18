@@ -104,7 +104,8 @@ so set a password in that first window if outbound mail isn't wired up yet.
 - **Activity** (`/operations/activity_logs`) — every workspace's activity as a
   ledger: newest first, the last 30 days by default, filterable by one search
   box, workspace or the instance level, kind, and date range; sortable by
-  time; 25 to 500 rows a page. The search box resolves an email address, a
+  time or by workspace name (instance-level rows sit last either way); 25 to
+  500 rows a page. The search box resolves an email address, a
   person's name, a workspace or a project, and shows the rows for any of them
   — an email matches exactly (the column is deterministically encrypted),
   everything else matches anywhere in the text. Names are matched after
@@ -146,6 +147,12 @@ so set a password in that first window if outbound mail isn't wired up yet.
   members — that's a member's job. Grant yourself a membership the ordinary
   way if you need to do it (or, for a workspace you just created for an
   unknown owner, you're already in it).
+- Sort the ledger by who acted. Actor names are encrypted with the
+  non-deterministic cipher, so SQL cannot order by them, and a sort that
+  loads and decrypts the whole result only works under the 500-row cap — a
+  header that works on some filters and not others is worse than none. To
+  see one person's rows, search for them (the row details offer that pivot);
+  time and workspace are the two sorts.
 - Scope an operator to some workspaces rather than all of them. An
   operator's reach is the whole instance today — `operated_workspaces` is
   every kept workspace, with no notion of "some." A scoped-operator arc that

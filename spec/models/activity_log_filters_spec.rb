@@ -122,6 +122,34 @@ RSpec.describe ActivityLog, "ledger filters" do
     end
   end
 
+  # workspaces.name is plaintext, so this is the one column besides time the
+  # ledger can sort in SQL. Instance-level rows have no name to sort by and
+  # sit last in either direction, so "Instance" never reads as a name that
+  # happens to sort first.
+  describe ".by_workspace_name" do
+    it "orders by name case-insensitively, newest first within a workspace, instance rows last" do
+      beta = create(:workspace, name: "beta")
+      alpha = create(:workspace, name: "Alpha")
+      instance_row = described_class.create!(action: "user.suspended", visibility: "admin",
+                                              trackable: create(:user), workspace: nil)
+      first_alpha = alpha.activity_logs.first
+      described_class.where(id: first_alpha.id).update_all(created_at: 2.days.ago)
+      newer_alpha = create(:project, workspace: alpha).activities.first
+
+      scope = described_class.for_operations_feed.where(id: [ beta.activity_logs, alpha.activity_logs, instance_row ].flatten.map(&:id))
+      ascending = scope.by_workspace_name("asc").to_a
+      expect(ascending.map(&:workspace_id).uniq).to eq([ alpha.id, beta.id, nil ])
+      expect(ascending.index(newer_alpha)).to be < ascending.index(first_alpha)
+
+      descending = scope.by_workspace_name("desc").to_a
+      expect(descending.map(&:workspace_id).uniq).to eq([ beta.id, alpha.id, nil ])
+    end
+
+    it "accepts only asc or desc" do
+      expect { described_class.by_workspace_name("asc; DROP TABLE users") }.to raise_error(ArgumentError)
+    end
+  end
+
   describe ".at_instance_level" do
     it "keeps only rows with no workspace" do
       grantee = create(:user)

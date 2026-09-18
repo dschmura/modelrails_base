@@ -140,6 +140,17 @@ class ActivityLog < ApplicationRecord
   }
   scope :within, ->(from, to) { where(created_at: from..to) }
   scope :oldest_first, -> { reorder(created_at: :asc, id: :asc) }
+  # The ledger's other SQL sort: workspaces.name is the one plaintext name in
+  # the table (actor names are encrypted and cannot be ordered — see
+  # operations.md, "What it deliberately does not do"). Instance-level rows
+  # have no name and sit last in either direction, so "Instance" never reads
+  # as a name that sorted first. Direction is checked, not interpolated.
+  scope :by_workspace_name, ->(direction) {
+    raise ArgumentError, "direction must be asc or desc" unless %w[asc desc].include?(direction.to_s)
+
+    name = Arel.sql("LOWER(workspaces.name)")
+    left_joins(:workspace).reorder((direction.to_s == "asc" ? name.asc : name.desc).nulls_last, created_at: :desc, id: :desc)
+  }
   scope :at_instance_level, -> { where(workspace_id: nil) }
 
   # The feed's loader — call last in a chain

@@ -74,11 +74,14 @@ RSpec.describe "Code smell: invitation.delivery_suppressed stays admin-only" do
     # prefix, involving the actor/subject, matching_any the records the search
     # box resolved, within the created_at window, oldest_first only reorders,
     # at_instance_level only drops workspace rows.
+    # by_workspace_name is the same shape as oldest_first: a reorder (plus the
+    # left join it orders on), no predicate of its own.
     # None reads `visibility`, and Operations::ActivityLogsController chains
     # every one of them onto for_operations_feed, which is covered above.
     fragments = %w[
       for_workspace recent
       of_kind involving matching_any within oldest_first at_instance_level
+      by_workspace_name
     ]
 
     declared = File.read(Rails.root.join("app/models/activity_log.rb"))

@@ -221,6 +221,33 @@ RSpec.describe "Operations activity ledger filters", type: :request do
     expect(body.index("First plan")).to be < body.index("Second plan")
   end
 
+  # The Workspace header is the ledger's second sort. The header that is not
+  # active reads aria-sort="none", the active one names its direction, and the
+  # band seeds `sort` so a filter change keeps it.
+  it "sorts by workspace name on sort=workspace and marks the active header" do
+    plan_named(create(:workspace, name: "Zeta"), "Zeta plan")
+    plan_named(create(:workspace, name: "Alpha"), "Alpha plan")
+
+    get operations_activity_logs_path(sort: "workspace", direction: "asc")
+    body = response.body
+    expect(body.index("Alpha plan")).to be < body.index("Zeta plan")
+    html = Capybara.string(body)
+    expect(html).to have_css("thead th[aria-sort='ascending']", text: I18n.t("operations.activity_logs.index.columns.workspace"))
+    expect(html).to have_css("thead th[aria-sort='none']", text: I18n.t("operations.activity_logs.index.columns.when"))
+    hidden = html.all("form#activity_filters > input[type=hidden]", visible: :all).to_h { |f| [ f[:name], f[:value] ] }
+    expect(hidden).to include("sort" => "workspace", "direction" => "asc")
+
+    get operations_activity_logs_path(sort: "workspace", direction: "desc")
+    body = response.body
+    expect(body.index("Zeta plan")).to be < body.index("Alpha plan")
+
+    # An unknown sort falls back to time, and the bare page seeds no sort.
+    get operations_activity_logs_path(sort: "actor")
+    html = Capybara.string(response.body)
+    expect(html).to have_css("thead th[aria-sort='descending']", text: I18n.t("operations.activity_logs.index.columns.when"))
+    expect(html.all("form#activity_filters > input[type=hidden]", visible: :all).map { |f| f[:name] }).not_to include("sort")
+  end
+
   it "caps rows=all at 500 and says so" do
     stub_const("Operations::ActivityLogsController::ALL_ROWS", 3)
     5.times { create(:workspace) }
