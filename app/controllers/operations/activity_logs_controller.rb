@@ -1,10 +1,15 @@
 module Operations
   class ActivityLogsController < BaseController
     ROWS         = %w[25 50 100 all].freeze
+    # The two columns the ledger can order in SQL. Who is not among them: actor
+    # names are encrypted (operations.md, "What it deliberately does not do").
+    SORTS = %w[created_at workspace].freeze
+    DEFAULT_SORT = "created_at"
     DEFAULT_ROWS = "50"
-    # "All" is all of the current filter and window, up to this many rows —
-    # every row decrypts its actor's name (~0.3 ms each) and adds DOM, so an
-    # uncapped All on "All time" is a page that never finishes.
+    # "All" is all of the current filter and window, up to this many rows.
+    # The cost is the page, not the decrypt (0.012 ms a row, ActivityLog::Search):
+    # 500 rows of <details> is already a long document, and an uncapped All on
+    # "All time" is one that never finishes rendering.
     ALL_ROWS = 500
 
     def index
@@ -33,6 +38,7 @@ module Operations
       @workspace = @workspace_param && @workspace_param != "instance" ? operated_workspaces.find_by(slug: @workspace_param) : nil
       @workspace_param = nil if @workspace_param && @workspace_param != "instance" && @workspace.nil?
       @kind = ActivityLog::KINDS.include?(params[:kind]) ? params[:kind] : nil
+      @sort = SORTS.include?(params[:sort]) ? params[:sort] : DEFAULT_SORT
       @direction = params[:direction] == "asc" ? "asc" : "desc"
       @rows = ROWS.include?(params[:rows]) ? params[:rows] : DEFAULT_ROWS
       # The Workspace filter's options. Built here, not in the partial:
@@ -54,7 +60,8 @@ module Operations
       scope = scope.for_workspace(@workspace) if @workspace
       scope = scope.of_kind(@kind) if @kind
       scope = scope.within(@range.from, @range.to) if @range.bounded?
-      scope = scope.oldest_first if @direction == "asc"
+      scope = scope.by_workspace_name(@direction) if @sort == "workspace"
+      scope = scope.oldest_first if @sort == DEFAULT_SORT && @direction == "asc"
       scope
     end
 

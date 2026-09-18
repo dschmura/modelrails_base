@@ -44,12 +44,15 @@
       <% table.with_header do %>
         <%# frame: "_top" — sorting has to re-render the filter band with the new
             direction, which a frame-local swap cannot do. %>
+        <% sort_url = ->(sort_params) { operations_activity_logs_path(ledger_filter_params(**sort_params.symbolize_keys)) } %>
         <%= render "shared/sortable_header",
               title: t("operations.activity_logs.index.columns.when"), column: "created_at",
-              current_sort: "created_at", current_direction: @direction, frame: "_top",
-              th_class: UI::TableComponent::TH,
-              url: ->(sort_params) { operations_activity_logs_path(ledger_filter_params(**sort_params.symbolize_keys)) } %>
-        <th scope="col" class="<%= UI::TableComponent::TH %>"><%= t("operations.activity_logs.index.columns.workspace") %></th>
+              current_sort: @sort, current_direction: @direction, frame: "_top",
+              th_class: UI::TableComponent::TH, url: sort_url %>
+        <%= render "shared/sortable_header",
+              title: t("operations.activity_logs.index.columns.workspace"), column: "workspace",
+              current_sort: @sort, current_direction: @direction, frame: "_top",
+              th_class: UI::TableComponent::TH, url: sort_url %>
         <th scope="col" class="<%= UI::TableComponent::TH %>"><%= t("operations.activity_logs.index.columns.who") %></th>
         <th scope="col" class="<%= UI::TableComponent::TH %> w-full"><%= t("operations.activity_logs.index.columns.what") %></th>
       <% end %>
