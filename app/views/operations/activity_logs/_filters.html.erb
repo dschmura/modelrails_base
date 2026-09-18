@@ -1,0 +1,74 @@
+<%# One GET form, no Apply: every control submits on change (search-form#submit,
+    the members-page pattern) into the results frame. The form stays OUTSIDE
+    the frame so focus never leaves the control that changed. The custom date
+    range is its own small form beside this one (a date input's change would
+    otherwise submit before the second date is picked). %>
+<div class="mt-2 flex flex-wrap items-center gap-3">
+  <%= form_with url: operations_activity_logs_path, method: :get,
+        data: { controller: "search-form", turbo_frame: "activity_results", turbo_action: "advance",
+                action: "change->search-form#submit" },
+        aria: { label: t("operations.activity_logs.index.filters.label") },
+        class: "flex flex-wrap items-center gap-3" do |form| %>
+    <%= hidden_field_tag :range, @range.key %>
+    <%= hidden_field_tag :sort, params[:sort] if params[:sort].present? %>
+    <%= hidden_field_tag :direction, params[:direction] if params[:direction].present? %>
+    <%= hidden_field_tag :rows, @rows if params[:rows].present? %>
+
+    <div class="w-52">
+      <%= form.label :person, t("operations.activity_logs.index.filters.person_label"), class: "sr-only" %>
+      <%= ui :input, type: "email", name: "person", id: "person", value: @person_email,
+            placeholder: t("operations.activity_logs.index.filters.person_placeholder"), autocomplete: "off" %>
+    </div>
+
+    <%# No <label for> here: the combobox's own id lands on its WRAPPER, not on
+        a labelable control, so a `for` would dangle. Its accessible name is the
+        `label:` it carries onto the role=combobox input and the listbox. %>
+    <div class="w-56">
+      <%= ui :combobox, name: "workspace", id: "workspace", value: @workspace_param,
+            label: t("operations.activity_logs.index.filters.workspace_label"),
+            placeholder: t("operations.activity_logs.index.filters.workspace_any"),
+            options: [ { value: "instance", label: t("operations.activity_logs.index.instance") } ] + @workspace_options %>
+    </div>
+
+    <div class="w-44">
+      <%= form.label :kind, t("operations.activity_logs.index.filters.kind_label"), class: "sr-only" %>
+      <%= ui :select, name: "kind", id: "kind", selected: @kind,
+            options: [ [ "", t("operations.activity_logs.index.filters.kind_any") ] ] +
+                     ActivityLog::KINDS.map { |k| [ k, t("activity.kinds.#{k}") ] } %>
+    </div>
+
+    <nav aria-label="<%= t("operations.activity_logs.index.filters.range_label") %>" class="flex items-center gap-1">
+      <% ActivityLog::Range::KEYS.without("custom").each do |key| %>
+        <%= button_tag t("operations.activity_logs.index.ranges.#{key}"),
+              type: "submit", name: "range", value: key,
+              class: "btn-text btn-text-interactive px-3 whitespace-nowrap#{" bg-surface-sunken font-semibold text-text-heading" if @range.key == key}",
+              aria: { current: ("true" if @range.key == key) } %>
+      <% end %>
+    </nav>
+  <% end %>
+
+  <%= render UI::PopoverComponent.new(label: t("operations.activity_logs.index.ranges.popover_label"), align: :end,
+        trigger_class: "btn-text btn-text-interactive px-3 whitespace-nowrap#{" bg-surface-sunken font-semibold text-text-heading" if @range.custom?}") do |pop| %>
+    <% pop.with_trigger { @range.custom? ? ledger_range_label : t("operations.activity_logs.index.ranges.popover_label") } %>
+    <%= form_with url: operations_activity_logs_path, method: :get,
+          data: { turbo_frame: "activity_results", turbo_action: "advance" }, class: "flex flex-col gap-3 w-72" do |f| %>
+      <% ledger_filter_params.except(:range, :from, :to).each do |key, value| %>
+        <%= hidden_field_tag key, value %>
+      <% end %>
+      <p class="text-xs text-text-muted"><%= t("operations.activity_logs.index.ranges.popover_zone", zone: @zone.name) %></p>
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <%= f.label :from, t("operations.activity_logs.index.ranges.from"), class: "block text-xs font-medium mb-1" %>
+          <%= ui :input, type: "date", name: "from", id: "from", value: @range.from_date&.iso8601 %>
+        </div>
+        <div>
+          <%= f.label :to, t("operations.activity_logs.index.ranges.to"), class: "block text-xs font-medium mb-1" %>
+          <%= ui :input, type: "date", name: "to", id: "to", value: @range.to_date&.iso8601 %>
+        </div>
+      </div>
+      <div class="flex justify-end">
+        <%= button_tag t("operations.activity_logs.index.ranges.use"), type: "submit", name: "range", value: "custom", class: "btn-primary" %>
+      </div>
+    <% end %>
+  <% end %>
+</div>

@@ -159,18 +159,21 @@ RSpec.describe "Operations area", type: :system do
     expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
   end
 
-  # 25 distinct workspaces mirrors spec/requests/operations/activity_logs_spec.rb's
+  # 55 distinct workspaces mirrors spec/requests/operations/activity_logs_spec.rb's
   # own pagination example — each plain `create(:workspace, ...)` writes one
-  # workspace-visible "workspace.created" row, crossing Pagy's 20-item limit,
+  # workspace-visible "workspace.created" row, crossing the ledger's own 50-row
+  # default (ActivityLogsController::DEFAULT_ROWS, not Pagy::OPTIONS[:limit]),
   # so this proves the paginated state itself is AAA-clean, not just page one.
   it "shows the cross-workspace activity feed, including its paginated state, AAA in both themes" do
-    25.times { |i| create(:workspace, name: format("WS %02d", i)) }
+    55.times { |i| create(:workspace, name: format("WS %02d", i)) }
 
     visit operations_activity_logs_path
     expect(page).to have_css("nav.series-nav")
     expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
 
-    click_link "2"
+    # Scoped to the pager: the footer's Rows links sit beside it and "25"
+    # contains "2", which an unscoped substring match calls ambiguous.
+    within("nav.series-nav") { click_link "2" }
     expect(page).to have_css('[aria-current="page"]', text: "2")
     expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
   end

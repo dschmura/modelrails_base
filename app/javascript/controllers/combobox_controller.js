@@ -116,6 +116,10 @@ export default class extends Controller {
     this.inputTarget.value = comboboxLabel
     this._syncSelected()
     this.close()
+    // The hidden input is what the form submits, so a form listening for
+    // `change` (search-form#submit) must hear the selection from it — a
+    // programmatic value assignment fires nothing on its own.
+    this.hiddenTarget.dispatchEvent(new Event("change", { bubbles: true }))
   }
 
   closeOnClickOutside({ target }) {

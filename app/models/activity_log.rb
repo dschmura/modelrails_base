@@ -213,6 +213,14 @@ class ActivityLog < ApplicationRecord
     display_member if display_action == "membership.created"
   end
 
+  # Public because the ledger's details row reads it to name the member a
+  # membership row is about (app/views/operations/activity_logs/_row.html.erb).
+  def tracked_membership
+    return nil unless trackable_type == "Membership"
+
+    trackable
+  end
+
   private
 
   def membership_display_action
@@ -228,12 +236,6 @@ class ActivityLog < ApplicationRecord
     return action if transition.blank?
 
     transition.last.blank? ? "workspace.unsuspended" : "workspace.suspended"
-  end
-
-  def tracked_membership
-    return nil unless trackable_type == "Membership"
-
-    trackable
   end
 
   # The actor removed their own membership, so the row is a departure rather

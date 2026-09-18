@@ -29,30 +29,33 @@ RSpec.describe "Operations activity feed", type: :request do
     expect(link[:class]).to include("btn-text-interactive")
   end
 
-  # activity_logs/_activity_log renders a top-level <li>, and this page
-  # wrapped each one in its own <ol> to give that <li> a legal parent —
-  # making every entry a nested one-item list, which a screen reader
-  # announces as "list, 1 item" on every row. Valid HTML, so axe passes it:
-  # the structure has to be asserted directly.
-  it "renders each row in one flat list, not a nested one-item list per row" do
+  # The ledger is a table, not a list: one <tr> per event, every header a
+  # column header, and the caption carries the accessible name.
+  it "renders each event as a table row under column headers" do
     workspace = create(:workspace, name: "Alpha")
     create(:project, workspace: workspace)
 
     get operations_activity_logs_path
     html = Capybara.string(response.body)
-
-    expect(html).to have_css("ol > li", text: "Alpha")
-    expect(html).to have_no_css("li ol")
+    expect(html).to have_css("turbo-frame#activity_results tbody tr", minimum: 1)
+    expect(html.all("thead th").size).to eq(html.all("thead th[scope=col]").size)
+    expect(html).to have_css('thead th[aria-sort="descending"]', count: 1)
   end
 
-  # Tailwind's preflight sets list-style:none on <ol>, which strips the
-  # implicit list semantics Safari/VoiceOver relies on — axe has no rule for
-  # this, so a clean axe run is not evidence either way.
-  it "restores list semantics on the raw <ol> preflight strips" do
+  # The results count must reach a screen reader after a frame swap: the
+  # status node lives OUTSIDE the frame, empty at first render, and a frame
+  # response carries a turbo-stream that mutates it (the live-region rule).
+  it "renders an empty status node outside the frame and streams the summary into it on frame requests" do
     create(:workspace, name: "Alpha")
 
     get operations_activity_logs_path
-    expect(Capybara.string(response.body)).to have_css('ol[role="list"]')
+    html = Capybara.string(response.body)
+    expect(html).to have_css('#activity_results_status[role="status"][aria-live="polite"]', text: "", visible: :all)
+    expect(html).to have_no_css("turbo-frame#activity_results #activity_results_status", visible: :all)
+    expect(html).to have_no_css("turbo-stream", visible: :all)
+
+    get operations_activity_logs_path, headers: { "Turbo-Frame" => "activity_results" }
+    expect(Capybara.string(response.body)).to have_css('turbo-frame#activity_results turbo-stream[action="update"][target="activity_results_status"]', visible: :all)
   end
 
   it "has an index that can serve a global created_at ordering" do
@@ -60,20 +63,18 @@ RSpec.describe "Operations activity feed", type: :request do
     expect(indexes).to include([ "created_at" ])
   end
 
-  # 20 is Pagy::OPTIONS[:limit] (config/initializers/pagy.rb); 25 distinct
-  # workspaces guarantees a real second page, so the nav's locals contract is
-  # actually exercised.
+  # The ledger's own default is 50 rows (ActivityLogsController::DEFAULT_ROWS),
+  # not Pagy::OPTIONS[:limit]; 55 distinct workspaces guarantees a real second
+  # page, so the nav's locals contract is actually exercised.
   it "paginates once rows cross a page boundary" do
-    25.times { |i| create(:workspace, name: "WS #{i}") }
+    55.times { |i| create(:workspace, name: "WS #{i}") }
 
     get operations_activity_logs_path
     expect(response).to have_http_status(:ok)
     html = Capybara.string(response.body)
-    expect(html).to have_css("nav.series-nav")
-    # shared/_pagination is a card FOOTER (border-t px-4 py-3); rendered
-    # after the card's closing </div> it paints a stray rule across the bare
-    # page instead. Both sibling call sites nest it inside the card.
-    expect(html).to have_css("div.rounded-lg nav.series-nav")
+    # Inside the frame: the pager swaps the results, so a nav rendered outside
+    # it would page a region that never changes.
+    expect(html).to have_css("turbo-frame#activity_results nav.series-nav")
   end
 
   # Nothing else binds the controller to the privacy-bearing scope —
@@ -96,15 +97,15 @@ RSpec.describe "Operations activity feed", type: :request do
     expect(response).to have_http_status(:ok)
 
     total = ActivityLog.for_operations_feed.count
-    # This comparison only proves anything while the total stays under
-    # Pagy's page limit — past it, the rendered count is the PAGE's count,
-    # not the scope's, and the assertion below would pass or fail for a
+    # This comparison only proves anything while the total stays under the
+    # ledger's default page size — past it, the rendered count is the PAGE's
+    # count, not the scope's, and the assertion below would pass or fail for a
     # reason unrelated to the privacy scope it exists to prove. Pin the
     # precondition explicitly rather than let factory or onboarding noise
     # push it over unnoticed.
-    expect(total).to be < Pagy::OPTIONS[:limit]
+    expect(total).to be < 50
 
-    rendered_rows = Capybara.string(response.body).all("li time").size
+    rendered_rows = Capybara.string(response.body).all("tbody tr time").size
     expect(rendered_rows).to eq(total)
   end
 
