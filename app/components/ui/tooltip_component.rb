@@ -1,32 +1,9 @@
 # frozen_string_literal: true
 
 module UI
-  # # Tooltip
-  #
-  # A small text bubble describing the element it wraps. Shows on hover **and**
-  # keyboard focus; the wrapper is focusable and `aria-describedby` wires the bubble
-  # to it. Escape dismisses (WCAG 1.4.13) via the shared `floating` controller.
-  #
-  # Placement uses CSS anchor positioning: the bubble is `position: fixed` (so its
-  # containing block is the viewport, letting it float free of the wrapper) and tethered
-  # to the wrapper via `anchor-name`/`position-anchor`; `position-area` places it and
-  # `position-try-fallbacks` auto-flips it on viewport overflow — no JS. On browsers
-  # without anchor positioning (pre-Baseline 2026) it falls back to `absolute` offsets.
-  #
-  # ## Use when
-  # - You need a short, non-interactive hint describing a single focusable trigger
-  #   (an icon button, a truncated label).
-  #
-  # ## Don't use when
-  # - The content is interactive or rich — use `hover_card`.
-  # - You wrap an already-interactive control — put `aria-describedby` on that control
-  #   instead (this component makes its own wrapper the focusable trigger).
-  #
-  # ## Accessibility contract
-  # - **Guarantees:** shows on hover AND focus; `role="tooltip"` bubble wired via
-  #   `aria-describedby`; Escape dismisses without moving focus; `pointer-events-none`
-  #   so the bubble never traps the pointer.
-  # - **You supply:** `text:` (the hint) and the trigger content (icon/word).
+  # A small text bubble describing the element it wraps.
+  # Usage, options and the accessibility contract: docs/components/tooltip.md in the
+  # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
   class TooltipComponent < ApplicationComponent
     BUBBLE_BASE = "z-50 w-max max-w-xs rounded-md px-3 py-1.5 text-xs text-balance " \
                   "bg-text-heading text-surface-raised whitespace-normal " \

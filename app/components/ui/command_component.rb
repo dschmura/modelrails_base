@@ -1,41 +1,9 @@
 # frozen_string_literal: true
 
 module UI
-  # # Command palette
-  #
-  # A search-as-you-type palette: a text input that filters a list of actions,
-  # shown over a dimming scrim and centered like a modal dialog. Opened on a
-  # `with_trigger` click or the global `⌘K` / `Ctrl+K` shortcut; filtering and
-  # keyboard navigation live in the `command` Stimulus controller shipped
-  # alongside this component.
-  #
-  # ## Use when
-  # - You need a keyboard-first launcher to jump to pages or fire actions
-  #   (the spotlight / ⌘K pattern).
-  #
-  # ## Don't use when
-  # - A trigger opens a short list of *actions* with no search — use
-  #   `dropdown_menu` (the APG menu-button pattern).
-  # - You're selecting a value to submit in a form — use a `select`/listbox.
-  #
-  # ## Accessibility contract (WAI-ARIA APG combobox + listbox)
-  # - **Guarantees:** the search input is a `role="combobox"` with
-  #   `aria-expanded`, `aria-controls` (→ the list) and `aria-autocomplete="list"`;
-  #   the list is a named `role="listbox"`; the controller promotes each
-  #   `[data-command-value]` item to `role="option"` with a stable id and tracks
-  #   the highlighted option via `aria-activedescendant` (DOM focus stays on the
-  #   input — ↑/↓ move the active option, Enter activates it, Escape closes).
-  #   The input and items carry the AAA `focus-ring`; the empty-state message is
-  #   an i18n-labelled live region.
-  # - **You supply:** an optional `with_trigger` slot and the grouped item markup
-  #   (use the exposed `GROUP_WRAPPER` / `GROUP` / `ITEM` / `SHORTCUT` /
-  #   `SEPARATOR` constants). Each actionable item must carry a
-  #   `data-command-value` (the text the filter scores against). Optional
-  #   `data-command-keywords` adds synonyms an item can be found by without
-  #   showing them in its label ("configuration" finding Settings).
-  #
-  # ## Sizes
-  # `sm` · `md` · `lg` — the centered panel's max width.
+  # A search-as-you-type palette: a text input that filters a list of actions, shown over a dimming scrim and centered like a modal dialog.
+  # Usage, options and the accessibility contract: docs/components/command.md in the
+  # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
   class CommandComponent < ApplicationComponent
     renders_one :trigger
 

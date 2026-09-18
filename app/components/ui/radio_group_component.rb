@@ -1,29 +1,9 @@
 # frozen_string_literal: true
 
 module UI
-  # # RadioGroup
-  #
-  # A labelled radio group — a `role="radiogroup"` wrapping one native
-  # `<input type="radio">` per option, each tied to its own `<label for>`.
-  #
-  # ## Use when
-  # - You need a single-choice control over a small, fixed set of options
-  #   (a billing plan, a visibility level, a notification cadence).
-  #
-  # ## Don't use when
-  # - There are many options or they're loaded dynamically — use `ui :select`.
-  # - The choice is binary on/off — use `ui :toggle` or `ui :checkbox`.
-  #
-  # ## Accessibility contract
-  # - **Guarantees:** the group exposes an accessible name (`aria-label` from `label:`,
-  #   or `aria-labelledby` from `labelledby:`), each option's `<label for>` matches its
-  #   input `id`, and on error the group carries `aria-invalid="true"` plus an
-  #   `aria-describedby` link to the error/hint element.
-  # - **You supply:** a group `label:` (or `labelledby:`), `items:` as
-  #   `[{ value:, label:, checked?:, disabled?: }]`, and on error `invalid:` +
-  #   `describedby:` pointing at a sibling element that holds the message.
-  #
-  # No fail-loud guard — there is no enum axis to validate.
+  # A labelled radio group — a `role="radiogroup"` wrapping one native `<input type="radio">` per option, each tied to its own `<label for>`.
+  # Usage, options and the accessibility contract: docs/components/radio_group.md in the
+  # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
   class RadioGroupComponent < ApplicationComponent
     # items: [{ value:, label:, checked: (optional), disabled: (optional) }]
     #

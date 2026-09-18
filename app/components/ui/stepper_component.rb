@@ -1,33 +1,9 @@
 # frozen_string_literal: true
 
 module UI
-  # # Stepper
-  #
-  # An ordered progress indicator: an `<ol>` of steps, each shown as complete,
-  # current, or pending. It communicates *where you are* in a multi-step flow —
-  # it is NOT interactive navigation (the steps are not links/buttons).
-  #
-  # ## Use when
-  # - Showing progress through a known, ordered sequence (checkout, onboarding,
-  #   a wizard) where the count of steps is fixed and visible.
-  #
-  # ## Don't use when
-  # - Steps are clickable destinations — that is navigation; use links/tabs.
-  # - Progress is a single continuous percentage — use `progress` instead.
-  #
-  # ## Accessibility contract
-  # - **Guarantees:** an `<ol>` with an i18n `aria-label` ("Progress" by default,
-  #   via the `modelrails_ui.stepper.progress` locale key) so the list announces
-  #   its purpose. The current step carries `aria-current="step"`; complete and
-  #   pending circles carry an i18n `aria-label` ("Completed" / "Pending") so the
-  #   status is named, not conveyed by the decorative glyph alone. The check icon
-  #   and the `●`/`○` glyphs are decorative — the check `<svg>` is
-  #   `aria-hidden="true"` and the glyph spans carry their own accessible name.
-  # - **You supply:** a `label:` per step, and a `status:` of `:complete`,
-  #   `:current`, or `:pending` (defaults to `:pending`).
-  #
-  # ## Modes
-  # `orientation: :horizontal` (default) · `orientation: :vertical`.
+  # An ordered progress indicator: an `<ol>` of steps, each shown as complete, current, or pending.
+  # Usage, options and the accessibility contract: docs/components/stepper.md in the
+  # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
   class StepperComponent < ApplicationComponent
     ORIENTATIONS = %i[horizontal vertical].freeze
     STATUSES = %i[complete current pending].freeze

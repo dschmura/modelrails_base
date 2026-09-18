@@ -1,36 +1,9 @@
 # frozen_string_literal: true
 
 module UI
-  # # Select
-  #
-  # A styled native `<select>`; you supply options + an external form `<label for>`
-  # (an `id` is always emitted so the label can target it), and on error
-  # `invalid: true` + `describedby:`.
-  #
-  # ## Use when
-  # - You need a single-choice dropdown from a known, finite list of options.
-  #
-  # ## Don't use when
-  # - The control needs free-text entry or async search — that's a combobox, not a
-  #   native `<select>`.
-  #
-  # ## Accessibility contract
-  # - **Guarantees:** AAA border/focus-ring tokens, an `id` ALWAYS emitted on the
-  #   `<select>`, `aria-invalid="true"` when `invalid: true`, and `aria-describedby`
-  #   wired when `describedby:` is supplied.
-  # - **You supply:** the visible label as an EXTERNAL `<label for="<id>">` — unlike
-  #   checkbox, this component does NOT bundle a label (a `<select>` is conventionally
-  #   labeled by a separate form label). On error, pass `invalid: true` and point
-  #   `describedby:` at the error element's id.
-  #
-  # ## Customizable Select (progressive enhancement)
-  # In browsers that support `appearance: base-select` (Chromium, Safari 26+) the
-  # `.ui-select` hook restyles the OPEN picker to match the design system — the same
-  # overlay/border/shadow as the combobox, a tinted checkmark on the selected row,
-  # and a flipping picker-icon. Everywhere else it falls back to the untouched native
-  # control. Pure CSS + one class; no JS, no markup change. See `modelrails_ui.css`.
-  #
-  # No fail-loud guard — there's no enum axis to validate.
+  # A styled native `<select>`; you supply options + an external form `<label for>` (an `id` is always emitted so the label can target it), and on error `invalid: true` + `describedby:`.
+  # Usage, options and the accessibility contract: docs/components/select.md in the
+  # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
   class SelectComponent < ApplicationComponent
     # min-w alongside min-h, one spelling of the 2.5.5 floor (#983): `w-full`
     # pins nothing, so a select in a flex row with a sibling button — the

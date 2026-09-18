@@ -1,24 +1,9 @@
 # frozen_string_literal: true
 
 module UI
-  # # Tabs
-  #
-  # A set of layered sections (WAI-ARIA APG tabs, AUTOMATIC activation) — one `role="tablist"`
-  # of `role="tab"` buttons, each controlling a `role="tabpanel"`. The bar is roving (one tab
-  # stop); ←/→ move focus and reveal that tab's panel, Home/End jump, disabled tabs are skipped.
-  #
-  # ## Use when
-  # - Several peer sections share space and the user switches between them in place.
-  #
-  # ## Don't use when
-  # - Navigating between URLs/pages — use links/`navbar`.
-  #
-  # ## Accessibility contract
-  # - **Guarantees:** `role="tablist"` (named by `label:`); each `role="tab"` carries `id`,
-  #   `aria-selected`, `aria-controls`, and roving tabindex; each `role="tabpanel"` carries
-  #   `id`, `aria-labelledby`, `tabindex="0"` (focusable), and is `hidden` unless active. Full
-  #   keyboard (←/→ activate + wrap, Home/End, skip-disabled, click).
-  # - **You supply:** one or more `with_tab(title:)` slots, each with the panel content block.
+  # A set of layered sections (WAI-ARIA APG tabs, AUTOMATIC activation) — one `role="tablist"` of `role="tab"` buttons, each controlling a `role="tabpanel"`.
+  # Usage, options and the accessibility contract: docs/components/tabs.md in the
+  # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
   class TabsComponent < ApplicationComponent
     renders_many :tabs, "UI::TabsItemComponent"
 
