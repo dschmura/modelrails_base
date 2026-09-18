@@ -42,4 +42,9 @@ RSpec.describe UI::TableComponent, type: :component do
     expect(UI::TableComponent::TH).to include("h-11")
     expect(UI::TableComponent::TH).to include("text-left")
   end
+
+  it "merges a caller-supplied data: hash instead of letting it clobber data-size" do
+    render_table(data: { controller: "x" })
+    expect(page).to have_css("div[data-size=default][data-controller=x]")
+  end
 end

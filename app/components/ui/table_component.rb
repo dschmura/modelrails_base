@@ -26,11 +26,15 @@ module UI
       @caption_visible = caption_visible
       @size = size.to_sym
       @extra_class = html_attrs.delete(:class)
+      # Merge the size attribute into any caller `data:` so a passed-through
+      # `data:` attr can't clobber `data-size` and silently break row partials
+      # that key off it.
+      @data = { size: SIZES[@size] }.merge(html_attrs.delete(:data) || {})
       @html_attrs = html_attrs
     end
 
     def call
-      content_tag(:div, class: cn(WRAPPER, @extra_class), data: { size: SIZES[@size] }, **@html_attrs) do
+      content_tag(:div, class: cn(WRAPPER, @extra_class), data: @data, **@html_attrs) do
         concat table
         concat content_tag(:div, footer, class: FOOTER, data: { slot: "footer" }) if footer?
       end
