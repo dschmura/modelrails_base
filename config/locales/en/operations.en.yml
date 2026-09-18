@@ -4,6 +4,9 @@ en:
       banner: "Instance operations — you are above the %{workspaces}, not inside one."
       banner_label: "Where you are"
       nav_label: "Operations"
+      # Browser-tab title for a record page: "Acme — Operations" is telling
+      # apart from the workspace-side "Acme" in a tab list (2.4.2).
+      page_title: "%{name} — Operations"
     nav:
       workspaces: "%{Workspaces}"
       users: "Users"
@@ -22,14 +25,21 @@ en:
           owner: "Owner"
           members: "Members"
       show:
-        status_prefix: "Status"
         members: "Members"
         no_members: "No members yet."
+        view_activity: "View activity"
+        access: "Access"
+        lock_hint: "Locking blocks everyone in it until you unlock it. Nothing is deleted."
+        # _html: %{time} carries a <time> element.
+        locked_since_html: "Locked since %{time}. Everyone in it is blocked until you unlock it."
         suspend: "Lock this %{workspace}"
-        suspend_confirm: "Everyone in it is blocked until you unlock it. Nothing is deleted."
+        # A native confirm shows this sentence and nothing else, so it names
+        # the action and the record (3.3.6) — the operatorship confirm's shape.
+        suspend_confirm: "Lock %{name}? Everyone in it is blocked until you unlock it. Nothing is deleted."
         unsuspend: "Unlock this %{workspace}"
       new:
         title: "New %{workspace}"
+        description: "The owner's address gets the %{workspace}: an existing account becomes its owner at once; a new one is invited as owner and you hold it until they accept."
         name: "Name"
         owner_email: "Owner's email address"
         submit: "Create %{workspace}"
@@ -48,17 +58,24 @@ en:
         search_placeholder: "someone@example.com"
         search: "Search"
         no_match: "No user has that email address."
+        search_activity: "Search the activity ledger instead"
       show:
         operator: "Operator"
         suspended: "Suspended"
-        suspended_since: "since %{time}"
+        locked_out: "Sign-in blocked"
+        # _html: %{time} carries a <time> element.
+        suspended_since_html: "Suspended since %{time}."
+        view_activity: "View activity"
         memberships: "Memberships"
         no_memberships: "No memberships yet."
         reinstate: "Reinstate"
         suspend: "Suspend"
-        suspend_confirm: "This ends their sessions and blocks sign-in until you reinstate them. Their %{workspaces} and roles stay as they are."
+        # Names the action and the person: a native confirm shows nothing else.
+        suspend_confirm: "Suspend %{name}? This ends their sessions and blocks sign-in until you reinstate them. Their %{workspaces} and roles stay as they are."
         operator_unsuspendable_html: "Operators can't be suspended. Revoke their %{link} first."
         operator_access: "operator access"
+        # The in-prose link's full purpose (2.4.9); contains the visible text.
+        operator_access_aria_label: "Revoke %{name}'s operator access"
         lockout: "Sign-in blocked after %{count} failed attempts — clears in %{time}."
         clear_lockout: "Let them try again"
       locks:
@@ -137,6 +154,10 @@ en:
           recorded: "Recorded"
           stored_as: "stored as %{action}"
           only_person: "only %{email}"
+          # Link purpose out of context (2.4.9); the visible text is inside it.
+          only_person_aria_label: "Show only activity involving %{email}"
+          only_workspace: "only this %{workspace}"
+          only_workspace_aria_label: "Show only activity in %{name}"
           tier_admin: "Admin"
           tier_workspace: "%{Workspace}"
         rows:

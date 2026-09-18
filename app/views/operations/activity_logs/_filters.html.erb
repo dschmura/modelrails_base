@@ -42,7 +42,7 @@
       <%= ui :search_input, name: "q", id: "q", value: @query,
             label: t("operations.activity_logs.index.filters.search_label"),
             placeholder: t("operations.activity_logs.index.filters.search_placeholder"),
-            autocomplete: "off", describedby: "q-hint" %>
+            autocomplete: "off", describedby: "q-hint", data: { focus_key: "q" } %>
       <%# What this control matches, on the control itself rather than in a
           page footnote nobody reads before typing a name. %>
       <p id="q-hint" class="sr-only"><%= t("operations.activity_logs.index.filters.search_hint") %></p>
@@ -52,7 +52,7 @@
         a labelable control, so a `for` would dangle. Its accessible name is the
         `label:` it carries onto the role=combobox input and the listbox. %>
     <div class="w-full min-w-0 lg:flex-1 lg:basis-44 lg:max-w-56">
-      <%= ui :combobox, name: "workspace", id: "workspace", value: @workspace_param,
+      <%= ui :combobox, name: "workspace", id: "workspace", value: @workspace_param, data: { focus_key: "workspace" },
             label: t("operations.activity_logs.index.filters.workspace_label"),
             placeholder: t("operations.activity_logs.index.filters.workspace_any"),
             options: [ { value: "", label: t("operations.activity_logs.index.filters.workspace_any") },
@@ -64,7 +64,7 @@
       <%# The kind labels are sentences, not words: clipped rather than wrapped so
           the select keeps the band's one control height. %>
       <%= ui :select, name: "kind", id: "kind", selected: @kind,
-            class: "h-11 overflow-hidden text-ellipsis whitespace-nowrap",
+            class: "min-h-input overflow-hidden text-ellipsis whitespace-nowrap",
             options: [ [ "", t("operations.activity_logs.index.filters.kind_any") ] ] +
                      ActivityLog::KINDS.map { |k| [ k, t("activity.kinds.#{k}") ] } %>
     </div>
@@ -81,6 +81,7 @@
       handle rather than a generated one. %>
   <%= render UI::PopoverComponent.new(label: t("operations.activity_logs.index.ranges.popover_label"), align: :end,
         id: "activity_range", class: "w-full lg:ml-auto lg:w-auto",
+        trigger_attrs: { "data-focus-key": "range" },
         trigger_class: "inline-flex w-full items-center justify-between gap-2 rounded-md border border-border-strong bg-transparent px-3 py-1 text-sm text-text-body shadow-sm cursor-pointer hover:bg-surface-sunken focus-visible:border-border-focus lg:w-auto lg:min-w-52 lg:max-w-64") do |pop| %>
     <% pop.with_trigger do %>
       <span class="truncate"><%= @range.custom? ? ledger_range_label : t("operations.activity_logs.index.ranges_menu.#{@range.key}") %></span>
@@ -89,7 +90,9 @@
         <path d="M6 9l6 6 6-6" />
       </svg>
     <% end %>
-    <div class="flex flex-col gap-3">
+    <%# data-focus-key on the panel: its submitters navigate the whole page, and
+        the trigger (same key, first in the DOM) is where focus lands after. %>
+    <div class="flex flex-col gap-3" data-focus-key="range">
       <%# Submitters, not links: the band is OUTSIDE the results frame and so is
           not re-rendered by a frame-local search/workspace/kind change. A link's
           href is frozen at page load, which silently dropped the Kind applied
@@ -105,14 +108,14 @@
       </nav>
 
       <div class="flex flex-col gap-3 border-t border-border pt-3">
-        <p class="text-xs text-text-muted"><%= t("operations.activity_logs.index.ranges.popover_zone", zone: @zone.name) %></p>
+        <p class="text-sm text-text-muted"><%= t("operations.activity_logs.index.ranges.popover_zone", zone: @zone.name) %></p>
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <%= label_tag :from, t("operations.activity_logs.index.ranges.from"), class: "block text-xs font-medium mb-1" %>
+            <%= label_tag :from, t("operations.activity_logs.index.ranges.from"), class: "block text-sm font-medium mb-1" %>
             <%= ui :input, type: "date", name: "from", id: "from", form: "activity_filters", value: @range.from_date&.iso8601 %>
           </div>
           <div>
-            <%= label_tag :to, t("operations.activity_logs.index.ranges.to"), class: "block text-xs font-medium mb-1" %>
+            <%= label_tag :to, t("operations.activity_logs.index.ranges.to"), class: "block text-sm font-medium mb-1" %>
             <%= ui :input, type: "date", name: "to", id: "to", form: "activity_filters", value: @range.to_date&.iso8601 %>
           </div>
         </div>

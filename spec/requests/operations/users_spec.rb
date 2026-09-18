@@ -35,6 +35,22 @@ RSpec.describe "Operations users", type: :request do
       get operations_users_path(q: "nobody@example.com")
       expect(Capybara.string(response.body)).to have_text(I18n.t("operations.users.index.no_match"))
     end
+
+    # A hit is a list row with the address and the badges the user's page
+    # opens with; a miss hands the question to the ledger, whose search also
+    # matches names, workspaces and projects.
+    it "renders the hit as a list row with the address and the miss with a way into the ledger" do
+      Operatorship.grant!(user: target)
+      get operations_users_path(q: target.email_address)
+      row = Capybara.string(response.body).find("main ul[role=list] li")
+      expect(row).to have_link("Tess Target", href: operations_user_path(target))
+      expect(row).to have_text(target.email_address)
+      expect(row).to have_css("span[data-variant='soft']", text: I18n.t("operations.users.show.operator"))
+
+      get operations_users_path(q: "nobody@example.com")
+      expect(Capybara.string(response.body)).to have_link(I18n.t("operations.users.index.search_activity"),
+        href: operations_activity_logs_path(q: "nobody@example.com"))
+    end
   end
 
   describe "GET /operations/users/:id" do
@@ -91,13 +107,55 @@ RSpec.describe "Operations users", type: :request do
         get operations_user_path(target)
         html = Capybara.string(response.body)
         expect(html).to have_text(I18n.t("operations.users.show.suspended"))
-        expect(html).to have_text(I18n.t("operations.users.show.suspended_since",
+        expect(html).to have_text(I18n.t("operations.users.show.suspended_since_html",
           time: I18n.l(target.reload.suspended_at.in_time_zone("America/Chicago"), format: :account_activity)))
         expect(html).to have_css("form[action='#{operations_user_suspension_path(target)}']",
           text: I18n.t("operations.users.show.reinstate"))
         expect(html).to have_no_css("form[action='#{operations_user_suspension_path(target)}']",
           text: I18n.t("operations.users.show.suspend"))
       end
+    end
+
+    # Every state is a badge on the name line, the sentences follow, and the
+    # controls share one row with the lockout clear (the transient state)
+    # before the destructive suspend/reinstate. The confirm names the person.
+    it "opens with the states as badges, the sentences after, and the controls in one row" do
+      freeze_time do
+        5.times { target.register_failed_login! }
+        target.suspend!(by: operator)
+        get operations_user_path(target)
+        html = Capybara.string(response.body)
+        header = html.find("main header")
+        expect(header).to have_css("span[data-variant='soft']", text: I18n.t("operations.users.show.suspended"))
+        expect(header).to have_css("span[data-variant='soft']", text: I18n.t("operations.users.show.locked_out"))
+        expect(html).to have_css("time[datetime='#{target.reload.suspended_at.iso8601}']")
+        actions = html.all("form[action='#{operations_user_lock_path(target)}'], form[action='#{operations_user_suspension_path(target)}']")
+        expect(actions.map { |form| form[:action] })
+          .to eq([ operations_user_lock_path(target), operations_user_suspension_path(target) ])
+        expect(html).to have_link(I18n.t("operations.users.show.view_activity"),
+          href: operations_activity_logs_path(q: target.email_address))
+        expect(html).to have_title(I18n.t("operations.area.page_title", name: "Tess Target"))
+      end
+    end
+
+    it "names the person in the suspend confirm" do
+      get operations_user_path(target)
+      form = Capybara.string(response.body).find("form[action='#{operations_user_suspension_path(target)}']")
+      expect(form[:"data-turbo-confirm"]).to eq(I18n.t("operations.users.show.suspend_confirm", name: "Tess Target"))
+    end
+
+    # A locked workspace is the one reason "they can't get in" the membership
+    # list would otherwise not show; an active one gets no chip.
+    it "badges a membership in a locked workspace and leaves an active one plain" do
+      locked = create(:workspace, name: "Frozen")
+      locked.suspend!
+      create(:membership, user: target, workspace: locked)
+      create(:membership, user: target, workspace: create(:workspace, name: "Open"))
+
+      get operations_user_path(target)
+      list = Capybara.string(response.body).find("#ops-user-memberships")
+      expect(list.find("li", text: "Frozen")).to have_css("span[aria-label='#{I18n.t("lifecycle_status.prefix")}: #{I18n.t("lifecycle_status.suspended")}']")
+      expect(list.find("li", text: "Open")).to have_no_css("span[aria-label^='#{I18n.t("lifecycle_status.prefix")}']")
     end
 
     it "shows the Operator badge, no Suspend form, and the revoke-first sentence linking to the roster" do
@@ -134,7 +192,7 @@ RSpec.describe "Operations users", type: :request do
       # Array#& keeps the receiver's order, so this reads the rendered order
       # and ignores the unrelated row.
       rendered = Capybara.string(response.body)
-                         .find("section[aria-labelledby='ops-user-memberships']")
+                         .find("#ops-user-memberships")
                          .all("li a").map(&:text)
       # Binary collation would read Acme, Delta, beta, zeta (uppercase first).
       # Case-insensitive alphabetical is Acme, beta, Delta, zeta.

@@ -29,13 +29,17 @@
   </div>
   <% if request.query_parameters.except("page").present? %>
     <%= link_to t("operations.activity_logs.index.summary.clear"), operations_activity_logs_path,
-          data: { turbo_frame: "_top" }, class: "btn-text btn-text-interactive px-3 -mr-3" %>
+          data: { turbo_frame: "_top", focus_key: "q" }, class: "btn-text btn-text-interactive px-3 -mr-3" %>
   <% end %>
 <% end %>
 
 <% if @activities.any? %>
-  <%= ui :scroll_area, orientation: :horizontal, max_h: nil, class: "mt-6", aria_label: t("operations.activity_logs.index.caption") do %>
-    <%= render UI::TableComponent.new(caption: t("operations.activity_logs.index.caption")) do |table| %>
+  <%# scroll: on the component, not a scroll_area around it: only the columns
+      scroll at phone width; the toolbar (Clear) and the footer (Rows, pager)
+      stay put. Every full-page control below names, with data-focus-key, where
+      focus lands after the visit (navigation_focus.js): the rows band and the
+      pager resolve to whichever choice is now aria-current. %>
+    <%= render UI::TableComponent.new(caption: t("operations.activity_logs.index.caption"), scroll: :horizontal, class: "mt-6") do |table| %>
       <% table.with_toolbar { toolbar } %>
       <% table.with_header do %>
         <%# frame: "_top" — sorting has to re-render the filter band with the new
@@ -60,7 +64,7 @@
             <% else %>
               <span><%= t("operations.activity_logs.index.rows.showing", from: @pagy.from, to: @pagy.to, count: @pagy.count) %></span>
             <% end %>
-            <nav aria-label="<%= t("operations.activity_logs.index.rows.label") %>" class="flex items-center gap-1">
+            <nav aria-label="<%= t("operations.activity_logs.index.rows.label") %>" class="flex items-center gap-1" data-focus-key="rows">
               <span class="px-2"><%= t("operations.activity_logs.index.rows.label") %></span>
               <% Operations::ActivityLogsController::ROWS.each do |value| %>
                 <%= link_to (value == "all" ? t("operations.activity_logs.index.rows.all") : value),
@@ -74,14 +78,15 @@
           <% if @pagy.pages > 1 %>
             <%# anchor_string is pagy's raw-attribute seam (a_lambda.rb): the pager
                 is a link like any other here, so it navigates _top too. %>
-            <%== @pagy.series_nav(aria_label: t("pagination.aria_label"), anchor_string: 'data-turbo-frame="_top"') %>
+            <div data-focus-key="pager">
+              <%== @pagy.series_nav(aria_label: t("pagination.aria_label"), anchor_string: 'data-turbo-frame="_top"') %>
+            </div>
           <% end %>
         </div>
       <% end %>
     <% end %>
-  <% end %>
 <% else %>
-  <div class="mt-6 rounded-lg border border-border bg-surface-raised overflow-hidden">
+  <div class="mt-6 <%= UI::TableComponent::WRAPPER %>">
     <div class="<%= UI::TableComponent::TOOLBAR %>"><%= toolbar %></div>
     <%= render "shared/empty_state", message: t("operations.activity_logs.index.empty") %>
     <%# The one caveat an empty result needs on sight, not behind a control:

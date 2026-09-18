@@ -174,6 +174,25 @@ RSpec.describe "Operations activity ledger filters", type: :request do
     expect(pivot[:href]).to include("q=#{CGI.escape(person.email_address)}")
   end
 
+  # A row's details link out both ways: to the person's own operations page,
+  # and back into the ledger narrowed to them or to the workspace. The pivot
+  # links say what they narrow (2.4.9) — two "only ‹email›" links can share a
+  # row — with the visible words kept inside the name (2.5.3).
+  it "links a row's details to the person's page and names what each pivot narrows" do
+    person = create(:user, first_name: "Priya", last_name: "Nair")
+    workspace = create(:workspace, name: "Alpha")
+    create(:membership, user: person, workspace: workspace)
+
+    get operations_activity_logs_path
+    details = Capybara.string(response.body).first("tbody details", visible: :all)
+    expect(details).to have_link("Priya Nair", href: operations_user_path(person), visible: :all)
+    pivot = details.find("a", text: I18n.t("operations.activity_logs.index.details.only_person", email: person.email_address), visible: :all)
+    expect(pivot[:"aria-label"]).to eq(I18n.t("operations.activity_logs.index.details.only_person_aria_label", email: person.email_address))
+    scope = details.find("a", text: I18n.t("operations.activity_logs.index.details.only_workspace"), visible: :all)
+    expect(scope[:href]).to include("workspace=#{workspace.slug}")
+    expect(scope[:"aria-label"]).to eq(I18n.t("operations.activity_logs.index.details.only_workspace_aria_label", name: "Alpha"))
+  end
+
   # Over the cap the decrypt pass is not run at all; the box still answers an
   # exact address, and the summary says which half of it is off.
   it "stops searching names on an instance over the name limit and says so" do
@@ -294,7 +313,7 @@ RSpec.describe "Operations activity ledger filters", type: :request do
 
     get operations_workspaces_path
     expect(Capybara.string(response.body))
-      .to have_css("tbody td a.btn-cell-link[href='#{operations_workspace_path(workspace)}']")
+      .to have_css("tbody th[scope=row] a.btn-cell-link[href='#{operations_workspace_path(workspace)}']")
   end
 
   # `hidden_field_tag` derives an id from the name, so a hidden `from` shadowed

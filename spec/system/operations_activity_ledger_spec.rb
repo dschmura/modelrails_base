@@ -287,6 +287,38 @@ RSpec.describe "Operations activity ledger", type: :system do
     within_results { expect(page).to have_css("nav a[aria-current='true']", text: "25") }
   end
 
+  # Every control that must navigate the whole page hands focus back to
+  # itself — or to the choice it just made — in the new document (2.4.3), via
+  # data-focus-key (navigation_focus.js). Read from document.activeElement:
+  # the one fact a keyboard user experiences.
+  it "returns focus to the control that navigated the page" do
+    visit operations_activity_logs_path
+    within_results { click_link I18n.t("operations.activity_logs.index.columns.when") }
+    expect(page).to have_current_path(/direction=asc/)
+    expect(active_element("closest('th').getAttribute('aria-sort')")).to eq("ascending")
+
+    within_results { click_link "100" }
+    expect(page).to have_current_path(/rows=100/)
+    expect(active_element("getAttribute('aria-current')")).to eq("true")
+    expect(active_element("textContent.trim()")).to eq("100")
+
+    find("button[aria-controls=activity_range]").click
+    click_button I18n.t("operations.activity_logs.index.ranges_menu.7d")
+    expect(page).to have_current_path(/range=7d/)
+    expect(active_element("getAttribute('aria-controls')")).to eq("activity_range")
+
+    rename_row.find("summary").click
+    within("details[open]") do
+      click_link I18n.t("operations.activity_logs.index.details.only_person", email: priya.email_address)
+    end
+    expect(page).to have_current_path(/q=/)
+    expect(active_element("id")).to eq("q")
+  end
+
+  def active_element(expression)
+    page.evaluate_script("document.activeElement && document.activeElement.#{expression}")
+  end
+
   # At phone width the range trigger spans the band, so its panel is anchored to
   # a box that already reaches both gutters and only position-area's flip
   # fallbacks keep the panel on-screen. Measured, not trusted: a panel hanging
@@ -309,5 +341,31 @@ RSpec.describe "Operations activity ledger", type: :system do
 
     expect(box["left"]).to be >= 0
     expect(box["right"]).to be <= 390
+
+    # The other states a phone reaches that the gate never scored: the caveats
+    # popover open, a row's details open inside the sideways-scrolling region
+    # (with the toolbar and footer pinned outside it), and an empty result with
+    # its Clear link.
+    find("button[aria-controls=activity_range]").send_keys(:escape)
+    find("button[aria-controls=activity_about]").click
+    expect(page).to have_css("#activity_about:not([hidden])")
+    expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
+    find("button[aria-controls=activity_about]").send_keys(:escape)
+
+    rename_row.find("summary").click
+    expect(page).to have_css("details[open]")
+    within_results do
+      expect(page).to have_css("div[role=region] table")
+      expect(page).to have_no_css("div[role=region] [data-slot=toolbar]")
+      expect(page).to have_no_css("div[role=region] [data-slot=footer]")
+    end
+    expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
+
+    visit operations_activity_logs_path(q: "nobody@example.com")
+    within_results do
+      expect(page).to have_text(I18n.t("operations.activity_logs.index.empty"))
+      expect(page).to have_link(I18n.t("operations.activity_logs.index.summary.clear"))
+    end
+    expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
   end
 end
