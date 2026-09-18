@@ -78,6 +78,19 @@ RSpec.describe "Operations workspaces", type: :request do
       expect(row).to have_no_text("Olive Owner")
       expect(row).to have_text("0")
     end
+
+    # The list renders through UI::TableComponent: the caption is the table's
+    # accessible name (sr-only), every header cell is a column header, and the
+    # pagination footer sits inside the component's bordered wrapper.
+    it "renders the workspaces list through the table component" do
+      create(:workspace, name: "Alpha")
+
+      get operations_workspaces_path
+      html = Capybara.string(response.body)
+      expect(html).to have_css("div[data-size] table caption.sr-only", text: I18n.t("operations.workspaces.index.caption"))
+      expect(html.all("thead th").size).to eq(html.all("thead th[scope=col]").size)
+      expect(html).to have_css("div[data-size] > table")
+    end
   end
 
   # Operators honor deploy-time tenancy posture — mirrors
