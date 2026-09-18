@@ -120,6 +120,75 @@ RSpec.describe "Operations activity ledger filters", type: :request do
     )
   end
 
+  # The filter band lives OUTSIDE the results frame, so a frame-local swap
+  # cannot re-render it. Every link inside the frame therefore navigates the
+  # whole page; only control CHANGES stay frame-local (for focus).
+  it "points every link inside the results frame at _top" do
+    workspace = create(:workspace, name: "Alpha")
+    plan_named(workspace, "Alpha plan")
+
+    get operations_activity_logs_path(kind: "project")
+    frame = Capybara.string(response.body).find("turbo-frame#activity_results", visible: :all)
+    links = frame.all("a", visible: :all)
+
+    expect(links.size).to be >= 3 # Clear, the sort header, four Rows links
+    expect(links.map { |link| link[:"data-turbo-frame"] }.uniq).to eq([ "_top" ])
+  end
+
+  # A submit without a submitter (any control's change) carries these forward.
+  # Seeded from the resolved ivars, not raw params, so a custom window survives
+  # a Person/Workspace/Kind change.
+  it "seeds the band's hidden fields from the resolved filter state" do
+    create(:workspace, name: "Alpha")
+
+    get operations_activity_logs_path(range: "custom", from: "2026-09-03", to: "2026-09-17",
+                                      direction: "asc", rows: "100")
+    hidden = Capybara.string(response.body)
+      .all("form input[type=hidden]", visible: :all)
+      .to_h { |field| [ field[:name], field[:value] ] }
+
+    expect(hidden).to include("range" => "custom", "from" => "2026-09-03", "to" => "2026-09-17",
+                              "direction" => "asc", "rows" => "100")
+
+    # The default window and direction seed nothing — a bare URL stays bare.
+    get operations_activity_logs_path
+    names = Capybara.string(response.body).all("form input[type=hidden]", visible: :all).map { |f| f[:name] }
+    expect(names).to include("range")
+    expect(names).not_to include("direction", "rows", "from", "to")
+  end
+
+  # Without a blank option the combobox can be set but never un-set: once a
+  # workspace is chosen there is no option that clears it.
+  it "offers a blank option that clears the workspace filter" do
+    alpha = create(:workspace, name: "Alpha")
+
+    get operations_activity_logs_path(workspace: alpha.slug)
+    options = Capybara.string(response.body)
+      .all("[role=listbox] [role=option]", visible: :all)
+      .map { |option| [ option[:"data-combobox-value"], option.text ] }
+
+    expect(options.first).to eq([ "", I18n.t("operations.activity_logs.index.filters.workspace_any") ])
+    expect(options[1]).to eq([ "instance", I18n.t("operations.activity_logs.index.instance") ])
+  end
+
+  # pagy reads `limit` off the query string, so a foreign `limit` riding along
+  # on a Rows link wins over `rows` and makes that link's aria-current="true" a
+  # lie. ledger_filter_params allow-lists the filter keys for that reason.
+  it "keeps foreign query params out of the links it builds" do
+    workspace = create(:workspace)
+    create(:project, workspace: workspace, name: "Alpha plan")
+
+    get operations_activity_logs_path(limit: "10", foo: "bar", kind: "project")
+    rows_links = Capybara.string(response.body)
+      .all("nav[aria-label='#{I18n.t('operations.activity_logs.index.rows.label')}'] a")
+      .map { |link| link[:href] }
+
+    expect(rows_links.size).to eq(Operations::ActivityLogsController::ROWS.size)
+    expect(rows_links).to all(include("kind=project"))
+    expect(rows_links.join(" ")).not_to include("limit=")
+    expect(rows_links.join(" ")).not_to include("foo=")
+  end
+
   it "paginates through countish so the page param carries the memoized count" do
     workspace = create(:workspace)
     3.times { |i| create(:project, workspace: workspace, name: "Plan #{i}") }

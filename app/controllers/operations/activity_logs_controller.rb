@@ -12,7 +12,9 @@ module Operations
       resolve_filters
       @pagy, page = pagy(:countish, filtered_scope, limit: row_limit, max_limit: ALL_ROWS)
       @activities = page.for_feed
-      @capped = @rows == "all" && @pagy.count > ALL_ROWS
+      # Page 1 only: "the first 500 of N" is true of the first page and false of
+      # every one after it, which shows the ordinary Showing 501–1000 copy.
+      @capped = @rows == "all" && @pagy.count > ALL_ROWS && @pagy.page == 1
     end
 
     private

@@ -9,10 +9,16 @@
                 action: "change->search-form#submit" },
         aria: { label: t("operations.activity_logs.index.filters.label") },
         class: "flex flex-wrap items-center gap-3" do |form| %>
+    <%# Seeded from the RESOLVED state, never raw params: a submit without a
+        submitter (any control's change) carries the whole current window
+        forward, so picking a Person does not silently drop a custom range. %>
     <%= hidden_field_tag :range, @range.key %>
-    <%= hidden_field_tag :sort, params[:sort] if params[:sort].present? %>
-    <%= hidden_field_tag :direction, params[:direction] if params[:direction].present? %>
-    <%= hidden_field_tag :rows, @rows if params[:rows].present? %>
+    <%= hidden_field_tag :direction, @direction if @direction == "asc" %>
+    <%= hidden_field_tag :rows, @rows unless @rows == Operations::ActivityLogsController::DEFAULT_ROWS %>
+    <% if @range.custom? %>
+      <%= hidden_field_tag :from, @range.from_date.iso8601 %>
+      <%= hidden_field_tag :to, @range.to_date.iso8601 %>
+    <% end %>
 
     <div class="w-52">
       <%= form.label :person, t("operations.activity_logs.index.filters.person_label"), class: "sr-only" %>
@@ -27,7 +33,8 @@
       <%= ui :combobox, name: "workspace", id: "workspace", value: @workspace_param,
             label: t("operations.activity_logs.index.filters.workspace_label"),
             placeholder: t("operations.activity_logs.index.filters.workspace_any"),
-            options: [ { value: "instance", label: t("operations.activity_logs.index.instance") } ] + @workspace_options %>
+            options: [ { value: "", label: t("operations.activity_logs.index.filters.workspace_any") },
+                       { value: "instance", label: t("operations.activity_logs.index.instance") } ] + @workspace_options %>
     </div>
 
     <div class="w-44">

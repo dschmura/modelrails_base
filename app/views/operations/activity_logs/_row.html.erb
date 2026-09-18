@@ -10,7 +10,11 @@
     <% if activity_log.workspace.nil? %>
       <%= t("operations.activity_logs.index.instance") %>
     <% elsif activity_log.workspace.kept? %>
-      <%= link_to activity_log.workspace.name, operations_workspace_path(activity_log.workspace), class: "btn-text btn-text-interactive" %>
+      <%# _top like every other link in the frame — and here it is load-bearing
+          twice over: the workspace page has no activity_results frame, so a
+          frame-local click renders Turbo's "Content missing" instead. %>
+      <%= link_to activity_log.workspace.name, operations_workspace_path(activity_log.workspace),
+            data: { turbo_frame: "_top" }, class: "btn-text btn-text-interactive" %>
     <% else %>
       <%= activity_log.workspace.name %> — <%= lifecycle_status_label(activity_log.workspace) %>
     <% end %>
@@ -36,8 +40,11 @@
           <%= activity_log.trackable_type %> #<%= activity_log.trackable_id %>
           <% if member %>
             · <%= member.full_name %> ·
+            <%# _top: the pivot sets a Person filter, which the band outside the
+                frame has to show — a frame-local swap would leave it blank. %>
             <%= link_to t("operations.activity_logs.index.details.only_person", email: member.email_address),
-                  operations_activity_logs_path(ledger_filter_params(person: member.email_address)), class: "btn-text btn-text-interactive" %>
+                  operations_activity_logs_path(ledger_filter_params(person: member.email_address)),
+                  data: { turbo_frame: "_top" }, class: "btn-text btn-text-interactive" %>
           <% end %>
         </dd>
         <dt class="font-semibold"><%= t("operations.activity_logs.index.details.tier") %></dt>
@@ -49,7 +56,8 @@
           · <%= t("operations.activity_logs.index.details.stored_as", action: activity_log.action) %>
           <% if actor_email %>
             · <%= link_to t("operations.activity_logs.index.details.only_person", email: actor_email),
-                  operations_activity_logs_path(ledger_filter_params(person: actor_email)), class: "btn-text btn-text-interactive" %>
+                  operations_activity_logs_path(ledger_filter_params(person: actor_email)),
+                  data: { turbo_frame: "_top" }, class: "btn-text btn-text-interactive" %>
           <% end %>
         </dd>
       </dl>

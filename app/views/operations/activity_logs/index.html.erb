@@ -8,9 +8,12 @@
     it (see _results). %>
 <p id="activity_results_status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
 
-<%# data-turbo-action=advance on the frame: every link inside it (sort, rows,
-    pages, pivots) updates the URL, so a filtered screen is shareable. %>
-<%= turbo_frame_tag "activity_results", data: { turbo_action: "advance" } do %>
+<%# No data-turbo-action here: every LINK inside the frame targets _top and so
+    navigates the whole page, which re-renders the filter band from the new
+    params — a frame-local sort or page left the band showing the old state.
+    The frame is for control CHANGES only, where it keeps focus on the control;
+    the filter form carries its own data-turbo-action to advance those. %>
+<%= turbo_frame_tag "activity_results" do %>
   <%= render "operations/activity_logs/results" %>
 <% end %>
 

@@ -50,7 +50,10 @@ RSpec.describe "Operations activity feed", type: :request do
 
     get operations_activity_logs_path
     html = Capybara.string(response.body)
-    expect(html).to have_css('#activity_results_status[role="status"][aria-live="polite"]', text: "", visible: :all)
+    expect(html).to have_css('#activity_results_status[role="status"][aria-live="polite"]', visible: :all)
+    # Not `text: ""` — an empty substring matches any text at all, so that
+    # assertion passed with the summary already in the node.
+    expect(html.find("#activity_results_status", visible: :all).text(:all)).to eq("")
     expect(html).to have_no_css("turbo-frame#activity_results #activity_results_status", visible: :all)
     expect(html).to have_no_css("turbo-stream", visible: :all)
 
