@@ -105,6 +105,27 @@ class ActivityLog < ApplicationRecord
     )
   }
 
+  # The operations ledger's Kind filter. One entry per action family the
+  # locale tree sentences know (spec/models/activity_log_filters_spec.rb pins
+  # the two lists together). Filters on the stored action prefix on purpose:
+  # a trackable_type predicate seeks the trackable index and then sorts the
+  # whole match in a temp B-tree, while a LIKE on action walks
+  # index_activity_logs_on_created_at in output order and stops at LIMIT.
+  KINDS = %w[workspace membership invitation project resource user operatorship].freeze
+
+  scope :of_kind, ->(kind) { where(arel_table[:action].matches("#{kind}.%")) }
+  # Rows the person acted in or was the subject of: actor, a User trackable
+  # (operator actions on them), or a Membership of theirs. Widening on purpose —
+  # a rule-out question must see the superset.
+  scope :involving, ->(user) {
+    where(actor_id: user.id)
+      .or(where(trackable_type: "User", trackable_id: user.id))
+      .or(where(trackable_type: "Membership", trackable_id: user.memberships.select(:id)))
+  }
+  scope :within, ->(from, to) { where(created_at: from..to) }
+  scope :oldest_first, -> { reorder(created_at: :asc, id: :asc) }
+  scope :at_instance_level, -> { where(workspace_id: nil) }
+
   # The feed's loader — call last in a chain
   # (`ActivityLog.visible.for_workspace(w).recent.for_feed`). Returns an
   # Array, not a Relation: `trackable` is polymorphic and only Membership
