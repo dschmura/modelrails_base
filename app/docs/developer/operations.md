@@ -96,10 +96,19 @@ so set a password in that first window if outbound mail isn't wired up yet.
   operator access first; `rails users:suspend` is the unguarded break-glass
   path. See [Suspension keeps memberships](#suspension-keeps-memberships)
   below.
-- **Activity** (`/operations/activity_logs`) — every workspace's activity,
-  newest first, paginated. Personal security events (password changes,
-  passkeys, new devices) never appear here — that split is the same `admin`
-  vs. `personal` visibility the rest of the app already uses.
+- **Activity** (`/operations/activity_logs`) — every workspace's activity as a
+  ledger: newest first, the last 30 days by default, filterable by person
+  (exact email — names are encrypted and cannot be searched), workspace or
+  the instance level, kind, and date range; sortable by time; 25 to 500 rows
+  a page. Filters apply as you change them. Each row opens to the change it
+  recorded, the record it is about, its tier, and links that narrow the
+  ledger to that person. Two things the page says on its face and that an
+  operator ruling something out must remember: locks and deactivations are
+  stored as workspace and member *updates* (filter by those kinds), and rows
+  are written best-effort, so an empty result is not proof. Personal security
+  events (password changes, passkeys, new devices) never appear here — that
+  split is the same `admin` vs. `personal` visibility the rest of the app
+  already uses.
 
   One kind of `admin` row is excluded on top of that split: a suppressed
   invitation delivery. Those rows are the only evidence that a recipient
