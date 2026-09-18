@@ -135,6 +135,53 @@ RSpec.describe "Operations activity ledger filters", type: :request do
     expect(links.map { |link| link[:"data-turbo-frame"] }.uniq).to eq([ "_top" ])
   end
 
+  # The uniformity example above sees only one page, so pagy's own anchors are
+  # not in it. They are links inside the frame like any other and need _top too;
+  # pagy builds them itself, through its anchor_string seam.
+  it "points pagy's page links at _top as well" do
+    55.times { |i| create(:workspace, name: "WS #{i}") }
+
+    get operations_activity_logs_path
+    nav_links = Capybara.string(response.body).all("nav.series-nav a[href]", visible: :all)
+
+    expect(nav_links.size).to be >= 2
+    expect(nav_links.map { |link| link[:"data-turbo-frame"] }.uniq).to eq([ "_top" ])
+  end
+
+  # Every range control submits the band form from OUTSIDE it (form=), so the
+  # live Person/Workspace/Kind values ride along instead of fields frozen at
+  # page load — and each targets _top so the band re-renders with the new range.
+  it "form-associates the range submitters with the band and points them at _top" do
+    create(:workspace, name: "Alpha")
+
+    get operations_activity_logs_path(range: "custom", from: "2026-09-03", to: "2026-09-17")
+    html = Capybara.string(response.body)
+    submitters = html.all("nav button[name=range]", visible: :all)
+
+    expect(submitters.size).to eq(ActivityLog::Range::KEYS.size) # four presets + "Use this range"
+    expect(submitters.map { |b| b[:form] }.uniq).to eq([ "activity_filters" ])
+    expect(submitters.map { |b| b[:"data-turbo-frame"] }.uniq).to eq([ "_top" ])
+    # The date inputs are the from/to carriers and reach the form the same way.
+    expect(html.all("input[type=date]", visible: :all).map { |i| i[:form] }.uniq).to eq([ "activity_filters" ])
+    # Under a custom range the popover trigger is the current range control.
+    expect(html).to have_css("button[aria-haspopup=dialog][aria-current='true']", visible: :all)
+  end
+
+  # `hidden_field_tag` derives an id from the name, so a hidden `from` shadowed
+  # the visible date input of the same name and stole its <label for>.
+  it "gives the band's hidden fields no id, so no visible control is shadowed" do
+    create(:workspace, name: "Alpha")
+
+    get operations_activity_logs_path(range: "custom", from: "2026-09-03", to: "2026-09-17", rows: "100")
+    html = Capybara.string(response.body)
+
+    expect(html.all("form#activity_filters > input[type=hidden]", visible: :all).map { |f| f[:name] })
+      .to contain_exactly("range", "rows")
+    expect(html.all("form#activity_filters > input[type=hidden]", visible: :all).map { |f| f[:id] }.compact).to be_empty
+    all_ids = html.all("[id]", visible: :all).map { |node| node[:id] }
+    expect(all_ids.uniq.size).to eq(all_ids.size)
+  end
+
   # A submit without a submitter (any control's change) carries these forward.
   # Seeded from the resolved ivars, not raw params, so a custom window survives
   # a Person/Workspace/Kind change.
@@ -143,18 +190,22 @@ RSpec.describe "Operations activity ledger filters", type: :request do
 
     get operations_activity_logs_path(range: "custom", from: "2026-09-03", to: "2026-09-17",
                                       direction: "asc", rows: "100")
-    hidden = Capybara.string(response.body)
-      .all("form input[type=hidden]", visible: :all)
+    html = Capybara.string(response.body)
+    hidden = html.all("form#activity_filters > input[type=hidden]", visible: :all)
       .to_h { |field| [ field[:name], field[:value] ] }
 
-    expect(hidden).to include("range" => "custom", "from" => "2026-09-03", "to" => "2026-09-17",
-                              "direction" => "asc", "rows" => "100")
+    expect(hidden).to include("range" => "custom", "direction" => "asc", "rows" => "100")
+    # from/to are NOT hidden fields — the popover's live date inputs carry them,
+    # form-associated so they are in every submission the band makes.
+    expect(hidden.keys).not_to include("from", "to")
+    expect(html.all("input[type=date]", visible: :all).map { |i| [ i[:name], i[:value] ] })
+      .to eq([ [ "from", "2026-09-03" ], [ "to", "2026-09-17" ] ])
 
     # The default window and direction seed nothing — a bare URL stays bare.
     get operations_activity_logs_path
-    names = Capybara.string(response.body).all("form input[type=hidden]", visible: :all).map { |f| f[:name] }
-    expect(names).to include("range")
-    expect(names).not_to include("direction", "rows", "from", "to")
+    names = Capybara.string(response.body)
+      .all("form#activity_filters > input[type=hidden]", visible: :all).map { |f| f[:name] }
+    expect(names).to eq([ "range" ])
   end
 
   # Without a blank option the combobox can be set but never un-set: once a
@@ -193,9 +244,18 @@ RSpec.describe "Operations activity ledger filters", type: :request do
     workspace = create(:workspace)
     3.times { |i| create(:project, workspace: workspace, name: "Plan #{i}") }
 
+    rows_nav = "nav[aria-label='#{I18n.t('operations.activity_logs.index.rows.label')}']"
+
     get operations_activity_logs_path(rows: "25")
     html = Capybara.string(response.body)
-    expect(html).to have_css("nav[aria-label='#{I18n.t('operations.activity_logs.index.rows.label')}'] a[aria-current='true']", text: "25")
+    expect(html).to have_css("#{rows_nav} a[aria-current='true']", text: "25")
     expect(html).to have_text(I18n.t("operations.activity_logs.index.rows.showing", from: 1, to: ActivityLog.for_operations_feed.count, count: ActivityLog.for_operations_feed.count))
+
+    # The negative control: without it the assertion above passes on a page that
+    # marks every Rows link current, which is the same as marking none.
+    get operations_activity_logs_path
+    html = Capybara.string(response.body)
+    expect(html).to have_css("#{rows_nav} a[aria-current='true']", text: Operations::ActivityLogsController::DEFAULT_ROWS)
+    expect(html).to have_no_css("#{rows_nav} a[aria-current='true']", text: "25")
   end
 end

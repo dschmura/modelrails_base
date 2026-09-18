@@ -52,12 +52,20 @@ module UI
     # trigger_class: CSS ADDED to the trigger's accessibility floor (TRIGGER_BASE);
     #                defaults to the canonical .btn-secondary. Your classes are merged
     #                over the floor, so the focus ring and target size cannot be lost.
-    def initialize(label:, id: nil, align: :start, side: :bottom, trigger_class: "btn-secondary", **html_attrs)
+    # trigger_attrs: extra attributes for the trigger BUTTON (html_attrs go on the
+    #                wrapper). A trigger that is one control in a group of siblings needs
+    #                the group's state attribute on the button itself — the ledger's
+    #                custom-range trigger carries aria-current beside its range buttons.
+    #                Merged UNDER the ARIA the component owns, so aria-haspopup /
+    #                aria-expanded / aria-controls cannot be overwritten.
+    def initialize(label:, id: nil, align: :start, side: :bottom, trigger_class: "btn-secondary",
+                   trigger_attrs: {}, **html_attrs)
       @label         = label
       @id            = id || "popover-#{SecureRandom.hex(4)}"
       @align         = coerce_enum(:align, align, ALIGNS)
       @side          = coerce_enum(:side, side, SIDES)
       @trigger_class = trigger_class
+      @trigger_attrs = trigger_attrs
       @extra_class   = html_attrs.delete(:class)
       @html_attrs    = html_attrs
     end
@@ -84,13 +92,13 @@ module UI
     end
 
     def trigger_button
-      content_tag(:button, trigger,
+      content_tag(:button, trigger, **@trigger_attrs.merge(
         type: "button",
         "aria-haspopup": "dialog",
         "aria-expanded": "false",
         "aria-controls": @id,
         data: { floating_target: "trigger", action: "click->floating#toggle" },
-        class: cn(TRIGGER_BASE, @trigger_class))
+        class: cn(TRIGGER_BASE, @trigger_class)))
     end
 
     def panel

@@ -61,6 +61,13 @@ RSpec.describe "Operations activity ledger", type: :system do
   # Capybara.enable_aria_label, so `fill_in` has no locator to reach it by.
   # Its accessible name is the `label:` the component puts on `aria-label`,
   # which is what this addresses it by (and therefore asserts).
+  # Under a custom range the popover's trigger stops reading "Between two dates"
+  # and becomes the bounds themselves (ActivityLedgerHelper#ledger_range_label).
+  def custom_range_trigger_label(from, to)
+    I18n.t("operations.activity_logs.index.ranges.custom_trigger",
+           from: I18n.l(from, format: :ledger_short), to: I18n.l(to, format: :ledger_day))
+  end
+
   def workspace_combobox
     find("input[role=combobox][aria-label='#{I18n.t("operations.activity_logs.index.filters.workspace_label")}']")
   end
@@ -139,6 +146,47 @@ RSpec.describe "Operations activity ledger", type: :system do
     click_button I18n.t("operations.activity_logs.index.ranges.use")
     expect(page).to have_current_path(/range=custom/)
     expect(page).to have_current_path(/from=2026-09-03/)
+  end
+
+  # The custom-range state is the one where the band and the popover both hold a
+  # control named `from`/`to`. While the band carried its own hidden from/to,
+  # `hidden_field_tag` gave them id="from"/id="to", so the popover's <label for>
+  # resolved to the HIDDEN field and the visible date input had no accessible
+  # name at all — an axe `label` violation only this state can produce.
+  it "keeps the popover AAA-clean in both themes while a custom range is applied" do
+    visit operations_activity_logs_path(range: "custom", from: "2026-09-03", to: Date.current.iso8601)
+    within_results { expect(page).to have_css("tbody tr", minimum: 1) }
+
+    click_button custom_range_trigger_label(Date.new(2026, 9, 3), Date.current)
+    expect(page).to have_field("from", with: "2026-09-03")
+    expect(page).to have_field("to", with: Date.current.iso8601)
+    expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
+  end
+
+  # Every range control is a submitter of the band form it sits OUTSIDE of
+  # (form="activity_filters"), and each carries data-turbo-frame="_top" so the
+  # band re-renders with the new range rather than going stale behind a frame
+  # swap. Turbo reads data-turbo-frame off the submitter before the form.
+  it "keeps the rest of the filter state when the range changes, and vice versa" do
+    visit operations_activity_logs_path
+    cdp_execute("document.getElementById('kind').focus()")
+    select I18n.t("activity.kinds.project"), from: "kind"
+    within_results { expect(page).to have_css("h2", text: I18n.t("activity.kinds.project")) }
+
+    # A range click must carry the Kind that was applied through the frame.
+    click_button I18n.t("operations.activity_logs.index.ranges.all")
+    expect(page).to have_current_path(/kind=project/)
+    expect(page).to have_current_path(/range=all/)
+    within_results { expect(page).to have_css("h2", text: I18n.t("operations.activity_logs.index.ranges.all")) }
+    # And the band itself re-rendered: the new range is the current one.
+    expect(page).to have_css("nav button[aria-current='true']",
+      text: I18n.t("operations.activity_logs.index.ranges.all"))
+
+    # …and a Kind change afterwards must not silently revert the range to 30d.
+    cdp_execute("document.getElementById('kind').focus()")
+    select I18n.t("activity.kinds.membership"), from: "kind"
+    within_results { expect(page).to have_css("h2", text: I18n.t("activity.kinds.membership")) }
+    expect(page).to have_current_path(/range=all/)
   end
 
   it "pivots into one person from a row's details and shows the empty state when nothing matches" do
