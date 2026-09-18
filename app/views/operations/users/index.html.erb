@@ -5,7 +5,7 @@
 
 <%= form_with url: operations_users_path, method: :get, class: "flex gap-3 items-end" do |form| %>
   <div class="flex-1">
-    <%= form.label :q, t("operations.users.index.search_label"), class: "block text-sm font-medium text-text-heading" %>
+    <%= form.label :q, t("operations.users.index.search_label"), class: "mb-1 block text-sm font-medium text-text-heading" %>
     <%# label: must match the visible <label> text above — SearchInputComponent
         always emits its own aria-label (default "Search"), and a mismatched
         accessible name is a 2.5.3 Label-in-Name failure. %>
