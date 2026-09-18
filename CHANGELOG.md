@@ -6,6 +6,10 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- The `modelrails_ui` pin moves to `v0.17.0`, which gives `date_picker` a typed path: a date can be entered directly instead of only reached by walking the calendar grid. This app has no `date_picker` call site — the ledger's From/To range uses native date inputs, chosen precisely because that gap existed — so the bump changes nothing rendered here today. It keeps the pin current, and it makes adopting the component in the range popover a real option rather than a downgrade.
+
+### Changed
+
 - The `modelrails_ui` pin moves to `v0.16.0`. The vendored component headers merged earlier today are three-line pointers into `docs/components/` in the gem, and `v0.15.1` shipped the pre-migration docs — so those pointers resolved to files carrying none of the prose the headers had dropped (0 "When to use" sections against 56, 4 accessibility contracts against 66). The bump makes every pointer resolve to what it names.
 
 ### Added
