@@ -40,7 +40,7 @@
           <% current = current_page?(path) %>
           <li>
             <%= link_to label, path,
-                  class: "btn-text btn-text-interactive#{" bg-surface-sunken font-semibold text-text-heading" if current}",
+                  class: "btn-text btn-text-interactive px-3#{" bg-surface-sunken font-semibold text-text-heading" if current}",
                   "aria-current": (current ? "page" : nil) %>
           </li>
         <% end %>
