@@ -33,6 +33,12 @@ RSpec.describe UI::TableComponent, type: :component do
     expect { described_class.new(caption: "x", size: :huge) }.to raise_error(ArgumentError, /size/)
   end
 
+  it "renders the toolbar slot before the table, inside the bordered wrapper" do
+    render_table { |t| t.with_toolbar { "Summary" } }
+    expect(page).to have_css("div.rounded-lg > div[data-slot=toolbar] + table", visible: :all)
+    expect(page).to have_css("div.rounded-lg > div[data-slot=toolbar]", text: "Summary")
+  end
+
   it "renders the footer slot after the table, inside the bordered wrapper" do
     render_table { |t| t.with_footer { "Showing 1–1 of 1" } }
     expect(page).to have_css("div.rounded-lg > table + div[data-slot=footer]", text: "Showing 1–1 of 1")

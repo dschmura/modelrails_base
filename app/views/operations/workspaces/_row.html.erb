@@ -1,7 +1,7 @@
 <%# locals: (workspace:) -%>
 <tr class="border-t border-border h-12 align-middle">
   <td class="px-4 py-0 align-middle font-medium">
-    <%= link_to workspace.name, operations_workspace_path(workspace), class: "btn-text btn-text-interactive" %>
+    <%= link_to workspace.name, operations_workspace_path(workspace), class: "btn-cell-link btn-text-interactive" %>
   </td>
   <td class="px-4 py-0 align-middle"><%= lifecycle_status_label(workspace) %></td>
   <%# Workspace#owner (singular) consumes the controller's memberships

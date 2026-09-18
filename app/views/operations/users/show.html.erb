@@ -59,7 +59,7 @@
               workspace's slug — link only a kept one, or the operator lands on
               a not-found redirect. %>
           <% if membership.workspace.kept? %>
-            <%= link_to membership.workspace.name, operations_workspace_path(membership.workspace), class: "btn-text btn-text-interactive" %>
+            <%= link_to membership.workspace.name, operations_workspace_path(membership.workspace), class: "btn-cell-link btn-text-interactive" %>
           <% else %>
             <span><%= membership.workspace.name %> — <%= lifecycle_status_label(membership.workspace) %></span>
           <% end %>

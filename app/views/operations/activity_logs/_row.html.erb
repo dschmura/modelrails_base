@@ -2,11 +2,14 @@
 <% admin = activity_log.visibility == "admin" %>
 <% actor_email = activity_log.actor&.email_address %>
 <% member = activity_log.trackable_type == "User" ? activity_log.trackable : activity_log.tracked_membership&.user %>
-<tr class="border-t border-border h-12 align-middle">
-  <td class="px-4 py-0 align-middle text-xs text-text-muted<%= " border-l-2 border-border-strong" if admin %>">
+<%# align-baseline, not align-middle: closed rows share one baseline through their
+    44px boxes, and an opened <details> grows DOWNWARD instead of re-centring the
+    cell and floating its neighbours. %>
+<tr class="border-t border-border h-12 align-baseline">
+  <td class="px-4 py-0 align-baseline text-xs text-text-muted tabular-nums whitespace-nowrap<%= " border-l-2 border-border-strong" if admin %>">
     <%= ledger_time(activity_log.created_at) %>
   </td>
-  <td class="px-4 py-0 align-middle whitespace-nowrap">
+  <td class="px-4 py-0 align-baseline whitespace-nowrap">
     <% if activity_log.workspace.nil? %>
       <%= t("operations.activity_logs.index.instance") %>
     <% elsif activity_log.workspace.kept? %>
@@ -14,22 +17,27 @@
           twice over: the workspace page has no activity_results frame, so a
           frame-local click renders Turbo's "Content missing" instead. %>
       <%= link_to activity_log.workspace.name, operations_workspace_path(activity_log.workspace),
-            data: { turbo_frame: "_top" }, class: "btn-text btn-text-interactive" %>
+            data: { turbo_frame: "_top" }, class: "btn-cell-link btn-text-interactive" %>
     <% else %>
       <%= activity_log.workspace.name %> — <%= lifecycle_status_label(activity_log.workspace) %>
     <% end %>
   </td>
-  <td class="px-4 py-0 align-middle whitespace-nowrap <%= activity_log.display_subject ? "font-medium text-text-heading" : "font-normal" %>">
+  <%# No weight here: the sentence carries the row's one step of emphasis, and a
+      human name in bold beside a plain "System" read as two kinds of row. %>
+  <td class="px-4 py-0 align-baseline whitespace-nowrap">
     <%= activity_log.display_subject || t("operations.activity_logs.index.system") %>
   </td>
-  <td class="px-4 py-0 align-middle">
+  <td class="px-4 py-0 align-baseline">
     <details>
-      <summary class="cursor-pointer min-h-11 flex items-center gap-2 focus-ring rounded">
-        <span aria-hidden="true" class="text-interactive">▸</span>
-        <span><%= t("activity.actions.#{activity_log.display_action}", member: activity_log.display_member || t("activity.unknown_member")) %></span>
+      <summary class="cursor-pointer min-h-[var(--form-input-height)] flex items-center gap-2 focus-ring rounded">
+        <svg class="size-4 shrink-0 text-text-muted transition-transform [details[open]_&]:rotate-90"
+             aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 5l7 7-7 7" />
+        </svg>
+        <span class="font-medium text-text-heading"><%= t("activity.actions.#{activity_log.display_action}", member: activity_log.display_member || t("activity.unknown_member")) %></span>
         <span class="sr-only"><%= t("operations.activity_logs.index.details.suffix") %></span>
       </summary>
-      <dl class="mt-2 mb-3 ml-5 grid grid-cols-[6rem_minmax(0,1fr)] gap-x-3 gap-y-1 text-xs text-text-muted">
+      <dl class="mt-2 mb-3 ml-6 grid grid-cols-1 gap-x-3 gap-y-1 text-xs text-text-muted sm:grid-cols-[8rem_1fr]">
         <% changes = activity_log.metadata.to_h["changes"].to_h %>
         <% if changes.any? %>
           <dt class="font-semibold"><%= t("operations.activity_logs.index.details.change") %></dt>
@@ -44,7 +52,7 @@
                 frame has to show — a frame-local swap would leave it blank. %>
             <%= link_to t("operations.activity_logs.index.details.only_person", email: member.email_address),
                   operations_activity_logs_path(ledger_filter_params(person: member.email_address)),
-                  data: { turbo_frame: "_top" }, class: "btn-text btn-text-interactive" %>
+                  data: { turbo_frame: "_top" }, class: "btn-cell-link btn-text-interactive" %>
           <% end %>
         </dd>
         <dt class="font-semibold"><%= t("operations.activity_logs.index.details.tier") %></dt>
@@ -57,7 +65,7 @@
           <% if actor_email %>
             · <%= link_to t("operations.activity_logs.index.details.only_person", email: actor_email),
                   operations_activity_logs_path(ledger_filter_params(person: actor_email)),
-                  data: { turbo_frame: "_top" }, class: "btn-text btn-text-interactive" %>
+                  data: { turbo_frame: "_top" }, class: "btn-cell-link btn-text-interactive" %>
           <% end %>
         </dd>
       </dl>

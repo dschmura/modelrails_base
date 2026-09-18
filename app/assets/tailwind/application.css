@@ -232,6 +232,14 @@ body:has([data-biscuit-target="banner"]:not([hidden])) {
     @apply text-interactive;
   }
 
+  /* A link inside a table cell: 44px target, left-aligned, text on the cell's own
+     edge (-mx-2 px-2). Not .btn-text — that one centres and is fenced to action rows. */
+  .btn-cell-link {
+    @apply inline-flex items-center justify-start -mx-2 px-2 rounded;
+    @apply focus-ring transition-colors hover:bg-interactive-subtle;
+    min-height: var(--form-input-height);
+  }
+
   /* Trailing button-group container; --space-action-group-gap keeps inline spacing
      consistent. whitespace-nowrap: in width-constrained containers (an overflowing
      table cell) flex children otherwise shrink below content width and wrap their

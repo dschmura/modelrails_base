@@ -7,18 +7,19 @@
     its submitters carry the LIVE control values rather than fields frozen at
     page load, and a date pick never bubbles a `change` to the form, so the
     popover cannot submit itself between the two dates being chosen. %>
-<div class="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
+<div class="flex flex-col gap-3 lg:flex lg:flex-row lg:flex-wrap lg:items-center">
   <%= form_with url: operations_activity_logs_path, method: :get, id: "activity_filters",
         data: { controller: "search-form", turbo_frame: "activity_results", turbo_action: "advance",
                 action: "change->search-form#submit" },
         aria: { label: t("operations.activity_logs.index.filters.label") },
-        class: "flex w-full flex-wrap items-center gap-3 lg:w-auto lg:flex-1 min-w-0" do |form| %>
+        class: "flex w-full flex-col gap-3 sm:grid sm:grid-cols-2 lg:flex lg:flex-row lg:flex-1 lg:items-center min-w-0" do |form| %>
     <%# The form's default button: Enter in a text or date field clicks the FIRST
-        submit button in tree order, which would otherwise be the "24h" preset —
-        so Enter in Person silently applied a 24h window. Nameless, it submits the
-        hidden `range` as-is; "Use this range" stays the only way to commit typed
-        dates. `hidden`, not `sr-only`: a rendered 1x1 focusable fails the axe
-        gate (2.5.5, 2.4.7), and a non-rendered button is still the default. %>
+        submit button in tree order, which would otherwise be the range panel's
+        first preset — so Enter in Person silently applied a 24h window. Nameless,
+        it submits the hidden `range` as-is; "Use this range" stays the only way
+        to commit typed dates. `hidden`, not
+        `sr-only`: a rendered 1x1 focusable fails the axe gate (2.5.5, 2.4.7), and
+        a non-rendered button is still the default. %>
     <button type="submit" hidden></button>
 
     <%# Seeded from the RESOLVED state, never raw params: a submit without a
@@ -34,7 +35,7 @@
     <%= hidden_field_tag :direction, @direction, id: nil if @direction == "asc" %>
     <%= hidden_field_tag :rows, @rows, id: nil unless @rows == Operations::ActivityLogsController::DEFAULT_ROWS %>
 
-    <div class="flex-1 basis-44 min-w-0">
+    <div class="w-full min-w-0 lg:flex-1 lg:basis-44 lg:max-w-56">
       <%= form.label :person, t("operations.activity_logs.index.filters.person_label"), class: "sr-only" %>
       <%= ui :input, type: "email", name: "person", id: "person", value: @person_email,
             placeholder: t("operations.activity_logs.index.filters.person_placeholder"), autocomplete: "off" %>
@@ -43,7 +44,7 @@
     <%# No <label for> here: the combobox's own id lands on its WRAPPER, not on
         a labelable control, so a `for` would dangle. Its accessible name is the
         `label:` it carries onto the role=combobox input and the listbox. %>
-    <div class="flex-1 basis-44 min-w-0">
+    <div class="w-full min-w-0 lg:flex-1 lg:basis-44 lg:max-w-56">
       <%= ui :combobox, name: "workspace", id: "workspace", value: @workspace_param,
             label: t("operations.activity_logs.index.filters.workspace_label"),
             placeholder: t("operations.activity_logs.index.filters.workspace_any"),
@@ -51,32 +52,49 @@
                        { value: "instance", label: t("operations.activity_logs.index.instance") } ] + @workspace_options %>
     </div>
 
-    <div class="flex-1 basis-44 min-w-0">
+    <div class="w-full min-w-0 lg:flex-1 lg:basis-44 lg:max-w-56">
       <%= form.label :kind, t("operations.activity_logs.index.filters.kind_label"), class: "sr-only" %>
+      <%# The kind labels are sentences, not words: clipped rather than wrapped so
+          the select keeps the band's one control height. %>
       <%= ui :select, name: "kind", id: "kind", selected: @kind,
+            class: "h-11 overflow-hidden text-ellipsis whitespace-nowrap",
             options: [ [ "", t("operations.activity_logs.index.filters.kind_any") ] ] +
                      ActivityLog::KINDS.map { |k| [ k, t("activity.kinds.#{k}") ] } %>
     </div>
   <% end %>
 
-  <%# The whole range group, the custom-range trigger included, so a screen
-      reader meets the five range choices as one named set. Every submitter here
-      targets _top: a range change has to re-render this band (the hidden range
-      field, and which button reads aria-current), which a frame swap cannot do. %>
-  <nav aria-label="<%= t("operations.activity_logs.index.filters.range_label") %>" class="flex shrink-0 flex-wrap items-center gap-1 lg:ml-auto">
-    <% ActivityLog::Range::KEYS.without("custom").each do |key| %>
-      <%= button_tag t("operations.activity_logs.index.ranges.#{key}"),
-            type: "submit", name: "range", value: key, form: "activity_filters",
-            data: { turbo_frame: "_top" },
-            class: "btn-text btn-text-interactive px-3 whitespace-nowrap#{" bg-surface-sunken font-semibold text-text-heading" if @range.key == key}",
-            aria: { current: ("true" if @range.key == key) } %>
+  <%# ONE range control, the toolbar pattern: the trigger reads the applied window
+      and the five choices live in its panel, so the band holds four controls of
+      one height rather than a button bar that outgrew the row. Every submitter and
+      link in here targets _top — a range change has to re-render this band (the
+      hidden range field, and which choice reads aria-current), which a frame swap
+      cannot do. %>
+  <%= render UI::PopoverComponent.new(label: t("operations.activity_logs.index.ranges.popover_label"), align: :end,
+        class: "w-full lg:ml-auto lg:w-auto",
+        trigger_class: "inline-flex w-full items-center justify-between gap-2 rounded-md border border-border-strong bg-transparent px-3 py-1 text-sm text-text-body shadow-sm cursor-pointer hover:bg-surface-sunken focus-visible:border-border-focus lg:w-auto lg:min-w-52 lg:max-w-64") do |pop| %>
+    <% pop.with_trigger do %>
+      <span class="truncate"><%= @range.custom? ? ledger_range_label : t("operations.activity_logs.index.ranges_long.#{@range.key}") %></span>
+      <svg class="size-4 shrink-0 text-text-muted" aria-hidden="true" viewBox="0 0 24 24"
+           fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M6 9l6 6 6-6" />
+      </svg>
     <% end %>
+    <div class="flex flex-col gap-3">
+      <%# Submitters, not links: the band is OUTSIDE the results frame and so is
+          not re-rendered by a frame-local Person/Workspace/Kind change. A link's
+          href is frozen at page load, which silently dropped the Kind applied
+          through the frame; submitting the band carries the LIVE control values. %>
+      <nav aria-label="<%= t("operations.activity_logs.index.filters.range_label") %>" class="flex flex-col">
+        <% ActivityLog::Range::KEYS.without("custom").each do |key| %>
+          <%= button_tag t("operations.activity_logs.index.ranges_long.#{key}"),
+                type: "submit", name: "range", value: key, form: "activity_filters",
+                data: { turbo_frame: "_top" },
+                class: "btn-cell-link w-full mx-0 px-3#{" bg-surface-sunken font-semibold text-text-heading" if @range.key == key}",
+                aria: { current: ("true" if @range.key == key) } %>
+        <% end %>
+      </nav>
 
-    <%= render UI::PopoverComponent.new(label: t("operations.activity_logs.index.ranges.popover_label"), align: :end,
-          trigger_attrs: { aria: { current: ("true" if @range.custom?) } },
-          trigger_class: "btn-text btn-text-interactive px-3 whitespace-nowrap#{" bg-surface-sunken font-semibold text-text-heading" if @range.custom?}") do |pop| %>
-      <% pop.with_trigger { @range.custom? ? ledger_range_label : t("operations.activity_logs.index.ranges.popover_label") } %>
-      <div class="flex flex-col gap-3 w-72">
+      <div class="flex flex-col gap-3 border-t border-border pt-3">
         <p class="text-xs text-text-muted"><%= t("operations.activity_logs.index.ranges.popover_zone", zone: @zone.name) %></p>
         <div class="grid grid-cols-2 gap-2">
           <div>
@@ -88,12 +106,10 @@
             <%= ui :input, type: "date", name: "to", id: "to", form: "activity_filters", value: @range.to_date&.iso8601 %>
           </div>
         </div>
-        <div class="flex justify-end">
-          <%= button_tag t("operations.activity_logs.index.ranges.use"), type: "submit",
-                name: "range", value: "custom", form: "activity_filters",
-                data: { turbo_frame: "_top" }, class: "btn-primary" %>
-        </div>
+        <%= button_tag t("operations.activity_logs.index.ranges.use"), type: "submit",
+              name: "range", value: "custom", form: "activity_filters",
+              data: { turbo_frame: "_top" }, class: "btn-primary w-full" %>
       </div>
-    <% end %>
-  </nav>
+    </div>
+  <% end %>
 </div>

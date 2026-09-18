@@ -84,10 +84,6 @@ en:
           kind_any: "Any kind"
           range_label: "Date range"
         ranges:
-          24h: "24h"
-          7d: "7d"
-          30d: "30d"
-          all: "All time"
           custom_trigger: "%{from} – %{to}"
           popover_label: "Between two dates"
           popover_zone: "Times in %{zone}"
