@@ -1,26 +1,9 @@
 # frozen_string_literal: true
 
 module UI
-  # # Hover Card
-  #
-  # A rich, supplemental card revealed on hover **and** keyboard focus of its trigger,
-  # driven by the `floating` controller's hover-intent: a short close-delay lets the
-  # pointer cross the trigger→card gap so the card's interactive content stays
-  # reachable and clickable. Escape closes and returns focus to the trigger.
-  #
-  # ## Use when
-  # - A link/avatar benefits from a supplemental preview (profile, definition) whose
-  #   content is ALSO reachable elsewhere (the card is an enhancement, not the only path).
-  #
-  # ## Don't use when
-  # - The content is a primary interactive surface — use `popover` (click) or a `dialog`.
-  # - It's a short text hint — use `tooltip`.
-  #
-  # ## Accessibility contract
-  # - **Guarantees:** opens on hover AND focus; the hover-intent close-delay keeps the
-  #   card reachable, so its content is clickable and Tab-reachable; Escape closes and
-  #   returns focus to the trigger; `role="group"` + `aria-label` when `label:` is given.
-  # - **You supply:** a `with_trigger` slot (a focusable link/button) and the card content.
+  # A rich, supplemental card revealed on hover **and** keyboard focus of its trigger, driven by the `floating` controller's hover-intent: a short close-delay lets the pointer cross the trigger→card gap so the card's interactive content stays reachable and clickable.
+  # Usage, options and the accessibility contract: docs/components/hover_card.md in the
+  # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
   class HoverCardComponent < ApplicationComponent
     renders_one :trigger
 

@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 module UI
+  # Input with a label that floats above the field when it is focused or has a value.
+  # Usage, options and the accessibility contract: docs/components/floating_label.md in the
+  # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
   class FloatingLabelComponent < ApplicationComponent
     WRAPPER = "relative w-full"
 

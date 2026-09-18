@@ -1,21 +1,9 @@
 # frozen_string_literal: true
 
 module UI
-  # # Navbar
-  #
-  # A responsive top navigation bar (a `<nav>` landmark) — a brand, inline desktop links, an
-  # optional right-aligned action area (block content), and a mobile disclosure: a hamburger
-  # toggles a stacked menu panel. The disclosure follows the WAI-ARIA APG disclosure pattern
-  # (aria-expanded/controls + Escape + outside-click), driven by the `navbar` Stimulus controller.
-  #
-  # ## Accessibility contract
-  # - **Guarantees:** `<nav>` named by `label:` (i18n default "Main"); the hamburger is a
-  #   `<button>` with synced `aria-expanded` + `aria-controls`; the mobile panel toggles
-  #   `hidden`; Escape closes it (focus returns to the toggle); an outside click closes it; the
-  #   active link carries `aria-current="page"`.
-  # - **You supply:** `items:` (`[{ label:, href:, active: }]`); optional `brand:`/`brand_href:`;
-  #   optional block content for the right action area.
-  # - **Scope:** the action-area block is desktop-only; the mobile menu shows `items:` only.
+  # A responsive top navigation bar (a `<nav>` landmark) — a brand, inline desktop links, an optional right-aligned action area (block content), and a mobile disclosure: a hamburger toggles a stacked menu panel.
+  # Usage, options and the accessibility contract: docs/components/navbar.md in the
+  # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
   class NavbarComponent < ApplicationComponent
     LINK_BASE = "text-sm font-medium transition-colors hover:text-text-heading"
     LINK_IDLE = "text-text-muted"

@@ -1,18 +1,9 @@
 # frozen_string_literal: true
 
 module UI
-  # # Breadcrumb
-  #
-  # A breadcrumb trail (`<nav aria-label>` + ordered list). The last item is the current page
-  # (`aria-current="page"`, not a link); earlier items are links separated by a decorative
-  # (`aria-hidden`) separator.
-  #
-  # ## Accessibility contract
-  # - **Guarantees:** `<nav>` named by `label:` (i18n, default "Breadcrumb"); an `<ol>` of crumbs;
-  #   the current page is `aria-current="page"` and not a link; separators are `aria-hidden`;
-  #   links get a visible `:focus-visible` ring.
-  # - **You supply:** `items:` (`[{ label:, href: }, …, { label: }]` — the LAST item, with no
-  #   `href`, is the current page).
+  # A breadcrumb trail (`<nav aria-label>` + ordered list).
+  # Usage, options and the accessibility contract: docs/components/breadcrumb.md in the
+  # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
   class BreadcrumbComponent < ApplicationComponent
     LINK = "inline-flex min-h-11 min-w-11 items-center rounded-sm text-text-muted transition-colors " \
            "hover:text-text-heading " \

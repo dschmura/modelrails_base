@@ -2,8 +2,9 @@
 
 module UI
   class TextareaComponent < ApplicationComponent
-    # Styling matches the form builder's (`UI::FormBuilder`) field rendering (shared
-    # with UI::InputComponent) so `f.text_area` delegates to it invisibly.
+    # Styling matches the form builder's (`UI::FormBuilder`) field rendering (shared with UI::InputComponent) so `f.text_area` delegates to it invisibly.
+    # Usage, options and the accessibility contract: docs/components/textarea.md in the
+    # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
     BASE   = "block w-full rounded-md border px-3 py-2 placeholder:text-text-muted " \
              "disabled:cursor-not-allowed disabled:opacity-50 " \
              "focus-ring min-h-[var(--form-input-height)]"
