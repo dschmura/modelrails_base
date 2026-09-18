@@ -1,6 +1,8 @@
-<%# locals: (title:, column:, current_sort:, current_direction:, url:) %>
+<%# locals: (title:, column:, current_sort:, current_direction:, url:, frame: nil) %>
 <%# Renders the full <th> so aria-sort (the screen-reader sortability contract,
-    ARIA 1.2) stays adjacent to the link that drives it. %>
+    ARIA 1.2) stays adjacent to the link that drives it. frame: names the
+    Turbo Frame the sort link targets; nil (a link already inside the frame it
+    should swap, or a full-page table) emits no data-turbo-frame at all (#1164). %>
 <%
   active = current_sort == column
   next_direction = active && current_direction == "asc" ? "desc" : "asc"
@@ -17,7 +19,7 @@
 %>
 <th scope="col" aria-sort="<%= aria_sort %>" class="text-left py-3 px-2">
   <%= link_to url.call(sort: column, direction: next_direction),
-        data: { turbo_frame: "members_results" },
+        data: { turbo_frame: frame }.compact,
         class: "group inline-flex min-h-11 min-w-11 items-center gap-1 text-sm font-medium text-text-muted
                 hover:text-interactive-hover
                 focus-ring rounded" do %>
