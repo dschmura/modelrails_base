@@ -135,7 +135,9 @@ en:
         passkey_error: "Passkey verification failed. Try another method."
         email_button: "Email me a confirmation code"
         code_label: "Enter the 6-digit code we emailed you"
+        code_sent_to: "Sent to %{email}. It expires in %{minutes} minutes."
         code_submit: "Confirm"
+        resend_button: "Send a new code"
       create:
         no_factor: "Choose a way to confirm your identity."
         wrong_password: "That password is incorrect."

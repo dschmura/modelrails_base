@@ -87,10 +87,10 @@ module Authenticatable
 
     # Session keys that must survive login. Everything else in the pre-auth
     # session hash is dropped at the privilege boundary (reset_session below).
-    # Deliberately NOT preserved: current_workspace_id (re-derived per request),
-    # return_to_after_reauthentication and reauthentication_code_sent (only set
-    # while already authenticated, never during initial sign-in). A fork adding
-    # its own pre-auth key registers it here.
+    # Deliberately NOT preserved: current_workspace_id (re-derived per request)
+    # and return_to_after_reauthentication (only set while already
+    # authenticated, never during initial sign-in). A fork adding its own
+    # pre-auth key registers it here.
     SESSION_KEYS_SURVIVING_LOGIN = %i[
       return_to_after_authenticating pending_invitation_token pending_join_token
     ].freeze
