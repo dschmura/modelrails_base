@@ -7,12 +7,12 @@
     its submitters carry the LIVE control values rather than fields frozen at
     page load, and a date pick never bubbles a `change` to the form, so the
     popover cannot submit itself between the two dates being chosen. %>
-<div class="mt-2 flex flex-wrap items-center gap-3">
+<div class="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
   <%= form_with url: operations_activity_logs_path, method: :get, id: "activity_filters",
         data: { controller: "search-form", turbo_frame: "activity_results", turbo_action: "advance",
                 action: "change->search-form#submit" },
         aria: { label: t("operations.activity_logs.index.filters.label") },
-        class: "flex flex-wrap items-center gap-3" do |form| %>
+        class: "flex w-full flex-wrap items-center gap-3 lg:w-auto lg:flex-1 min-w-0" do |form| %>
     <%# The form's default button: Enter in a text or date field clicks the FIRST
         submit button in tree order, which would otherwise be the "24h" preset —
         so Enter in Person silently applied a 24h window. Nameless, it submits the
@@ -34,7 +34,7 @@
     <%= hidden_field_tag :direction, @direction, id: nil if @direction == "asc" %>
     <%= hidden_field_tag :rows, @rows, id: nil unless @rows == Operations::ActivityLogsController::DEFAULT_ROWS %>
 
-    <div class="w-52">
+    <div class="flex-1 basis-44 min-w-0">
       <%= form.label :person, t("operations.activity_logs.index.filters.person_label"), class: "sr-only" %>
       <%= ui :input, type: "email", name: "person", id: "person", value: @person_email,
             placeholder: t("operations.activity_logs.index.filters.person_placeholder"), autocomplete: "off" %>
@@ -43,7 +43,7 @@
     <%# No <label for> here: the combobox's own id lands on its WRAPPER, not on
         a labelable control, so a `for` would dangle. Its accessible name is the
         `label:` it carries onto the role=combobox input and the listbox. %>
-    <div class="w-56">
+    <div class="flex-1 basis-44 min-w-0">
       <%= ui :combobox, name: "workspace", id: "workspace", value: @workspace_param,
             label: t("operations.activity_logs.index.filters.workspace_label"),
             placeholder: t("operations.activity_logs.index.filters.workspace_any"),
@@ -51,7 +51,7 @@
                        { value: "instance", label: t("operations.activity_logs.index.instance") } ] + @workspace_options %>
     </div>
 
-    <div class="w-44">
+    <div class="flex-1 basis-44 min-w-0">
       <%= form.label :kind, t("operations.activity_logs.index.filters.kind_label"), class: "sr-only" %>
       <%= ui :select, name: "kind", id: "kind", selected: @kind,
             options: [ [ "", t("operations.activity_logs.index.filters.kind_any") ] ] +
@@ -63,7 +63,7 @@
       reader meets the five range choices as one named set. Every submitter here
       targets _top: a range change has to re-render this band (the hidden range
       field, and which button reads aria-current), which a frame swap cannot do. %>
-  <nav aria-label="<%= t("operations.activity_logs.index.filters.range_label") %>" class="flex items-center gap-1">
+  <nav aria-label="<%= t("operations.activity_logs.index.filters.range_label") %>" class="flex shrink-0 flex-wrap items-center gap-1 lg:ml-auto">
     <% ActivityLog::Range::KEYS.without("custom").each do |key| %>
       <%= button_tag t("operations.activity_logs.index.ranges.#{key}"),
             type: "submit", name: "range", value: key, form: "activity_filters",

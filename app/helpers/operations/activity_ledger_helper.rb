@@ -23,8 +23,8 @@ module Operations
     end
 
     def ledger_range_label
-      return t("operations.activity_logs.index.ranges.all") if @range.all?
-      return t("operations.activity_logs.index.ranges.#{@range.key}") unless @range.custom?
+      return t("operations.activity_logs.index.ranges_long.all") if @range.all?
+      return t("operations.activity_logs.index.ranges_long.#{@range.key}") unless @range.custom?
 
       t("operations.activity_logs.index.ranges.custom_trigger",
         from: l(@range.from_date, format: :ledger_short), to: l(@range.to_date, format: :ledger_day))

@@ -1,4 +1,4 @@
-<%# locals: (title:, column:, current_sort:, current_direction:, url:, frame: nil) %>
+<%# locals: (title:, column:, current_sort:, current_direction:, url:, frame: nil, th_class: "text-left py-3 px-2") %>
 <%# Renders the full <th> so aria-sort (the screen-reader sortability contract,
     ARIA 1.2) stays adjacent to the link that drives it. frame: names the
     Turbo Frame the sort link targets; nil (a link already inside the frame it
@@ -17,10 +17,10 @@
             ""
           end
 %>
-<th scope="col" aria-sort="<%= aria_sort %>" class="text-left py-3 px-2">
+<th scope="col" aria-sort="<%= aria_sort %>" class="<%= th_class %>">
   <%= link_to url.call(sort: column, direction: next_direction),
         data: { turbo_frame: frame }.compact,
-        class: "group inline-flex min-h-11 min-w-11 items-center gap-1 text-sm font-medium text-text-muted
+        class: "group flex min-h-11 w-full items-center gap-1 text-sm font-medium text-text-muted
                 hover:text-interactive-hover
                 focus-ring rounded" do %>
     <%= title %>

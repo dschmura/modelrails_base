@@ -94,6 +94,11 @@ en:
           from: "From date"
           to: "To date, inclusive"
           use: "Use this range"
+        ranges_long:
+          24h: "last 24 hours"
+          7d: "last 7 days"
+          30d: "last 30 days"
+          all: "all time"
         summary:
           events:
             zero: "No events"

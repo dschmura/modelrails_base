@@ -136,7 +136,7 @@ RSpec.describe "Operations activity ledger", type: :system do
     visit operations_activity_logs_path
     click_button I18n.t("operations.activity_logs.index.ranges.all")
     expect(page).to have_current_path(/range=all/)
-    within_results { expect(page).to have_css("h2", text: I18n.t("operations.activity_logs.index.ranges.all")) }
+    within_results { expect(page).to have_css("h2", text: I18n.t("operations.activity_logs.index.ranges_long.all")) }
 
     click_button I18n.t("operations.activity_logs.index.ranges.popover_label")
     fill_in "from", with: "2026-09-03"
@@ -154,7 +154,7 @@ RSpec.describe "Operations activity ledger", type: :system do
   # "24h", and pressing Enter after typing an email silently narrowed the window.
   it "keeps the applied range when Enter submits from the Person field" do
     visit operations_activity_logs_path(range: "all")
-    within_results { expect(page).to have_css("h2", text: I18n.t("operations.activity_logs.index.ranges.all")) }
+    within_results { expect(page).to have_css("h2", text: I18n.t("operations.activity_logs.index.ranges_long.all")) }
 
     fill_in "person", with: priya.email_address
     find("#person").send_keys(:enter)
@@ -196,7 +196,7 @@ RSpec.describe "Operations activity ledger", type: :system do
     click_button I18n.t("operations.activity_logs.index.ranges.all")
     expect(page).to have_current_path(/kind=project/)
     expect(page).to have_current_path(/range=all/)
-    within_results { expect(page).to have_css("h2", text: I18n.t("operations.activity_logs.index.ranges.all")) }
+    within_results { expect(page).to have_css("h2", text: I18n.t("operations.activity_logs.index.ranges_long.all")) }
     # And the band itself re-rendered: the new range is the current one.
     expect(page).to have_css("nav button[aria-current='true']",
       text: I18n.t("operations.activity_logs.index.ranges.all"))
