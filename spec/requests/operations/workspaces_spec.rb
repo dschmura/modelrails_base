@@ -43,7 +43,7 @@ RSpec.describe "Operations workspaces", type: :request do
       get operations_workspaces_path
       # Onboarding gives `operator`/`owner` their own workspaces too (random
       # Faker names) — scope down to just the rows this example created.
-      all_names = Capybara.string(response.body).all("tbody tr td:first-child").map { |td| td.text.strip }
+      all_names = Capybara.string(response.body).all("tbody tr th[scope=row]").map { |th| th.text.strip }
       names = all_names.select { |name| relevant.include?(name) }
 
       expect(names).to eq(relevant.sort_by(&:downcase))
@@ -57,12 +57,24 @@ RSpec.describe "Operations workspaces", type: :request do
     # the sibling tables' geometry-level proof).
     it "wraps the table in a focusable, named scroll region a keyboard user can reach" do
       get operations_workspaces_path
-      label = I18n.t("operations.workspaces.index.caption")
+      label = I18n.t("modelrails_ui.table.scroll_region", name: I18n.t("operations.workspaces.index.caption"))
       region = Capybara.string(response.body).find("[role='region'][aria-label='#{label}']")
 
       expect(region[:tabindex]).to eq("0")
       expect(region[:class]).to include("focus-ring")
       expect(region).to have_css("table")
+    end
+
+    # The name cell is the row's identity: a row header, so cell-by-cell
+    # navigation hears which workspace a status or count belongs to. Every
+    # cell is nowrap, or the w-full table compresses instead of scrolling at
+    # phone width. Status renders through the one badge treatment.
+    it "renders each row with a row header, nowrap cells and a status badge" do
+      get operations_workspaces_path
+      row = Capybara.string(response.body).find("tbody tr", text: "Acme")
+      expect(row).to have_css("th[scope=row]", text: "Acme")
+      expect(row.all("th, td").map { |cell| cell[:class] }).to all(include("whitespace-nowrap"))
+      expect(row).to have_css("td span[data-variant='soft'][aria-label='#{I18n.t("lifecycle_status.prefix")}: #{I18n.t("lifecycle_status.active")}']")
     end
 
     # Membership#owner? has no kept test, so a discarded owner membership
@@ -89,7 +101,7 @@ RSpec.describe "Operations workspaces", type: :request do
       html = Capybara.string(response.body)
       expect(html).to have_css("div[data-size] table caption.sr-only", text: I18n.t("operations.workspaces.index.caption"))
       expect(html.all("thead th").size).to eq(html.all("thead th[scope=col]").size)
-      expect(html).to have_css("div[data-size] > table")
+      expect(html).to have_css("div[data-size] > div[role=region] > table")
     end
   end
 
@@ -140,6 +152,39 @@ RSpec.describe "Operations workspaces", type: :request do
   end
 
   describe "GET /operations/workspaces/:slug" do
+    # The name line carries the status badge; the one navigation link sits
+    # beside it; the lock control closes the page under its own heading with
+    # a confirm that names what it locks. Lists carry role=list (the preflight
+    # strips the implicit role). The tab title says which side of the app it is.
+    it "opens with the badge on the name line, links into the ledger, and keeps the lock control last" do
+      get operations_workspace_path(workspace)
+      html = Capybara.string(response.body)
+      header = html.find("main header")
+      expect(header).to have_css("h1", text: "Acme")
+      expect(header).to have_css("span[data-variant='soft'][aria-label='#{I18n.t("lifecycle_status.prefix")}: #{I18n.t("lifecycle_status.active")}']")
+      expect(html).to have_link(I18n.t("operations.workspaces.show.view_activity"),
+        href: operations_activity_logs_path(workspace: workspace.slug))
+      expect(html.all("h2").map(&:text).last).to eq(I18n.t("operations.workspaces.show.access"))
+      form = html.find("form[action='#{operations_workspace_suspension_path(workspace)}']")
+      expect(form[:"data-turbo-confirm"]).to eq(I18n.t("operations.workspaces.show.suspend_confirm", name: "Acme"))
+      expect(html).to have_css("#ops-members ul[role=list]")
+      expect(html).to have_no_css("section[aria-labelledby]")
+      expect(html).to have_title(I18n.t("operations.area.page_title", name: "Acme"))
+    end
+
+    it "says since when a locked workspace has been locked, as a <time>, beside the unlock control" do
+      freeze_time do
+        workspace.suspend!
+        get operations_workspace_path(workspace)
+        html = Capybara.string(response.body)
+        expect(html).to have_css("time[datetime='#{workspace.reload.suspended_at.iso8601}']")
+        expect(html).to have_text(I18n.t("operations.workspaces.show.locked_since_html",
+          time: I18n.l(workspace.suspended_at.in_time_zone(Time.zone), format: :account_activity)))
+        expect(html).to have_css("form[action='#{operations_workspace_suspension_path(workspace)}']",
+          text: I18n.t("operations.workspaces.show.unsuspend"))
+      end
+    end
+
     it "shows members with roles" do
       get operations_workspace_path(workspace)
       expect(response).to have_http_status(:ok)
@@ -149,7 +194,7 @@ RSpec.describe "Operations workspaces", type: :request do
       # ("Olive Owner") whether or not the role badge renders at all — scope
       # to the members list's role badge so this actually proves the role
       # is shown (the activity feed below also mentions "Olive Owner").
-      members = html.find("section[aria-labelledby='ops-members-heading']")
+      members = html.find("#ops-members")
       row = members.find("li", text: "Olive Owner")
       expect(row).to have_css("span[data-variant='soft'][data-tone='neutral']", text: "Owner")
     end

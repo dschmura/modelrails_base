@@ -91,6 +91,19 @@ RSpec.describe "Operations activity ledger", type: :system do
     expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
   end
 
+  # The caveats popover is the one control on the card whose trigger carries no
+  # visible text, so its open state is where an unnamed icon button or an
+  # unreadable panel would show up. Audited open, both themes.
+  it "opens the results caveats from the toolbar, AAA in both themes" do
+    visit operations_activity_logs_path
+    within_results { expect(page).to have_css("tbody tr", minimum: 1) }
+
+    click_button I18n.t("operations.activity_logs.index.about.label")
+    expect(page).to have_text(I18n.t("operations.activity_logs.index.about.best_effort"))
+    expect(page).to have_text(I18n.t("operations.activity_logs.index.about.derived"))
+    expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
+  end
+
   it "applies a select change inside the frame, advances the URL, keeps focus, and announces the count" do
     visit operations_activity_logs_path
     # Positive control: the sentence the kind filter must remove is on the
@@ -160,19 +173,60 @@ RSpec.describe "Operations activity ledger", type: :system do
   # button in tree order owning the form. The range group's submitters are
   # form-associated, so before the band grew a nameless default button that was
   # "24h", and pressing Enter after typing an email silently narrowed the window.
-  it "keeps the applied range when Enter submits from the Person field" do
+  it "keeps the applied range when Enter submits from the search box" do
     visit operations_activity_logs_path(range: "all")
     within_results { expect(page).to have_css("h2", text: I18n.t("operations.activity_logs.index.ranges_long.all")) }
 
-    fill_in "person", with: priya.email_address
-    find("#person").send_keys(:enter)
+    fill_in "q", with: priya.email_address
+    find("#q").send_keys(:enter)
 
     # The summary naming the person is what proves the submit landed, so the
     # path assertions below are about a page that actually re-filtered.
     within_results { expect(page).to have_css("h2", text: priya.email_address) }
-    expect(page).to have_current_path(/person=#{Regexp.escape(CGI.escape(priya.email_address))}/)
+    expect(page).to have_current_path(/q=#{Regexp.escape(CGI.escape(priya.email_address))}/)
     expect(page).to have_current_path(/range=all/)
     expect(page).to have_no_current_path(/range=24h/)
+  end
+
+  # Typing is the search: the results re-filter after the debounce without
+  # Enter or leaving the box (the form's change->submit alone fired only on
+  # blur or Enter), focus stays in the box, and Escape clears it.
+  it "searches as you type and clears on Escape" do
+    visit operations_activity_logs_path
+    within_results { expect(page).to have_link("Beta Works") }
+
+    fill_in "q", with: priya.email_address
+    within_results do
+      expect(page).to have_no_text("Beta Works")
+      expect(page).to have_css("h2", text: priya.email_address)
+    end
+    expect(page).to have_current_path(/q=#{Regexp.escape(CGI.escape(priya.email_address))}/)
+    expect(page.evaluate_script("document.activeElement.id")).to eq("q")
+
+    find("#q").send_keys(:escape)
+    within_results { expect(page).to have_link("Beta Works") }
+    expect(find("#q").value).to eq("")
+  end
+
+  # The box resolves a name, not just an address. Two people share a first name
+  # here on purpose: the summary has to name both, or an operator cannot tell
+  # which Priya the rows in front of them belong to.
+  it "resolves a typed first name to everyone who carries it, AAA in both themes" do
+    patel = create(:user, first_name: "Priya", last_name: "Patel")
+    acting_as(patel) { plan_named(beta, "Patel plan") }
+    visit operations_activity_logs_path
+
+    fill_in "q", with: "priya"
+    find("#q").send_keys(:enter)
+
+    within_results do
+      expect(page).to have_css("h2", text: I18n.t("operations.activity_logs.index.summary.matching",
+        query: "priya", names: "Priya Nair, Priya Patel"))
+      expect(page).to have_link("Acme Robotics")
+      expect(page).to have_link("Beta Works")
+    end
+    expect(page).to have_current_path(/q=priya/)
+    expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
   end
 
   # The custom-range state is the one where the band and the popover both hold a
@@ -209,7 +263,7 @@ RSpec.describe "Operations activity ledger", type: :system do
 
     # And the band itself re-rendered: the trigger reads the new window, and the
     # panel marks it current.
-    range_trigger = find("button[aria-haspopup=dialog]")
+    range_trigger = find("button[aria-controls=activity_range]")
     expect(range_trigger).to have_text(I18n.t("operations.activity_logs.index.ranges_menu.all"))
     range_trigger.click
     expect(page).to have_css("[role=dialog] nav button[aria-current='true']",
@@ -217,7 +271,7 @@ RSpec.describe "Operations activity ledger", type: :system do
     # Closed by its own trigger's state, not by "no dialog on the page" — the
     # cookie banner is a role=dialog too.
     range_trigger.send_keys(:escape)
-    expect(page).to have_css("button[aria-haspopup=dialog][aria-expanded=false]")
+    expect(page).to have_css("button[aria-controls=activity_range][aria-expanded=false]")
 
     # …and a Kind change afterwards must not silently revert the range to 30d.
     cdp_execute("document.getElementById('kind').focus()")
@@ -239,9 +293,9 @@ RSpec.describe "Operations activity ledger", type: :system do
       expect(page).to have_link("Acme Robotics")
       expect(page).to have_no_text("Beta Works")
     end
-    expect(page).to have_current_path(/person=#{Regexp.escape(CGI.escape(priya.email_address))}/)
+    expect(page).to have_current_path(/q=#{Regexp.escape(CGI.escape(priya.email_address))}/)
 
-    visit operations_activity_logs_path(person: "nobody@example.com")
+    visit operations_activity_logs_path(q: "nobody@example.com")
     within_results { expect(page).to have_text(I18n.t("operations.activity_logs.index.empty")) }
     expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
   end
@@ -251,6 +305,41 @@ RSpec.describe "Operations activity ledger", type: :system do
     within_results { click_link "25" }
     expect(page).to have_current_path(/rows=25/)
     within_results { expect(page).to have_css("nav a[aria-current='true']", text: "25") }
+  end
+
+  # Every control that must navigate the whole page hands focus back to
+  # itself — or to the choice it just made — in the new document (2.4.3), via
+  # data-focus-key (navigation_focus.js). Read from document.activeElement:
+  # the one fact a keyboard user experiences.
+  # Each step waits for the NEW page's rendered state before reading focus:
+  # an advance visit changes the URL when it starts, not when it renders, so
+  # have_current_path alone can be satisfied while the old page is still up.
+  it "returns focus to the control that navigated the page" do
+    visit operations_activity_logs_path
+    within_results { click_link I18n.t("operations.activity_logs.index.columns.when") }
+    within_results { expect(page).to have_css("th[aria-sort='ascending']") }
+    expect(active_element("closest('th').getAttribute('aria-sort')")).to eq("ascending")
+
+    within_results { click_link "100" }
+    within_results { expect(page).to have_css("nav a[aria-current='true']", text: "100") }
+    expect(active_element("getAttribute('aria-current')")).to eq("true")
+    expect(active_element("textContent.trim()")).to eq("100")
+
+    find("button[aria-controls=activity_range]").click
+    click_button I18n.t("operations.activity_logs.index.ranges_menu.7d")
+    expect(page).to have_css("button[aria-controls=activity_range]", text: I18n.t("operations.activity_logs.index.ranges_menu.7d"))
+    expect(active_element("getAttribute('aria-controls')")).to eq("activity_range")
+
+    rename_row.find("summary").click
+    within("details[open]") do
+      click_link I18n.t("operations.activity_logs.index.details.only_person", email: priya.email_address)
+    end
+    within_results { expect(page).to have_css("h2", text: priya.email_address) }
+    expect(active_element("id")).to eq("q")
+  end
+
+  def active_element(expression)
+    page.evaluate_script("document.activeElement && document.activeElement.#{expression}")
   end
 
   # At phone width the range trigger spans the band, so its panel is anchored to
@@ -275,5 +364,31 @@ RSpec.describe "Operations activity ledger", type: :system do
 
     expect(box["left"]).to be >= 0
     expect(box["right"]).to be <= 390
+
+    # The other states a phone reaches that the gate never scored: the caveats
+    # popover open, a row's details open inside the sideways-scrolling region
+    # (with the toolbar and footer pinned outside it), and an empty result with
+    # its Clear link.
+    find("button[aria-controls=activity_range]").send_keys(:escape)
+    find("button[aria-controls=activity_about]").click
+    expect(page).to have_css("#activity_about:not([hidden])")
+    expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
+    find("button[aria-controls=activity_about]").send_keys(:escape)
+
+    rename_row.find("summary").click
+    expect(page).to have_css("details[open]")
+    within_results do
+      expect(page).to have_css("div[role=region] table")
+      expect(page).to have_no_css("div[role=region] [data-slot=toolbar]")
+      expect(page).to have_no_css("div[role=region] [data-slot=footer]")
+    end
+    expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
+
+    visit operations_activity_logs_path(q: "nobody@example.com")
+    within_results do
+      expect(page).to have_text(I18n.t("operations.activity_logs.index.empty"))
+      expect(page).to have_link(I18n.t("operations.activity_logs.index.summary.clear"))
+    end
+    expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
   end
 end

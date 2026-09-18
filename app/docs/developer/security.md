@@ -382,7 +382,9 @@ Encryption column — a database dump or backup carries ciphertext, not
 addresses. Deterministic encryption (same plaintext, same bytes) is used only
 where a finder or a unique index needs the column; everything else takes the
 stronger non-deterministic cipher and cannot be searched or sorted in SQL —
-which is why the members page filters and sorts in Ruby (`WorkspaceRoster`).
+which is why the members page filters and sorts in Ruby (`WorkspaceRoster`),
+and why the operations activity ledger's search box resolves names the same
+way (`ActivityLog::Search`) under a user-count cap rather than in SQL.
 
 | Column | Cipher | Why |
 | ------ | ------ | --- |

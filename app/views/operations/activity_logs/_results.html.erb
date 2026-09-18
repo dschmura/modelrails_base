@@ -9,16 +9,37 @@
     the component's toolbar slot, and the empty state hand-rolls the same row —
     Clear has to be reachable exactly when a filter matched nothing. %>
 <% toolbar = capture do %>
-  <h2 class="text-sm font-semibold text-text-heading"><%= ledger_summary %></h2>
+  <div class="flex items-center gap-2">
+    <h2 class="text-sm font-semibold text-text-heading"><%= ledger_summary %></h2>
+    <%# The two caveats that qualify what a result MEANS sit on the result, not
+        in a footnote below the table: they are read when a count surprises
+        someone. Icon-only — the sentences are the panel, not the trigger. %>
+    <%= render(UI::PopoverComponent.new(label: t("operations.activity_logs.index.about.label"), align: :start,
+          id: "activity_about", trigger_class: "btn-text btn-text-interactive px-2 -ml-2")) do |pop| %>
+      <% pop.with_trigger do %>
+        <%= icon(:information_circle, size: :sm, class: "shrink-0") %>
+        <span class="sr-only"><%= t("operations.activity_logs.index.about.label") %></span>
+      <% end %>
+      <ul role="list" class="flex flex-col gap-2 text-sm text-text-body">
+        <li><%= t("operations.activity_logs.index.about.best_effort") %></li>
+        <li><%= t("operations.activity_logs.index.about.derived") %></li>
+        <li><%= t("operations.activity_logs.index.about.names", limit: ActivityLog::Search::NAME_SEARCH_LIMIT) %></li>
+      </ul>
+    <% end %>
+  </div>
   <% if request.query_parameters.except("page").present? %>
     <%= link_to t("operations.activity_logs.index.summary.clear"), operations_activity_logs_path,
-          data: { turbo_frame: "_top" }, class: "btn-text btn-text-interactive px-3 -mr-3" %>
+          data: { turbo_frame: "_top", focus_key: "q" }, class: "btn-text btn-text-interactive px-3 -mr-3" %>
   <% end %>
 <% end %>
 
 <% if @activities.any? %>
-  <%= ui :scroll_area, orientation: :horizontal, max_h: nil, class: "mt-6", aria_label: t("operations.activity_logs.index.caption") do %>
-    <%= render UI::TableComponent.new(caption: t("operations.activity_logs.index.caption")) do |table| %>
+  <%# scroll: on the component, not a scroll_area around it: only the columns
+      scroll at phone width; the toolbar (Clear) and the footer (Rows, pager)
+      stay put. Every full-page control below names, with data-focus-key, where
+      focus lands after the visit (navigation_focus.js): the rows band and the
+      pager resolve to whichever choice is now aria-current. %>
+    <%= render UI::TableComponent.new(caption: t("operations.activity_logs.index.caption"), scroll: :horizontal, class: "mt-6") do |table| %>
       <% table.with_toolbar { toolbar } %>
       <% table.with_header do %>
         <%# frame: "_top" — sorting has to re-render the filter band with the new
@@ -43,7 +64,7 @@
             <% else %>
               <span><%= t("operations.activity_logs.index.rows.showing", from: @pagy.from, to: @pagy.to, count: @pagy.count) %></span>
             <% end %>
-            <nav aria-label="<%= t("operations.activity_logs.index.rows.label") %>" class="flex items-center gap-1">
+            <nav aria-label="<%= t("operations.activity_logs.index.rows.label") %>" class="flex items-center gap-1" data-focus-key="rows">
               <span class="px-2"><%= t("operations.activity_logs.index.rows.label") %></span>
               <% Operations::ActivityLogsController::ROWS.each do |value| %>
                 <%= link_to (value == "all" ? t("operations.activity_logs.index.rows.all") : value),
@@ -57,15 +78,22 @@
           <% if @pagy.pages > 1 %>
             <%# anchor_string is pagy's raw-attribute seam (a_lambda.rb): the pager
                 is a link like any other here, so it navigates _top too. %>
-            <%== @pagy.series_nav(aria_label: t("pagination.aria_label"), anchor_string: 'data-turbo-frame="_top"') %>
+            <div data-focus-key="pager">
+              <%== @pagy.series_nav(aria_label: t("pagination.aria_label"), anchor_string: 'data-turbo-frame="_top"') %>
+            </div>
           <% end %>
         </div>
       <% end %>
     <% end %>
-  <% end %>
 <% else %>
-  <div class="mt-6 rounded-lg border border-border bg-surface-raised overflow-hidden">
+  <div class="mt-6 <%= UI::TableComponent::WRAPPER %>">
     <div class="<%= UI::TableComponent::TOOLBAR %>"><%= toolbar %></div>
     <%= render "shared/empty_state", message: t("operations.activity_logs.index.empty") %>
+    <%# The one caveat an empty result needs on sight, not behind a control:
+        no rows is not proof nothing happened. Outside the shared partial,
+        which takes a message and an action and is used app-wide. %>
+    <p class="mt-2 px-8 pb-8 text-sm text-text-body text-center">
+      <%= t("operations.activity_logs.index.about.best_effort") %>
+    </p>
   </div>
 <% end %>

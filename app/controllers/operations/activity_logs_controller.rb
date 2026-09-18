@@ -22,10 +22,13 @@ module Operations
     def resolve_filters
       @zone = Current.user.preferences&.time_zone || Time.zone
       @range = ActivityLog::Range.resolve(key: params[:range], from: params[:from], to: params[:to], zone: @zone)
-      # Exact email only: email_address is deterministically encrypted (#902);
-      # names are not, so this is the one lookup SQL can answer.
-      @person_email = params[:person].to_s.strip.downcase.presence
-      @person = @person_email && User.find_by(email_address: @person_email)
+      # `person` was the exact-email control this box replaces; it stays an
+      # alias for one release so existing links and bookmarks keep filtering.
+      @search = ActivityLog::Search.resolve(params[:q].presence || params[:person].presence,
+                                            reach: operated_workspaces)
+      # The NORMALIZED needle, so the box, the summary and every link the page
+      # builds all say the one thing that was actually searched.
+      @query = @search.query
       @workspace_param = params[:workspace].presence
       @workspace = @workspace_param && @workspace_param != "instance" ? operated_workspaces.find_by(slug: @workspace_param) : nil
       @workspace_param = nil if @workspace_param && @workspace_param != "instance" && @workspace.nil?
@@ -41,16 +44,23 @@ module Operations
 
     def filtered_scope
       scope = ActivityLog.for_operations_feed.includes(:workspace)
-      # A present email with no user is a filter that matched nobody, not an
+      # A query that named nobody and nothing is a filter that matched, not an
       # absent filter — `none` is the honest answer, and it still responds to
       # `for_feed` (an empty Array) and to countish (count 0).
-      scope = @person ? scope.merge(ActivityLog.involving(@person)) : scope.none if @person_email
+      if @query
+        scope = @search.matched? ? scope.merge(search_scope) : scope.none
+      end
       scope = scope.at_instance_level if @workspace_param == "instance"
       scope = scope.for_workspace(@workspace) if @workspace
       scope = scope.of_kind(@kind) if @kind
       scope = scope.within(@range.from, @range.to) if @range.bounded?
       scope = scope.oldest_first if @direction == "asc"
       scope
+    end
+
+    def search_scope
+      ActivityLog.matching_any(users: @search.users, workspaces: @search.workspaces,
+                               projects: @search.projects)
     end
 
     def row_limit

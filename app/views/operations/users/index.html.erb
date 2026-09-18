@@ -3,9 +3,11 @@
       title: t("operations.users.index.title"),
       description: t("operations.users.index.description") %>
 
-<%= form_with url: operations_users_path, method: :get, class: "flex gap-3 items-end" do |form| %>
+<%# max-w-md: the same width as the grant form on the operators page — one
+    email address does not need the column. %>
+<%= form_with url: operations_users_path, method: :get, class: "flex gap-3 items-end max-w-md" do |form| %>
   <div class="flex-1">
-    <%= form.label :q, t("operations.users.index.search_label"), class: "block text-sm font-medium text-text-heading" %>
+    <%= form.label :q, t("operations.users.index.search_label"), class: "mb-1 block text-sm font-medium text-text-heading" %>
     <%# label: must match the visible <label> text above — SearchInputComponent
         always emits its own aria-label (default "Search"), and a mismatched
         accessible name is a 2.5.3 Label-in-Name failure. %>
@@ -19,9 +21,31 @@
 <% if @query.present? %>
   <div class="mt-6">
     <% if @user %>
-      <%= link_to @user.full_name, operations_user_path(@user), class: "btn-cell-link btn-text-interactive" %>
+      <%# The hit and the miss share one chrome: a one-row list, carrying the
+          badges the user's page opens with, against the bordered empty state.
+          hover:bg-surface as on the user page: the link is the control, not
+          the row. %>
+      <%= ui :list_group do %>
+        <%= ui :list_group_item, class: "gap-4 hover:bg-surface" do %>
+          <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+            <%= link_to @user.full_name, operations_user_path(@user), class: "btn-cell-link btn-text-interactive" %>
+            <span class="text-text-body"><%= @user.email_address %></span>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <% if @user.operator? %>
+              <%= ui :badge, t("operations.users.show.operator"), variant: :soft, tone: :info %>
+            <% end %>
+            <% if @user.suspended? %>
+              <%= ui :badge, t("operations.users.show.suspended"), variant: :soft, tone: :warning %>
+            <% end %>
+          </div>
+        <% end %>
+      <% end %>
     <% else %>
-      <%= render "shared/empty_state", message: t("operations.users.index.no_match") %>
+      <%# No account by that address is not the end of the question: the
+          ledger's search also matches names, workspaces and projects. %>
+      <%= render "shared/empty_state", message: t("operations.users.index.no_match"),
+            action_text: t("operations.users.index.search_activity"), action_url: operations_activity_logs_path(q: @query) %>
     <% end %>
   </div>
 <% end %>

@@ -122,6 +122,22 @@ class ActivityLog < ApplicationRecord
       .or(where(trackable_type: "User", trackable_id: user.id))
       .or(where(trackable_type: "Membership", trackable_id: user.memberships.select(:id)))
   }
+  # The ledger search's filter: every record `ActivityLog::Search` resolved,
+  # OR'd into one predicate. Widening across the four kinds is the point — an
+  # operator ruling something out must see the superset, and a query that
+  # named a person and a workspace means either, not both.
+  scope :matching_any, ->(users:, workspaces:, projects:) {
+    clauses = []
+    if users.any?
+      ids = users.map(&:id)
+      clauses << where(actor_id: ids)
+      clauses << where(trackable_type: "User", trackable_id: ids)
+      clauses << where(trackable_type: "Membership", trackable_id: Membership.where(user_id: ids).select(:id))
+    end
+    clauses << where(workspace_id: workspaces.map(&:id)) if workspaces.any?
+    clauses << where(trackable_type: "Project", trackable_id: projects.map(&:id)) if projects.any?
+    clauses.reduce { |combined, clause| combined.or(clause) } || none
+  }
   scope :within, ->(from, to) { where(created_at: from..to) }
   scope :oldest_first, -> { reorder(created_at: :asc, id: :asc) }
   scope :at_instance_level, -> { where(workspace_id: nil) }
