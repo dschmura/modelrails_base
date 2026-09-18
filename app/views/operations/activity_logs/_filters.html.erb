@@ -13,18 +13,12 @@
                 action: "change->search-form#submit" },
         aria: { label: t("operations.activity_logs.index.filters.label") },
         class: "flex flex-wrap items-center gap-3" do |form| %>
-    <%# The form's DEFAULT button — what Enter in a text or date field clicks.
-        HTML picks the first submit button in TREE order owning this form, which
-        without this one is the range group's "24h", so Enter in Person (or in a
-        popover date) silently applied a 24h window. Nameless, so it submits the
-        hidden `range` as-is: Enter in a date field re-applies the CURRENT window,
-        and "Use this range" stays the only way to commit typed dates. No
-        data-turbo-frame — the form's frame target applies, and though a frame
-        swap never re-renders the band, this submit changes only the typed
-        control's own value, so the band is already showing the truth.
-        `hidden`, not `sr-only`: a screen-reader-only button is still a rendered
-        1x1 focusable, which the axe gate fails on target size (2.5.5) and on
-        focus visibility (2.4.7). A non-rendered one is still the default button. %>
+    <%# The form's default button: Enter in a text or date field clicks the FIRST
+        submit button in tree order, which would otherwise be the "24h" preset —
+        so Enter in Person silently applied a 24h window. Nameless, it submits the
+        hidden `range` as-is; "Use this range" stays the only way to commit typed
+        dates. `hidden`, not `sr-only`: a rendered 1x1 focusable fails the axe
+        gate (2.5.5, 2.4.7), and a non-rendered button is still the default. %>
     <button type="submit" hidden></button>
 
     <%# Seeded from the RESOLVED state, never raw params: a submit without a
