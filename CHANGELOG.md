@@ -240,6 +240,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Fixed
 
+- The "Confirm it's you" page offers "Send a new code" beside Confirm and says where the code went and how long it lasts, and its code-entry state is derived from a live `ReauthenticationChallenge` rather than a session flag, so an expired code returns the page to offering a fresh one instead of stranding the user on a field that can no longer work. The "Choose how to confirm" heading and the divider above the email factor render only when there is more than one factor to choose between.
 - A fork's first CI run no longer fails the invariant that checks `bin/fork`'s rename targets still exist upstream: it skips when `.fork.yml` is present, the way the placeholder-address check switches on. Before this every fork was red on that example whatever it pushed. (#1152)
 - A project's "Add member" button opens the new-membership form instead of reloading the members list it sits on. (#1155)
 - `operators:grant` vouches for the address it was given (a verified email authentication, create-only, as the `:shared` seed does), so a console-minted operator can send invitations without a verification round trip an invite-only instance has no mail for. (#1146)

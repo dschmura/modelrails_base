@@ -227,7 +227,11 @@ The interstitial offers only the factors the user has (`User#available_reauth_fa
 password, a passkey (verified through `AuthenticateCeremony` **bound to the
 current user** — another account's passkey is rejected), or a one-time
 `ReauthenticationChallenge` code emailed and entered in-page (never a link, so
-it can't be replayed into a sign-in). All of it is tunable in
+it can't be replayed into a sign-in). That code lasts 10 minutes
+(`ReauthenticationChallenge::EXPIRY`); the interstitial derives its code-entry
+state from whether a live challenge exists, so once one expires the page offers
+to email a fresh one, and "Send a new code" supersedes the previous code at any
+time. All of it is tunable in
 `config/initializers/sessions.rb`; `reauth_enabled = false` makes the gate a
 no-op — except passkey enrollment and the operations area, which stay gated
 regardless: enrollment mints a durable, phishing-resistant credential and
