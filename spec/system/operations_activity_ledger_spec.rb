@@ -188,6 +188,26 @@ RSpec.describe "Operations activity ledger", type: :system do
     expect(page).to have_no_current_path(/range=24h/)
   end
 
+  # Typing is the search: the results re-filter after the debounce without
+  # Enter or leaving the box (the form's change->submit alone fired only on
+  # blur or Enter), focus stays in the box, and Escape clears it.
+  it "searches as you type and clears on Escape" do
+    visit operations_activity_logs_path
+    within_results { expect(page).to have_link("Beta Works") }
+
+    fill_in "q", with: priya.email_address
+    within_results do
+      expect(page).to have_no_text("Beta Works")
+      expect(page).to have_css("h2", text: priya.email_address)
+    end
+    expect(page).to have_current_path(/q=#{Regexp.escape(CGI.escape(priya.email_address))}/)
+    expect(page.evaluate_script("document.activeElement.id")).to eq("q")
+
+    find("#q").send_keys(:escape)
+    within_results { expect(page).to have_link("Beta Works") }
+    expect(find("#q").value).to eq("")
+  end
+
   # The box resolves a name, not just an address. Two people share a first name
   # here on purpose: the summary has to name both, or an operator cannot tell
   # which Priya the rows in front of them belong to.

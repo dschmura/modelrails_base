@@ -37,12 +37,16 @@
 
     <%# No <label for> here either: SearchInputComponent always emits its own
         aria-label, so a second sr-only <label> of the same text would be a
-        duplicate name for one control. The `label:` IS the sr-only label. %>
+        duplicate name for one control. The `label:` IS the sr-only label.
+        input->search: the form's change->submit fires for a text field only
+        on blur or Enter, so typing alone never searched — the members page's
+        debounced wiring, with Escape clearing the box. %>
     <div class="w-full min-w-0 lg:flex-1 lg:basis-44 lg:max-w-56">
       <%= ui :search_input, name: "q", id: "q", value: @query,
             label: t("operations.activity_logs.index.filters.search_label"),
             placeholder: t("operations.activity_logs.index.filters.search_placeholder"),
-            autocomplete: "off", describedby: "q-hint", data: { focus_key: "q" } %>
+            autocomplete: "off", describedby: "q-hint",
+            data: { action: "input->search-form#search keydown->search-form#clear", focus_key: "q" } %>
       <%# What this control matches, on the control itself rather than in a
           page footnote nobody reads before typing a name. %>
       <p id="q-hint" class="sr-only"><%= t("operations.activity_logs.index.filters.search_hint") %></p>
