@@ -4,6 +4,10 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+### Changed
+
+- The `modelrails_ui` pin moves to `v0.16.0`. The vendored component headers merged earlier today are three-line pointers into `docs/components/` in the gem, and `v0.15.1` shipped the pre-migration docs — so those pointers resolved to files carrying none of the prose the headers had dropped (0 "When to use" sections against 56, 4 accessibility contracts against 66). The bump makes every pointer resolve to what it names.
+
 ### Added
 
 - The operations ledger names the most active people for whatever filter is applied, above the table. Counts come from a grouped count over the whole filtered scope on an indexed column, so they describe every matching row rather than the rows on the current page, and only the handful of names shown are decrypted. Each entry narrows to that person through the same `q` pivot the row details use. Rows with no actor are left out — the strip answers *who*, and System is not a who. (#1179)
