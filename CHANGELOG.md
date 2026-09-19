@@ -4,6 +4,10 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+### Fixed
+
+- `UI::Popover` merges a caller's `trigger_attrs:` `data:` hash one level deeper instead of flat, so a caller's hooks survive alongside the component's Stimulus wiring rather than being silently dropped. Keys are stringified first, since `content_tag` de-duplicates neither `:key` against `"key"` nor the reverse. The ledger's range trigger drops the flat-string-key workaround this bug forced. (modelrails_ui #204)
+
 ### Changed
 
 - The `modelrails_ui` pin moves to `v0.17.0`, which gives `date_picker` a typed path: a date can be entered directly instead of only reached by walking the calendar grid. This app has no `date_picker` call site — the ledger's From/To range uses native date inputs, chosen precisely because that gap existed — so the bump changes nothing rendered here today. It keeps the pin current, and it makes adopting the component in the range popover a real option rather than a downgrade.

@@ -96,7 +96,7 @@
       handle rather than a generated one. %>
   <%= render UI::PopoverComponent.new(label: t("operations.activity_logs.index.ranges.popover_label"), align: :end,
         id: "activity_range", class: "w-full lg:ml-auto lg:w-auto",
-        trigger_attrs: { "data-focus-key": "range" },
+        trigger_attrs: { data: { focus_key: "range" } },
         trigger_class: "inline-flex w-full items-center justify-between gap-2 rounded-md border border-border-strong bg-transparent px-3 py-1 text-sm text-text-body shadow-sm cursor-pointer hover:bg-surface-sunken focus-visible:border-border-focus lg:w-auto lg:min-w-52 lg:max-w-64") do |pop| %>
     <% pop.with_trigger do %>
       <span class="truncate"><%= @range.custom? ? ledger_range_label : t("operations.activity_logs.index.ranges_menu.#{@range.key}") %></span>
