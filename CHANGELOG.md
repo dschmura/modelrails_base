@@ -4,6 +4,11 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+### Fixed
+
+- `UI::DataTable` emits `scope="col"` on both branches of its header cell, so a data cell's header association is stated rather than left to the browser's heuristic. The heuristic usually works, which is why axe passes either way and nothing caught it. (modelrails_ui #200)
+- `UI::Combobox`'s visible text input carries an `id` derived from the wrapper's (`my-combobox` → `my-combobox-input`), overridable with `input_id:`, so a `<label for>` can target it and `fill_in` can reach it. The ledger's system spec drops the workaround this forced — it addressed the input by accessible name, which only works with `Capybara.enable_aria_label`. The input stays nameless: the hidden field carries the form value. (modelrails_ui #202)
+
 ### Changed
 
 - The `modelrails_ui` pin moves to `v0.18.0`. Nothing rendered here changes: 0.18.0's breaking change is the `error_summary` DOM shape, which this app already used — the gem adopted the app's shape rather than the reverse. With it the last behavioural difference in that component is gone, so its **Error summary fork note is retired**; the app's copy and the gem's now agree.

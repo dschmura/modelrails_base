@@ -120,11 +120,11 @@ module UI
       label    = col[:label] || key.humanize
       sortable = col.fetch(:sortable, false)
 
-      return content_tag(:th, label, class: TH_CLS) unless sortable
+      return content_tag(:th, label, scope: "col", class: TH_CLS) unless sortable
 
       # Sortable: th[aria-sort] (the controller flips it) wrapping a focusable
       # button that carries the sort action + key param.
-      content_tag(:th, sort_button(key, label), class: TH_CLS, "aria-sort": "none")
+      content_tag(:th, sort_button(key, label), scope: "col", class: TH_CLS, "aria-sort": "none")
     end
 
     def sort_button(key, label)
