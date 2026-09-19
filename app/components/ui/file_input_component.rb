@@ -94,7 +94,7 @@ module UI
 
     # Starts hidden; the controller un-hides it only while it holds pills.
     def selection_list
-      content_tag(:ul, nil, hidden: true, class: "mt-2 flex flex-wrap gap-1.5",
+      content_tag(:ul, nil, role: "list", hidden: true, class: "mt-2 flex flex-wrap gap-1.5",
         data: { file_input_target: "list" })
     end
 

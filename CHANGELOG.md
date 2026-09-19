@@ -6,8 +6,8 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Fixed
 
-- `UI::DataTable` emits `scope="col"` on both branches of its header cell, so a data cell's header association is stated rather than left to the browser's heuristic. The heuristic usually works, which is why axe passes either way and nothing caught it. (modelrails_ui #200)
-- `UI::Combobox`'s visible text input carries an `id` derived from the wrapper's (`my-combobox` → `my-combobox-input`), overridable with `input_id:`, so a `<label for>` can target it and `fill_in` can reach it. The ledger's system spec drops the workaround this forced — it addressed the input by accessible name, which only works with `Capybara.enable_aria_label`. The input stays nameless: the hidden field carries the form value. (modelrails_ui #202)
+- Every list-emitting vendored component now carries an explicit `role="list"`: `timeline`, `stepper`, `breadcrumb`, `navigation_menu`, `mega_menu`, `footer` and `file_input` (`list_group` already had it). Tailwind's preflight sets `list-style: none`, and Safari/VoiceOver drop the implicit list role once the marker is gone — no item count, no per-item set position, no rotor entry. `error_summary` keeps its marker and is the one documented exemption. A code-smell spec derives the list-emitting set from the components themselves, so a new one cannot reopen the gap by not being listed. WCAG 2.2 1.3.1. (modelrails_ui #190/#195)
+- `timeline` and `stepper` normalize attribute keys before merging a caller's `**html_attrs`, so a `role:`/`"role"` override replaces the default instead of emitting a second `role` attribute. For `stepper` this also applies to its default `aria-label`.
 
 ### Changed
 

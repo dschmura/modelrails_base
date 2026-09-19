@@ -57,6 +57,7 @@ module UI
         safe_join(shown.each_with_index.map { |item, i|
           item == :ellipsis ? ellipsis : crumb(item, i == shown.size - 1)
         }),
+        role: "list",
         class: cn("flex flex-wrap items-center gap-1.5 break-words text-sm text-text-muted sm:gap-2.5", @list_class))
     end
 

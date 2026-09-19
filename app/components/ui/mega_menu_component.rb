@@ -123,7 +123,7 @@ module UI
       def call
         content_tag(:div, **@html_attrs) do
           concat content_tag(:p, @heading, class: MegaMenuComponent::COLUMN_HEADING) if @heading
-          concat(content_tag(:ul, class: "space-y-1") {
+          concat(content_tag(:ul, role: "list", class: "space-y-1") {
             safe_join(@items.map { |item| render_item(item) })
           })
         end

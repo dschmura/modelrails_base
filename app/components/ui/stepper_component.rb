@@ -21,15 +21,28 @@ module UI
         ? "flex flex-col gap-0" \
         : "flex items-start gap-0"
 
-      content_tag(:ol,
-        class: cn(wrapper_class, @extra_class),
-        "aria-label": I18n.t("modelrails_ui.stepper.progress", default: "Progress"),
-        **@html_attrs) do
+      content_tag(:ol, **list_attrs(wrapper_class)) do
         safe_join(@steps.each_with_index.map { |step, i| step_item(step, i) })
       end
     end
 
     private
+
+    # Preflight strips the marker and Safari/VoiceOver drop the implicit list role
+    # with it, so `role="list"` is load-bearing. Keys are stringified before the
+    # caller's attrs merge: `content_tag` does not de-duplicate `:role` against
+    # `"role"` — it emits both and lets the browser choose. That applied to the
+    # default `aria-label` here too, which a caller could previously only
+    # duplicate rather than replace.
+    def list_attrs(wrapper_class)
+      attrs = {
+        "role" => "list",
+        "class" => cn(wrapper_class, @extra_class),
+        "aria-label" => I18n.t("modelrails_ui.stepper.progress", default: "Progress")
+      }
+      @html_attrs.each { |key, value| attrs[key.to_s] = value }
+      attrs
+    end
 
     def step_item(step, index)
       is_last = index == @steps.size - 1
