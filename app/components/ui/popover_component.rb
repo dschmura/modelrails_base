@@ -92,13 +92,30 @@ module UI
     end
 
     def trigger_button
-      content_tag(:button, trigger, **@trigger_attrs.merge(
-        type: "button",
-        "aria-haspopup": "dialog",
-        "aria-expanded": "false",
-        "aria-controls": @id,
-        data: { floating_target: "trigger", action: "click->floating#toggle" },
-        class: cn(TRIGGER_BASE, @trigger_class)))
+      content_tag(:button, trigger, **trigger_button_attrs)
+    end
+
+    # `data:` is merged one level deeper than everything else, deliberately. A
+    # flat merge drops a caller's whole `data:` hash on the floor — silently,
+    # since the component sets `data:` too and the last write wins — so a
+    # caller's own hook simply never appears with nothing to explain why.
+    #
+    # Keys are stringified first because `content_tag` de-duplicates neither
+    # `:key` against `"key"` nor the reverse: it emits both and lets the browser
+    # choose the winner. (Ported from modelrails_ui #204.)
+    def trigger_button_attrs
+      attrs = {}
+      @trigger_attrs.each { |key, value| attrs[key.to_s] = value }
+      caller_data = (attrs.delete("data") || {}).to_h { |key, value| [ key.to_s, value ] }
+
+      attrs.merge(
+        "type" => "button",
+        "aria-haspopup" => "dialog",
+        "aria-expanded" => "false",
+        "aria-controls" => @id,
+        "class" => cn(TRIGGER_BASE, @trigger_class),
+        "data" => caller_data.merge("floating_target" => "trigger", "action" => "click->floating#toggle")
+      )
     end
 
     def panel
