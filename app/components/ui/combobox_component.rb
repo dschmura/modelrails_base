@@ -39,6 +39,10 @@ module UI
       @label = label
       @size = coerce_size(size)
       @id = html_attrs.delete(:id) || "combobox-#{SecureRandom.hex(4)}"
+      # The caller's `id:` names the WRAPPER, so the text input needs one of its
+      # own or nothing can address it: not `<label for>`, not Capybara's
+      # `fill_in`. Derived from @id so two comboboxes cannot collide.
+      @input_id = html_attrs.delete(:input_id) || "#{@id}-input"
       @extra_class = html_attrs.delete(:class)
       # Merge the controller wiring into any caller `data:` so a passed-through
       # `data:` attr can't clobber `data-controller` and silently break Stimulus.
@@ -77,6 +81,7 @@ module UI
       selected_label = @options.find { |o| o[:value].to_s == @value }&.dig(:label)
       tag.input(
         type: "text",
+        id: @input_id,
         role: "combobox",
         placeholder: placeholder_text,
         value: selected_label,

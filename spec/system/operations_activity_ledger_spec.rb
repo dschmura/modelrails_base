@@ -56,11 +56,6 @@ RSpec.describe "Operations activity ledger", type: :system do
     find("tbody tr", text: /Acme Robotics.*#{Regexp.escape(I18n.t("activity.actions.project.updated"))}/m)
   end
 
-  # The combobox's text input carries neither id nor name — both land on the
-  # wrapper <div> and on the hidden field — and this suite does not set
-  # Capybara.enable_aria_label, so `fill_in` has no locator to reach it by.
-  # Its accessible name is the `label:` the component puts on `aria-label`,
-  # which is what this addresses it by (and therefore asserts).
   # The band's one range control states the APPLIED window: a preset reads its
   # sentence-case control label ("Last 30 days" — ranges_menu.*, NOT the
   # lowercase ranges_long.* the summary sentence uses), a custom range the
@@ -73,8 +68,12 @@ RSpec.describe "Operations activity ledger", type: :system do
            from: I18n.l(from, format: :ledger_short), to: I18n.l(to, format: :ledger_day))
   end
 
+  # Addressed by its own id. The combobox's text input used to carry neither id
+  # nor name — both landed on the wrapper and the hidden field — so this had to
+  # reach it by accessible name, which only works with Capybara.enable_aria_label
+  # (which this suite does not set). The component now derives `<wrapper>-input`.
   def workspace_combobox
-    find("input[role=combobox][aria-label='#{I18n.t("operations.activity_logs.index.filters.workspace_label")}']")
+    find_field("workspace-input")
   end
 
   it "renders the default window AAA-clean in both themes, with an open details row" do
