@@ -18,9 +18,19 @@ module UI
     end
 
     def call
-      content_tag(:ol, class: cn(BASE, @extra_class), **@html_attrs) do
+      content_tag(:ol, **list_attrs) do
         safe_join(items)
       end
+    end
+
+    # Preflight strips the marker and Safari/VoiceOver drop the implicit list role
+    # with it, so `role="list"` is load-bearing. Keys are stringified before the
+    # caller's attrs merge: `content_tag` does not de-duplicate `:role` against
+    # `"role"` — it emits both and lets the browser choose.
+    def list_attrs
+      attrs = { "role" => "list", "class" => cn(BASE, @extra_class) }
+      @html_attrs.each { |key, value| attrs[key.to_s] = value }
+      attrs
     end
 
     class ItemComponent < ApplicationComponent

@@ -64,7 +64,7 @@ module UI
         class: cn(ROOT, @extra_class),
         "aria-label": @label || I18n.t("modelrails_ui.navigation_menu.nav_label", default: "Main"),
         **@html_attrs) do
-        content_tag(:ul, class: cn(LIST, JUSTIFY.fetch(@align))) do
+        content_tag(:ul, role: "list", class: cn(LIST, JUSTIFY.fetch(@align))) do
           safe_join(items.map { |item| content_tag(:li, item, class: "relative") })
         end
       end
