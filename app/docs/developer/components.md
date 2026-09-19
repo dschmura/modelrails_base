@@ -88,12 +88,6 @@ gem's default component. Those live here instead.
   doesn't yet have — `combobox_component.rb` adds `tabindex: "-1"` to each
   option button, and `combobox_controller.js` adds a `closeOnFocusOut` action
   and a `keepFocus` mousedown guard.
-- **Error summary** — this app's DOM shape genuinely differs from the gem's:
-  a focusable, autofocused container (`data-slot="error-summary"`) wrapping a
-  `role="alert"` block, not the outer container itself carrying `role="alert"`.
-  This splits the two roles so a screen reader doesn't announce the same
-  content twice (once as the alert, once as the focused element) — see
-  `docs/components/error_summary.md` ("Why it exists") for the full rationale.
 
 ## Adding a component
 

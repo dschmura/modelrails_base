@@ -4,6 +4,10 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+### Changed
+
+- The `modelrails_ui` pin moves to `v0.18.0`. Nothing rendered here changes: 0.18.0's breaking change is the `error_summary` DOM shape, which this app already used — the gem adopted the app's shape rather than the reverse. With it the last behavioural difference in that component is gone, so its **Error summary fork note is retired**; the app's copy and the gem's now agree.
+
 ### Fixed
 
 - `UI::Popover` merges a caller's `trigger_attrs:` `data:` hash one level deeper instead of flat, so a caller's hooks survive alongside the component's Stimulus wiring rather than being silently dropped. Keys are stringified first, since `content_tag` de-duplicates neither `:key` against `"key"` nor the reverse. The ledger's range trigger drops the flat-string-key workaround this bug forced. (modelrails_ui #204)
