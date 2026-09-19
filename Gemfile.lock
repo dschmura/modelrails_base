@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/dschmura/modelrails_ui.git
-  revision: b13c5369ee6dc1386574d8cc0e07a9b3678c31e6
+  revision: 8a23a88390bfc07e23c3e1a78599c857b58c736e
   tag: v0.17.0
   specs:
     modelrails_ui (0.17.0)
