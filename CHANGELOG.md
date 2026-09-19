@@ -4,6 +4,11 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+### Fixed
+
+- Every list-emitting vendored component now carries an explicit `role="list"`: `timeline`, `stepper`, `breadcrumb`, `navigation_menu`, `mega_menu`, `footer` and `file_input` (`list_group` already had it). Tailwind's preflight sets `list-style: none`, and Safari/VoiceOver drop the implicit list role once the marker is gone — no item count, no per-item set position, no rotor entry. `error_summary` keeps its marker and is the one documented exemption. A code-smell spec derives the list-emitting set from the components themselves, so a new one cannot reopen the gap by not being listed. WCAG 2.2 1.3.1. (modelrails_ui #190/#195)
+- `timeline` and `stepper` normalize attribute keys before merging a caller's `**html_attrs`, so a `role:`/`"role"` override replaces the default instead of emitting a second `role` attribute. For `stepper` this also applies to its default `aria-label`.
+
 ### Changed
 
 - The `modelrails_ui` pin moves to `v0.18.0`. Nothing rendered here changes: 0.18.0's breaking change is the `error_summary` DOM shape, which this app already used — the gem adopted the app's shape rather than the reverse. With it the last behavioural difference in that component is gone, so its **Error summary fork note is retired**; the app's copy and the gem's now agree.

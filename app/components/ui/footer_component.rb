@@ -49,7 +49,7 @@ module UI
     def column(col)
       content_tag(:div) do
         concat content_tag(:h3, col[:title], class: "mb-3 text-sm font-semibold text-text-heading")
-        concat content_tag(:ul, class: "space-y-2") {
+        concat content_tag(:ul, role: "list", class: "space-y-2") {
           safe_join((col[:links] || []).map { |link|
             content_tag(:li) { content_tag(:a, link[:label], href: link[:href], class: LINK) }
           })
