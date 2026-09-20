@@ -15,6 +15,12 @@ module UI
     # the requirement is conveyed on the control (aria-required), not the caption.
     REQUIRED_MARK = "text-danger"
 
+    # Caption and mark are ONE flex item. As siblings they were separated by BASE's
+    # `gap-2`, and an asterisk 8px from its caption reads as a typo rather than a
+    # marker (#164). Baseline-aligned because the mark is punctuation sitting beside
+    # text, not a box centred against it.
+    CAPTION = "inline-flex items-baseline gap-0.5"
+
     def initialize(text = nil, for: nil, required: false, **html_attrs)
       @text = text || html_attrs.delete(:label)
       @for = binding.local_variable_get(:for)
@@ -28,11 +34,20 @@ module UI
         class: cn(BASE, @extra_class),
         for: @for,
         **@html_attrs) do
-        safe_join([ content.presence || @text, required_mark ].compact)
+        captioned_text
       end
     end
 
     private
+
+    # Wrapped only when a mark is actually rendered, so an unrequired label keeps
+    # exactly the DOM it had.
+    def captioned_text
+      caption = content.presence || @text
+      return caption unless @required
+
+      content_tag(:span, safe_join([ caption, required_mark ].compact), class: CAPTION)
+    end
 
     def required_mark
       return unless @required

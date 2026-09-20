@@ -11,6 +11,8 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- The `modelrails_ui` pin moves to `v0.19.0`, and the page background moves with it. `bg-surface` is the **page**, so a container painted with it was the same colour as the ground beneath it — the card family now agrees on `bg-surface-raised`, and `<body>` moves from `bg-surface-raised` to `bg-surface` so cards lift off the page instead of flattening into it. The two halves have to land together: taking the pin without the `<body>` change would make every card-shaped container invisible but bordered. Proven by the AAA axe gate in both themes, which is the only place this can be proven — the gem's CI disables `color-contrast`. (modelrails_ui #210)
+- The vendored `combobox` **retires its fork divergence**. Its three accessibility fixes — options are not tab stops, focus leaving the widget dismisses it, a pointer selection keeps focus on the input — now ship in the gem, so the app's copy and the gem's agree again. Filtering also announces how many results remain, from a live region registered before the text arrives. (modelrails_ui #217/#218/#166)
 - The `modelrails_ui` pin moves to `v0.18.0`. Nothing rendered here changes: 0.18.0's breaking change is the `error_summary` DOM shape, which this app already used — the gem adopted the app's shape rather than the reverse. With it the last behavioural difference in that component is gone, so its **Error summary fork note is retired**; the app's copy and the gem's now agree.
 
 ### Fixed
