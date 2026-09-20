@@ -77,8 +77,12 @@ RSpec.describe UI::TableComponent, type: :component do
     expect(page).to have_css("div[data-size] > table")
   end
 
-  it "is a filled card — the list_group's surface, not the page's" do
-    expect(UI::TableComponent::WRAPPER).to include("bg-surface ").or end_with("bg-surface")
-    expect(UI::TableComponent::WRAPPER).not_to include("bg-surface-raised")
+  # The port-time decision was to follow list_group onto bg-surface. Overturned in
+  # modelrails_ui #210: bg-surface IS the page, so both were painting a container
+  # the colour of the ground beneath it — the old wording here ("not the page's")
+  # had it backwards. The card family agrees on bg-surface-raised, and this app's
+  # <body> moved to bg-surface to match.
+  it "is a filled card on the raised surface, lifting off the page" do
+    expect(UI::TableComponent::WRAPPER).to include("bg-surface-raised")
   end
 end

@@ -40,8 +40,8 @@ module UI
       @size = coerce_size(size)
       @id = html_attrs.delete(:id) || "combobox-#{SecureRandom.hex(4)}"
       # The caller's `id:` names the WRAPPER, so the text input needs one of its
-      # own or nothing can address it: not `<label for>`, not Capybara's
-      # `fill_in`. Derived from @id so two comboboxes cannot collide.
+      # own or nothing can address it: not `<label for>`, not Capybara's `fill_in`.
+      # Derived from @id so two comboboxes on a page can't collide.
       @input_id = html_attrs.delete(:input_id) || "#{@id}-input"
       @extra_class = html_attrs.delete(:class)
       # Merge the controller wiring into any caller `data:` so a passed-through
@@ -59,6 +59,7 @@ module UI
         concat hidden_input
         concat text_input
         concat dropdown
+        concat status_region
       end
     end
 
@@ -101,11 +102,6 @@ module UI
 
     def list_id = "#{@id}-list"
 
-    # The empty-state status message is a SIBLING of the listbox, not a
-    # child: `role="listbox"` only permits `role="option"`/group children
-    # (aria-required-children), so a `role="status"` div inside it is an
-    # ARIA violation regardless of the `hidden` toggle. It still lives
-    # inside the same panel so it visually occupies the dropdown.
     def dropdown
       content_tag(:div, data: { combobox_target: "panel" }, hidden: true,
         style: "position-anchor: --#{@id}", class: PANEL) do
@@ -120,25 +116,44 @@ module UI
         role: "listbox",
         "aria-label": accessible_name,
         class: LIST,
-        data: { combobox_target: "list" }) do
-        options_list
-      end
+        data: { combobox_target: "list" }) { options_list }
     end
 
+    # A SIBLING of the listbox, not a child: role=listbox admits only options
+    # (aria-required-children), and the message has to outlive the list being
+    # hidden at zero matches (#218). Purely visual — status_region is what
+    # announces, so a live role here would speak the same text twice (#166).
     def empty_state
       content_tag(:div,
         I18n.t("modelrails_ui.combobox.empty", default: "No results found."),
         class: EMPTY,
-        role: "status",
         data: { combobox_target: "empty" },
         hidden: true)
     end
 
+    # Outside the panel, which is hidden until the widget opens: a live region has to
+    # be in the tree BEFORE the text arrives, or it is inserted-with-content and
+    # assistive tech drops it. Empty at render; the controller writes the count (#166).
+    def status_region
+      content_tag(:div, "",
+        class: "sr-only",
+        role: "status",
+        "aria-live": "polite",
+        data: {
+          combobox_target: "status",
+          results_one_text: I18n.t("modelrails_ui.combobox.results_one", default: "1 result available."),
+          results_other_text: I18n.t("modelrails_ui.combobox.results_other", default: "%{count} results available."),
+          empty_text: I18n.t("modelrails_ui.combobox.empty", default: "No results found.")
+        })
+    end
+
     def options_list
       safe_join(@options.map { |opt|
-        # tabindex=-1: options are reached through aria-activedescendant, never by
-        # Tab (#684); mousedown is cancelled so a pointer selection never blurs the
-        # input before its click lands.
+        # tabindex=-1: a <button> is natively focusable, so without it Tab walks the
+        # listbox instead of leaving the widget — options are reached through
+        # aria-activedescendant. mousedown is cancelled so a pointer selection never
+        # blurs the input, which would strand focus on <body> once select() hides
+        # the panel (#217).
         content_tag(:button, opt[:label],
           type: "button",
           role: "option",

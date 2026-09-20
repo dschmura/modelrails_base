@@ -5,7 +5,7 @@ module UI
   # Usage, options and the accessibility contract: docs/components/data_table.md in the
   # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
   class DataTableComponent < ApplicationComponent
-    WRAPPER    = "w-full overflow-auto rounded-lg border border-border"
+    WRAPPER    = "w-full overflow-auto rounded-lg border border-border bg-surface-raised"
     TOOLBAR    = "flex items-center gap-3 border-b border-border bg-surface-raised px-4 py-3"
     # h-11 keeps the search control at the AAA 44px target floor (WCAG 2.5.5).
     SEARCH_CLS = "flex h-11 flex-1 items-center gap-2 rounded-md border border-border-strong bg-surface-raised " \
