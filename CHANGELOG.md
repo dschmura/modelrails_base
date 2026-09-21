@@ -4,6 +4,10 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+### Fixed
+
+- Two bordered cards stop disappearing into the page. The activity feed and the workspace join-policy section were still painted `bg-surface` — the **page** colour — so once `<body>` moved to `bg-surface` as the paired half of the v0.19.0 surface ruling, both read as a bare outline rather than a card. The activity feed's own comment says its border exists so the feed "reads as an intentional module rather than text floating in whitespace", which is exactly what the page colour defeated. A code-smell spec ported from the gem's `test_container_surface.rb` now scores every bordered container in the app's views and components, so a third answer cannot appear quietly. It ignores a variant-prefixed token: `hover:bg-surface-sunken` on a button is a hover state on a control, not a container fill, and counting it flagged two perfectly correct buttons.
+
 ### Changed
 
 - The `modelrails_ui` pin moves to `v0.21.0`, and the icon workarounds it was waiting on come out. Anchored panels — `popover`, `hover_card`, `dropdown_menu`, `menubar`, `navigation_menu`, `date_picker`, `timepicker`, `tooltip` and the sidebar rail — now carry a ceiling resolved against the viewport, so a panel can no longer be wider than the screen; `position-try-fallbacks` never covered that, because flipping needs room on the other side. `empty_state` spaces its own slotted icon, so the `mb-3` every call site carried is gone. A responsive spec proves the ceiling reaches **compiled CSS** rather than just shipping as a class: the gem's browser lane serves no stylesheet, so upstream could only prove the class exists, and `calc(100vw-2rem)` is invalid CSS unspaced — a wrong spelling would have passed the gem's gate and bounded nothing. It also asserts the ceiling grows with the viewport, which a fixed rem value would fail. (modelrails_ui #211/#241)
