@@ -37,7 +37,7 @@ One row per `(event, recipient)` pair. `recipient` is polymorphic (always `User`
 | `event_id` | FK to `noticed_events` |
 | `recipient_type` / `recipient_id` | Polymorphic recipient |
 | `type` | STI shape — e.g., `PasswordChangedNotifier::Notification` |
-| `read_at` | Nullable timestamp; the read/unread state |
+| `read_at` | Nullable timestamp; the read/unread state and nothing else — a *return to me later* state, if one is ever built, gets its own column rather than a `read_at` reset |
 
 There's a composite index `(recipient_id, read_at, created_at)` to back the `/account/notifications` index page (default sort + `?filter=unread`), the per-user unread breakdown that drives the bell indicator, and the cleanup job's `read_at < cutoff` scan.
 
