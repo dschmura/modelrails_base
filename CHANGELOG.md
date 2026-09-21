@@ -6,6 +6,10 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- The `modelrails_ui` pin moves to `v0.22.0`, and **the `navigation_menu` fork divergence retires**. That component's `PANEL_LINK` carried a 44px AAA target floor this app had added locally, which meant every re-vendor had to be hand-merged or it would silently revert — nothing would fail, because the app never audits that component in isolation. The gem ships the fix now, so the vendored copy is plain again and the FORK DIVERGENCE note is gone. Flyout links are taller wherever the component renders. `radio_group` also stops building ids from the raw `name:`, so the join-policy picker's ids lose their brackets — `workspace[join_policy]_invite` becomes `workspace_join_policy_invite`. Nothing here needed a spec change: the picker's examples read ids from the attributes that carry them rather than hardcoding the shape, which is what made them forward-compatible. (modelrails_ui #246/#247)
+
+### Changed
+
 - The workspace join-policy picker is `UI::RadioGroup`. It was two hand-rolled `f.radio_button` calls — the only field on that form that never passed through the design system — and it was blocked until the component gained a per-item `description:`. Three things were wrong beyond the styling. The options had **no group semantics at all**, so a reader met two loose radios with no name for the choice; the group is now named by the card's own heading. Each option's help text sat **inside its `<label>`**, making it part of the radio's accessible name — "Shareable join link Anyone with the link can join this workspace…" was announced as the option itself; it is now a description, read after the name. And when the instance has not opted into open link, that explanation was in the label too; it now leads the description, because for an option you cannot choose, why it is unavailable is the fact you came for. The 44px row target and the disabled branch both survive, and nothing asserted any of this before — the picker had no test. (#738, modelrails_ui #137)
 
 ### Fixed

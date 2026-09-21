@@ -57,7 +57,7 @@ module UI
     end
 
     def radio_item(item)
-      id = "#{@name}_#{item[:value].to_s.gsub(/\W/, "_")}"
+      id = radio_id(item[:value])
       described = item[:description].present?
       # items-start only when there is a description to stack: an undescribed row
       # keeps the centred alignment it has always had.
@@ -65,6 +65,20 @@ module UI
         concat radio_input(item, id, described ? description_id(id) : nil)
         concat(described ? described_label(item, id) : radio_label(item, id))
       end
+    end
+
+    # `workspace[join_policy]` + `invite` → `workspace_join_policy_invite`. The
+    # NAME is sanitised as well as the value: a Rails field name is the ordinary
+    # case here and it is full of brackets, which are legal in an HTML5 id but do
+    # not parse in a CSS id selector — `#workspace[join_policy]_invite` reads as
+    # `#workspace` plus an attribute condition, so every consumer of the id has to
+    # know to escape it. Runs collapse to one underscore and the edges are trimmed
+    # so the bracket syntax leaves no doubled or trailing separators. Same rule as
+    # chip_group's `chip_id`. The posted name itself is untouched — Rails needs the
+    # brackets to parse the params. (#247)
+    def radio_id(value)
+      base = @name.to_s.gsub(/\W+/, "_").gsub(/\A_+|_+\z/, "")
+      "#{base}_#{value.to_s.gsub(/\W+/, "_")}"
     end
 
     def description_id(id) = "#{id}_description"
