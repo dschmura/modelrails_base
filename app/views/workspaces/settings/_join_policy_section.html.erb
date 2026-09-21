@@ -3,7 +3,7 @@
 <% open_link_permitted = SignupPolicy.permits_strategy?(:open_link) %>
 <% current_link = workspace.join_links.current.order(created_at: :desc).first %>
 
-<section class="rounded-lg border border-border bg-surface p-6">
+<section class="rounded-lg border border-border bg-surface-raised p-6">
   <h2 class="text-lg font-semibold text-text-heading">
     <%= t("workspaces.settings.join_policy.heading") %>
   </h2>
