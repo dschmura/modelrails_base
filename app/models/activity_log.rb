@@ -111,6 +111,11 @@ class ActivityLog < ApplicationRecord
   # a trackable_type predicate seeks the trackable index and then sorts the
   # whole match in a temp B-tree, while a LIKE on action walks
   # index_activity_logs_on_created_at in output order and stops at LIMIT.
+  # Under the 30-day default every Kind and Tier filter is a range seek on that
+  # index; on All-time each is a full ordered walk of it, the same cost class as
+  # the feed's COUNT. Re-EXPLAIN past ~5 M retained rows, where that crosses
+  # 100 ms — an (action, created_at) or (visibility, created_at) index buys
+  # nothing before then (#1165).
   KINDS = %w[workspace membership invitation project resource user operatorship].freeze
 
   scope :of_kind, ->(kind) { where(arel_table[:action].matches("#{kind}.%")) }

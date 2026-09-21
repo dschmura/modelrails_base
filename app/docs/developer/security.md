@@ -390,6 +390,17 @@ which is why the members page filters and sorts in Ruby (`WorkspaceRoster`),
 and why the operations activity ledger's search box resolves names the same
 way (`ActivityLog::Search`) under a user-count cap rather than in SQL.
 
+That Ruby pass decrypts every member row per search — on the order of 8 ms at
+500 members and 100 ms at 5,000. Measure your own: load a workspace's
+`WorkspaceRoster` in `bin/rails runner` and time `matching` at 1,000, 10,000
+and 100,000 members. A blind index does not rescue this, and it is worth being
+explicit about why, because it is the fix people reach for first: these
+searches are substring matches, and a keyed digest answers equality only. The
+day a workspace outgrows the Ruby pass, the choice is between narrowing the
+match to a prefix or exact address and adding a plaintext search column — a
+deliberate weakening of the posture this section describes. Either way it is a
+product decision, not a migration.
+
 | Column | Cipher | Why |
 | ------ | ------ | --- |
 | `users.email_address` | deterministic, downcased | sign-in lookup; unique index |
