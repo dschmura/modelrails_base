@@ -32,6 +32,10 @@ module Operations
     def index
       authorize [ :operations, ActivityLog ]
       resolve_filters
+      # countish memoizes the COUNT in the page param, so it runs once per filter
+      # change rather than once per page. Under the 30-day default that COUNT is a
+      # range seek on index_activity_logs_on_created_at; on All-time it is a full
+      # ordered walk of it, ~22 ms per million rows (#1130).
       @pagy, page = pagy(:countish, filtered_scope, limit: row_limit, max_limit: ALL_ROWS)
       @activities = page.for_feed
       # Page 1 only: "the first 500 of N" is true of the first page and false of

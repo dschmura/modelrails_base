@@ -186,6 +186,13 @@ names, which are encrypted and searched the slower way described above. A search
 matching exactly one workspace applies the filter; several offer you the
 choice rather than guessing; none says so.
 
+Ordinary SQL, but not an indexed one: a name *fragment* is a `LIKE '%term%'`,
+which no index can serve, so each search examines every kept workspace — about
+0.11 ms per thousand, so 11.4 ms at 100,000 workspaces. That is well under the
+cost of the encrypted-name pass it sits beside. Past roughly 500,000 tenants,
+the answer is prefix matching or FTS5 — a product decision about what a search
+means, not a migration.
+
 `?workspace=<slug>` keeps working on both shapes, so links and bookmarks survive
 the switch.
 
