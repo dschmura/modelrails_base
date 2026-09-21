@@ -34,8 +34,13 @@ module UI
     # viewport) tethered to the trigger via `anchor-name`/`position-anchor`. Being
     # viewport-positioned is what lets the panel be promoted to the top layer, so a
     # sticky/backdrop-blur ancestor cannot bury it (app/javascript/overlays/top_layer.js).
-    CONTENT = "z-50 min-w-48 overflow-hidden rounded-md border bg-surface-overlay p-1 text-text-body shadow mt-1.5 supports-[position-area:bottom]:fixed supports-[position-area:bottom]:[position-area:bottom_span-right] supports-[position-area:bottom]:[position-try-fallbacks:flip-block] not-supports-[position-area:bottom]:absolute not-supports-[position-area:bottom]:top-full not-supports-[position-area:bottom]:left-0"
+    CONTENT = "z-50 min-w-48 max-w-[calc(100vw-2rem)] overflow-hidden rounded-md border bg-surface-overlay p-1 text-text-body shadow mt-1.5 supports-[position-area:bottom]:fixed supports-[position-area:bottom]:[position-area:bottom_span-right] supports-[position-area:bottom]:[position-try-fallbacks:flip-block] not-supports-[position-area:bottom]:absolute not-supports-[position-area:bottom]:top-full not-supports-[position-area:bottom]:left-0"
 
+    # FORK DIVERGENCE — this constant is ahead of the gem. Re-running
+    # `modelrails_ui:add navigation_menu --force` reverts it and nothing fails,
+    # because the app never audits this component in isolation. Filed upstream as
+    # modelrails_ui#246; hand-merge gem changes here until that lands.
+    #
     # Styled link inside a flyout panel. min-h-11: a navigation link (not a
     # role="menuitem" widget interior), so the 44px AAA floor (2.5.5)
     # applies. justify-center (not items-center — this is flex-col, so the

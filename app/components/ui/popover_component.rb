@@ -15,7 +15,7 @@ module UI
     # and merge predictably instead of racing a component class on source order.
     TRIGGER_BASE = "focus-ring min-h-[var(--form-input-height)]"
 
-    PANEL_BASE = "z-50 w-72 rounded-md border border-border bg-surface-overlay p-4 " \
+    PANEL_BASE = "z-50 w-72 max-w-[calc(100vw-2rem)] rounded-md border border-border bg-surface-overlay p-4 " \
                  "text-sm text-text-body shadow-md outline-none"
 
     SIDES = %i[bottom top left right].freeze

@@ -38,7 +38,7 @@ module UI
     # Anchor positioning tethers the fixed bubble back to its item. Pre-Baseline browsers
     # take the `absolute` fallback and lose the hint to that clip — the accessible name is
     # unaffected, so this degrades a nicety, not the semantics.
-    RAIL_TOOLTIP = "pointer-events-none z-50 w-max max-w-48 rounded-md px-2 py-1 " \
+    RAIL_TOOLTIP = "pointer-events-none z-50 w-max max-w-[min(12rem,calc(100vw-2rem))] rounded-md px-2 py-1 " \
                    "bg-text-heading text-surface-raised text-xs whitespace-nowrap " \
                    "opacity-0 transition-opacity duration-150 " \
                    "group-hover/item:opacity-100 group-focus-within/item:opacity-100 " \
@@ -62,8 +62,14 @@ module UI
     # collapsed: initial collapsed state (default: false)
     # label:     accessible name for the <nav> landmark (default: i18n "Sidebar")
     # brand:     text shown in the header
-    # collapsed: initial collapsed state. Pass `sidebar_collapsed?` to honour the
-    #            visitor's remembered choice on the server and avoid a collapse flash.
+    # collapsed: initial collapsed state. To honour the visitor's remembered choice on
+    #            the first paint (rather than painting expanded and collapsing after),
+    #            read the cookie the toggle writes:
+    #
+    #              # app/helpers/application_helper.rb
+    #              def sidebar_collapsed? = cookies[:sidebar_collapsed] == "true"
+    #
+    #            then `ui :sidebar, collapsed: sidebar_collapsed?`.
     # remember:  persist the choice to a cookie the server can read back (default true)
     # label:     accessible name for the <nav> landmark
     def initialize(brand: nil, collapsed: false, remember: true, label: nil, id: nil, **html_attrs)
@@ -78,6 +84,7 @@ module UI
 
     def call
       content_tag(:aside,
+        id: @id,
         class: cn(RAIL_CLS, @extra_class),
         "data-collapsed": @collapsed.to_s,
         data: { controller: "sidebar", sidebar_remember_value: @remember.to_s },

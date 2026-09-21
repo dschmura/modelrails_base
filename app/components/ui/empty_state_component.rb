@@ -5,7 +5,12 @@ module UI
   # Usage, options and the accessibility contract: docs/components/empty_state.md in the
   # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
   class EmptyStateComponent < ApplicationComponent
-    BASE = "px-6 py-10 text-center [&>svg]:mx-auto [&>svg]:size-8 [&>svg]:text-text-muted"
+    # The icon's gap lives on the SVG, not on the title: preflight makes the svg a
+    # block, and the margin has to belong to the optional element — on the title it
+    # would indent an icon-less empty state and leave an icon + description pair
+    # flush. (#241)
+    BASE = "px-6 py-10 text-center " \
+           "[&>svg]:mx-auto [&>svg]:size-8 [&>svg]:text-text-muted [&>svg]:mb-3"
 
     # Three surfaces, each from a real call site rather than invented:
     #   dashed   — the default "nothing here yet" well

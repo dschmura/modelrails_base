@@ -54,7 +54,7 @@ module UI
     # and merge predictably instead of racing a component class on source order.
     TRIGGER_BASE = "focus-ring min-h-[var(--form-input-height)]"
 
-    PANEL_BASE = "z-50 min-w-[8rem] overflow-hidden rounded-md border border-border " \
+    PANEL_BASE = "z-50 min-w-[8rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-md border border-border " \
                  "bg-surface-overlay p-1 text-text-body shadow-md outline-none"
 
     # Menu item: focus-visible AND hover share the same highlight (roving focus must be
