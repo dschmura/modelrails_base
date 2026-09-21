@@ -213,7 +213,12 @@ anyone else. Nothing removes them automatically — not on acceptance, not
 ever. Hand off deliberately, the same way any owner would: transfer
 ownership or leave the workspace once the new owner is in place. An operator
 who creates workspaces regularly and never hands off accumulates
-memberships this way; tracked as #1118.
+memberships this way. That is decided, not outstanding: filtering the switcher
+would need membership provenance the schema does not carry, and auto-leaving on
+acceptance cannot tell an operator's interim ownership from an owner inviting a
+co-owner. If operators are ever scoped to particular workspaces, hand-off stops
+being only untidy — a stale interim membership would confer real access rather
+than redundant access — so it becomes an acceptance criterion of that arc.
 
 ## Suspension keeps memberships
 
