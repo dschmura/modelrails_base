@@ -1,10 +1,6 @@
 <%# locals: (message:, action_text: nil, action_url: nil) -%>
-<%# The icon carries mb-3 here rather than coming spaced from the component:
-    UI::EmptyStateComponent centers and sizes a slotted svg but puts no gap
-    before the title, so without this the icon sits flush on the message
-    (modelrails_ui#241). Drop it once that ships. -%>
 <%= ui :empty_state, title: message do |c| %>
-  <% c.with_icon { icon(:information_circle, class: "mb-3") } %>
+  <% c.with_icon { icon(:information_circle) } %>
   <% if action_text && action_url %>
     <% c.with_action do %>
       <%= link_to action_text, action_url,

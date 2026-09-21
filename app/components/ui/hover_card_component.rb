@@ -7,7 +7,7 @@ module UI
   class HoverCardComponent < ApplicationComponent
     renders_one :trigger
 
-    CARD_BASE = "z-50 w-64 rounded-lg border border-border bg-surface-overlay p-4 text-sm " \
+    CARD_BASE = "z-50 w-64 max-w-[calc(100vw-2rem)] rounded-lg border border-border bg-surface-overlay p-4 text-sm " \
                 "text-text-body shadow-md " \
                 "invisible opacity-0 transition-opacity duration-200 " \
                 "group-data-[state=open]:visible group-data-[state=open]:opacity-100"

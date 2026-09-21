@@ -5,7 +5,7 @@ module UI
   # Usage, options and the accessibility contract: docs/components/tooltip.md in the
   # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
   class TooltipComponent < ApplicationComponent
-    BUBBLE_BASE = "z-50 w-max max-w-xs rounded-md px-3 py-1.5 text-xs text-balance " \
+    BUBBLE_BASE = "z-50 w-max max-w-[min(20rem,calc(100vw-2rem))] rounded-md px-3 py-1.5 text-xs text-balance " \
                   "bg-text-heading text-surface-raised whitespace-normal " \
                   "pointer-events-none opacity-0 transition-opacity duration-200 " \
                   "group-hover/tooltip:opacity-100 group-focus-within/tooltip:opacity-100 " \
