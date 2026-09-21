@@ -82,19 +82,20 @@ invitation *is* or whether it can be accepted.
 checks so a `false` self-identifies (a magic-link invitation has nothing to
 deliver, which is not a block and writes no row).
 
-Four invariants hold the design together:
+Four invariants hold the design together. Code that guards one cites it by
+number, so the numbers live here:
 
-- **Directional.** A block suppresses deliveries to the blocked-from address
+- **I1 — Directional.** A block suppresses deliveries to the blocked-from address
   only, never to the inviter. Inviter-facing notifiers (declined, accepted,
   resent) never consult blocks, so decline-and-block still delivers exactly
   one decline notification.
-- **Ghosts stay redeemable.** `acceptable?`, the `acceptable` scope, and
+- **I2 — Ghosts stay redeemable.** `acceptable?`, the `acceptable` scope, and
   `guard_acceptable!` never look at `suppressed_at`. A redemption error would
   hand the blocked inviter a detection oracle, and the accept page is fresh,
   informed consent — so a suppressed invitation can still be accepted by
   token (stored encrypted, never plaintext — see *Bearer Tokens in Request
   Logs*).
-- **No oracle in the inviter's surfaces.** A ghost is an ordinary pending row
+- **I3 — No oracle in the inviter's surfaces.** A ghost is an ordinary pending row
   in the members index; resend produces the same confirmation as a live
   invitation; and no activity row the inviter can read is written by
   suppression or by block creation. `bulk_invite!`'s counters stay symmetric
@@ -112,7 +113,7 @@ Four invariants hold the design together:
   would let a blocked re-invite succeed where an unblocked one is refused, once
   the first invitation ages out. Matched, both cases get the identical "already
   has a pending invitation" flash.
-- **`suppressed_at` has exactly three writers, all callback-free.**
+- **I4 — `suppressed_at` has exactly three writers, all callback-free.**
   Create-time on the bulk path (create attributes), retroactively at block
   creation (`update_column`), and the mailer guard (`update_column`) — never a
   callback-running `update!`. (`update_all` is the operator unblock's verb, not
