@@ -4,6 +4,10 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+### Fixed
+
+- Two bordered cards stop disappearing into the page. The activity feed and the workspace join-policy section were still painted `bg-surface` — the **page** colour — so once `<body>` moved to `bg-surface` as the paired half of the v0.19.0 surface ruling, both read as a bare outline rather than a card. The activity feed's own comment says its border exists so the feed "reads as an intentional module rather than text floating in whitespace", which is exactly what the page colour defeated. A code-smell spec ported from the gem's `test_container_surface.rb` now scores every bordered container in the app's views and components, so a third answer cannot appear quietly. It ignores a variant-prefixed token: `hover:bg-surface-sunken` on a button is a hover state on a control, not a container fill, and counting it flagged two perfectly correct buttons.
+
 ### Changed
 
 - The `modelrails_ui` pin moves to `v0.20.0`, and the quiet-hours day picker retires into `chip_group` — the gem-side form-submission mode #739 was waiting for. It keeps native checkboxes and a server round-trip per click rather than `toggle_group`'s client-side state, so the bespoke `quiet-hours-warning` controller keeps working unchanged and the component's own empty sentinel replaces the hand-written one. The `<fieldset>` around it goes: the component **is** the group, and nesting it inside a second grouping container made a reader announce the same set twice — it now takes its name from the visible label and points at the empty-days warning itself. The chips also move off a `focus-visible:ring` onto the offset outline the design system requires, since a box-shadow ring is clipped by `overflow:hidden` ancestors and vanishes in forced-colors mode (WCAG 2.2 2.4.7), and `auto-submit` is wired once on the form instead of on each of the seven chips, because `change` bubbles. (Addresses #739; modelrails_ui #169)
