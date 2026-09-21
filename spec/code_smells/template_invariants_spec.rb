@@ -1228,9 +1228,36 @@ RSpec.describe "Template invariants" do
         public/apple-touch-icon.png
         public/favicon.ico
         config/vocabulary.local.yml
+        config/initializers/project_tools.rb
       ].each do |path|
         expect(gitattributes).to match(/^#{Regexp.escape(path)} merge=ours$/),
           "expected .gitattributes to mark #{path} merge=ours"
+      end
+    end
+
+    # The list above is hand-kept and only checks guide-says -> attribute-exists for
+    # paths someone remembered to add. This checks the other direction and derives
+    # its set from the guide's own table, so a row added to the table without the
+    # attribute fails here rather than silently promising a fork something upstream
+    # never arranged (#1106 — project_tools.rb was born that way in #381).
+    it "marks every path the fork-owned table names (the guide's promise is a contract)" do
+      guide = File.read(Rails.root.join("app/docs/developer/forking.md"))
+      gitattributes = File.read(Rails.root.join(".gitattributes"))
+
+      # Bounded to the Fork-owned files section: the conflict table further down
+      # names Gemfile/Gemfile.lock, which are template-owned and merge normally.
+      section = guide[/^## Fork-owned files$.*?(?=^## )/m]
+      expect(section).to be_present, "the Fork-owned files section moved or was renamed"
+
+      documented = section.lines.grep(/^\|/).drop(2).flat_map do |row|
+        row.split("|")[1].to_s.scan(/`([^`]+)`/).flatten
+      end
+      expect(documented).to include("config/locales/en/brand.en.yml"), "table parse produced nothing recognizable"
+
+      documented.each do |path|
+        expect(gitattributes).to match(/^#{Regexp.escape(path)} merge=ours$/),
+          "app/docs/developer/forking.md lists #{path} as fork-owned, but .gitattributes does not mark it " \
+          "merge=ours — a fork that edits it loses its version on the next sync"
       end
     end
 
