@@ -79,6 +79,39 @@ RSpec.describe "Account Passwords", type: :request do
             .to eq(passwordless_user.id.to_s)
         end
 
+        # #1059: the pending row is the only thing the connected-accounts page
+        # has to name the address it is confirming, so a blank one renders
+        # "Confirming " at the user.
+        it "records the address on the created authentication" do
+          post settings_password_path, params: {
+            user: {
+              password: "NewSecureP@ss123!",
+              password_confirmation: "NewSecureP@ss123!"
+            }
+          }
+
+          expect(passwordless_user.authentications.email.sole.email)
+            .to eq(passwordless_user.email_address)
+        end
+
+        it "names the address being confirmed on the connected accounts page" do
+          post settings_password_path, params: {
+            user: {
+              password: "NewSecureP@ss123!",
+              password_confirmation: "NewSecureP@ss123!"
+            }
+          }
+
+          get settings_connected_accounts_path
+
+          expect(response.body).to include(
+            ERB::Util.html_escape(
+              I18n.t("settings.connected_accounts.index.pending_label",
+                     email: passwordless_user.email_address)
+            )
+          )
+        end
+
         it "returns unprocessable entity for short password" do
           post settings_password_path, params: {
             user: { password: "short", password_confirmation: "short" }
