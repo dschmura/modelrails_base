@@ -36,17 +36,14 @@ module UI
     # sticky/backdrop-blur ancestor cannot bury it (app/javascript/overlays/top_layer.js).
     CONTENT = "z-50 min-w-48 max-w-[calc(100vw-2rem)] overflow-hidden rounded-md border bg-surface-overlay p-1 text-text-body shadow mt-1.5 supports-[position-area:bottom]:fixed supports-[position-area:bottom]:[position-area:bottom_span-right] supports-[position-area:bottom]:[position-try-fallbacks:flip-block] not-supports-[position-area:bottom]:absolute not-supports-[position-area:bottom]:top-full not-supports-[position-area:bottom]:left-0"
 
-    # FORK DIVERGENCE — this constant is ahead of the gem. Re-running
-    # `modelrails_ui:add navigation_menu --force` reverts it and nothing fails,
-    # because the app never audits this component in isolation. Filed upstream as
-    # modelrails_ui#246; hand-merge gem changes here until that lands.
-    #
-    # Styled link inside a flyout panel. min-h-11: a navigation link (not a
-    # role="menuitem" widget interior), so the 44px AAA floor (2.5.5)
-    # applies. justify-center (not items-center — this is flex-col, so the
-    # main axis is vertical) keeps single-line content vertically centered
-    # as the row grows to meet the floor, without pulling multi-line
-    # title+description content off its left edge.
+    # Styled link inside a flyout panel. A navigation LINK, not the interior of a
+    # role="menuitem" widget, so the 44px AAA floor (2.5.5) applies to it the same
+    # way it does to TRIGGER and LINK_CLS above — which use a fixed h-11 because
+    # they are single-line. This one stacks a title over an optional description,
+    # so it takes min-h-11 instead: a floor, not a cap. justify-center (the MAIN
+    # axis here, since the container is flex-col) centres single-line content as
+    # the row grows to meet the floor; items-center would pull a two-line link off
+    # its left edge.
     PANEL_LINK = "flex min-h-11 flex-col justify-center gap-1 rounded-sm p-2 text-sm transition-all focus-ring " \
                  "hover:bg-surface-sunken hover:text-text-heading " \
                  "aria-[current]:bg-surface-sunken/50 aria-[current]:text-text-heading"
