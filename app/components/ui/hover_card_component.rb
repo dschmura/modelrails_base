@@ -48,8 +48,10 @@ module UI
 
     private
 
+    # merge_html_attrs, not a flat merge: a caller's `data:` would otherwise replace
+    # this hash wholesale and take data-controller with it.
     def wrapper_attrs
-      {
+      merge_html_attrs({
         class: cn("group relative inline-block", @extra_class),
         style: "anchor-name: --#{@id}",
         data: {
@@ -58,7 +60,7 @@ module UI
                    "focusin->floating#hoverOpen focusout->floating#hoverClose " \
                    "keydown.esc->floating#hoverEscape"
         }
-      }.merge(@html_attrs)
+      }, @html_attrs)
     end
 
     def card

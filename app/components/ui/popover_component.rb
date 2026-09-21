@@ -52,14 +52,13 @@ module UI
     # trigger_class: CSS ADDED to the trigger's accessibility floor (TRIGGER_BASE);
     #                defaults to the canonical .btn-secondary. Your classes are merged
     #                over the floor, so the focus ring and target size cannot be lost.
-    # trigger_attrs: extra attributes for the trigger BUTTON (html_attrs go on the
-    #                wrapper). A trigger that is one control in a group of siblings needs
-    #                the group's state attribute on the button itself — the ledger's
-    #                custom-range trigger carries aria-current beside its range buttons.
-    #                Merged UNDER the ARIA the component owns, so aria-haspopup /
-    #                aria-expanded / aria-controls cannot be overwritten.
+    # trigger_attrs: attributes for the trigger BUTTON (html_attrs go to the wrapper).
+    #                Merged UNDER the component's own contract, so `type`,
+    #                `aria-haspopup`/`expanded`/`controls` and the Stimulus wiring can
+    #                never be overwritten — a caller marking the trigger as the current
+    #                choice in a group cannot also lie about its expanded state.
     def initialize(label:, id: nil, align: :start, side: :bottom, trigger_class: "btn-secondary",
-                   trigger_attrs: {}, **html_attrs)
+      trigger_attrs: {}, **html_attrs)
       @label         = label
       @id            = id || "popover-#{SecureRandom.hex(4)}"
       @align         = coerce_enum(:align, align, ALIGNS)
@@ -80,29 +79,32 @@ module UI
 
     private
 
+    # merge_html_attrs, not a flat merge: a caller's `data:` would otherwise replace
+    # this hash wholesale and take data-controller with it, so the popover would
+    # silently never open. Same bug #204 fixed for `trigger_attrs:`, one site over.
     def wrapper_attrs
-      {
+      merge_html_attrs({
         class: cn("relative inline-block", @extra_class),
         style: "anchor-name: --#{@id}",
         data: {
           controller: "floating",
           action: "keydown.esc->floating#close click@document->floating#closeOnClickOutside"
         }
-      }.merge(@html_attrs)
+      }, @html_attrs)
     end
 
     def trigger_button
       content_tag(:button, trigger, **trigger_button_attrs)
     end
 
-    # `data:` is merged one level deeper than everything else, deliberately. A
-    # flat merge drops a caller's whole `data:` hash on the floor — silently,
-    # since the component sets `data:` too and the last write wins — so a
-    # caller's own hook simply never appears with nothing to explain why.
+    # `data:` is merged one level deeper than everything else, deliberately. A flat
+    # merge would drop a caller's whole `data:` hash on the floor — silently, since
+    # the component sets `data:` too and the last write wins — so a caller's own
+    # hook would simply never appear with nothing to explain why.
     #
-    # Keys are stringified first because `content_tag` de-duplicates neither
-    # `:key` against `"key"` nor the reverse: it emits both and lets the browser
-    # choose the winner. (Ported from modelrails_ui #204.)
+    # Keys are stringified before merging because `content_tag` de-duplicates
+    # neither `:key` against `"key"` nor the reverse: it emits both and lets the
+    # browser choose the winner.
     def trigger_button_attrs
       attrs = {}
       @trigger_attrs.each { |key, value| attrs[key.to_s] = value }

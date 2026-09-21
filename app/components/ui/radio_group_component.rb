@@ -5,7 +5,12 @@ module UI
   # Usage, options and the accessibility contract: docs/components/radio_group.md in the
   # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
   class RadioGroupComponent < ApplicationComponent
-    # items: [{ value:, label:, checked: (optional), disabled: (optional) }]
+    # items: [{ value:, label:, description: (optional), checked: (optional),
+    #           disabled: (optional) }]
+    #
+    #   description: a supporting line for THAT option. Rendered beside the label
+    #   and linked to the input with aria-describedby, so it is announced after the
+    #   option's name rather than becoming part of it.
     #
     # Group accessibility/form params, mirroring the shared form-control API:
     #   label:       sets the group's accessible name via `aria-label`
@@ -53,19 +58,37 @@ module UI
 
     def radio_item(item)
       id = "#{@name}_#{item[:value].to_s.gsub(/\W/, "_")}"
-      content_tag(:div, class: "flex items-center gap-2") do
-        concat radio_input(item, id)
-        concat radio_label(item, id)
+      described = item[:description].present?
+      # items-start only when there is a description to stack: an undescribed row
+      # keeps the centred alignment it has always had.
+      content_tag(:div, class: cn("flex gap-2", described ? "items-start" : "items-center")) do
+        concat radio_input(item, id, described ? description_id(id) : nil)
+        concat(described ? described_label(item, id) : radio_label(item, id))
       end
     end
 
-    def radio_input(item, id)
+    def description_id(id) = "#{id}_description"
+
+    # The description is a SIBLING of the label, never inside it. Inside, it would
+    # become part of the radio's accessible name and be read as the option itself;
+    # as a sibling linked by aria-describedby it is announced after the name, which
+    # is what a supporting line is for (#137).
+    def described_label(item, id)
+      content_tag(:div, class: "grid") do
+        concat radio_label(item, id)
+        concat content_tag(:p, item[:description], id: description_id(id),
+          class: "text-sm text-text-muted")
+      end
+    end
+
+    def radio_input(item, id, describedby = nil)
       attrs = { type: "radio", name: @name, value: item[:value], id: id,
                 class: "h-4 w-4 border border-interactive text-interactive accent-interactive " \
                        "focus-ring " \
                        "disabled:cursor-not-allowed disabled:opacity-50" }
       attrs[:checked] = true if item[:checked]
       attrs[:disabled] = true if item[:disabled]
+      attrs["aria-describedby"] = describedby if describedby
       content_tag(:input, nil, **attrs)
     end
 
