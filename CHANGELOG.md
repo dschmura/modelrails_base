@@ -4,6 +4,10 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+### Changed
+
+- The workspace join-policy picker is `UI::RadioGroup`. It was two hand-rolled `f.radio_button` calls — the only field on that form that never passed through the design system — and it was blocked until the component gained a per-item `description:`. Three things were wrong beyond the styling. The options had **no group semantics at all**, so a reader met two loose radios with no name for the choice; the group is now named by the card's own heading. Each option's help text sat **inside its `<label>`**, making it part of the radio's accessible name — "Shareable join link Anyone with the link can join this workspace…" was announced as the option itself; it is now a description, read after the name. And when the instance has not opted into open link, that explanation was in the label too; it now leads the description, because for an option you cannot choose, why it is unavailable is the fact you came for. The 44px row target and the disabled branch both survive, and nothing asserted any of this before — the picker had no test. (#738, modelrails_ui #137)
+
 ### Fixed
 
 - Two bordered cards stop disappearing into the page. The activity feed and the workspace join-policy section were still painted `bg-surface` — the **page** colour — so once `<body>` moved to `bg-surface` as the paired half of the v0.19.0 surface ruling, both read as a bare outline rather than a card. The activity feed's own comment says its border exists so the feed "reads as an intentional module rather than text floating in whitespace", which is exactly what the page colour defeated. A code-smell spec ported from the gem's `test_container_surface.rb` now scores every bordered container in the app's views and components, so a third answer cannot appear quietly. It ignores a variant-prefixed token: `hover:bg-surface-sunken` on a button is a hover state on a control, not a container fill, and counting it flagged two perfectly correct buttons.
