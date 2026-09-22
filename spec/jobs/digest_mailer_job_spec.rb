@@ -19,6 +19,14 @@ RSpec.describe DigestMailerJob, type: :job do
     user.create_preferences!(timezone: "UTC")
   end
 
+  # The schedule's explicit `queue:` wins over this, so the two disagreeing
+  # costs nothing at runtime and is invisible — which is exactly why it went
+  # unnoticed. queue.yml names its queues so a backed-up one can be traced to
+  # a job class, and that only works while the class tells the truth (#1045).
+  it "declares the queue config/recurring.yml actually routes it to" do
+    expect(described_class.queue_name).to eq("mailers")
+  end
+
   describe "#perform" do
     context "user is due for digest" do
       before do
@@ -166,6 +174,24 @@ RSpec.describe DigestMailerJob, type: :job do
         expect(User).to receive(:joins).with(:preferences).and_call_original
 
         described_class.perform_now
+      end
+
+      # Reads only. The job writes user_preferences once per user it visits
+      # (reschedule_digest!), so counting every statement would assert a
+      # contract no preload can satisfy — the writes rise with the population
+      # by design, the SELECTs must not (#1048).
+      it "does not add a user_preferences SELECT per additional due user" do
+        user.preferences.update!(digest_next_due_at: 1.minute.ago)
+        one_due = count_selects_touching("user_preferences") { described_class.perform_now }
+
+        2.times { create(:user).create_preferences!(timezone: "UTC") }
+        UserPreferences.update_all(digest_next_due_at: 1.minute.ago)
+        three_due = count_selects_touching("user_preferences") { described_class.perform_now }
+
+        expect(three_due).to eq(one_due),
+          "one due user costs #{one_due} user_preferences SELECT(s) and three cost " \
+          "#{three_due} — the candidate scan is joining the table but not preloading it, " \
+          "so each user re-queries their own row"
       end
     end
   end
