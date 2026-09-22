@@ -77,7 +77,8 @@ class ActivityLog < ApplicationRecord
       .order(created_at: :desc)
   }
   scope :recent, -> { order(created_at: :desc).limit(20) }
-  # Invariant I3 (decline-and-block): admin visibility alone doesn't keep a
+  # Invariant I3 (decline-and-block, defined in security.md "Invitation blocks"):
+  # admin visibility alone doesn't keep a
   # suppressed-delivery row from an inviter here, since the operator IS often
   # the inviter. See operations.md "What the area does" (Activity).
   INVITER_UNREADABLE_ACTIONS = %w[invitation.delivery_suppressed].freeze

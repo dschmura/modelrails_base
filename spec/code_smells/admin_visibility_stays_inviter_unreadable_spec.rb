@@ -1,6 +1,7 @@
 require "rails_helper"
 
-# Invariant I3 of the decline-and-block feature (PR 4): the inviter must never
+# Invariant I3 of the decline-and-block feature (PR 4), defined in
+# app/docs/developer/security.md "Invitation blocks": the inviter must never
 # be able to confirm a block. `Invitation#record_suppressed_delivery` writes
 # the ONLY evidence of a suppressed delivery, and deliberately gives it
 # `visibility: "admin"` so it drops out of every inviter-facing feed. That
