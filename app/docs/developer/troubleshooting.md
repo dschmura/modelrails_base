@@ -48,6 +48,32 @@ If a class from a gem template still isn't compiling, verify the symlink target 
 
 **Fix**: Override the gem's templates at `app/views/<engine_name>/...` using your design tokens (`bg-surface-raised`, `text-text-heading`, etc.). Rails view resolution prefers `app/views/` over engine view paths, so the host's overrides take precedence at render time. See the Markdowndocs Integration section of [architecture.md](/docs/developer/architecture#markdowndocs-gem-integration) for how this is wired in this app.
 
+## `db/queue_schema.rb` shows as modified, or `bin/jobs` crashes `bin/dev` at boot
+
+Two symptoms, one cause. Solid Queue's tables live in a separate `queue`
+database, loaded from `db/queue_schema.rb` rather than from migrations —
+`db/queue_migrate` is deliberately empty.
+
+Rails decides a database is already initialized by checking whether
+`schema_migrations` exists. A queue database that has that table and nothing
+else answers yes, so the schema load is skipped, there are no migrations to run,
+and the dump that follows `db:migrate` writes the empty result over the
+committed schema file. `bin/jobs` then finds no `solid_queue_processes` table
+and takes `bin/dev` down with it.
+
+You reach that state by ordinary means: `bin/jobs` auto-creates the queue file,
+and a preserved workspace — a devcontainer Rebuild rather than a
+delete-and-recreate — keeps it.
+
+Current checkouts repair this automatically: `db:prepare` and `db:migrate` both
+load the queue schema first when the tables are missing. On an older checkout,
+restore the file and reload the database by hand:
+
+```bash
+git checkout db/queue_schema.rb
+bin/rails db:reset:queue
+```
+
 ## Operations
 
 Recipes for running the app, rather than for developing it. These arrive as support tickets.
