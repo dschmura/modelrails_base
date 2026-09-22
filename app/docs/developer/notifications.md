@@ -472,9 +472,9 @@ These traversals are deliberately **not** Bullet-safelisted: safelist entries ar
 
 `lib/bullet_safelists.rb` (shared by the development and test configs) keeps a small set of entries specific to this surface. They're not "ignored warnings" — each documents a constraint:
 
-- **`WorkspaceMemberAddedNotifier::Notification` n_plus_one_query on `:recipient`** — Noticed v2's `EventJob` iterates `event.notifications.each` and accesses each notification's `recipient` (for the `deliver_by :email` lambda's `recipient_pref` check). The library doesn't expose a hook to eager-load `:recipient` on the notifications relation, so this is a structural constraint of the gem. Covers WorkspaceMemberAdded's fan-out to every workspace owner.
-- **`WorkspaceCapacityApproachingNotifier::Notification` n_plus_one_query on `:recipient`** — same delivery-layer rationale as above; capacity alerts dispatch to all workspace owners.
 - **`SignInFromNewDeviceNotifier` unused_eager_loading on `:record`** — the index page eager-loads `event.record` for every row because every other notifier's `#message` interpolates `event.record.<attr>`. SignInFromNewDevice reads only `event.params`, so when it's the only subtype in a result the include looks wasted. The safelist documents the deliberate trade-off rather than dropping eager-load for all rows.
+
+Two `:recipient` n_plus_one_query entries lived here until #1054 and are now gone. Their rationale was the `deliver_by :email` lambda's per-recipient `recipient_pref` check; #936 replaced that gate with one answered from the event's own permitted-id set, which reads no association. Nothing in `app/` or `lib/` reads `recipient` on a collection path any more — `recipient_pref` survives as an introspection shim with no caller outside specs — so the capacity entry was dead outright and the member-added one was held up only by spec-side reads, which now eager-load with `.includes(:recipient)`.
 
 ## Operational concerns
 

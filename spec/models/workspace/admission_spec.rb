@@ -209,7 +209,8 @@ RSpec.describe Workspace, type: :model do
       end
 
       def recipients_of(notifier)
-        Noticed::Notification.where(type: "#{notifier}::Notification").map(&:recipient)
+        Noticed::Notification.where(type: "#{notifier}::Notification")
+          .includes(:recipient).map(&:recipient)
       end
 
       it "keeps the granter out of the member-added fan-out" do
