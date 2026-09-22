@@ -26,7 +26,12 @@ class DigestMailerJob < ApplicationJob
   queue_as :mailers
 
   def perform
+    # joins AND includes, both load-bearing: the WHERE below is a string
+    # naming user_preferences, which `includes` alone would not join (it needs
+    # `references`), and `joins` alone leaves send_digest_for re-querying each
+    # user's own row (#1048).
     User.joins(:preferences)
+        .includes(:preferences)
         .where("user_preferences.digest_next_due_at <= ?", Time.current)
         .find_each do |user|
       send_digest_for(user)

@@ -175,6 +175,24 @@ RSpec.describe DigestMailerJob, type: :job do
 
         described_class.perform_now
       end
+
+      # Reads only. The job writes user_preferences once per user it visits
+      # (reschedule_digest!), so counting every statement would assert a
+      # contract no preload can satisfy — the writes rise with the population
+      # by design, the SELECTs must not (#1048).
+      it "does not add a user_preferences SELECT per additional due user" do
+        user.preferences.update!(digest_next_due_at: 1.minute.ago)
+        one_due = count_selects_touching("user_preferences") { described_class.perform_now }
+
+        2.times { create(:user).create_preferences!(timezone: "UTC") }
+        UserPreferences.update_all(digest_next_due_at: 1.minute.ago)
+        three_due = count_selects_touching("user_preferences") { described_class.perform_now }
+
+        expect(three_due).to eq(one_due),
+          "one due user costs #{one_due} user_preferences SELECT(s) and three cost " \
+          "#{three_due} — the candidate scan is joining the table but not preloading it, " \
+          "so each user re-queries their own row"
+      end
     end
   end
 
