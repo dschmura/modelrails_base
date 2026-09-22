@@ -20,7 +20,10 @@
 # those ids at delivery time, which is also the last gate on read state.
 # See /docs/developer/notifications (DigestMailerJob).
 class DigestMailerJob < ApplicationJob
-  queue_as :default
+  # Matches config/recurring.yml, which pins this to `mailers`. The schedule's
+  # explicit queue wins either way, so a disagreement here would not change
+  # where the job runs — it would just make this line false (#1045).
+  queue_as :mailers
 
   def perform
     User.joins(:preferences)

@@ -19,6 +19,14 @@ RSpec.describe DigestMailerJob, type: :job do
     user.create_preferences!(timezone: "UTC")
   end
 
+  # The schedule's explicit `queue:` wins over this, so the two disagreeing
+  # costs nothing at runtime and is invisible — which is exactly why it went
+  # unnoticed. queue.yml names its queues so a backed-up one can be traced to
+  # a job class, and that only works while the class tells the truth (#1045).
+  it "declares the queue config/recurring.yml actually routes it to" do
+    expect(described_class.queue_name).to eq("mailers")
+  end
+
   describe "#perform" do
     context "user is due for digest" do
       before do
