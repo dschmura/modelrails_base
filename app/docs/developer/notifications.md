@@ -484,7 +484,7 @@ Watch for:
 
 - **`Rails.error` reports tagged `source: "NotificationBroadcaster.refresh_for"`** — cable adapter outages or partial-render errors. Notification persistence is unaffected, but the real-time UX degrades to "next page load."
 - **`Solid Queue` job retries** on `DigestMailerJob` and `NotificationCleanupJob` — queue assignment lives in `config/recurring.yml`. Failed digest sends will retry per the queue's policy.
-- **`noticed_events` growth rate** — events are not pruned by `NotificationCleanupJob` (only `noticed_notifications` rows are). Long-lived events with retention'd-away notifications accumulate. Pruning of orphan events is a future cleanup.
+- **`noticed_events` growth rate** — `NotificationCleanupJob` prunes an event once it has no notifications left, in the same pass that deleted them. Pruning is **childless-only and never age-based**: deleting an event cascades to every recipient's row through the FK, so age is the one criterion that could take live notifications with it. Childlessness is decided by a subquery against `noticed_notifications`, never by `noticed_events.notifications_count`, which is deliberately stale (#811).
 
 ### Tuning
 

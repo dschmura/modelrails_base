@@ -36,9 +36,34 @@ class NotificationCleanupJob < ApplicationJob
     end
 
     raise last_error if failed.positive? && failed == attempted
+
+    # After the loop, so events this run just emptied are pruned in the same
+    # pass. Skipped when every user failed: nothing was deleted, and the fault
+    # is systemic (SQLite's writer lock is global), so the prune would only
+    # raise a second error over the first.
+    prune_orphan_events
   end
 
   private
+
+  # CHILDLESS-ONLY, never age-based. Deleting an event cascades to every
+  # recipient's row through the FK, so age is the one criterion that could
+  # take live notifications with it — an event from 2019 whose notification
+  # is still unread belongs to somebody's list. An event with no rows belongs
+  # to nobody and can never be read, rendered, or counted (#811).
+  #
+  # NOT IN, not the counter cache: noticed_events.notifications_count was
+  # deliberately left stale, so pruning on it would delete events that still
+  # have rows. Safe as NOT IN because noticed_notifications.event_id is
+  # NOT NULL — a nullable column would make the whole predicate unknown and
+  # match nothing.
+  def orphan_events
+    Noticed::Event.where.not(id: Noticed::Notification.select(:event_id))
+  end
+
+  def prune_orphan_events
+    orphan_events.in_batches(of: 100, &:delete_all)
+  end
 
   def cleanup_for(user)
     days = ApplicationNotifier.preferences_for(user).retention_days
