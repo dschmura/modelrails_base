@@ -8,7 +8,6 @@ RSpec.describe WorkspaceSwitcherHelper, type: :helper do
 
     before do
       allow(Current).to receive(:user).and_return(user)
-      allow(Current).to receive(:workspace).and_return(nil)
     end
 
     # The helper eager-loads the chip's logo and role for the header render.

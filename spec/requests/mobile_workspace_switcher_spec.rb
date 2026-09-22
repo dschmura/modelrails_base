@@ -7,8 +7,12 @@ require "rails_helper"
 # It renders above the section tabs on WORKSPACE pages (#1077), a second copy
 # of the sidebar switcher carrying a `-mobile` id suffix — the sidebar copy is
 # display:none below md, not absent. It replaced the inline list that lived in
-# the hamburger, so the workspaces index no longer carries a switcher at all
-# (the index IS the switcher; see workspace_switcher_spec for that placement).
+# the hamburger.
+#
+# The workspaces index renders it too, and differently: no current workspace and
+# `capped: true` (workspaces/index.html.erb), so the list is the five most
+# recently used rather than all of them. #1090 reversed the earlier decision that
+# the index carried no switcher; this header said otherwise until #1091.
 # Everything here asserts on the raw body: the mobile copy is md:hidden, so it
 # is in the DOM at every width.
 RSpec.describe "Mobile workspace switcher", type: :request do
