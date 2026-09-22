@@ -82,7 +82,7 @@ RSpec.describe "Operations workspaces", type: :request do
     # that person as Owner beside a member count of zero — disagreeing with
     # show, which is built from memberships.kept.
     it "does not credit a discarded membership's user as Owner" do
-      Membership.kept.find_by!(user: owner, workspace: workspace).discard!
+      Membership.kept.find_by!(user: owner, workspace: workspace).update!(discarded_at: Time.current)
 
       get operations_workspaces_path
       html = Capybara.string(response.body)

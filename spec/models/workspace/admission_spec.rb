@@ -266,7 +266,7 @@ RSpec.describe Workspace, type: :model do
 
     it "does not count discarded memberships" do
       workspace = create(:workspace, max_members: 1)
-      create(:membership, workspace: workspace).discard!
+      create(:membership, :deactivated, workspace: workspace)
 
       expect(workspace.at_capacity?).to be false
     end
