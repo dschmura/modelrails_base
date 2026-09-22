@@ -106,6 +106,49 @@ class ActivityLog < ApplicationRecord
     )
   }
 
+  # The overview feed, scoped to what the viewer may actually open (#1154).
+  #
+  # WorkspacePolicy#show? is membership.present?, so every member read every
+  # workspace-visibility row — including rows about projects ProjectPolicy#show?
+  # refuses them. The two policies disagreed; this is the model half of making
+  # them agree.
+  #
+  # Two partitions, and every Trackable includer belongs to exactly one:
+  # rows about the workspace itself, which any member may read, and rows about
+  # a project, which follow that project's own visibility. Invitation is in
+  # both because it is polymorphic — a workspace invitation is workspace-level,
+  # a project invitation follows its project.
+  #
+  # A type in NEITHER list falls out of the feed entirely. That is deliberate:
+  # for a leak fix, invisible is the safe default, and
+  # spec/models/activity_log_feed_scope_spec.rb fails on an unclassified
+  # Trackable includer so a fork adding one is told rather than silently
+  # leaking it.
+  WORKSPACE_LEVEL_TRACKABLES = %w[Workspace Membership].freeze
+  PROJECT_LEVEL_TRACKABLES = %w[Project Resource].freeze
+  # Classified by what they hang off rather than by their type, so they appear
+  # in both partitions above.
+  POLYMORPHIC_TRACKABLES = %w[Invitation].freeze
+
+  # `projects` is a relation the CALLER has already scoped to what this viewer
+  # can open (policy_scope), passed as a subselect rather than an id array so
+  # the whole thing stays one query riding (workspace_id, created_at).
+  scope :for_workspace_feed, ->(workspace, projects:) {
+    project_ids = projects.select(:id)
+
+    workspace_level = where(trackable_type: WORKSPACE_LEVEL_TRACKABLES)
+      .or(where(trackable_type: "Invitation",
+                trackable_id: Invitation.where(invitable_type: "Workspace", invitable_id: workspace.id).select(:id)))
+
+    project_level = where(trackable_type: "Project", trackable_id: project_ids)
+      .or(where(trackable_type: "Resource",
+                trackable_id: Resource.where(project_id: project_ids).select(:id)))
+      .or(where(trackable_type: "Invitation",
+                trackable_id: Invitation.where(invitable_type: "Project", invitable_id: project_ids).select(:id)))
+
+    visible.for_workspace(workspace).merge(workspace_level.or(project_level))
+  }
+
   # The operations ledger's Kind filter. One entry per action family the
   # locale tree sentences know (spec/models/activity_log_filters_spec.rb pins
   # the two lists together). Filters on the stored action prefix on purpose:
@@ -160,7 +203,7 @@ class ActivityLog < ApplicationRecord
   scope :at_instance_level, -> { where(workspace_id: nil) }
 
   # The feed's loader — call last in a chain
-  # (`ActivityLog.visible.for_workspace(w).recent.for_feed`). Returns an
+  # (`ActivityLog.for_workspace_feed(w, projects:).recent.for_feed`). Returns an
   # Array, not a Relation: `trackable` is polymorphic and only Membership
   # carries `user`, so a blanket `preload(trackable: :user)` raises
   # AssociationNotFoundError the moment a Project or Invitation row shares
