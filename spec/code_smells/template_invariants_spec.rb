@@ -842,6 +842,37 @@ RSpec.describe "Template invariants" do
         "retention sweeps` convention"
     end
 
+    # An explicit `queue:` WINS over the class's own queue_as (see
+    # effective_recurring_queue below), so the two disagreeing is silent: the
+    # job runs where the schedule says, and the class's declaration is simply
+    # false. DigestMailerJob declared :default while the schedule routed it to
+    # mailers, and nothing noticed — both queues are polled, so there was no
+    # symptom to notice (#1045). What it costs is the reason queue.yml names
+    # its queues at all: "the mailers queue is backed up" stops being a
+    # statement you can trace back to a job class.
+    it "recurring.yml's queue agrees with the job class's own queue_as" do
+      recurring = YAML.safe_load(recurring_yml_raw, aliases: true).fetch("production")
+      pinned = recurring.select { |_name, entry| entry["class"].present? && entry["queue"].present? }
+
+      # A misparse here would examine nothing and pass. These are the entries
+      # the invariant claims to have checked.
+      expect(pinned.size).to be >= 8,
+        "only #{pinned.size} recurring entries name both a class and a queue — the parse has " \
+        "stopped seeing the schedule, so a disagreement would go unreported"
+
+      disagreeing = pinned.filter_map do |name, entry|
+        declared = entry["class"].constantize.queue_name.to_s
+        next if declared == entry["queue"].to_s
+
+        "#{name}: #{entry['class']} declares `queue_as :#{declared}`, schedule says `queue: #{entry['queue']}`"
+      end
+
+      expect(disagreeing).to be_empty,
+        "config/recurring.yml's `queue:` overrides the class, so these classes lie about where " \
+        "they run. Change the class's queue_as to match the schedule (or drop the schedule's " \
+        "`queue:` and let the class decide):\n  #{disagreeing.join("\n  ")}"
+    end
+
     # Mirrors SolidQueue::RecurringTask: an explicit `queue:` wins, otherwise
     # the job class's own `queue_as` decides — and a `command:` entry has no
     # class, so SolidQueue::RecurringJob's does.

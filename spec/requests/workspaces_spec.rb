@@ -402,6 +402,33 @@ RSpec.describe "Workspaces", type: :request do
       end
     end
 
+    # Through the real render, not the helper: the bug was a link in a page a
+    # Member was shown, and the fix only counts if what ships in the markup
+    # changed (#1153).
+    describe "the workspace nav's Settings link" do
+      it "points a Member at a page they can open, not the one they are refused" do
+        workspace = create(:workspace, personal: false)
+        member = create(:user)
+        create(:membership, user: member, workspace: workspace)
+        sign_in(member)
+
+        get workspace_path(workspace)
+
+        expect(response.body).to include(workspace_members_path(workspace))
+        expect(response.body).not_to include("href=\"#{edit_workspace_path(workspace)}\""),
+          "the nav still offers a Member the Profile page, which ProfilePolicy refuses them"
+      end
+
+      it "still points an Owner at the Profile page" do
+        workspace = create(:workspace, personal: false)
+        create(:membership, :owner, user: user, workspace: workspace)
+
+        get workspace_path(workspace)
+
+        expect(response.body).to include("href=\"#{edit_workspace_path(workspace)}\"")
+      end
+    end
+
     describe "POST /workspaces with invalid params" do
       it "returns unprocessable entity for blank name" do
         post workspaces_path, params: { workspace: { name: "" } }
