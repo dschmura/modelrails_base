@@ -45,14 +45,27 @@ class NotificationCleanupJob < ApplicationJob
     rescue StandardError => e
       # Per-user data faults (a malformed preferences row) cost that user's
       # sweep, not the cycle. A systemic fault — SQLite's writer lock is
-      # global — fails every user and is re-raised below so Solid Queue
-      # records a failure and retries instead of logging success.
+      # global — fails every user and is re-raised below, so Solid Queue
+      # records a failure instead of a clean run. There is no retry policy on
+      # this job: the recovery is tomorrow's fresh sweep, which re-attempts
+      # every user from scratch because nothing here is stamped as done.
       failed += 1
       last_error = e
       Rails.error.report(e, handled: true, context: { user_id: user.id, job: self.class.name })
     end
 
     raise last_error if failed.positive? && failed == attempted
+
+    # A PARTIAL failure raises nothing — two of three users failing is not
+    # `failed == attempted` — and the per-user reports go to Rails.error, so
+    # without this line the run reads as a clean sweep to anyone watching the
+    # queue (#944). Said once, with the shape of the damage.
+    if failed.positive?
+      Rails.logger.warn(
+        "[#{self.class.name}] swept #{attempted - failed} of #{attempted} users " \
+        "(#{failed} failed; last: #{last_error.class})"
+      )
+    end
 
     # After the loop, so events this run just emptied are pruned in the same
     # pass. Skipped when every user failed: nothing was deleted, and the fault
