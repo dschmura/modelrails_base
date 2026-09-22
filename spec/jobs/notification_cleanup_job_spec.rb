@@ -127,6 +127,22 @@ RSpec.describe NotificationCleanupJob, type: :job do
         expect(Noticed::Notification.where(id: old_for_other.id)).not_to exist
       end
 
+      # A partial systemic failure is the gap: two of three users failing is not
+      # `failed == attempted`, so nothing raises — and with the per-user reports
+      # going to Rails.error, the run ends looking like a clean sweep. The job
+      # has to say what it actually did (#944).
+      it "says how much of the sweep succeeded when only some users failed" do
+        corrupt_retention_for(user)
+        corrupt_retention_for(other_user)
+        third = create(:user)
+        third.create_preferences!
+        allow(Rails.error).to receive(:report)
+
+        expect(Rails.logger).to receive(:warn).with(/swept 1 of 3 users \(2 failed; last: TypeError\)/)
+
+        expect { described_class.perform_now }.not_to raise_error
+      end
+
       it "re-raises when every attempted user failed, so the queue records a failure" do
         corrupt_retention_for(user)
         corrupt_retention_for(other_user)
