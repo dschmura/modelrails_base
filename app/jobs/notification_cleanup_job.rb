@@ -15,6 +15,23 @@
 class NotificationCleanupJob < ApplicationJob
   queue_as :low
 
+  # Which events are orphans — public because it is the contract, not an
+  # implementation detail: CHILDLESS-ONLY, never age-based. Deleting an event
+  # cascades to every recipient's row through the FK, so age is the one
+  # criterion that could take live notifications with it. An event from years
+  # ago whose notification is still unread belongs to somebody's list; an
+  # event with no rows belongs to nobody and can never be read, rendered, or
+  # counted (#811).
+  #
+  # Asked of noticed_notifications, never of noticed_events.notifications_count,
+  # which was deliberately left stale — pruning on that counter would delete
+  # events that still have rows. NOT IN is sound here only because
+  # noticed_notifications.event_id is NOT NULL; a nullable column would make
+  # the predicate unknown and match nothing.
+  def self.orphan_events
+    Noticed::Event.where.not(id: Noticed::Notification.select(:event_id))
+  end
+
   def perform
     attempted = 0
     failed = 0
@@ -46,23 +63,8 @@ class NotificationCleanupJob < ApplicationJob
 
   private
 
-  # CHILDLESS-ONLY, never age-based. Deleting an event cascades to every
-  # recipient's row through the FK, so age is the one criterion that could
-  # take live notifications with it — an event from 2019 whose notification
-  # is still unread belongs to somebody's list. An event with no rows belongs
-  # to nobody and can never be read, rendered, or counted (#811).
-  #
-  # NOT IN, not the counter cache: noticed_events.notifications_count was
-  # deliberately left stale, so pruning on it would delete events that still
-  # have rows. Safe as NOT IN because noticed_notifications.event_id is
-  # NOT NULL — a nullable column would make the whole predicate unknown and
-  # match nothing.
-  def orphan_events
-    Noticed::Event.where.not(id: Noticed::Notification.select(:event_id))
-  end
-
   def prune_orphan_events
-    orphan_events.in_batches(of: 100, &:delete_all)
+    self.class.orphan_events.in_batches(of: 100, &:delete_all)
   end
 
   def cleanup_for(user)

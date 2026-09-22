@@ -232,7 +232,7 @@ RSpec.describe NotificationCleanupJob, type: :job do
     end
 
     it "asks the notifications table, not the counter cache" do
-      sql = described_class.new.send(:orphan_events).to_sql
+      sql = described_class.orphan_events.to_sql
 
       expect(sql).not_to include("notifications_count"),
         "noticed_events.notifications_count was deliberately left stale, so pruning on it " \
