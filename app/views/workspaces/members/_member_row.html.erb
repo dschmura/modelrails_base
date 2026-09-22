@@ -25,7 +25,7 @@
               "focus-return-target": "restoreTo"
             },
             class: "text-sm text-interactive hover:text-interactive-hover
-                    inline-flex min-h-11 items-center focus-ring rounded" %>
+                    inline-flex min-h-input items-center focus-ring rounded" %>
     <% end %>
     <%# #1050: these three post from inside the members_results frame and all
         answer with a redirect carrying a flash, which the layout renders
@@ -41,7 +41,7 @@
             form: { data: { turbo_frame: "_top" } },
             aria: { label: t("workspaces.members.index.deactivate_aria", name: membership.user.full_name) },
             class: "text-sm text-danger hover:opacity-80 bg-transparent border-0 cursor-pointer
-                    inline-flex min-h-11 items-center focus-ring rounded" %>
+                    inline-flex min-h-input items-center focus-ring rounded" %>
     <% end %>
     <% if policy(membership).reactivate? && membership.discarded? %>
       <%= button_to t("workspaces.members.index.reactivate"),
@@ -50,7 +50,7 @@
             form: { data: { turbo_frame: "_top" } },
             aria: { label: t("workspaces.members.index.reactivate_aria", name: membership.user.full_name) },
             class: "text-sm text-success hover:opacity-80 bg-transparent border-0 cursor-pointer
-                    inline-flex min-h-11 items-center focus-ring rounded" %>
+                    inline-flex min-h-input items-center focus-ring rounded" %>
     <% end %>
     <% if policy(membership).transfer_ownership? %>
       <%= button_to t("workspaces.members.index.transfer_ownership"),
@@ -59,7 +59,7 @@
             form: { data: { turbo_frame: "_top" } },
             aria: { label: t("workspaces.members.index.transfer_ownership_aria", name: membership.user.full_name) },
             class: "text-sm text-text-muted hover:text-interactive-hover bg-transparent border-0 cursor-pointer
-                    inline-flex min-h-11 items-center focus-ring rounded" %>
+                    inline-flex min-h-input items-center focus-ring rounded" %>
     <% end %>
   </div>
   </td>

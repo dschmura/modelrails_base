@@ -23,19 +23,19 @@
 
   <nav class="mt-8 flex flex-wrap gap-4" aria-label="<%= t(".nav_label") %>">
     <%= link_to t("workspaces.projects.show.members"), workspace_project_memberships_path(@workspace, @project),
-          class: "min-h-[var(--form-input-height)] flex items-center px-4 py-2 rounded-md border border-border
+          class: "min-h-input flex items-center px-4 py-2 rounded-md border border-border
                   text-text-body hover:border-interactive
                   focus-ring" %>
     <% if policy(@project).update? %>
       <%= link_to t("workspaces.projects.show.edit"), edit_workspace_project_path(@workspace, @project),
-            class: "min-h-[var(--form-input-height)] flex items-center px-4 py-2 rounded-md border border-border
+            class: "min-h-input flex items-center px-4 py-2 rounded-md border border-border
                     text-text-body hover:border-interactive
                     focus-ring" %>
       <%= link_to t("project_tools.settings.link"), edit_workspace_project_tools_path(@workspace, @project),
-            class: "min-h-[var(--form-input-height)] flex items-center px-4 py-2 rounded-md border border-border
+            class: "min-h-input flex items-center px-4 py-2 rounded-md border border-border
                     text-text-body hover:border-interactive focus-ring" %>
       <%= link_to t("clientside.settings.link"), edit_workspace_project_clientside_path(@workspace, @project),
-            class: "min-h-[var(--form-input-height)] flex items-center px-4 py-2 rounded-md border border-border
+            class: "min-h-input flex items-center px-4 py-2 rounded-md border border-border
                     text-text-body hover:border-interactive focus-ring" %>
     <% end %>
   </nav>
