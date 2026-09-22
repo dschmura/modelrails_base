@@ -148,6 +148,36 @@ RSpec.describe DigestMailerJob, type: :job do
       end
     end
 
+    # The digest is the one path where the skip is a SCOPE rather than a mailer
+    # guard: the candidate query is what decides who gets considered, and
+    # filtering there means a suspended user costs no work at all (#1132).
+    context "user is suspended" do
+      before do
+        np = user.preferences.notification_preferences.deep_dup
+        np["delivery_methods"]["email"]["frequency"] = "daily"
+        user.preferences.update!(notification_preferences: np, digest_next_due_at: 1.minute.ago)
+        WorkspaceInvitationAcceptedNotifier.with(record: invitation).deliver(user)
+      end
+
+      it "enqueues no digest and leaves the cycle watermark alone" do
+        user.update!(suspended_at: Time.current)
+        previous_due = user.preferences.digest_next_due_at
+
+        expect {
+          described_class.perform_now
+        }.not_to have_enqueued_mail(NotificationMailer, :digest)
+
+        expect(user.preferences.reload.digest_next_due_at).to eq(previous_due),
+          "a suspended user was still processed by the digest cycle"
+      end
+
+      it "still enqueues for an active user in the same cycle" do
+        expect {
+          described_class.perform_now
+        }.to have_enqueued_mail(NotificationMailer, :digest)
+      end
+    end
+
     context "user is NOT due for digest" do
       it "skips the user entirely (no mail, timestamps unchanged)" do
         user.preferences.update!(digest_next_due_at: 1.day.from_now)
@@ -162,19 +192,13 @@ RSpec.describe DigestMailerJob, type: :job do
     end
 
     context "uses a single indexed range scan, not per-user polling" do
-      it "issues exactly one users.joins(:user_preferences) call" do
-        # Two due users + one not-due user; verify the join-scan is the only
-        # query pattern used to find candidates.
-        user.preferences.update!(digest_next_due_at: 1.minute.ago)
-        other = create(:user)
-        other.create_preferences!(timezone: "UTC", digest_next_due_at: 1.minute.ago)
-        not_due = create(:user)
-        not_due.create_preferences!(timezone: "UTC", digest_next_due_at: 1.day.from_now)
-
-        expect(User).to receive(:joins).with(:preferences).and_call_original
-
-        described_class.perform_now
-      end
+      # An example here asserted `expect(User).to receive(:joins)`, which pinned
+      # the RECEIVER rather than the behaviour: adding the suspension filter
+      # ahead of it (#1132) moved `joins` onto a relation and broke a spec that
+      # no longer described anything true about the query. Its duty — the
+      # candidate set costs one scan, not one per user — belongs to the
+      # SELECT-count example below, which compares two population sizes rather
+      # than hard-coding a budget or a call shape.
 
       # Reads only. The job writes user_preferences once per user it visits
       # (reschedule_digest!), so counting every statement would assert a

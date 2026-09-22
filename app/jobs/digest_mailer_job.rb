@@ -30,7 +30,8 @@ class DigestMailerJob < ApplicationJob
     # naming user_preferences, which `includes` alone would not join (it needs
     # `references`), and `joins` alone leaves send_digest_for re-querying each
     # user's own row (#1048).
-    User.joins(:preferences)
+    User.not_suspended
+        .joins(:preferences)
         .includes(:preferences)
         .where("user_preferences.digest_next_due_at <= ?", Time.current)
         .find_each do |user|
