@@ -79,10 +79,8 @@
       <% @memberships.each do |membership| %>
         <%# The row stays a static li with the link inside it, not a whole-row
             list_group_item href: the badge would then sit inside the <a> and
-            join its accessible name. hover:bg-surface: the row is not the
-            control, the link is, so it does not highlight — and the gem's
-            hover token under an interactive link measures below AAA. %>
-        <%= ui :list_group_item, class: "gap-4 hover:bg-surface" do %>
+            join its accessible name. %>
+        <%= ui :list_group_item, class: "gap-4" do %>
           <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
             <%# operated_workspaces (Workspace.kept) can never resolve a discarded
                 workspace's slug — link only a kept one, or the operator lands on
