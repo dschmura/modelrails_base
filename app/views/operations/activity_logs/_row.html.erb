@@ -38,6 +38,10 @@
         <span class="sr-only"><%= t("operations.activity_logs.index.details.suffix") %></span>
       </summary>
       <dl class="mt-2 mb-3 ml-6 grid grid-cols-1 gap-x-3 gap-y-1 text-sm text-text-muted sm:grid-cols-[8rem_1fr]">
+        <%# Rendered verbatim. The only thing keeping a secret off this line is
+            Trackable::SENSITIVE_ATTRIBUTES, applied at write time — there is no
+            filter here, and none is wanted: a column that must not reach an
+            operator must not reach the row either (#1171). %>
         <% changes = activity_log.metadata.to_h["changes"].to_h %>
         <% if changes.any? %>
           <dt class="font-semibold"><%= t("operations.activity_logs.index.details.change") %></dt>
