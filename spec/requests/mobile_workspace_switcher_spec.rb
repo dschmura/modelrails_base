@@ -59,6 +59,23 @@ RSpec.describe "Mobile workspace switcher", type: :request do
       expect(items.map { |a| a["href"] }).to include(workspaces_path)
     end
 
+    # #1091: every other example here visits a workspace page, where there IS a
+    # current workspace to pin. The index renders the same partial with
+    # `workspace: nil`, and until this example nothing exercised that branch with
+    # enough workspaces for the cap to do anything — all the index examples ran
+    # with two, where `.first(5)` is a no-op.
+    it "caps the index dropdown too, where there is no current workspace to pin" do
+      5.times { create(:membership, :owner, user: user, workspace: create(:workspace)) }
+      user.reload
+
+      get workspaces_path
+
+      items = mobile_menu_items(response.body)
+      workspace_items = items.reject { |a| a["href"] == workspaces_path }
+      expect(workspace_items.size).to eq(5)
+      expect(items.map { |a| a["href"] }).to include(workspaces_path)
+    end
+
     it "does not cap the desktop sidebar copy" do
       5.times { create(:membership, :owner, user: user, workspace: create(:workspace)) }
       user.reload
