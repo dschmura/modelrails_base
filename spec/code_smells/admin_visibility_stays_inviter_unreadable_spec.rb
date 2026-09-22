@@ -63,12 +63,23 @@ RSpec.describe "Code smell: invitation.delivery_suppressed stays admin-only" do
     expect(ActivityLog.for_operations_feed).not_to include(suppressed_row)
   end
 
+  # The workspace overview feed (#1154). Its project partition reaches this
+  # invitation's rows through the project, so an admin-tier row would arrive
+  # on the most-read page in the app if the scope ever stopped chaining
+  # .visible.
+  it "never appears in ActivityLog.for_workspace_feed" do
+    feed = ActivityLog.for_workspace_feed(workspace, projects: Project.where(id: project.id))
+
+    expect(feed).to include(visible_row)
+    expect(feed).not_to include(suppressed_row)
+  end
+
   # Naming the surfaces is what let the console ship past this guard: a scope
   # added later is invisible to a list of examples. Enumerate the read-surface
   # scopes instead and fail on any this spec does not cover, so the next one
   # cannot be added silently.
   it "covers every read-surface scope ActivityLog defines" do
-    covered = %w[visible for_project security_events_for for_operations_feed]
+    covered = %w[visible for_project security_events_for for_operations_feed for_workspace_feed]
     # for_workspace and recent are composable fragments, not read surfaces:
     # neither filters visibility, and both are always chained onto one above.
     # The ledger's five filters are the same shape: of_kind narrows the action
