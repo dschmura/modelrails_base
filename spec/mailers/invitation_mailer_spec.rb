@@ -138,6 +138,22 @@ RSpec.describe InvitationMailer, type: :mailer do
       expect(ActionMailer::Base.deliveries.size).to eq(1)
     end
 
+    # A hold is between the operator and that person, and a suspended user
+    # cannot act on anything this mail invites them to do — the request is
+    # bounced before it reaches a workspace. Sending it anyway discloses
+    # nothing useful and invites an action that cannot be taken (#1132).
+    it "delivers nothing to a suspended address" do
+      invitation = create(:invitation)
+      create(:user, email_address: invitation.email, suspended_at: Time.current)
+
+      perform_enqueued_jobs do
+        described_class.with(invitation: invitation).invite.deliver_later
+      end
+
+      expect(ActionMailer::Base.deliveries).to be_empty,
+        "an invitation reached a suspended address"
+    end
+
     it "does not deliver, stamp, or record for magic links (T12)" do
       invitation = create(:invitation, :magic_link)
       perform_enqueued_jobs do
