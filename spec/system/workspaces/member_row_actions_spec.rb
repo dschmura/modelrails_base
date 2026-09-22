@@ -67,7 +67,7 @@ RSpec.describe "Member row actions escape the members frame", type: :system do
   end
 
   it "shows the reactivated notice after Reactivate" do
-    member_membership.discard!
+    member_membership.update!(discarded_at: Time.current)
     visit workspace_members_path(workspace)
 
     click_row_action(member_membership, I18n.t("workspaces.members.index.reactivate"))

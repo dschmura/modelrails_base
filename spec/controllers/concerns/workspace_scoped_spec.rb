@@ -20,7 +20,7 @@ RSpec.describe WorkspaceScoped, type: :request do
     it "does not touch discarded memberships" do
       original = 1.day.ago
       membership.update_column(:last_accessed_at, original)
-      membership.discard!
+      membership.update!(discarded_at: Time.current)
 
       # Discarded membership shouldn't be touched; visiting the workspace will
       # raise/redirect via set_workspace's RecordNotFound branch.
