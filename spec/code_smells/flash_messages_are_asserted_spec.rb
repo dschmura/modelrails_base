@@ -19,11 +19,14 @@ require "yaml"
 RSpec.describe "Flash messages are asserted, not just redirects" do
   # Every controller flash no spec asserts today. This is a burn-down list, not
   # configuration: delete an entry as its assertion lands (#526). New arrivals
-  # fail the first example rather than being added here.
+  # fail the first example rather than being added here — the two exceptions
+  # were flashes that had always existed and only became visible when the scan
+  # learned the other two spellings, so they were debt already, not new.
   unasserted_flashes = [
     "clientside.area.resource_unavailable",
     "clientside.area.unavailable",
     "clientside.invitations.disabled",
+    "clientside.invitations.invalid",
     "clientside.settings.saved",
     "email_verification_resends.create.no_email_auth",
     "email_verification_resends.create.rate_limited",
@@ -37,6 +40,7 @@ RSpec.describe "Flash messages are asserted, not just redirects" do
     "omniauth_callbacks.create.pending_resent",
     "omniauth_callbacks.create.unverified_email_pending",
     "onboarding.projects.create.success",
+    "onboarding.teams.create.no_emails",
     "onboarding.teams.create.sent",
     "onboarding.workspaces.create.success",
     "onboardings.update.complete",
@@ -54,8 +58,6 @@ RSpec.describe "Flash messages are asserted, not just redirects" do
     "settings.connected_accounts.verification_resends.create.rate_limited",
     "settings.connected_accounts.verification_resends.create.resent",
     "settings.reauthentications.rate_limited",
-    "settings.connected_accounts.verify.invalid_or_expired",
-    "settings.connected_accounts.verify.success",
     "settings.passkeys.destroy.success",
     "settings.passwords.create.already_has_password",
     "settings.passwords.create.success",
@@ -79,7 +81,6 @@ RSpec.describe "Flash messages are asserted, not just redirects" do
     "workspaces.projects.invitations.create.success",
     "workspaces.projects.memberships.create.success",
     "workspaces.projects.memberships.destroy.removed",
-    "workspaces.projects.memberships.toggle_pin.toggled",
     "workspaces.projects.memberships.update.role_updated",
     "workspaces.projects.resources.destroy.success",
     "workspaces.projects.resources.update.success",
@@ -119,9 +120,17 @@ RSpec.describe "Flash messages are asserted, not just redirects" do
 
       File.readlines(path).filter_map do |line|
         action = Regexp.last_match(1) if line =~ /\A\s*def\s+([a-z_]+)/
-        next unless line =~ /(?:notice|alert):\s*(.+)/
 
-        expression = Regexp.last_match(1)
+        # Three spellings, because reading only the `notice:` kwarg made a live
+        # flash look like a fossil: the bulk-invite message is built as a local
+        # (`notice = t(...)`) and handed to redirect_to on the next line.
+        expression =
+          if line =~ /(?:notice|alert):\s*(.+)/
+            Regexp.last_match(1)
+          elsif line =~ /(?:flash(?:\.now)?\[:(?:notice|alert)\]|\b(?:notice|alert))\s*=(?!=)\s*(.+)/
+            Regexp.last_match(1)
+          end
+        next unless expression
         if expression =~ /t\(\s*"\.([a-z_.]+)"/
           "#{controller.tr('/', '.')}.#{action}.#{Regexp.last_match(1)}"
         elsif expression =~ /t\(\s*"([a-z_.]+)"/
@@ -151,7 +160,7 @@ RSpec.describe "Flash messages are asserted, not just redirects" do
 
   let(:values) { locale_values }
 
-  # Excludes THIS file: the burn-down list below names all 65 keys as string
+  # Excludes THIS file: the burn-down list below names every one of these keys as string
   # literals, so scanning it would report every one of them as asserted and the
   # guard would pass on an empty promise.
   let(:specs) do
@@ -169,6 +178,20 @@ RSpec.describe "Flash messages are asserted, not just redirects" do
       "Assert the message, not just the redirect — `expect(flash[:notice]).to eq(I18n.t(\"...\"))` " \
       "in the request spec for that action. A redirect-only assertion cannot tell a wrong key " \
       "from a right one."
+  end
+
+  # The other direction of the same rot. An entry stops describing the code
+  # either because the assertion landed (the example below) or because the
+  # flash itself moved, was renamed, or was deleted — and a key no controller
+  # sets any more is a line of debt this app does not owe (#526).
+  it "keeps the burn-down list honest — no entry that names no flash" do
+    live = controller_flash_keys
+    fossils = unasserted_flashes.reject { |key| live.include?(key) }
+
+    expect(fossils).to be_empty,
+      "no controller sets these any more — the flash was renamed, moved, or removed, " \
+      "so the entry now inflates the debt instead of recording it. Delete them:\n  " \
+      "#{fossils.join("\n  ")}"
   end
 
   it "keeps the burn-down list honest — no entry that is now asserted" do
