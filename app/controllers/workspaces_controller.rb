@@ -69,6 +69,13 @@ class WorkspacesController < ApplicationController
 
   def show
     authorize @workspace
+
+    # The feed is scoped here, not in the view: the projects this viewer may
+    # open is a policy question, and policy_scope belongs on the controller
+    # (#1154).
+    @activities = ActivityLog
+      .for_workspace_feed(@workspace, projects: policy_scope(@workspace.projects).kept)
+      .recent.for_feed
   end
 
   # Workspace Profile (identity: name, logo, primary_color, logo_source).
