@@ -20,12 +20,16 @@ RSpec.describe "Clientside resources", type: :request do
     draft = create(:resource, project: project, status: "draft", shared_with_client: true)
     get clientside_project_resource_path(project, draft)
     expect(response).to redirect_to(clientside_project_path(project))
+    # Deliberately the same message as the unshared case below: a client is not
+    # told WHY a resource is out of reach, only that it is (#526).
+    expect(flash[:alert]).to eq(I18n.t("clientside.area.resource_unavailable"))
   end
 
   it "refuses an unshared resource" do
     unshared = create(:resource, project: project, status: "published", shared_with_client: false)
     get clientside_project_resource_path(project, unshared)
     expect(response).to redirect_to(clientside_project_path(project))
+    expect(flash[:alert]).to eq(I18n.t("clientside.area.resource_unavailable"))
   end
 
   it "refuses access for a non-client" do

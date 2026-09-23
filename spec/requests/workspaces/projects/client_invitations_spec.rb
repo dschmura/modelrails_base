@@ -18,6 +18,7 @@ RSpec.describe "Client invitations (team side)", type: :request do
     project.update!(clientside_enabled: false)
     get new_workspace_project_client_invitation_path(workspace, project)
     expect(response).to redirect_to(edit_workspace_project_clientside_path(workspace, project))
+    expect(flash[:alert]).to eq(I18n.t("clientside.invitations.disabled"))
   end
 
   it "sends a client invitation" do
@@ -32,6 +33,7 @@ RSpec.describe "Client invitations (team side)", type: :request do
     post workspace_project_client_invitations_path(workspace, project),
       params: { client_invitation: { email: "", company_name: "BigCo" } }
     expect(response).to have_http_status(:unprocessable_entity)
+    expect(flash[:alert]).to eq(I18n.t("clientside.invitations.invalid"))
   end
 
   it "returns 422 and does not create a second invitation when email already has a pending invite" do
