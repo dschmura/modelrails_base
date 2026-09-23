@@ -19,6 +19,7 @@ RSpec.describe "Project Clientside settings", type: :request do
       params: { project: { clientside_enabled: "1" } }
     expect(project.reload.clientside_enabled?).to be(true)
     expect(response).to redirect_to(edit_workspace_project_clientside_path(workspace, project))
+    expect(flash[:notice]).to eq(I18n.t("clientside.settings.saved"))
   end
 
   context "as a project member who is not the creator" do

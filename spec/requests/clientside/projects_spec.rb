@@ -40,5 +40,8 @@ RSpec.describe "Clientside projects", type: :request do
     project.update!(clientside_enabled: false)
     get clientside_project_path(project)
     expect(response).to redirect_to(clientside_projects_path)
+    # Several guards send a client back to the same index, so the alert is the
+    # only thing saying WHICH refused them (#526).
+    expect(flash[:alert]).to eq(I18n.t("clientside.area.unavailable"))
   end
 end

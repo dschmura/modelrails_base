@@ -23,11 +23,6 @@ RSpec.describe "Flash messages are asserted, not just redirects" do
   # were flashes that had always existed and only became visible when the scan
   # learned the other two spellings, so they were debt already, not new.
   unasserted_flashes = [
-    "clientside.area.resource_unavailable",
-    "clientside.area.unavailable",
-    "clientside.invitations.disabled",
-    "clientside.invitations.invalid",
-    "clientside.settings.saved",
     "email_verification_resends.create.no_email_auth",
     "email_verification_resends.create.rate_limited",
     "email_verification_resends.create.success",
