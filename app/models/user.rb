@@ -93,8 +93,17 @@ class User < ApplicationRecord
   # The operations area's reach, as a RELATION not a predicate: every
   # Operations:: controller resolves workspaces through this. A future
   # scoped-operator model can change this body and no call site.
-  def operated_workspaces
-    operator? ? Workspace.kept : Workspace.none
+  #
+  # include_discarded: the ledger needs it, and only the ledger. A discarded
+  # workspace's activity rows stay in the feed — ActivityLog.for_workspace is a
+  # plain where(workspace:) and does not read lifecycle — so a reach that
+  # excludes them lets those rows be read in the unfiltered ledger and never
+  # isolated (#1170). Everywhere else the default stands: an operator acts on
+  # live workspaces.
+  def operated_workspaces(include_discarded: false)
+    return Workspace.none unless operator?
+
+    include_discarded ? Workspace.all : Workspace.kept
   end
 
   def available_reauth_factors
