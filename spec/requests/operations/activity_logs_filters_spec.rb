@@ -196,7 +196,7 @@ RSpec.describe "Operations activity ledger filters", type: :request do
   # Over the cap the decrypt pass is not run at all; the box still answers an
   # exact address, and the summary says which half of it is off.
   it "stops searching names on an instance over the name limit and says so" do
-    stub_const("ActivityLog::Search::NAME_SEARCH_LIMIT", 0)
+    stub_const("User::Search::NAME_SEARCH_LIMIT", 0)
     person = create(:user, first_name: "Priya", last_name: "Nair")
     workspace = create(:workspace, name: "Alpha")
     acting_as(person) { plan_named(workspace, "Priya plan") }

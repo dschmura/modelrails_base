@@ -4,17 +4,12 @@ class ActivityLog < ApplicationRecord
   # OR'd. A value, not an orchestrator — it answers which records the query
   # named and never filters the feed itself (`ActivityLog.matching_any` does).
   #
-  # Names are non-deterministically encrypted (#902), so they are matched the
-  # one way this app sanctions: load, decrypt, plain case-insensitive substring
-  # in Ruby — `WorkspaceRoster`'s technique at instance scale, which is why the
-  # two caps below exist. See /docs/developer/security (Personal Data at Rest).
+  # How a query names a PERSON lives on `User::Search`, which owns the
+  # encryption rule and the CPU budget that comes with it — the operations
+  # users index needs the same match, and it gets exactly one home.
   class Search
-    # The decrypt pass measured 0.012 ms a row on this machine, so the cap is
-    # about 24 ms of CPU per search — a request's worth, not a page's. Above it
-    # names are not searched at all and the box falls back to the exact-email
-    # lookup, which is SQL.
-    NAME_SEARCH_LIMIT = 2_000
     # A one-letter query must not build an OR list of the whole instance.
+    # Names carry their own cap; this one bounds the two SQL branches.
     RESULT_LIMIT = 50
 
     attr_reader :query, :users, :workspaces, :projects
@@ -23,33 +18,12 @@ class ActivityLog < ApplicationRecord
       needle = query.to_s.strip.downcase.presence
       return new(query: nil) unless needle
 
-      skipped = User.count > NAME_SEARCH_LIMIT
-      new(query: needle, names_skipped: skipped,
-          users: matching_users(needle, skipped),
+      people = User::Search.resolve(needle)
+      new(query: needle, names_skipped: people.names_skipped?,
+          users: people.users,
           workspaces: matching_workspaces(needle, reach),
           projects: matching_projects(needle, reach))
     end
-
-    # The email lookup is exact on purpose: `email_address` is deterministically
-    # encrypted, so SQL can equal it but never match inside it.
-    def self.matching_users(needle, skipped)
-      found = Array(User.find_by(email_address: needle))
-      return found if skipped
-
-      User.select(:id, :first_name, :last_name).find_each do |user|
-        break if found.size >= RESULT_LIMIT
-
-        found << user if user.id != found.first&.id && matches_name?(user, needle)
-      end
-      found
-    end
-    private_class_method :matching_users
-
-    def self.matches_name?(user, needle)
-      [ user.full_name, user.first_name, user.last_name ]
-        .any? { |value| value.to_s.downcase.include?(needle) }
-    end
-    private_class_method :matches_name?
 
     # A query is text, never a pattern: "ac_e" matches "Ac_e" and not "Acme"
     # (#454, the same ruling the members page's search rests on). `ESCAPE` is

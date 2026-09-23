@@ -86,12 +86,20 @@ so set a password in that first window if outbound mail isn't wired up yet.
   Owner role. See [The operator becomes the owner](#the-operator-becomes-the-owner)
   below — this is deliberate. Creation honors `TENANCY_WORKSPACE_CREATION`
   the same as the tenant-side flow; the operations area does not bypass it.
-- **Users** (`/operations/users`) — a search box, not a browsable list: look
-  a user up by their exact email address (names are encrypted
-  non-deterministically and can't be searched or sorted in SQL — see
-  [Security: Personal Data at Rest](security#personal-data-at-rest)); when
-  no account has that address the page offers the activity ledger's search,
-  which also matches names. A user's page opens with their states as badges
+- **Users** (`/operations/users`) — a paginated list of everyone with an
+  account, **newest first**, with a filter over it. The order is `created_at`
+  and cannot be a name: names are encrypted non-deterministically, so an SQL
+  sort reads ciphertext and a keyed digest is not order-preserving — the only
+  SQL-orderable name key would be a plaintext column, which is a security
+  decision, not an oversight (see
+  [Security: Personal Data at Rest](security#personal-data-at-rest)). The
+  filter has two branches for the same reason: an exact match on the
+  deterministically-encrypted address, and a bounded decrypt-and-match pass
+  over names (`User::Search`, which the activity ledger's search box shares).
+  Both caps are stated on the page rather than applied quietly — if there were
+  too many accounts to search names, or the match list stopped at its limit,
+  it says so. When nothing matches, the page offers the activity ledger's
+  search, which also matches workspaces and projects. A user's page opens with their states as badges
   (operator, suspended, sign-in blocked), says since when, and holds every
   control in one row: let a locked-out account try again, or suspend or
   reinstate them (sign-in is refused and sessions end; memberships and roles
@@ -112,7 +120,7 @@ so set a password in that first window if outbound mail isn't wired up yet.
   decryption in Ruby, the same technique as the members page
   (`ActivityLog::Search`, `WorkspaceRoster` — see
   [Security: Personal Data at Rest](security#personal-data-at-rest)), so they
-  are searched only on instances under `ActivityLog::Search::NAME_SEARCH_LIMIT`
+  are searched only on instances under `User::Search::NAME_SEARCH_LIMIT`
   users (2,000); above that the summary says names were not searched and the
   box answers exact addresses only. Filters apply as you change them. Each row
   opens to the change it recorded, the record it is about, its tier, the

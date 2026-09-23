@@ -42,7 +42,7 @@ RSpec.describe ActivityLog::Search do
   end
 
   it "caps the users a broad query can return" do
-    stub_const("#{described_class}::RESULT_LIMIT", 2)
+    stub_const("User::Search::RESULT_LIMIT", 2)
     3.times { |n| create(:user, first_name: "Zeph#{n}", last_name: "Quilling") }
 
     expect(described_class.resolve("quilling", reach: reach).users.size).to eq(2)
@@ -50,7 +50,7 @@ RSpec.describe ActivityLog::Search do
 
   it "does not search names on an instance over the name limit, and says so" do
     person = create(:user, first_name: "Priya", last_name: "Nair", email_address: "priya@example.com")
-    stub_const("#{described_class}::NAME_SEARCH_LIMIT", 0)
+    stub_const("User::Search::NAME_SEARCH_LIMIT", 0)
 
     by_name = described_class.resolve("priya", reach: reach)
     expect(by_name).to be_names_skipped
