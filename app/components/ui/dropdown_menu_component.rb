@@ -52,7 +52,7 @@ module UI
     # floor (2.5.5 AAA) from the one element this component guarantees is "a real <button>".
     # Utilities rather than `.btn-touch-target`, so they sit in Tailwind's utilities layer
     # and merge predictably instead of racing a component class on source order.
-    TRIGGER_BASE = "focus-ring min-h-[var(--form-input-height)]"
+    TRIGGER_BASE = "focus-ring min-h-input"
 
     PANEL_BASE = "z-50 min-w-[8rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-md border border-border " \
                  "bg-surface-overlay p-1 text-text-body shadow-md outline-none"

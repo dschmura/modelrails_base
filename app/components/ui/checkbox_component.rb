@@ -8,7 +8,7 @@ module UI
     BASE = "peer size-4 shrink-0 rounded-[4px] border border-border-strong shadow-xs transition-shadow outline-none " \
            "focus-ring " \
            "disabled:cursor-not-allowed disabled:opacity-50 " \
-           "aria-invalid:border-danger-border aria-invalid:ring-2 aria-invalid:ring-danger  " \
+           "aria-invalid:border-2 aria-invalid:border-danger " \
            "checked:border-interactive checked:bg-interactive checked:text-text-on-interactive " \
            " "
 
@@ -69,7 +69,7 @@ module UI
       content_tag(:label,
         @label,
         for: @id,
-        class: "inline-flex min-h-11 items-center text-sm font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-50")
+        class: "inline-flex min-h-input items-center text-sm font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-50")
     end
   end
 end

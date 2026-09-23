@@ -58,7 +58,7 @@ module UI
       # merge_html_attrs, not a flat merge: a caller's `data:` would otherwise
       # replace this hash wholesale and take data-controller with it.
       merge_html_attrs({
-        class: cn("group/tooltip relative inline-flex min-h-11 items-center rounded-md focus-ring", @extra_class),
+        class: cn("group/tooltip relative inline-flex min-h-input items-center rounded-md focus-ring", @extra_class),
         style: "anchor-name: --#{@id}",
         tabindex: "0",
         "aria-describedby": @id,

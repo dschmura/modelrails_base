@@ -14,7 +14,7 @@ module UI
     GROUP = "flex items-stretch gap-1"
     INPUT = "h-11 w-40 rounded-md border border-border-strong bg-surface-raised px-3 text-sm " \
             "text-text-heading shadow-xs focus-ring transition " \
-            "aria-[invalid=true]:border-danger-border aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-danger"
+            "aria-[invalid=true]:border-2 aria-[invalid=true]:border-danger "
     TRIGGER = "flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-md " \
                "border border-border-strong bg-surface-raised text-text-heading shadow-xs focus-ring transition " \
                "aria-expanded:border-border-focus"

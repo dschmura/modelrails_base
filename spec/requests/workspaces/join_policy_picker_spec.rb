@@ -72,7 +72,7 @@ RSpec.describe "Workspace settings — join-policy picker", type: :request do
   it "keeps every option's label at the 44px target floor" do
     page = doc
 
-    expect(page).to have_css("[role=radiogroup] label.min-h-11", count: 2, visible: :all)
+    expect(page).to have_css("[role=radiogroup] label.min-h-input", count: 2, visible: :all)
   end
 
   it "posts the chosen policy under the name the controller reads" do

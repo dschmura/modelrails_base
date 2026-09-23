@@ -23,9 +23,9 @@ module UI
     # of AT visibility (caught by the open-state audit, #463).
     SPIN_BTN = "inline-flex size-11 items-center justify-center rounded-md focus-ring " \
                "text-text-muted hover:bg-surface-sunken hover:text-text-heading transition"
-    # min-h-11 + w-12: the spinbutton fields are the primary targets and must
+    # min-h-input + w-12: the spinbutton fields are the primary targets and must
     # clear the 44px floor (WCAG 2.5.5 AAA — open-state audit, #463).
-    NUM_CLS  = "w-12 min-h-11 rounded-md border border-border-strong bg-surface-raised px-1 text-center text-sm focus-ring"
+    NUM_CLS  = "w-12 min-h-input rounded-md border border-border-strong bg-surface-raised px-1 text-center text-sm focus-ring"
     SEP_CLS  = "text-lg font-medium text-text-heading pb-1"
 
     # The human-readable format hint, keyed by `format:`.

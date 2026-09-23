@@ -16,7 +16,7 @@ module UI
     # `overflow:hidden` ancestor and vanishes in forced-colors mode (2.4.7). Scoped
     # to `:focus-visible` so a pointer press does not paint one. Same treatment as
     # `wysiwyg`'s wrapper.
-    CHIP = "inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center " \
+    CHIP = "inline-flex min-h-input min-w-11 cursor-pointer items-center justify-center " \
            "rounded-md border border-border-strong bg-surface-raised px-3 " \
            "text-sm font-medium text-text-body transition-colors " \
            "has-[:checked]:border-interactive has-[:checked]:bg-interactive " \

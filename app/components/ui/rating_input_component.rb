@@ -62,14 +62,14 @@ module UI
       content_tag(:button,
         star_svg(filled),
         type: "button",
-        # The button is a >=44px hit target (AAA 2.5.5) via min-h-11/min-w-11 +
+        # The button is a >=44px hit target (AAA 2.5.5) via min-h-input/min-w-11 +
         # centering; the 24px svg stays the visual size. Filled stars use the
         # semantic warning-icon token (was raw text-yellow-400) — stars are
         # GRAPHIC icons (WCAG 1.4.11 → 3:1, not 7:1 text), and the AAA-tuned
         # amber warning token clears 3:1; the app 0b axe spec verifies the
         # graphic contrast in a real browser.
         class: cn(
-          "min-h-11 min-w-11 inline-flex items-center justify-center",
+          "min-h-input min-w-11 inline-flex items-center justify-center",
           "transition-colors focus-ring rounded-sm",
           filled ? "text-warning-icon" : "text-text-muted"
         ),

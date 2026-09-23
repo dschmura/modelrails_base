@@ -19,6 +19,20 @@ module UI
       destructive: "bg-danger-surface border-danger-border text-danger"
     }.freeze
 
+    # The dismiss control tints on hover rather than fading. An opacity fade
+    # reads as DISABLED — the rule already beside .btn-text-icon — and on a
+    # tinted chip it drags the icon toward the surface behind it, the one
+    # direction that loses contrast on the control most likely to be clicked in
+    # a hurry. Keyed by variant because the ground differs per tone; the icon is
+    # non-text, so the floor here is 3:1, not 7:1 (modelrails_ui #256).
+    DISMISS_HOVER = {
+      default:     "hover:bg-surface-sunken",
+      info:        "hover:bg-info-hover",
+      success:     "hover:bg-success-hover",
+      warning:     "hover:bg-warning-hover",
+      destructive: "hover:bg-danger-hover"
+    }.freeze
+
     # message:     banner text — positional, `message:`, or `label:` keyword, or block content
     # variant:     visual style (unknown raises in development)
     # dismissible: render a trailing close <button> (needs the `banner` controller to act)
@@ -65,7 +79,8 @@ module UI
       content_tag(:button, dismiss_icon,
         type: "button",
         "aria-label": dismiss_label,
-        class: "-m-2 shrink-0 rounded-md inline-flex min-h-11 min-w-11 items-center justify-center text-current hover:opacity-80 focus-ring",
+        class: cn("-m-2 shrink-0 rounded-md inline-flex min-h-input min-w-11 items-center justify-center text-current focus-ring transition-colors",
+                  DISMISS_HOVER.fetch(@variant, DISMISS_HOVER[:default])),
         data: { action: "banner#dismiss" })
     end
 

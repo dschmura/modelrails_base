@@ -22,7 +22,7 @@ module UI
                   "transition-opacity group-data-[collapsed=true]:opacity-0 group-data-[collapsed=true]:h-0 " \
                   "group-data-[collapsed=true]:overflow-hidden group-data-[collapsed=true]:mb-0"
 
-    ITEM_CLS = "group/item flex min-h-11 items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors " \
+    ITEM_CLS = "group/item flex min-h-input items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors " \
                "overflow-hidden " \
                "group-data-[collapsed=true]:justify-center group-data-[collapsed=true]:gap-0 " \
                "hover:bg-surface-sunken hover:text-text-heading " \

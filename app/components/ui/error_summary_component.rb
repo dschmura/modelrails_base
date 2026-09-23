@@ -52,11 +52,13 @@ module UI
     def list_item(item)
       content_tag(:li) do
         if item[:href]
-          # A list item alone (not in-text) — 2.5.5 AAA applies. min-h-11
+          # A list item alone (not in-text) — 2.5.5 AAA applies. min-h-input
           # meets the 44px floor, which covers axe's 24px AA target-size
-          # rule and its neighbor-spacing check too.
+          # rule and its neighbor-spacing check too. It resolves through
+          # --form-input-height, so a fork retuning that knob moves this with
+          # every other control rather than leaving it behind.
           content_tag(:a, item[:message], href: item[:href],
-            class: "inline-flex min-h-11 items-center underline focus-ring")
+            class: "inline-flex min-h-input items-center underline focus-ring")
         else
           item[:message]
         end

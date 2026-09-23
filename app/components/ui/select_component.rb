@@ -9,9 +9,9 @@ module UI
     # nothing, so a select in a flex row with a sibling button takes only the
     # leftover space. A host app's inline role editor measured 29px at phone
     # width and 43px in CI, while its height was never at risk.
-    BASE = "flex min-h-[var(--form-input-height)] min-w-[var(--form-input-height)] w-full rounded-md border border-border-strong bg-transparent px-3 py-1 text-sm shadow-sm " \
+    BASE = "flex min-h-input min-w-[var(--form-input-height)] w-full rounded-md border border-border-strong bg-transparent px-3 py-1 text-sm shadow-sm " \
            "outline-none focus-visible:border-border-focus focus-ring " \
-           "aria-invalid:border-danger-border aria-invalid:ring-2 aria-invalid:ring-danger " \
+           "aria-invalid:border-2 aria-invalid:border-danger " \
            "disabled:cursor-not-allowed disabled:opacity-50"
 
     # options: array of strings, or [value, label] pairs, or { value => label } hash,
