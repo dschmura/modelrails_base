@@ -6,6 +6,10 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Fixed
 
+- **Eight account-settings flashes are asserted, not just their redirects.** The second slice of the #526 burn-down, taking it from 54 entries to 46: password add/change/remove, avatar upload/remove, passkey removal, and both theme-preference branches. The theme pair is the clearest case for why this matters — an accepted theme and a rejected one **redirect to the same place**, so the message is the only thing that tells them apart, and the rejected branch had no example at all until now. As with the first slice, assertions go into existing examples and the guard validates the burn-down in both directions. (#526)
+
+### Fixed
+
 - **Ten workspace flashes are asserted, not just their redirects.** A redirect-only assertion walks the path and proves nothing about what the user reads — which is how six locale keys once rendered `translation missing` to real users while their specs passed. `i18n-tasks` covers a key's *existence* and `raise_on_missing_translations` covers a *missing* key, but neither covers **selection of the right key**, which is the whole game when two branches redirect to the same place. The burn-down list goes from 64 entries to 54, all in the `workspaces` slice, with the assertions added to existing examples rather than new ones. The guard validates the burn-down in both directions: removing an entry without a real assertion fails it, and leaving an asserted key listed fails it too. One of these assertions immediately earned the issue's case — the invitation flash takes `sent:`/`skipped:`, and writing it as `count:` renders literal `%{sent}` braces to the user, which a redirect-only assertion cannot see. (#526)
 
 ### Changed
