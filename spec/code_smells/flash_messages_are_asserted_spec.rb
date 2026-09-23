@@ -66,27 +66,17 @@ RSpec.describe "Flash messages are asserted, not just redirects" do
     "settings.profiles.update.verification_sent",
     "settings.theme_preferences.update.invalid_theme",
     "settings.theme_preferences.update.success",
-    "workspaces.create.success",
-    "workspaces.destroy.success",
     "workspaces.invitations.create.magic_link_created",
-    "workspaces.invitations.create.sent",
     "workspaces.invitations.resends.create.rate_limited",
     "workspaces.join_links.create.rotated",
     "workspaces.join_links.destroy.revoked",
     "workspaces.joins.create.already_member",
     "workspaces.joins.create.joined",
     "workspaces.joins.create.register_first",
-    "workspaces.members.update.success",
-    "workspaces.projects.create.success",
     "workspaces.projects.invitations.create.success",
-    "workspaces.projects.memberships.create.success",
-    "workspaces.projects.memberships.destroy.removed",
-    "workspaces.projects.memberships.update.role_updated",
     "workspaces.projects.resources.destroy.success",
     "workspaces.projects.resources.update.success",
-    "workspaces.projects.update.success",
-    "workspaces.settings.update.success",
-    "workspaces.update.success"
+    "workspaces.settings.update.success"
   ].freeze
 
   def locale_values

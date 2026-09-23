@@ -130,6 +130,7 @@ RSpec.describe "Workspace Projects", type: :request do
         project = Project.find_by!(name: "New Project")
         pm = project.project_memberships.find_by(user: user)
         expect(pm).to be_creator
+        expect(flash[:notice]).to eq(I18n.t("workspaces.projects.create.success"))
       end
 
       it "enforces max_projects" do
@@ -181,6 +182,7 @@ RSpec.describe "Workspace Projects", type: :request do
       it "updates the project" do
         patch workspace_project_path(workspace, project), params: { project: { name: "Updated" } }
         expect(project.reload.name).to eq("Updated")
+        expect(flash[:notice]).to eq(I18n.t("workspaces.projects.update.success"))
       end
     end
 
