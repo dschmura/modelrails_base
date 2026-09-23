@@ -6,6 +6,10 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Fixed
 
+- **Sign-in's five flashes are asserted, and three of them had no spec at all.** The third #526 slice, 46 entries to 41, and the first to reach branches nothing exercised: the rate limiter, the OAuth-handshake failure, and a plain wrong password. All three land on `new_session_path` — the same place as a *locked* account, whose message was already asserted — so until now the specs could not tell a bad password from a lockout from a rate limit from a failed provider handshake. An unexercised branch is worse than an unasserted one: a wrong key there is invisible until a user meets it. The limiter follows the house pattern of returning an over-limit `Rails.cache.increment` rather than needing a persistent cache. (#526)
+
+### Fixed
+
 - **Eight account-settings flashes are asserted, not just their redirects.** The second slice of the #526 burn-down, taking it from 54 entries to 46: password add/change/remove, avatar upload/remove, passkey removal, and both theme-preference branches. The theme pair is the clearest case for why this matters — an accepted theme and a rejected one **redirect to the same place**, so the message is the only thing that tells them apart, and the rejected branch had no example at all until now. As with the first slice, assertions go into existing examples and the guard validates the burn-down in both directions. (#526)
 
 ### Fixed
