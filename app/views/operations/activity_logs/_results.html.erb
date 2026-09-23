@@ -23,7 +23,7 @@
       <ul role="list" class="flex flex-col gap-2 text-sm text-text-body">
         <li><%= t("operations.activity_logs.index.about.best_effort") %></li>
         <li><%= t("operations.activity_logs.index.about.derived") %></li>
-        <li><%= t("operations.activity_logs.index.about.names", limit: ActivityLog::Search::NAME_SEARCH_LIMIT) %></li>
+        <li><%= t("operations.activity_logs.index.about.names", limit: User::Search::NAME_SEARCH_LIMIT) %></li>
       </ul>
     <% end %>
   </div>

@@ -4,15 +4,7 @@
     control. Before, badge, sentence and button alternated down the page as
     five separately-margined blocks. %>
 <% badges = capture do %>
-  <% if @user.operator? %>
-    <%= ui :badge, t("operations.users.show.operator"), variant: :soft, tone: :info %>
-  <% end %>
-  <% if @user.suspended? %>
-    <%= ui :badge, t("operations.users.show.suspended"), variant: :soft, tone: :warning %>
-  <% end %>
-  <% if @user.locked? %>
-    <%= ui :badge, t("operations.users.show.locked_out"), variant: :soft, tone: :warning %>
-  <% end %>
+  <%= render "operations/users/state_badges", user: @user %>
 <% end %>
 <div class="flex flex-col items-start gap-4 sm:flex-row sm:justify-between">
   <%= render "shared/settings_page_header", title: @user.full_name, description: @user.email_address, badges: badges %>
