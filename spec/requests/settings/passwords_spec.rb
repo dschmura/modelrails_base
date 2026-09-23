@@ -64,6 +64,7 @@ RSpec.describe "Account Passwords", type: :request do
               }
             }
           }.to change(passwordless_user.authentications.email, :count).by(1)
+          expect(flash[:notice]).to eq(I18n.t("settings.passwords.create.success"))
         end
 
         # #903: password-set no longer copies the address into uid either.
@@ -208,6 +209,7 @@ RSpec.describe "Account Passwords", type: :request do
       it "updates the password for a user who already has one" do
         patch settings_password_path, params: { user: { password: "brand-new-passw0rd", password_confirmation: "brand-new-passw0rd" } }
         expect(user.reload.authenticate("brand-new-passw0rd")).to be_truthy
+        expect(flash[:notice]).to eq(I18n.t("settings.passwords.update.success"))
       end
 
       # Revocation now rides inside update_password_with_precheck's transaction,
@@ -252,6 +254,7 @@ RSpec.describe "Account Passwords", type: :request do
       it "removes the password and the email authentication, returning to passwordless" do
         delete settings_password_path
         expect(user.reload.has_password?).to be(false)
+        expect(flash[:notice]).to eq(I18n.t("settings.passwords.destroy.success"))
       end
 
       it "fires the removal notification and audit row (was silently skipped via update_columns)" do
