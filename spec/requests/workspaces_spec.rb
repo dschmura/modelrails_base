@@ -153,9 +153,13 @@ RSpec.describe "Workspaces", type: :request do
         expect(membership.role.slug).to eq("owner")
       end
 
-      it "redirects to the workspace" do
+      it "redirects to the workspace and says it was created" do
         post workspaces_path, params: { workspace: { name: "New Workspace" } }
         expect(response).to redirect_to(workspace_path(Workspace.find_by!(name: "New Workspace")))
+        # By key, not by sentence: the point is which key was selected. A
+        # redirect-only assertion walks the path and proves nothing about what
+        # the user reads (#526).
+        expect(flash[:notice]).to eq(I18n.t("workspaces.create.success"))
       end
     end
 
@@ -234,9 +238,10 @@ RSpec.describe "Workspaces", type: :request do
       let(:workspace) { create(:workspace) }
       let!(:membership) { create(:membership, :owner, user: user, workspace: workspace) }
 
-      it "updates the workspace name" do
+      it "updates the workspace name and says the profile was updated" do
         patch workspace_path(workspace), params: { workspace: { name: "Updated Name" } }
         expect(workspace.reload.name).to eq("Updated Name")
+        expect(flash[:notice]).to eq(I18n.t("workspaces.update.success"))
       end
     end
 
@@ -386,9 +391,10 @@ RSpec.describe "Workspaces", type: :request do
         expect(workspace.reload).to be_discarded
       end
 
-      it "redirects to workspaces index" do
+      it "redirects to workspaces index and says it was deleted" do
         delete workspace_path(workspace)
         expect(response).to redirect_to(workspaces_path)
+        expect(flash[:notice]).to eq(I18n.t("workspaces.destroy.success"))
       end
     end
 

@@ -310,9 +310,10 @@ RSpec.describe "Workspace Members", type: :request do
         expect(target_membership.reload.role).to eq(admin_role)
       end
 
-      it "redirects to members list" do
+      it "redirects to members list and says the change was saved" do
         patch workspace_member_path(workspace, target_membership), params: { membership: { role_id: admin_role.id } }
         expect(response).to redirect_to(workspace_members_path(workspace))
+        expect(flash[:notice]).to eq(I18n.t("workspaces.members.update.success"))
       end
     end
 

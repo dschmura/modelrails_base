@@ -47,6 +47,7 @@ RSpec.describe "Project Memberships", type: :request do
             project_membership: { user_id: new_member.id, role: "editor" }
           }
         }.to change(ProjectMembership, :count).by(1)
+        expect(flash[:notice]).to eq(I18n.t("workspaces.projects.memberships.create.success"))
       end
 
       it "rejects non-workspace members" do
@@ -68,6 +69,7 @@ RSpec.describe "Project Memberships", type: :request do
           project_membership: { role: "viewer" }
         }
         expect(member_pm.reload).to be_viewer
+        expect(flash[:notice]).to eq(I18n.t("workspaces.projects.memberships.update.role_updated"))
       end
     end
 
@@ -80,6 +82,7 @@ RSpec.describe "Project Memberships", type: :request do
         expect {
           delete workspace_project_membership_path(workspace, project, member_pm)
         }.to change(ProjectMembership, :count).by(-1)
+        expect(flash[:notice]).to eq(I18n.t("workspaces.projects.memberships.destroy.removed"))
       end
 
       it "prevents removing the creator" do
