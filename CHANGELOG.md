@@ -6,6 +6,10 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Fixed
 
+- **A restored draft now reports the right number of fields.** The `modelrails_ui` pin moves to `v0.23.1`, which fixes two things this app was working around. The draft serializer counted a rich-text editor's **own toolbar control** as one of the host form's fields, so recovering a title and a body announced *"3 fields updated"* to a screen reader user who had filled two — in the live region they rely on to know whether their work came back. `lexxy_recovery_spec` had been deliberately *not* pinning that number, with a comment explaining why; it now asserts exactly two, and removing the fix makes it fail with the old wrong sentence. The release also repairs the switch's disabled fade, which v0.23.0 broke with a find/replace remnant — **this app's hand-corrected copy and the gem's fix converged on the same line**, so that divergence retires with no edit. (modelrails_ui #262/#263)
+
+### Fixed
+
 - **Eight account-settings flashes are asserted, not just their redirects.** The second slice of the #526 burn-down, taking it from 54 entries to 46: password add/change/remove, avatar upload/remove, passkey removal, and both theme-preference branches. The theme pair is the clearest case for why this matters — an accepted theme and a rejected one **redirect to the same place**, so the message is the only thing that tells them apart, and the rejected branch had no example at all until now. As with the first slice, assertions go into existing examples and the guard validates the burn-down in both directions. (#526)
 
 ### Fixed

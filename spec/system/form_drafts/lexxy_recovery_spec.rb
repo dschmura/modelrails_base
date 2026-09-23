@@ -69,13 +69,17 @@ RSpec.describe "Form drafts on a Lexxy-backed resource form", type: :system do
     visit new_workspace_project_resource_path(workspace, project)
     click_button I18n.t("form_draft.recover")
 
-    expect(status_region).to have_text("Draft restored", wait: 3)
+    # The count is pinned, and exactly. It could not be until v0.23.1: the
+    # editor's toolbar carries a named <select>, and the serializer counted it
+    # as one of this form's fields, so the announcement read one high — "3
+    # fields updated" to someone who filled two (modelrails_ui#262). The title
+    # and the rich-text body are the two fields, and a screen reader user is
+    # being told how much of their work came back, so the number has to be
+    # right.
+    expect(status_region).to have_text(
+      I18n.t("form_draft.restored_other", count: 2), wait: 3
+    )
     expect(status_region).to have_no_text("could not be restored")
-    # The count is deliberately not pinned: it reads one high, because the
-    # editor's toolbar carries a named <select> that the serializer treats as
-    # one of this form's fields (modelrails_ui#262). Measured, not assumed —
-    # setting that select and dispatching change leaves the body untouched, so
-    # the announcement is the whole of the damage.
   end
 
   # The editor initialises itself on connect. If that counted as a change, a
