@@ -4,8 +4,25 @@
     <%= t("workspaces.projects.resources.new.title") %>
   </h1>
 
-  <%= form_with model: @resource, url: workspace_project_resources_path(@workspace, @project), class: "mt-8 space-y-6" do |form| %>
-    <%= hidden_field_tag "resource[type]", @type %>
+  <%# The draft key is set explicitly, not left to the form id: every project's
+      new-document form renders the same `new_resource` id, so the id alone
+      would offer one project's draft on another's form. `lexxy:change` is in
+      the action list because the editor emits neither `input` nor `change`
+      (#479). %>
+  <%= form_with model: @resource, url: workspace_project_resources_path(@workspace, @project),
+        id: dom_id(@resource),
+        class: "mt-8 space-y-6",
+        data: {
+          controller: "form-draft",
+          form_draft_key_value: "#{dom_id(@project)}:new_resource:#{@type.underscore}",
+          action: "input->form-draft#save change->form-draft#save lexxy:change->form-draft#save turbo:submit-end->form-draft#submitEnd"
+        } do |form| %>
+    <%# Ignored by the draft: the type comes from the URL, and a hidden field
+        with no visible sibling is content recover() can never write back —
+        left in, it downgrades every restore to the partial announcement. %>
+    <%= hidden_field_tag "resource[type]", @type, data: { form_draft_ignore: true } %>
+
+    <%= render "shared/form_draft_notice" %>
 
     <%# resourceable_type/position validate but render no control here — their
         errors go unlinked (plain text) or the summary anchors to nothing (#752). %>

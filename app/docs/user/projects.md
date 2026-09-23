@@ -76,11 +76,12 @@ Project → has_many :resources → belongs_to :resourceable (polymorphic)
 
 ### Documents
 
-The default (and currently only) resource type. Documents use **Action Text** for rich text editing with Trix:
+The default (and currently only) resource type. Documents use **Action Text** for rich text editing, with [Lexxy](https://github.com/basecamp/lexxy) as the editor:
 
 - `Document` model holds just an ID and timestamps
 - Rich text content lives in Action Text's `rich_texts` table via `has_rich_text :body`
 - The `Resource` wrapper provides title, status, position, and creator tracking
+- Unsaved edits survive a closed tab — see [Form drafts (developer)](/docs/developer/form-drafts)
 
 ### Resource Status
 

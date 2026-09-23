@@ -4,7 +4,17 @@
     <%= t("workspaces.projects.resources.edit.title") %>
   </h1>
 
-  <%= form_with model: @resource, url: workspace_project_resource_path(@workspace, @project, @resource), method: :patch, class: "mt-8 space-y-6" do |form| %>
+  <%# dom_id is already globally unique here, so it carries the draft key too.
+      `lexxy:change` as in the new form (#479). %>
+  <%= form_with model: @resource, url: workspace_project_resource_path(@workspace, @project, @resource), method: :patch,
+        id: dom_id(@resource),
+        class: "mt-8 space-y-6",
+        data: {
+          controller: "form-draft",
+          action: "input->form-draft#save change->form-draft#save lexxy:change->form-draft#save turbo:submit-end->form-draft#submitEnd"
+        } do |form| %>
+    <%= render "shared/form_draft_notice" %>
+
     <%# Same unlinked pair as the new form (#752). %>
     <%= form.error_summary unlinked: [ :resourceable_type, :position ] %>
 
