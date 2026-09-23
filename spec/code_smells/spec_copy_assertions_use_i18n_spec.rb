@@ -43,7 +43,7 @@ RSpec.describe "Code smell: spec copy assertions go through I18n.t" do
     "spec/config/vocabulary_interpolation_spec.rb:60" => "backend-hook mechanism spec; an around block pins the vocabulary to the template's words on purpose",
     "spec/config/vocabulary_interpolation_spec.rb:76" => "backend-hook mechanism spec; an around block pins the vocabulary to the template's words on purpose",
     "spec/requests/settings/connected_accounts_spec.rb:623" => "not_to include: regression guard for a literal message already fixed to go through I18n.t — can never render again, in any fork",
-    "spec/requests/workspaces_spec.rb:27" => "a workspace's name set by the factory (\"Secret Workspace\"), not UI copy"
+    "spec/requests/workspaces_spec.rb:60" => "a workspace's name set by the factory (\"Secret Workspace\"), not UI copy"
   }
 
   def offenders_in(path, matcher, text_option, sentence_matcher, noun, allowed = {})
