@@ -78,6 +78,8 @@
   /* Toast pill */
   --color-surface-toast: var(--color-surface-toast);
   --color-text-on-toast: var(--color-text-on-toast);
+  --color-info-icon-on-toast: var(--color-info-icon-on-toast);
+  --color-success-icon-on-toast: var(--color-success-icon-on-toast);
 
   /* Toast positioning */
   --toast-pill-top: var(--toast-pill-top);
