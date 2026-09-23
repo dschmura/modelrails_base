@@ -53,12 +53,17 @@ en:
     users:
       index:
         title: "Users"
-        description: "Look a user up by their exact email address."
-        search_label: "Email address"
+        description: "Everyone with an account on this instance, newest first."
+        search_label: "Name or email address"
         search_placeholder: "someone@example.com"
         search: "Search"
-        no_match: "No user has that email address."
+        empty: "Nobody has an account on this instance yet."
+        no_match: "No user matches that name or address."
         search_activity: "Search the activity ledger instead"
+        names_skipped: "Too many accounts to search names — this matched on the exact email address only."
+        capped:
+          one: "Showing the first match. There may be more."
+          other: "Showing the first %{count} matches. There may be more."
       show:
         operator: "Operator"
         suspended: "Suspended"

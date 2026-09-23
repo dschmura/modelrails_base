@@ -7,20 +7,79 @@ RSpec.describe "Operations users", type: :request do
 
   before { sign_in(operator) }
 
+  # #1135. This page was an exact-email lookup rendering a list of at most one
+  # row, which is a search-results shape for what was really a `find`. The
+  # issue proposed redirecting on a hit; the ruling was to make the list real
+  # instead, which dissolves the duplicated hit row rather than repairing it.
+  #
+  # Ordering is `created_at` desc and cannot be a name: first_name/last_name
+  # are non-deterministically encrypted, so an SQL sort reads ciphertext, and a
+  # keyed digest is not order-preserving. #1124's closing comment records why;
+  # do not re-derive it.
   describe "GET /operations/users" do
-    it "renders no user rows without a query" do
+    def rows_in(response) = Capybara.string(response.body).all("[data-testid='operations-user-row']")
+
+    it "lists every user newest first, without a query" do
       get operations_users_path
       expect(response).to have_http_status(:ok)
       html = Capybara.string(response.body)
-      expect(html).to have_no_text("Tess Target")
-      expect(html).to have_no_text("Otto Other")
+      expect(html).to have_text("Tess Target")
+      expect(html).to have_text("Otto Other")
     end
 
-    it "finds a user by exact email" do
+    it "orders by creation, newest first" do
+      newest = create(:user, first_name: "Nina", last_name: "Newest")
+      get operations_users_path
+      names = rows_in(response).map(&:text)
+      expect(names.first).to include("Nina Newest")
+      expect(names.join).to include("Tess Target")
+      expect(User.order(created_at: :desc).first).to eq(newest)
+    end
+
+    # `nav[aria-label='Pages']`, not a bare `nav[aria-label]`: the operations
+    # layout's own navigation is also a labelled nav, so the loose selector
+    # passed without a pager on the page at all.
+    it "paginates rather than rendering the whole instance" do
+      stub_const("Pagy::OPTIONS", Pagy::OPTIONS.merge(limit: 2))
+      create_list(:user, 3)
+      get operations_users_path
+
+      html = Capybara.string(response.body)
+      expect(html).to have_css("nav[aria-label='#{I18n.t('pagination.aria_label')}']")
+      expect(rows_in(response).size).to eq(2)
+    end
+
+    it "filters to the exact email match" do
       get operations_users_path(q: "Target@Example.com")
       html = Capybara.string(response.body)
       expect(html).to have_text("Tess Target")
       expect(html).to have_no_text("Otto Other")
+    end
+
+    # The filter's other half: names are matched by decrypting in Ruby, which
+    # is the only way this app can match inside a non-deterministic column.
+    it "filters by name, not only by address" do
+      get operations_users_path(q: "tess")
+      html = Capybara.string(response.body)
+      expect(html).to have_text("Tess Target")
+      expect(html).to have_no_text("Otto Other")
+    end
+
+    # Never a silent cap (#1166): a list that quietly drops matches is worse
+    # than one that admits it, because the operator cannot tell the difference
+    # between "no more" and "not shown".
+    it "says when names were too numerous to search" do
+      stub_const("User::Search::NAME_SEARCH_LIMIT", 0)
+      get operations_users_path(q: "tess")
+      expect(Capybara.string(response.body))
+        .to have_text(I18n.t("operations.users.index.names_skipped"))
+    end
+
+    it "says when the match list was capped" do
+      stub_const("User::Search::RESULT_LIMIT", 1)
+      get operations_users_path(q: "t")
+      expect(Capybara.string(response.body))
+        .to have_text(I18n.t("operations.users.index.capped", count: 1))
     end
 
     # .btn-cell-link sets no colour of its own — .btn-text-interactive is what
@@ -36,17 +95,25 @@ RSpec.describe "Operations users", type: :request do
       expect(Capybara.string(response.body)).to have_text(I18n.t("operations.users.index.no_match"))
     end
 
-    # A hit is a list row with the address and the badges the user's page
-    # opens with; a miss hands the question to the ledger, whose search also
-    # matches names, workspaces and projects.
-    it "renders the hit as a list row with the address and the miss with a way into the ledger" do
+    # Rewritten for the list, not deleted: the contract it carried — a row
+    # names the user, shows the address, and carries the state badges the
+    # user's page opens with — is the same contract, and it is the one that
+    # drifted (the old hit row was missing `locked_out` against this very
+    # example's description). The badges now come from a partial the show page
+    # renders too, so the two cannot disagree again.
+    it "renders a row with the address and every state badge the show page opens with" do
       Operatorship.grant!(user: target)
+      target.update!(locked_at: Time.current)
       get operations_users_path(q: target.email_address)
-      row = Capybara.string(response.body).find("main ul[role=list] li")
+
+      row = Capybara.string(response.body).find("[data-testid='operations-user-row']")
       expect(row).to have_link("Tess Target", href: operations_user_path(target))
       expect(row).to have_text(target.email_address)
       expect(row).to have_css("span[data-variant='soft']", text: I18n.t("operations.users.show.operator"))
+      expect(row).to have_css("span[data-variant='soft']", text: I18n.t("operations.users.show.locked_out"))
+    end
 
+    it "hands a miss to the ledger, whose search also matches workspaces and projects" do
       get operations_users_path(q: "nobody@example.com")
       expect(Capybara.string(response.body)).to have_link(I18n.t("operations.users.index.search_activity"),
         href: operations_activity_logs_path(q: "nobody@example.com"))

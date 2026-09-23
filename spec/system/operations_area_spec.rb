@@ -72,11 +72,13 @@ RSpec.describe "Operations area", type: :system do
     expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
   end
 
-  it "looks up users by email — no query, a match, and no match, AAA in both themes" do
+  # #1135: the page is a real list now, so the unfiltered state SHOWS people
+  # rather than hiding them — that is the change, and it is asserted first.
+  it "lists and filters users — unfiltered, a match, and no match, AAA in both themes" do
     target = create(:user, email_address: "target@example.com", first_name: "Tess", last_name: "Target")
 
     visit operations_users_path
-    expect(page).to have_no_text(target.full_name)
+    expect(page).to have_link(target.full_name)
     expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
 
     fill_in I18n.t("operations.users.index.search_label"), with: target.email_address
