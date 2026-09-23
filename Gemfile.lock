@@ -310,7 +310,7 @@ GEM
       net-pop
       net-smtp
     marcel (1.2.1)
-    markdowndocs (0.11.3)
+    markdowndocs (0.11.4)
       commonmarker (>= 1.0)
       rails (>= 7.1)
       rails-html-sanitizer (~> 1.6)
@@ -831,7 +831,7 @@ CHECKSUMS
   lookbook (2.3.15) sha256=e635123d16a4da30f10952fe93b399b5049bf3338670a9768dfc0f66da915f73
   mail (2.9.1) sha256=06574eca475253d6c18145dd70af80d0eb970182d55053497c5f4d797ea160e8
   marcel (1.2.1) sha256=1678e9360e32f9eafa917c80029e2f6d10b2715c66a4b87b6d0da9b9cd1f859f
-  markdowndocs (0.11.3) sha256=406455fff4caa854d1862899d9a1456bad64b0dd3f094118a8b48aa1e10bfae5
+  markdowndocs (0.11.4) sha256=f270d569c052ec273d025b66dc169cd5a122d9e0510825e88fa6a6a9e5a16d51
   matrix (0.4.3) sha256=a0d5ab7ddcc1973ff690ab361b67f359acbb16958d1dc072b8b956a286564c5b
   mdl (0.18.1) sha256=14c7ab8264bbeac4010bd54adb5d125cf1d29b3848c3b6bfacb239b8bc70037a
   mini_mime (1.1.5) sha256=8681b7e2e4215f2a159f9400b5816d85e9d8c6c6b491e96a12797e798f8bccef
