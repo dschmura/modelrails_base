@@ -57,8 +57,17 @@ module Operations
       # builds all say the one thing that was actually searched.
       @query = @search.query
       @workspace_param = params[:workspace].presence
-      @workspace = @workspace_param && @workspace_param != "instance" ? operated_workspaces.find_by(slug: @workspace_param) : nil
-      @workspace_param = nil if @workspace_param && @workspace_param != "instance" && @workspace.nil?
+      # include_discarded: a discarded workspace's rows are in this feed, so the
+      # filter that isolates them has to be able to name it (#1170).
+      @workspace = if @workspace_param && @workspace_param != "instance"
+        operated_workspaces(include_discarded: true).find_by(slug: @workspace_param)
+      end
+      # A slug that resolves to nothing is a filter that MATCHED nothing, not an
+      # absent filter. Dropping it here answered "any workspace" — the whole
+      # ledger — to a question about one. The param is kept so the summary and
+      # the empty state both say what was asked for.
+      @workspace_unresolved = @workspace_param.present? &&
+                              @workspace_param != "instance" && @workspace.nil?
       @kind = ActivityLog::KINDS.include?(params[:kind]) ? params[:kind] : nil
       @sort = SORTS.include?(params[:sort]) ? params[:sort] : DEFAULT_SORT
       @direction = params[:direction] == "asc" ? "asc" : "desc"
@@ -113,6 +122,7 @@ module Operations
       end
       scope = scope.at_instance_level if @workspace_param == "instance"
       scope = scope.for_workspace(@workspace) if @workspace
+      scope = scope.none if @workspace_unresolved
       scope = scope.of_kind(@kind) if @kind
       scope = scope.within(@range.from, @range.to) if @range.bounded?
       scope = scope.by_workspace_name(@direction) if @sort == "workspace"

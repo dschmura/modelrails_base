@@ -83,10 +83,10 @@
             </nav>
           </div>
           <% if @pagy.pages > 1 %>
-            <%# anchor_string is pagy's raw-attribute seam (a_lambda.rb): the pager
-                is a link like any other here, so it navigates _top too. %>
+            <%# frame: "_top" — the pager is a link like any other here, so it
+                navigates out of the results frame (#1169). %>
             <div data-focus-key="pager">
-              <%== @pagy.series_nav(aria_label: t("pagination.aria_label"), anchor_string: 'data-turbo-frame="_top"') %>
+              <%= render "shared/pager", pagy: @pagy, frame: "_top" %>
             </div>
           <% end %>
         </div>
