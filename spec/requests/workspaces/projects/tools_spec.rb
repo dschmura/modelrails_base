@@ -22,7 +22,7 @@ RSpec.describe "Project tools settings", type: :request do
     get edit_workspace_project_tools_path(workspace, project)
     page = Capybara.string(response.body)
 
-    expect(page).to have_css("label.min-h-11 input[type='checkbox'][name='project[enabled_tools][]']", minimum: 1)
+    expect(page).to have_css("label.min-h-input input[type='checkbox'][name='project[enabled_tools][]']", minimum: 1)
     docs_input = page.find("input[type='checkbox'][value='docs']")
     describedby = docs_input["aria-describedby"]
     expect(describedby).to be_present

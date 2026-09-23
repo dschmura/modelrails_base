@@ -8,7 +8,7 @@ module UI
     BASE = "inline-flex w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-full " \
            "border border-transparent px-2 py-0.5 text-xs font-medium whitespace-nowrap " \
            "transition-colors " \
-           "aria-invalid:border-danger-border " \
+           "aria-invalid:border-2 aria-invalid:border-danger " \
            "[&>svg]:pointer-events-none [&>svg]:size-3"
 
     # The 10 shipped cells, keyed `[variant, tone]` — 9 AAA-proven, plus `[:soft, :neutral]`
@@ -58,7 +58,7 @@ module UI
       if href
         @html_attrs[:href] = href
         @tag ||= :a
-        @extra_class = [ @extra_class, "min-h-11 focus-ring" ].compact.join(" ")
+        @extra_class = [ @extra_class, "min-h-input focus-ring" ].compact.join(" ")
       end
     end
 

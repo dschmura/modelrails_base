@@ -86,7 +86,7 @@ RSpec.describe UI::DataTableComponent, type: :component do
     render_default
 
     # The header button fills the (>=44px) cell height.
-    expect(page).to have_css("th button.min-h-11")
+    expect(page).to have_css("th button.min-h-input")
   end
 
   # --- AAA semantic tokens, not raw Tailwind ---------------------------------

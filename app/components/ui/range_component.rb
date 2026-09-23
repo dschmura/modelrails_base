@@ -12,11 +12,19 @@ module UI
     # 44px pill — 2026-07-13 review). The thumb is 20px (up from 16) for a
     # more grabbable handle, centered on the slim track (webkit `-mt-1.5` =
     # -(20-8)/2 offsets the thumb onto the 8px runnable-track).
+    #
+    # The track carries the invalid state, and carries it as a BORDER: the ring
+    # this replaces was not painted in forced-colors mode, and a colour swap
+    # would not survive it either, since the system repaints every border the
+    # same. The control's own box is transparent, so the edge has to go on the
+    # track pseudo-element rather than the input (modelrails_ui #258).
     BASE = "w-full h-11 cursor-pointer appearance-none bg-transparent outline-none " \
-           "focus-ring rounded aria-invalid:ring-1 aria-invalid:ring-danger " \
+           "focus-ring rounded " \
            "disabled:pointer-events-none disabled:opacity-50 " \
            "[&::-webkit-slider-runnable-track]:h-2 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-surface-sunken " \
            "[&::-moz-range-track]:h-2 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-surface-sunken " \
+           "aria-invalid:[&::-webkit-slider-runnable-track]:border-2 aria-invalid:[&::-webkit-slider-runnable-track]:border-danger " \
+           "aria-invalid:[&::-moz-range-track]:border-2 aria-invalid:[&::-moz-range-track]:border-danger " \
            "[&::-webkit-slider-thumb]:size-5 [&::-webkit-slider-thumb]:-mt-1.5 [&::-webkit-slider-thumb]:appearance-none " \
            "[&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-interactive " \
            "[&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-surface-raised " \

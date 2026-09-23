@@ -80,7 +80,7 @@ module UI
       content_tag(:div, trigger,
         id: @trigger_id,
         role: "button",
-        class: "select-none inline-flex min-h-11 min-w-11 items-center",
+        class: "select-none inline-flex min-h-input min-w-11 items-center",
         tabindex: "0",
         "aria-haspopup": "menu",
         "aria-expanded": "false",

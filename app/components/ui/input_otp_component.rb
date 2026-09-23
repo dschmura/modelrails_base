@@ -7,7 +7,7 @@ module UI
   class InputOtpComponent < ApplicationComponent
     CELL_CLS = "h-12 w-11 rounded-md border border-border-strong bg-surface-raised text-text-heading " \
                "text-center text-lg font-medium shadow-xs transition-colors focus-ring " \
-               "aria-invalid:border-danger aria-invalid:ring-2 aria-invalid:ring-danger " \
+               "aria-invalid:border-2 aria-invalid:border-danger " \
                "disabled:pointer-events-none disabled:opacity-50"
 
     WRAPPER_CLS = "flex items-center gap-2"

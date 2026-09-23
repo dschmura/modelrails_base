@@ -109,7 +109,7 @@ module UI
     def radio_label(item, id)
       content_tag(:label, item[:label],
         for: id,
-        class: "inline-flex min-h-11 items-center text-sm font-medium")
+        class: "inline-flex min-h-input items-center text-sm font-medium")
     end
   end
 end

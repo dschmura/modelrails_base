@@ -5,7 +5,7 @@ module UI
   # Usage, options and the accessibility contract: docs/components/collapsible.md in the
   # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
   class CollapsibleComponent < ApplicationComponent
-    SUMMARY_CLS = "flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 " \
+    SUMMARY_CLS = "flex min-h-input cursor-pointer list-none items-center justify-between gap-2 " \
                   "[&::-webkit-details-marker]:hidden focus-ring"
     CONTENT_CLS = "mt-2"
 

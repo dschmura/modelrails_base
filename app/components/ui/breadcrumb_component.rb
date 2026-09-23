@@ -5,7 +5,7 @@ module UI
   # Usage, options and the accessibility contract: docs/components/breadcrumb.md in the
   # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
   class BreadcrumbComponent < ApplicationComponent
-    LINK = "inline-flex min-h-11 min-w-11 items-center rounded-sm text-text-muted transition-colors " \
+    LINK = "inline-flex min-h-input min-w-11 items-center rounded-sm text-text-muted transition-colors " \
            "hover:text-text-heading " \
            "focus-ring focus-visible:text-text-heading"
     CURRENT = "font-medium text-text-heading"

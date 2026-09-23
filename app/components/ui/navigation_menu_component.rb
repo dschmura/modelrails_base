@@ -40,11 +40,11 @@ module UI
     # role="menuitem" widget, so the 44px AAA floor (2.5.5) applies to it the same
     # way it does to TRIGGER and LINK_CLS above — which use a fixed h-11 because
     # they are single-line. This one stacks a title over an optional description,
-    # so it takes min-h-11 instead: a floor, not a cap. justify-center (the MAIN
+    # so it takes min-h-input instead: a floor, not a cap. justify-center (the MAIN
     # axis here, since the container is flex-col) centres single-line content as
     # the row grows to meet the floor; items-center would pull a two-line link off
     # its left edge.
-    PANEL_LINK = "flex min-h-11 flex-col justify-center gap-1 rounded-sm p-2 text-sm transition-all focus-ring " \
+    PANEL_LINK = "flex min-h-input flex-col justify-center gap-1 rounded-sm p-2 text-sm transition-all focus-ring " \
                  "hover:bg-surface-sunken hover:text-text-heading " \
                  "aria-[current]:bg-surface-sunken/50 aria-[current]:text-text-heading"
 

@@ -8,7 +8,7 @@ module UI
     LINK_BASE = "text-sm font-medium transition-colors hover:text-text-heading"
     LINK_IDLE = "text-text-muted"
     LINK_ACTIVE = "text-text-heading"
-    MOBILE_LINK = "flex min-h-11 items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-surface-sunken hover:text-text-heading"
+    MOBILE_LINK = "flex min-h-input items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-surface-sunken hover:text-text-heading"
 
     # brand/brand_href: optional brand link. items: nav links. label: the <nav> accessible name
     # (i18n; defaults to t("ui.navbar.label", default: "Main")). Block content → right action area.
@@ -51,7 +51,7 @@ module UI
       return "" unless @brand
 
       content_tag(:a, @brand, href: @brand_href,
-        class: "mr-2 flex min-h-11 min-w-11 items-center font-semibold text-text-heading")
+        class: "mr-2 flex min-h-input min-w-11 items-center font-semibold text-text-heading")
     end
 
     def desktop_menu
@@ -80,7 +80,7 @@ module UI
       content_tag(:div, content, class: "hidden items-center gap-2 md:flex")
     end
 
-    HAMBURGER_CLASS = "inline-flex min-h-11 min-w-11 items-center justify-center rounded-md p-2 " \
+    HAMBURGER_CLASS = "inline-flex min-h-input min-w-11 items-center justify-center rounded-md p-2 " \
                       "text-text-muted hover:bg-surface-sunken hover:text-text-heading md:hidden"
 
     def hamburger

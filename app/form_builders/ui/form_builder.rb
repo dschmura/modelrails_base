@@ -24,7 +24,7 @@ module UI
   class FormBuilder < ActionView::Helpers::FormBuilder
     CHECKBOX_CLASSES = "size-5 rounded border-border-strong text-interactive focus-ring"
     # One row = ONE ≥44px target (WCAG 2.5.5): the label wraps input + caption.
-    CHECKBOX_ROW_CLASSES = "flex min-h-11 items-center gap-3 text-sm text-text-body"
+    CHECKBOX_ROW_CLASSES = "flex min-h-input items-center gap-3 text-sm text-text-body"
     LEGEND_CLASSES = "text-sm font-medium text-text-body"
 
     def text_field(method, options = {})

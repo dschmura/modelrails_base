@@ -7,9 +7,9 @@ module UI
     # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
     BASE   = "block w-full rounded-md border px-3 py-2 placeholder:text-text-muted " \
              "disabled:cursor-not-allowed disabled:opacity-50 " \
-             "focus-ring min-h-[var(--form-input-height)]"
+             "focus-ring min-h-input"
     NORMAL = "border-border-strong bg-surface-raised text-text-heading"
-    ERROR  = "border-danger ring-2 ring-danger bg-danger-surface text-danger"
+    ERROR  = "border-2 border-danger bg-danger-surface text-danger"
 
     # value:       textarea body (builder-driven); falls back to block content for standalone use
     # required:    sets `required` + `aria-required="true"`

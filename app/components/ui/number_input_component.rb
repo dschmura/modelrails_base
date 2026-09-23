@@ -5,15 +5,15 @@ module UI
   # Usage, options and the accessibility contract: docs/components/number_input.md in the
   # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
   class NumberInputComponent < ApplicationComponent
-    # `min-h-[var(--form-input-height)]` (44px) replaces the old fixed `h-9` (36px)
+    # `min-h-input` (44px) replaces the old fixed `h-9` (36px)
     # so the control meets the AAA 2.5.5 target-size floor and aligns with sibling
     # form fields. All colors are AAA semantic tokens — no raw Tailwind palette.
     BASE = "block w-full min-w-0 rounded-md border border-border-strong bg-transparent px-3 py-1 text-base shadow-xs " \
-           "min-h-[var(--form-input-height)] " \
+           "min-h-input " \
            "transition-[color,box-shadow] outline-none " \
            "placeholder:text-text-muted " \
            "focus-visible:border-border-focus focus-ring " \
-           "aria-invalid:border-danger-border aria-invalid:ring-2 aria-invalid:ring-danger " \
+           "aria-invalid:border-2 aria-invalid:border-danger " \
            "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 " \
            "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none " \
            "md:text-sm"
