@@ -12,8 +12,8 @@ RSpec.describe "Code smell: every locale interpolation token is supplied" do
     decliner_email device email first_name from hours_remaining
     invitee_email inviter limit link max member metric minutes mode name
     names new_email new_role nickname os percent period phrase project_name
-    provider query relative role sent shown skipped summary time title to user_name
-    workspace_name zone
+    provider query relative role sender sent shown skipped summary time title to
+    user_name workspace_name zone
   ]
   # ^ from Step 1's measurement, minus the eight vocabulary tokens, sorted.
   # `link`: app/views/operations/users/show.html.erb supplies a link_to for
@@ -23,6 +23,8 @@ RSpec.describe "Code smell: every locale interpolation token is supplied" do
   # `shown`: the ledger's workspace search partial passes how many candidates it
   # rendered alongside `count`, the number that matched
   # (...index.filters.workspace_more) — an honest cap states both.
+  # `sender`: app/views/settings/invitation_blocks/index.html.erb supplies the
+  # blocking inviter's name (or address) to ...index.allow_aria_label/_title.
   # `query` / `names`: Operations::ActivityLedgerHelper#ledger_search_parts
   # supplies the needle and the records it resolved to
   # (...index.summary.matching / .no_match).
