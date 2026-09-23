@@ -79,17 +79,49 @@ RSpec.describe "Sessions", type: :request do
           password: "SecureP@ssw0rd123!"
         }
         expect(response).to redirect_to(root_path)
+        expect(flash[:notice]).to eq(I18n.t("sessions.create.success"))
       end
     end
 
     context "with invalid credentials" do
+      # `failure` and `locked` both land on new_session_path, and the locked
+      # case below already asserts its message — so without this one, a wrong
+      # password and a locked account are indistinguishable to the spec (#526).
       it "rejects the sign in" do
         post session_path, params: {
           email_address: user.email_address,
           password: "wrongpassword"
         }
         expect(response).to redirect_to(new_session_path)
+        expect(flash[:alert]).to eq(I18n.t("sessions.create.failure"))
       end
+    end
+  end
+
+  # Neither branch had a spec: the limiter and the OAuth failure both land on
+  # new_session_path, same as an ordinary wrong password, so nothing
+  # distinguished them and a wrong key here would reach a user unseen (#526).
+  describe "POST /session — refusals that share a destination" do
+    it "says it was rate limited once the limit is exceeded" do
+      # rate_limit counts via Rails.cache.increment; returning an over-limit
+      # count fires the limiter without needing a persistent cache (the house
+      # pattern, see the workspaces update limiter).
+      allow(Rails.cache).to receive(:increment).and_return(11)
+
+      post session_path, params: { email_address: user.email_address, password: "SecureP@ssw0rd123!" }
+
+      expect(response).to redirect_to(new_session_path)
+      expect(flash[:alert]).to eq(I18n.t("sessions.create.rate_limited"))
+    end
+
+    # OmniAuth's on_failure lands on /auth/failure, a path the middleware fixes.
+    # It redirects to the same place as every other refusal, so the alert is
+    # the only thing telling a failed provider handshake from a bad password.
+    it "says an OAuth handshake failed" do
+      get omniauth_failure_path
+
+      expect(response).to redirect_to(new_session_path)
+      expect(flash[:alert]).to eq(I18n.t("sessions.create.oauth_failure"))
     end
   end
 
@@ -101,6 +133,7 @@ RSpec.describe "Sessions", type: :request do
       }
       delete session_path
       expect(response).to redirect_to(new_session_path)
+      expect(flash[:notice]).to eq(I18n.t("sessions.destroy.success"))
     end
   end
 
