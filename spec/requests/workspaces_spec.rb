@@ -21,6 +21,39 @@ RSpec.describe "Workspaces", type: :request do
         expect(response.body).to include(CGI.escapeHTML(workspace.name))
       end
 
+      # The header action and a bottom "Create" CTA both pointed at the same
+      # page. The bottom one outlived the layout that justified it — a long
+      # scroll where the header action had gone off-screen — and now sits a
+      # few rows below its twin (#1092).
+      it "offers one route to the new-workspace page, not two" do
+        workspace = create(:workspace)
+        create(:membership, :owner, user: user, workspace: workspace)
+
+        get workspaces_path
+
+        expect(Capybara.string(response.body)).to have_link(href: new_workspace_path, count: 1)
+      end
+
+      # Three paddings inside identical list chrome, two of them in the same
+      # <ul>: the plain rows carry p-3 from _row, the locked row hard-coded
+      # p-4, and the archived branch took the component's px-4 py-3. The
+      # partial renders in three different containers, so no single padding on
+      # the partial can be right — the container owns the chrome (#1119).
+      it "gives a locked row the same chrome as the rows beside it" do
+        held = create(:workspace, name: "Held Co")
+        create(:membership, :owner, user: user, workspace: held)
+        neighbour = create(:workspace, name: "Fine Co")
+        create(:membership, :owner, user: user, workspace: neighbour)
+        held.suspend!
+
+        get workspaces_path
+        page = Capybara.string(response.body)
+
+        locked = page.find("[data-test='locked-workspace-row']")
+        expect(locked[:class].to_s.split).to include("p-3", "rounded-lg", "border"),
+          "the locked row does not share the chrome of the rows it sits with"
+      end
+
       it "does not show other users' workspaces" do
         other_workspace = create(:workspace, name: "Secret Workspace")
         get workspaces_path
