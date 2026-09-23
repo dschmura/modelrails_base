@@ -16,6 +16,21 @@ RSpec.describe "Workspace switcher trigger", type: :request do
     end
   end
 
+  # The dropdown affordance is an ICON, not a text character. It used to be
+  # &#9662; (U+25BE, "small" triangle) at the inherited 14px, which drew well
+  # inside its em box and varied with the platform font — visibly smaller than
+  # the user-menu chevron a few pixels away, which has always been
+  # icon(:chevron_down) (#1224).
+  it "draws its chevron with the icon registry, like every other chevron" do
+    get workspace_path(workspace)
+    trigger = Nokogiri::HTML(response.body).at_css("#workspace-switcher-button")
+
+    expect(trigger.at_css("svg")).not_to be_nil,
+      "the switcher's chevron is not an icon"
+    expect(trigger.text).not_to include("\u25BE"),
+      "a text glyph is still standing in for the chevron"
+  end
+
   # The trigger is a <button>, so anything focusable inside it is a
   # nested-interactive axe failure. The name used to be an <a> (the old identity
   # bar's link); when the id moved into this button, the rename broadcast kept
