@@ -228,6 +228,18 @@ workspace, and reinstating them restores that access with no further
 repair. While they're suspended, that workspace simply has no active
 owner able to sign in — that's the point of a hold, not a gap in it.
 
+## Who learns about a hold
+
+One rule, applied in all three directions, so there is no per-surface exemption to keep straight:
+
+- **The person, at the moment of impact.** The sign-in attempt that is refused says so. That is the only moment the information is actionable for them.
+- **Tenants, never.** A hold is between the operator and that person. Their memberships, roles and rows are untouched, and no workspace-facing surface marks them as held — a member list that showed it would disclose an account-level decision to people with no part in it.
+- **Operators, always.** The operations user page names the state, says since when, and holds the controls.
+
+**Mail follows the same rule: a suspended address receives none.** Not the digest (filtered in the candidate scope, so a held account costs no work), not workspace notifications, and **not security mail either** — password changed, sign-in from a new device. That last one is deliberate and is the part worth arguing with: a suspended user cannot act on a security notice, because the sign-in that would let them act is exactly what is refused. A reset on reinstatement recovers the same ground through the same address. The alternative — exempting security mail — buys a notification nobody can use in exchange for a second rule and a class of mail that must be kept straight forever.
+
+The same principle settles what an operator's action on a user records: personal-visibility rows, never workspace-visible ones.
+
 ## How it stays safe
 
 - A non-operator gets a 404 on every `/operations` route — the area's
