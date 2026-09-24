@@ -59,14 +59,7 @@ module BulletSafelists
   # --- N+1 query ------------------------------------------------------------
 
   def apply_n_plus_one
-    # Empty on purpose. Two `:recipient` entries lived here until #1054: the
-    # original reason was the email lambda's per-recipient gate, which #936
-    # removed — the gate now answers from the event's own permitted-id set and
-    # reads no association. Nothing in app/ or lib/ reads the association on a
-    # collection path any more (`recipient_pref` has no caller outside specs),
-    # so the capacity entry was dead and the member-added one survived only on
-    # spec-side reads, which now eager-load it. A safelist is global: keeping
-    # either would blind Bullet to a real N+1 on every other surface.
+    # Empty on purpose (#1054): a safelist is global and would hide a real N+1.
 
     # The notifications index's second-level traversals off the polymorphic
     # `event.record` are handled by the `record_preloads` pipeline

@@ -181,11 +181,7 @@ class ApplicationNotifier < Noticed::Event
     :deduplicated
   end
 
-  # The gem aliases deliver_later to deliver inside its own concern, so the alias
-  # holds a COPY of the gem's body and never reaches the override above — the
-  # instance form would skip the sentinels and the empty-set guard, and mint the
-  # idempotency key on a dispatch nobody receives (#1063, the #928 failure mode).
-  # Re-pointing it here restores the gem's own contract: two names, one method.
+  # The gem's alias copies its own deliver and would bypass the override (#1063).
   alias_method :deliver_later, :deliver
 
   # A missing row falls back to a transient `UserPreferences.new`, not nil —
@@ -261,15 +257,9 @@ class ApplicationNotifier < Noticed::Event
                       .pluck(:recipient_id)
     return if recipient_ids.empty?
 
-    # Per-user iteration so one bad broadcast cannot poison the rest; each
-    # call is self-rescuing.
-    #
-    # Measured ceiling, undebounced on purpose (#1200): 4 broadcasts, 3 partial
-    # renders and ~1 ms per recipient per dispatch, plus one solid_cable_messages
-    # INSERT per broadcast in production. Nothing in the template dispatches to
-    # the same recipients more than once per request or job, so there is no
-    # burst to collapse. Add a per-recipient debounce with the first code path
-    # that does -- a bulk member add or bulk role change is the likely one.
+    # Per user, so one bad broadcast cannot stop the rest. Undebounced (#1200): about
+    # 1 ms and 4 broadcasts per recipient per dispatch. The capacity and expiring-
+    # invitation sweeps can repeat a recipient; debounce when a bulk path appears.
     User.where(id: recipient_ids).find_each do |user|
       NotificationBroadcaster.refresh_for(user, announcement_key: "notifications.bell.arrival_announcement",
                                           severity: self.class.severity_name)

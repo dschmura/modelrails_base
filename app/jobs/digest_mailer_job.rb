@@ -20,16 +20,11 @@
 # those ids at delivery time, which is also the last gate on read state.
 # See /docs/developer/notifications (DigestMailerJob).
 class DigestMailerJob < ApplicationJob
-  # Matches config/recurring.yml, which pins this to `mailers`. The schedule's
-  # explicit queue wins either way, so a disagreement here would not change
-  # where the job runs — it would just make this line false (#1045).
+  # Must match config/recurring.yml, whose queue wins (#1045).
   queue_as :mailers
 
   def perform
-    # joins AND includes, both load-bearing: the WHERE below is a string
-    # naming user_preferences, which `includes` alone would not join (it needs
-    # `references`), and `joins` alone leaves send_digest_for re-querying each
-    # user's own row (#1048).
+    # joins for the string WHERE, includes for send_digest_for (#1048).
     User.not_suspended
         .joins(:preferences)
         .includes(:preferences)
