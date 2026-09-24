@@ -135,9 +135,8 @@ class ActivityLog < ApplicationRecord
     visible.for_workspace(workspace).merge(workspace_level.or(project_level))
   }
 
-  # One entry per action family; activity_log_filters_spec pins it to the locales.
-  # Filters on the action prefix to walk the created_at index; re-EXPLAIN past
-  # ~5M rows (measured on in-memory SQLite, #1165).
+  # One entry per action family (activity_log_filters_spec). The prefix filter walks
+  # the created_at index; re-EXPLAIN past ~5M rows, in-memory measure (#1165).
   KINDS = %w[workspace membership invitation project resource user operatorship].freeze
 
   scope :of_kind, ->(kind) { where(arel_table[:action].matches("#{kind}.%")) }
@@ -261,9 +260,8 @@ class ActivityLog < ApplicationRecord
     tracked_membership&.user&.full_name
   end
 
-  # Four outcomes: the snapshot; a live actor (pre-#1122 rows); "a former member"
-  # when that actor is gone; nil for a job or the console. Only membership.created
-  # names its member instead, since onboarding creates it before any session exists.
+  # Snapshot, else live actor (pre-#1122), else "a former member"; nil means a job did it.
+  # membership.created names its member: onboarding creates it before any session.
   def display_subject
     return actor_name if actor_name.present?
     # Gated on actor_id so an actorless row never touches the association (Bullet).

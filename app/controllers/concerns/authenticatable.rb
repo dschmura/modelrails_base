@@ -153,9 +153,8 @@ module Authenticatable
       Rails.logger.warn("[new-device-detection] swallowed error for user=#{user.id}: #{e.class}: #{e.message}")
     end
 
-    # Digest inputs, not display labels: renaming one re-alerts every user on that
-    # platform. iOS precedes Mac (iPad UAs contain it). Pinned by
-    # spec/requests/known_device_os_labels_spec.rb (#643).
+    # Digest inputs: renaming one re-alerts every user on that platform; iOS precedes
+    # Mac. Pinned by spec/requests/known_device_os_labels_spec.rb (#643).
     def parse_os_from_user_agent(user_agent)
       case user_agent
       when /iPhone|iPad|iPod/      then "iOS"

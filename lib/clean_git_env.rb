@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
-# Cleared before every git spawn: hooks export GIT_DIR, which beats `git -C` and
-# writes into another repository (#789). One home, fenced by
-# spec/code_smells/git_spawns_clear_git_env_spec.rb, which matches this name.
+# Cleared before every git spawn: a hook's GIT_DIR beats `git -C` (#789). One home,
+# fenced by spec/code_smells/git_spawns_clear_git_env_spec.rb.
 module CleanGitEnv
   HASH = {
     "GIT_DIR" => nil,

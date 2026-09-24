@@ -1,6 +1,5 @@
-# A queue DB with schema_migrations but no tables looks initialized to Rails, and
-# the post-migrate dump then empties db/queue_schema.rb. Loads it when the table
-# Solid Queue needs is missing (#1148, /docs/developer/troubleshooting).
+# A queue DB with schema_migrations but no tables looks initialized, and the dump
+# empties db/queue_schema.rb; this loads the schema (#1148, troubleshooting doc).
 namespace :db do
   namespace :queue do
     desc "Load db/queue_schema.rb when the queue database is missing Solid Queue's tables"

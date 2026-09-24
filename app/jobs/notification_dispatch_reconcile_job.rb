@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
-# Re-enqueues events whose EventJob never started (dispatched_at NULL past GRACE),
-# stamping each row BEFORE enqueuing so a backed-up queue cannot fan out duplicates.
-# A fork adding `deliver(..., wait:)` must widen GRACE. See /docs/developer/notifications.
+# Re-enqueues events whose EventJob never started, stamping first so duplicates
+# cannot fan out. A `deliver(..., wait:)` needs a wider GRACE (#927, notifications doc).
 class NotificationDispatchReconcileJob < ApplicationJob
   # `default`, not `low`: queue.yml charters `low` as work nobody is waiting on,
   # and this re-delivers a notification that already failed to arrive once. Same

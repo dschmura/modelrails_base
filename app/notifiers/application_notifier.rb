@@ -257,9 +257,8 @@ class ApplicationNotifier < Noticed::Event
                       .pluck(:recipient_id)
     return if recipient_ids.empty?
 
-    # Per user, so one bad broadcast cannot stop the rest. Undebounced (#1200): about
-    # 1 ms and 4 broadcasts per recipient per dispatch. The capacity and expiring-
-    # invitation sweeps can repeat a recipient; debounce when a bulk path appears.
+    # Per user, so one bad broadcast cannot stop the rest. Undebounced (#1200); two daily
+    # sweeps can repeat a recipient, so debounce when a bulk path appears.
     User.where(id: recipient_ids).find_each do |user|
       NotificationBroadcaster.refresh_for(user, announcement_key: "notifications.bell.arrival_announcement",
                                           severity: self.class.severity_name)

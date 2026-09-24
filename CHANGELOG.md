@@ -10,7 +10,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
-- Comments added in app/ and lib/ since the 2026-09-21 plan cut to a gist plus a pointer (658 lines to 133).
+- Comments added in app/ and lib/ since the 2026-09-21 plan cut to at most two lines each (658 lines to 125).
 
 ### Changed
 
