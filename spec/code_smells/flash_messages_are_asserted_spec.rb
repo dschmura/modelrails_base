@@ -17,11 +17,7 @@ require "yaml"
 # (`expired_or_used`), not the `NotAcceptable` rescue (`acceptance_failed`). Both
 # redirect to root, so only the message tells them apart.
 RSpec.describe "Flash messages are asserted, not just redirects" do
-  # Every controller flash no spec asserts today. This is a burn-down list, not
-  # configuration: delete an entry as its assertion lands (#526). New arrivals
-  # fail the first example rather than being added here — the two exceptions
-  # were flashes that had always existed and only became visible when the scan
-  # learned the other two spellings, so they were debt already, not new.
+  # Burn-down, not configuration: delete an entry as its assertion lands (#526).
   unasserted_flashes = [
     "email_verification_resends.create.no_email_auth",
     "email_verification_resends.create.rate_limited",
@@ -93,9 +89,7 @@ RSpec.describe "Flash messages are asserted, not just redirects" do
       File.readlines(path).filter_map do |line|
         action = Regexp.last_match(1) if line =~ /\A\s*def\s+([a-z_]+)/
 
-        # Three spellings, because reading only the `notice:` kwarg made a live
-        # flash look like a fossil: the bulk-invite message is built as a local
-        # (`notice = t(...)`) and handed to redirect_to on the next line.
+        # Three spellings, including a `notice = t(...)` local handed to redirect_to.
         expression =
           if line =~ /(?:notice|alert):\s*(.+)/
             Regexp.last_match(1)
@@ -132,9 +126,7 @@ RSpec.describe "Flash messages are asserted, not just redirects" do
 
   let(:values) { locale_values }
 
-  # Excludes THIS file: the burn-down list below names every one of these keys as string
-  # literals, so scanning it would report every one of them as asserted and the
-  # guard would pass on an empty promise.
+  # Skips this file, whose burn-down list names every key as a literal.
   let(:specs) do
     Dir.glob(Rails.root.join("spec/**/*_spec.rb"))
       .reject { |f| f == __FILE__ }
@@ -152,10 +144,7 @@ RSpec.describe "Flash messages are asserted, not just redirects" do
       "from a right one."
   end
 
-  # The other direction of the same rot. An entry stops describing the code
-  # either because the assertion landed (the example below) or because the
-  # flash itself moved, was renamed, or was deleted — and a key no controller
-  # sets any more is a line of debt this app does not owe (#526).
+  # The reverse: an entry whose flash no controller sets any more is removed (#526).
   it "keeps the burn-down list honest — no entry that names no flash" do
     live = controller_flash_keys
     fossils = unasserted_flashes.reject { |key| live.include?(key) }

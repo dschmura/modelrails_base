@@ -1,13 +1,7 @@
 require "rails_helper"
 
-# The overview feed decides what a member may read by partitioning rows on
-# their trackable type (#1154). A type in neither partition falls OUT of the
-# feed — the safe default for a leak fix, but silent, so a fork that adds a
-# Trackable model would quietly lose its rows from the feed and never be told.
-#
-# This is the telling. It derives the population from the models themselves
-# rather than restating a list, so the day a sixth includer lands it fails
-# here naming it.
+# An unclassified Trackable type falls out of the feed (#1154); this derives the
+# includers so a new one fails here by name.
 RSpec.describe "ActivityLog feed partitions" do
   let(:trackable_includers) do
     Dir[Rails.root.join("app/models/**/*.rb")].filter_map do |file|
@@ -43,8 +37,7 @@ RSpec.describe "ActivityLog feed partitions" do
     MESSAGE
   end
 
-  # The other direction: a partition naming a model that no longer records
-  # activity is a clause that can never match.
+  # The reverse: an entry that no longer records activity can never match.
   it "names no partition entry that is not a Trackable model" do
     classified = ActivityLog::WORKSPACE_LEVEL_TRACKABLES +
                  ActivityLog::PROJECT_LEVEL_TRACKABLES +

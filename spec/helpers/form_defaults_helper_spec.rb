@@ -11,8 +11,6 @@ RSpec.describe FormDefaultsHelper do
     expect(form["novalidate"]).to be_present
   end
 
-  # The caller's html options merge last, so an explicit opt-out wins -- and
-  # the caller's other html options survive the merge.
   it "lets a form opt back into native validation, keeping its other html options" do
     form = form_tag_of(helper.form_with(url: "/somewhere", html: { novalidate: false, data: { role: "probe" } }) { "" })
 

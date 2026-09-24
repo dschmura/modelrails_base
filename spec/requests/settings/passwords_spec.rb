@@ -80,9 +80,7 @@ RSpec.describe "Account Passwords", type: :request do
             .to eq(passwordless_user.id.to_s)
         end
 
-        # #1059: the pending row is the only thing the connected-accounts page
-        # has to name the address it is confirming, so a blank one renders
-        # "Confirming " at the user.
+        # The pending row names the address being confirmed (#1059).
         it "records the address on the created authentication" do
           post settings_password_path, params: {
             user: {

@@ -572,10 +572,7 @@ module AxeAccessibility
     Object.new
   end
 
-  # Keeps the violations it saw, keyed on its own arguments, so the paired
-  # failure message can report THIS audit rather than running its own. Before
-  # #1189 the message re-audited, and a violation that cleared in between
-  # produced a failure with no rule, no selector and no theme.
+  # Stores the violations so the paired message reports this audit (#1189).
   def axe_clean?(options = {}, exclude: DEFERRED_AAA_EXCLUDES, include: nil)
     violations = axe_violations_now(options, exclude: exclude, include: include)
     (@__axe_seen_violations ||= {})[axe_capture_key(options, exclude, include)] = violations
@@ -598,10 +595,7 @@ module AxeAccessibility
     Array(results["violations"]).map { |v| format_violation(v) }
   end
 
-  # Arguments, not page state: the message twin always receives exactly the
-  # arguments its check did (verified across all 195 paired call sites), so this
-  # key hits at every existing site. A standalone call with no preceding check
-  # misses and audits as before.
+  # Keyed on arguments: each message twin receives its check's exact arguments.
   def axe_capture_key(options, exclude, include)
     [ options, exclude, include ]
   end

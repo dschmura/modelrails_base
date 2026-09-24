@@ -72,8 +72,6 @@ RSpec.describe "Operations area", type: :system do
     expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
   end
 
-  # #1135: the page is a real list now, so the unfiltered state SHOWS people
-  # rather than hiding them — that is the change, and it is asserted first.
   it "lists and filters users — unfiltered, a match, and no match, AAA in both themes" do
     target = create(:user, email_address: "target@example.com", first_name: "Tess", last_name: "Target")
 
@@ -184,8 +182,7 @@ RSpec.describe "Operations area", type: :system do
     visit new_operations_workspace_path
     expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
 
-    # A malformed email now reaches the server: forms render `novalidate`, so
-    # the browser no longer blocks it first (#1117).
+    # Malformed, not blank: forms render novalidate (#1117).
     fill_in I18n.t("operations.workspaces.new.name"), with: "New Co"
     fill_in I18n.t("operations.workspaces.new.owner_email"), with: "not-an-email"
     click_button I18n.t("operations.workspaces.new.submit")

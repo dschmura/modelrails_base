@@ -1,14 +1,7 @@
 require "rails_helper"
 
-# In the template the vocabulary tokens resolve to the same words, so a spec
-# asserting "Create a workspace" stays green here — and goes red in every fork
-# that renamed. Assert copy through I18n.t so the same spec passes in both.
-# Model names (Workspace, workspace.name, :workspace factories) are not copy.
-#
-# Port this to a house RuboCop cop when a FOURTH literal shape appears (#1115).
-# Three are already here — matcher, text: option, sentence — and a third noun
-# needs no port: the nouns are derived from Vocabulary::NOUNS and an example
-# below proves a new one is guarded the day it is added.
+# Assert copy through I18n.t so a fork that renamed its nouns stays green.
+# Port to a RuboCop cop when a FOURTH literal shape appears (#1115).
 RSpec.describe "Code smell: spec copy assertions go through I18n.t" do
   matcher = /\b(have_content|have_text|have_button|have_link|have_title|have_field|click_(?:link|button|on)|fill_in)(?:\(\s*|\s+)(["'])((?:(?!\2).)*)\2/
   text_option = /\btext:\s*(["'])((?:(?!\1).)*)\1/
@@ -42,8 +35,8 @@ RSpec.describe "Code smell: spec copy assertions go through I18n.t" do
     "spec/config/vocabulary_interpolation_spec.rb:48" => "backend-hook mechanism spec; an around block pins the vocabulary to the template's words on purpose",
     "spec/config/vocabulary_interpolation_spec.rb:60" => "backend-hook mechanism spec; an around block pins the vocabulary to the template's words on purpose",
     "spec/config/vocabulary_interpolation_spec.rb:76" => "backend-hook mechanism spec; an around block pins the vocabulary to the template's words on purpose",
-    "spec/requests/settings/connected_accounts_spec.rb:623" => "not_to include: regression guard for a literal message already fixed to go through I18n.t — can never render again, in any fork",
-    "spec/requests/workspaces_spec.rb:60" => "a workspace's name set by the factory (\"Secret Workspace\"), not UI copy"
+    "spec/requests/settings/connected_accounts_spec.rb:617" => "not_to include: regression guard for a literal message already fixed to go through I18n.t — can never render again, in any fork",
+    "spec/requests/workspaces_spec.rb:53" => "a workspace's name set by the factory (\"Secret Workspace\"), not UI copy"
   }
 
   def offenders_in(path, matcher, text_option, sentence_matcher, noun, allowed = {})
@@ -78,10 +71,7 @@ RSpec.describe "Code smell: spec copy assertions go through I18n.t" do
       "Read: /docs/developer/i18n (Vocabulary).\n  #{offenders.join("\n  ")}"
   end
 
-  # The allow-list is keyed by file:line and consulted BEFORE the matcher runs
-  # (`next if allowed[location]` above), so an entry whose line has moved, or
-  # whose offence was fixed, silently protects whatever now sits at that line.
-  # Nothing fails; the list just quietly stops describing the code (#1114).
+  # A file:line entry that moved silently protects whatever sits there now (#1114).
   it "keeps no allow-list entry that has gone stale" do
     stale = allowed.keys.reject do |location|
       file, line = location.split(":")

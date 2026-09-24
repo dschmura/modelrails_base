@@ -84,9 +84,7 @@ RSpec.describe "Sessions", type: :request do
     end
 
     context "with invalid credentials" do
-      # `failure` and `locked` both land on new_session_path, and the locked
-      # case below already asserts its message — so without this one, a wrong
-      # password and a locked account are indistinguishable to the spec (#526).
+      # Distinguishes a wrong password from a lockout, same destination (#526).
       it "rejects the sign in" do
         post session_path, params: {
           email_address: user.email_address,
@@ -98,14 +96,10 @@ RSpec.describe "Sessions", type: :request do
     end
   end
 
-  # Neither branch had a spec: the limiter and the OAuth failure both land on
-  # new_session_path, same as an ordinary wrong password, so nothing
-  # distinguished them and a wrong key here would reach a user unseen (#526).
+  # Both land on new_session_path like a wrong password (#526).
   describe "POST /session — refusals that share a destination" do
     it "says it was rate limited once the limit is exceeded" do
-      # rate_limit counts via Rails.cache.increment; returning an over-limit
-      # count fires the limiter without needing a persistent cache (the house
-      # pattern, see the workspaces update limiter).
+      # An over-limit increment fires the limiter without a persistent cache.
       allow(Rails.cache).to receive(:increment).and_return(11)
 
       post session_path, params: { email_address: user.email_address, password: "SecureP@ssw0rd123!" }
@@ -114,9 +108,7 @@ RSpec.describe "Sessions", type: :request do
       expect(flash[:alert]).to eq(I18n.t("sessions.create.rate_limited"))
     end
 
-    # OmniAuth's on_failure lands on /auth/failure, a path the middleware fixes.
-    # It redirects to the same place as every other refusal, so the alert is
-    # the only thing telling a failed provider handshake from a bad password.
+    # Same destination as every refusal, so only the alert identifies it.
     it "says an OAuth handshake failed" do
       get omniauth_failure_path
 

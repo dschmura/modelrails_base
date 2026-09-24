@@ -8,11 +8,8 @@ require "yaml"
 # since) — each catches a misconfiguration that would otherwise propagate
 # silently. See /docs/developer/testing.
 RSpec.describe "Template invariants" do
-  # #789 — `git -C <dir>` loses to an inherited GIT_DIR, and git hooks export one
-  # (man 5 githooks); under Lefthook these reads would enumerate the wrong
-  # repository's index and assert the invariants against someone else's files.
-  # The hash itself lives in lib/clean_git_env.rb — this used to be a third copy,
-  # which is how a bare spawn went unnoticed for two days after #1057 (#1056).
+  # Clears the GIT_DIR family: under a hook these reads would enumerate another
+  # repository's index (#789; lib/clean_git_env.rb).
   let(:clean_git_env) { CleanGitEnv::HASH }
 
   let(:root) { Rails.root }
@@ -842,20 +839,13 @@ RSpec.describe "Template invariants" do
         "retention sweeps` convention"
     end
 
-    # An explicit `queue:` WINS over the class's own queue_as (see
-    # effective_recurring_queue below), so the two disagreeing is silent: the
-    # job runs where the schedule says, and the class's declaration is simply
-    # false. DigestMailerJob declared :default while the schedule routed it to
-    # mailers, and nothing noticed — both queues are polled, so there was no
-    # symptom to notice (#1045). What it costs is the reason queue.yml names
-    # its queues at all: "the mailers queue is backed up" stops being a
-    # statement you can trace back to a job class.
+    # An explicit recurring `queue:` wins over queue_as, so a disagreement is silent
+    # and the class's declaration false (#1045).
     it "recurring.yml's queue agrees with the job class's own queue_as" do
       recurring = YAML.safe_load(recurring_yml_raw, aliases: true).fetch("production")
       pinned = recurring.select { |_name, entry| entry["class"].present? && entry["queue"].present? }
 
-      # A misparse here would examine nothing and pass. These are the entries
-      # the invariant claims to have checked.
+      # POSITIVE CONTROL: a misparse would examine nothing and pass.
       expect(pinned.size).to be >= 8,
         "only #{pinned.size} recurring entries name both a class and a queue — the parse has " \
         "stopped seeing the schedule, so a disagreement would go unreported"
@@ -1249,17 +1239,12 @@ RSpec.describe "Template invariants" do
       end
     end
 
-    # The list above is hand-kept and only checks guide-says -> attribute-exists for
-    # paths someone remembered to add. This checks the other direction and derives
-    # its set from the guide's own table, so a row added to the table without the
-    # attribute fails here rather than silently promising a fork something upstream
-    # never arranged (#1106 — project_tools.rb was born that way in #381).
+    # The reverse direction, derived from the guide's own table (#1106).
     it "marks every path the fork-owned table names (the guide's promise is a contract)" do
       guide = File.read(Rails.root.join("app/docs/developer/forking.md"))
       gitattributes = File.read(Rails.root.join(".gitattributes"))
 
-      # Bounded to the Fork-owned files section: the conflict table further down
-      # names Gemfile/Gemfile.lock, which are template-owned and merge normally.
+      # Bounded to the Fork-owned files section; Gemfile below merges normally.
       section = guide[/^## Fork-owned files$.*?(?=^## )/m]
       expect(section).to be_present, "the Fork-owned files section moved or was renamed"
 

@@ -378,12 +378,7 @@ RSpec.describe "Magic Link Callbacks", type: :request do
         end
       end
 
-      # Task 5: archived and deleted must behave exactly like the
-      # suspended case above — silent no-op, signup still succeeds. This is a
-      # deliberate mechanism divergence from the invitation path: an
-      # invitation FAILS the whole signup with a notice (the invitee already
-      # has a specific stake in that workspace), whereas an open-link visitor
-      # was never a member, so a silent drop is the only privacy-safe outcome.
+      # A silent no-op, unlike an invitation: an open-link visitor was never a member.
       %i[archive discard].each do |lifecycle_action|
         lifecycle_name = lifecycle_action == :archive ? "archived" : "deleted"
 
@@ -462,13 +457,7 @@ RSpec.describe "Magic Link Callbacks", type: :request do
         expect(user.memberships.kept).to exist
       end
 
-      # Task 5: breaks the invitation retry-loop. Invitation#accept!'s
-      # widened guard rejects the parked invitation because its workspace is
-      # archived, and commit_signup_atomically's rescue must clear
-      # session[:pending_invitation_token] — otherwise a retry hits the
-      # identical rejection forever. The invitation itself stays pending?
-      # (accept! guards before marking it consumed), so a second attempt with
-      # the token now gone signs up cleanly, just without that membership.
+      # The parked token is cleared, or a retry hits the same rejection forever.
       context "when the invitation's workspace is archived after being parked" do
         before do
           inv_workspace.archive!
