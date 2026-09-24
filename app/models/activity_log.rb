@@ -6,6 +6,11 @@ class ActivityLog < ApplicationRecord
   # acted. The row carries the actor's name instead, taken at write time, so
   # the historical fact survives the user. trackable_id has never had a FK for
   # the same practical reason; both columns now fail the same way.
+  #
+  # Encrypted because the snapshot copies a person's name onto a table retained
+  # twelve months, so it takes the cipher that name already has on `users`.
+  # Non-deterministic: nothing may sort or search it in SQL, which is why the
+  # ledger has no Who sort.
   encrypts :actor_name
   belongs_to :trackable, polymorphic: true
   belongs_to :workspace, optional: true
@@ -18,11 +23,18 @@ class ActivityLog < ApplicationRecord
   # sweep job (#438) has its explicit carve-out.
   def readonly? = persisted?
 
-  # Taken once, at write time, and never refreshed: an audit row states what
-  # was true when it was written, so a later rename does not travel backwards
-  # through the trail.
-  before_validation on: :create do
-    self.actor_name = actor&.full_name if actor_name.nil?
+  # Taken once, at write time, and never refreshed -- so a row written from
+  # #1122 onward states the name that was true when it happened, and a later
+  # rename does not travel backwards through it. Rows written BEFORE that
+  # column existed have no snapshot, resolve live through the association, and
+  # therefore do still follow a rename; that asymmetry is the cost of not
+  # backfilling, and it shrinks to nothing as those rows age out.
+  #
+  # Unconditional, and on create only: the column is DERIVED, never accepted
+  # from a caller. A guard that preserved a supplied value would let one write
+  # a name contradicting actor_id into a row that is immutable afterwards.
+  before_create do
+    self.actor_name = actor&.full_name
   end
 
   enum :visibility, { workspace: "workspace", admin: "admin", personal: "personal" }, default: "workspace"
@@ -318,10 +330,17 @@ class ActivityLog < ApplicationRecord
   # actor there means a job or console did it, and "System" is the truth.
   # Gated on the action for that reason: a bare actor-or-member fallback
   # renders a nil-actor deactivation as "Dee deactivated Dee".
-  # Three states, not two: a named actor, an actor who has since been deleted,
-  # and no actor at all. The middle one used to be unreachable (the FK kept the
-  # user alive) and now renders as a person rather than as "System", which
-  # would credit a human action to a job.
+  # Four outcomes, and naming them matters because two of them are new:
+  #   1. a snapshot            -- every row written from #1122 onward
+  #   2. a living actor        -- a pre-snapshot row, resolved through the
+  #                               association, and the only arm that still
+  #                               follows a rename
+  #   3. "a former member"     -- a pre-snapshot row whose actor is gone; once
+  #                               unreachable, because the FK kept them alive
+  #   4. no subject            -- no actor at all, which is a true answer: a
+  #                               job or the console has no user
+  # Arm 3 is deliberately not "System". Crediting a person's action to a job is
+  # a different claim, not a vaguer one.
   def display_subject
     return actor_name if actor_name.present?
     # Gated on actor_id, so a row that never had an actor -- the common case,

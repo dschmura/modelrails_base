@@ -31,6 +31,30 @@ RSpec.describe "ActivityLog actor snapshot" do
       expect(log.actor_name).to eq("Dana Ruiz")
     end
 
+    # The column is DERIVED, not passed. A guard that let a caller supply one
+    # would let them write a name that contradicts actor_id into a row nothing
+    # downstream can ever correct (panel, 2026-09-23).
+    it "refuses a snapshot supplied by the caller" do
+      dana = create(:user, first_name: "Dana", last_name: "Ruiz")
+
+      log = ActivityLog.create!(action: "workspace.updated", trackable: workspace,
+                                actor: dana, workspace: workspace,
+                                actor_name: "Someone Else")
+
+      expect(log.reload.actor_name).to eq("Dana Ruiz")
+    end
+
+    # An empty string is not "no snapshot": it used to slip past a `.nil?` guard
+    # and then read back as blank, rendering a LIVE actor as a former member.
+    it "overwrites an empty snapshot rather than reading it back as departed" do
+      dana = create(:user, first_name: "Dana", last_name: "Ruiz")
+
+      log = ActivityLog.create!(action: "workspace.updated", trackable: workspace,
+                                actor: dana, workspace: workspace, actor_name: "")
+
+      expect(log.reload.display_subject).to eq("Dana Ruiz")
+    end
+
     it "leaves the snapshot blank when there is no actor" do
       log = ActivityLog.create!(action: "workspace.updated", trackable: workspace,
                                 actor: nil, workspace: workspace)
@@ -49,7 +73,11 @@ RSpec.describe "ActivityLog actor snapshot" do
   end
 
   describe "after the actor is gone" do
-    it "no longer blocks the actor's destruction" do
+    # Scoped deliberately: the audit trail is no longer ONE of the things
+    # blocking deletion. Five other columns still are (#1248), so this does not
+    # claim `user.destroy` works in general -- only that this table stopped
+    # being the reason it does not.
+    it "stops being a reason the actor cannot be destroyed" do
       acting_as(actor) { workspace.update!(name: "Renamed") }
       expect(ActivityLog.where(actor_id: actor.id)).to be_any
 
@@ -80,6 +108,23 @@ RSpec.describe "ActivityLog actor snapshot" do
       expect(orphan.reload.display_subject).to eq(I18n.t("activity.departed_actor"))
     end
 
+    # The commonest real state after this ships, and the one the rename comment
+    # is careful about: a row written before the column existed, whose actor is
+    # still very much alive. It resolves live -- and therefore DOES follow a
+    # rename, unlike every row written since.
+    it "resolves a pre-snapshot row through its living actor" do
+      log = ActivityLog.create!(action: "workspace.updated", trackable: workspace,
+                                actor: actor, workspace: workspace)
+      ActiveRecord::Base.connection.execute(
+        "UPDATE activity_logs SET actor_name = NULL WHERE id = #{log.id}"
+      )
+
+      expect(log.reload.display_subject).to eq("Dana Ruiz")
+
+      actor.update!(first_name: "Dee")
+      expect(log.reload.display_subject).to eq("Dee Ruiz")
+    end
+
     it "reports no subject at all when the row never had an actor" do
       log = ActivityLog.create!(action: "workspace.updated", trackable: workspace,
                                 actor: nil, workspace: workspace)
@@ -92,6 +137,12 @@ RSpec.describe "ActivityLog actor snapshot" do
   # one with a FK and one without is the state that produced this issue.
   it "keeps actor_id and trackable_id consistently free of foreign keys" do
     fks = ActiveRecord::Base.connection.foreign_keys("activity_logs").map(&:column)
+
+    # POSITIVE CONTROL -- two `not_to include` assertions also pass against an
+    # empty list, which is what a typo'd table name or a changed adapter API
+    # returns. This proves the reader found the real list.
+    expect(fks).to include("workspace_id"),
+      "the foreign-key reader returned nothing useful, so the two absences below prove nothing"
 
     expect(fks).not_to include("actor_id"),
       "actor_id regained a FK, so a departed actor blocks user deletion again (#1122)"
