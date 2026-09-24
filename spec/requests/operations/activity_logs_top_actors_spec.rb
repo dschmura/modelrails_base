@@ -101,6 +101,27 @@ RSpec.describe "Operations activity ledger top actors", type: :request do
     expect(entries(response.body).size).to eq(2)
   end
 
+  # Deleting an actor became possible when activity_logs.actor_id stopped
+  # carrying a foreign key (#1122). The slot is claimed by actor_id in SQL and
+  # the name is resolved afterwards, so a departed heavy actor used to eat a
+  # slot and then vanish -- the strip rendered one short while still calling
+  # itself the busiest N.
+  it "stays full when one of the busiest has since been deleted" do
+    workspace = create(:workspace)
+    stub_const("Operations::ActivityLogsController::TOP_ACTORS", 2)
+    project = create(:project, workspace: workspace)
+    departing = create(:user, first_name: "Gone", last_name: "Away")
+    busy(departing, workspace, 9, project: project)
+    2.times { |i| busy(create(:user, first_name: "Still#{i}", last_name: "Here"), workspace, i + 1, project: project) }
+
+    departing.destroy!
+    get operations_activity_logs_path
+
+    expect(entries(response.body).size).to eq(2)
+    expect(strip(response.body).text).to include("Still0 Here", "Still1 Here")
+    expect(strip(response.body).text).not_to include("Gone Away")
+  end
+
   # A way INTO the ledger, not a decoration on top of it — and through the same
   # pivot the row details already use, so there is one way to narrow to a person.
   it "makes each entry filter to that person" do

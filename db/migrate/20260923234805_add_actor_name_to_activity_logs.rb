@@ -12,6 +12,17 @@ class AddActorNameToActivityLogs < ActiveRecord::Migration[8.1]
   # back to the association while it resolves; an UPDATE across the table
   # would rewrite immutable audit history to add a field, which is the thing
   # ActivityLog#readonly? and the immutability guard exist to prevent.
+  # COST, before you run this on a big table: `remove_foreign_key` is not a
+  # metadata edit on SQLite. The adapter rebuilds the table -- CREATE new,
+  # INSERT..SELECT, DROP, RENAME, and the indexes with it -- inside one
+  # transaction holding the single writer lock. `activity_logs` is retained
+  # twelve months and takes a row per tracked write, so it is the largest table
+  # in a mature fork. Size it (`SELECT COUNT(*) FROM activity_logs`) and pick a
+  # window; `add_column` below is free by comparison and is not the cost.
+  #
+  # Reversible in form, not always in practice: once any row's actor has been
+  # deleted, a rollback re-adds the FK against a dangling actor_id and SQLite
+  # refuses the rebuild -- without naming the constraint.
   def change
     add_column :activity_logs, :actor_name, :string
 

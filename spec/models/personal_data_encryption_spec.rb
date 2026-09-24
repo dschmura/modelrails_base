@@ -41,6 +41,26 @@ RSpec.describe "personal data at rest" do
     end
   end
 
+  describe ActivityLog do
+    # The snapshot copies a person's name onto a table retained twelve months --
+    # longer than much of what it points at -- so it takes the same cipher the
+    # name has on `users`. Nothing here may ever be sorted or searched in SQL,
+    # which is what non-deterministic buys and what the ledger's SORTS enforces.
+    it "stores the actor snapshot as ciphertext, non-deterministically" do
+      workspace = create(:workspace)
+      dana = create(:user, first_name: "Dana", last_name: "Ruiz")
+      twin = create(:user, first_name: "Dana", last_name: "Ruiz")
+
+      log = ActivityLog.create!(action: "workspace.updated", trackable: workspace,
+                                actor: dana, workspace: workspace)
+      twin_log = ActivityLog.create!(action: "workspace.updated", trackable: workspace,
+                                     actor: twin, workspace: workspace)
+
+      expect(envelope?(log.ciphertext_for(:actor_name))).to be(true)
+      expect(log.ciphertext_for(:actor_name)).not_to eq(twin_log.ciphertext_for(:actor_name))
+    end
+  end
+
   describe Authentication do
     it "stores uid as ciphertext and still finds the row by provider and uid" do
       auth = create(:authentication, :google)

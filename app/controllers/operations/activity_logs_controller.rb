@@ -28,6 +28,11 @@ module Operations
     # How many people the "most active" strip names. Few enough to read at a
     # glance — it answers "who has been busiest here", not "here is a breakdown".
     TOP_ACTORS = 5
+    # How far past TOP_ACTORS the grouped count reaches so that deleted actors
+    # cannot shorten the strip. Three deep covers every realistic case without
+    # decrypting names nobody asked for -- the resolve step still only touches
+    # what it renders.
+    DEPARTED_ACTOR_HEADROOM = 3
 
     def index
       authorize [ :operations, ActivityLog ]
@@ -159,12 +164,22 @@ module Operations
                  # and volume second — the most RECENT actor wins, not the
                  # busiest. actor_id breaks ties so the strip is stable.
                  .reorder(Arel.sql("COUNT(*) DESC, actor_id ASC"))
-                 .limit(TOP_ACTORS)
+                 # Over-fetch, then re-limit after resolving. The slot is
+                 # claimed here by actor_id and the name is looked up below, so
+                 # an actor who has since been DELETED -- possible only since
+                 # activity_logs.actor_id stopped carrying a FK (#1122) -- used
+                 # to consume a slot and then be dropped, leaving the strip one
+                 # short while still calling itself the busiest N. Dropping them
+                 # is right (every entry is a pivot, and a departed person has
+                 # no page and no email to pivot by); shortening the strip
+                 # silently was not.
+                 .limit(TOP_ACTORS * DEPARTED_ACTOR_HEADROOM)
                  .count
       return [] if counts.empty?
 
       actors = User.where(id: counts.keys).index_by(&:id)
       counts.filter_map { |id, count| actors[id] && [ actors[id], count ] }
+            .first(TOP_ACTORS)
     end
 
     def row_limit
