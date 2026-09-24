@@ -76,6 +76,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+          # The comment-block gate diffs the PR against its base, so it needs history.
+          fetch-depth: 0
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@e8944e80fb94b20106697132f8c20c665fab29e9 # v1
@@ -94,6 +96,12 @@ jobs:
 
       - name: Lint code for consistent style
         run: bin/rubocop -f github
+
+      - name: Refuse comment blocks over two lines in the pull request's diff
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: bin/comment-block-check --range "origin/${BASE_REF}...HEAD"
 
   lint_docs:
     runs-on: ubuntu-latest
