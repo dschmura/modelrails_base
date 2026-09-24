@@ -511,6 +511,17 @@ RSpec.describe "Template invariants" do
         "expected the pre-push rspec gate to run bin/parallel-rspec so local pushes " \
         "get the same gates as CI (drift bit us before — see lefthook.yml's bundler_audit note)"
     end
+
+    it "the comment-block gate runs in Lefthook pre-commit AND in CI's lint job over the PR's diff" do
+      hook = lefthook_config.dig("pre-commit", "commands", "comment_blocks", "run").to_s
+      ci_steps = Array(ci_workflow.dig("jobs", "lint", "steps")).map { |s| s["run"].to_s }
+
+      expect(hook).to include("bin/comment-block-check"),
+        "expected Lefthook pre-commit to run bin/comment-block-check on the staged files"
+      expect(ci_steps).to include(match(%r{bin/comment-block-check --range})),
+        "expected CI's lint job to run bin/comment-block-check --range over the pull request's " \
+        "diff — a skipped hook, or a fork without Lefthook, otherwise lands long comment blocks unchecked"
+    end
   end
 
   describe "CI cancels superseded runs (#486)" do

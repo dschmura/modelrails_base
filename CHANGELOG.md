@@ -6,6 +6,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Added
 
+- The comment-block gate also runs in CI over a pull request's diff (`bin/comment-block-check --range`), so a skipped hook or a fork without Lefthook still meets it.
 - Pre-commit check refuses comment blocks over two lines that a commit touches (`bin/comment-block-check`).
 - Blocked senders page in account settings; unblocking is self-serve (#812).
 - Resource forms recover unsaved drafts, including the rich-text body (#479).

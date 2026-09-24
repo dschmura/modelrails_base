@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
-# Usage: bin/comment-block-check <staged paths...>  (run by Lefthook pre-commit)
+# Usage: bin/comment-block-check <staged paths...>        (Lefthook pre-commit)
+#        bin/comment-block-check --range <base>...<head>  (CI, over a pull request's diff)
 require "bundler/setup"
 require "set"
 require_relative "../lib/comment_block_check"
@@ -8,20 +9,34 @@ require_relative "../lib/clean_git_env"
 # Keeps GIT_INDEX_FILE: `git commit -a` hands the hook a temporary index (#789).
 env = CleanGitEnv::HASH.except("GIT_INDEX_FILE")
 
+if ARGV.first == "--range"
+  range = ARGV.fetch(1) { abort "usage: bin/comment-block-check --range <base>...<head>" }
+  head = range.split(/\.{2,3}/).last
+  paths = IO.popen(env, [ "git", "diff", "--name-only", "--diff-filter=AMR", range ], &:read).split("\n")
+  show = ->(path) { [ "git", "show", "#{head}:#{path}" ] }
+  diff = ->(path) { [ "git", "diff", "-U0", range, "--", path ] }
+  touched_by = "this pull request"
+else
+  paths = ARGV
+  show = ->(path) { [ "git", "show", ":#{path}" ] }
+  diff = ->(path) { [ "git", "diff", "--cached", "-U0", "--", path ] }
+  touched_by = "this commit"
+end
+
 check = CommentBlockCheck.new
-failures = ARGV.flat_map do |path|
-  source = IO.popen(env, [ "git", "show", ":#{path}" ], err: File::NULL, &:read)
+failures = paths.flat_map do |path|
+  source = IO.popen(env, show.call(path), err: File::NULL, &:read)
   next [] unless $?.success?
 
-  diff = IO.popen(env, [ "git", "diff", "--cached", "-U0", "--", path ], &:read)
-  check.violations(path: path, source: source, added_lines: CommentBlockCheck.added_lines(diff))
+  added = CommentBlockCheck.added_lines(IO.popen(env, diff.call(path), &:read))
+  check.violations(path: path, source: source, added_lines: added)
        .map { |block| "  #{path}:#{block.first}-#{block.last} (#{block.size} lines)" }
 end
 
 exit if failures.empty?
 
 warn <<~MSG
-  Comment blocks longer than two lines, touched by this commit:
+  Comment blocks longer than two lines, touched by #{touched_by}:
 
   #{failures.join("\n")}
 
