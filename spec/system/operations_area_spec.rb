@@ -184,11 +184,10 @@ RSpec.describe "Operations area", type: :system do
     visit new_operations_workspace_path
     expect(axe_clean_in_both_themes?).to be(true), axe_violations_in_both_themes.join("\n")
 
-    # A malformed email is blocked client-side by the native `type="email"`
-    # input before it ever reaches the server (#1117, filed not fixed here);
-    # a BLANK one is not, since the builder strips `required` — this is the
-    # only way a real browser reaches the server-rendered 422.
+    # A malformed email now reaches the server: forms render `novalidate`, so
+    # the browser no longer blocks it first (#1117).
     fill_in I18n.t("operations.workspaces.new.name"), with: "New Co"
+    fill_in I18n.t("operations.workspaces.new.owner_email"), with: "not-an-email"
     click_button I18n.t("operations.workspaces.new.submit")
     expect(page).to have_text(I18n.t("activerecord.errors.models.workspace.attributes.owner_email.invalid"))
     expect(Workspace.find_by(name: "New Co")).to be_nil
