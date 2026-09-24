@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_15_151405) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_23_234805) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -52,6 +52,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_15_151405) do
   create_table "activity_logs", force: :cascade do |t|
     t.string "action", null: false
     t.integer "actor_id"
+    t.string "actor_name"
     t.datetime "created_at", null: false
     t.json "metadata", default: {}
     t.integer "trackable_id", null: false
@@ -398,7 +399,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_15_151405) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
-  add_foreign_key "activity_logs", "users", column: "actor_id"
   add_foreign_key "activity_logs", "workspaces"
   add_foreign_key "authentications", "users"
   add_foreign_key "client_accesses", "projects"
