@@ -12,6 +12,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- Ruby 4.0.7 and Bundler 4.0.20; the resolv and net-imap `.trivyignore` exceptions retire because 4.0.7 ships the fixed gems, and json's is re-dated.
 - Comments added in app/ and lib/ since the 2026-09-21 plan cut to at most two lines each (658 lines to 125).
 - Comments added in config/ and db/ cut to at most two lines, and this run's changelog entries to one line each.
 - Comments added in spec/ since the plan cut to at most two lines each (1,149 lines to 259).
