@@ -490,7 +490,7 @@ GEM
     regexp_parser (2.12.0)
     reline (0.7.0)
       io-console (~> 0.5)
-    resolv (0.7.2)
+    resolv (0.8.0)
     rexml (3.4.4)
     rouge (4.7.0)
     rspec-core (3.13.6)
@@ -901,7 +901,7 @@ CHECKSUMS
   redcarpet (3.6.1) sha256=d444910e6aa55480c6bcdc0cdb057626e8a32c054c29e793fa642ba2f155f445
   regexp_parser (2.12.0) sha256=35a916a1d63190ab5c9009457136ae5f3c0c7512d60291d0d1378ba18ce08ebb
   reline (0.7.0) sha256=5b012d8e55dbf9d450f12bde2cf7d15ff546ae80b3f8f3b30e570d431815583d
-  resolv (0.7.2) sha256=626d044d975ab2daac759bf898416f1b51e2cb8dcd6727c2b5b5b28b97ead2e1
+  resolv (0.8.0) sha256=733a3483c1510942dae9c60c873fa7153b63d5830eba230827775a50703d90d0
   rexml (3.4.4) sha256=19e0a2c3425dfbf2d4fc1189747bdb2f849b6c5e74180401b15734bc97b5d142
   rouge (4.7.0) sha256=dba5896715c0325c362e895460a6d350803dbf6427454f49a47500f3193ea739
   rspec-core (3.13.6) sha256=a8823c6411667b60a8bca135364351dda34cd55e44ff94c4be4633b37d828b2d
