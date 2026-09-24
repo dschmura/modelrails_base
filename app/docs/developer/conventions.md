@@ -54,7 +54,9 @@ essay belongs in a doc page (rule 2) with the gist-and-pointer left behind.
 
 A Lefthook pre-commit check (`bin/comment-block-check`) refuses any comment
 block over two lines (a gist and a pointer) that the commit touches, so a block
-cannot grow past that one review round at a time. Gem-vendored files are exempt.
+cannot grow past that one review round at a time. CI runs the same check over
+a pull request's whole diff (`bin/comment-block-check --range`), so a skipped
+hook, or a fork without Lefthook, meets it there. Gem-vendored files are exempt.
 
 ### The test a comment must pass
 
