@@ -3,23 +3,24 @@ require "comment_block_check"
 
 RSpec.describe CommentBlockCheck do
   def violations(source, path:, added:)
-    described_class.new(max_lines: 6).violations(path: path, source: source, added_lines: added)
+    described_class.new.violations(path: path, source: source, added_lines: added)
   end
 
   def ruby_comment(lines) = Array.new(lines) { |i| "# line #{i + 1}" }.join("\n") + "\ndef x; end\n"
 
-  it "fails a new comment block longer than the limit" do
-    expect(violations(ruby_comment(7), path: "app/models/x.rb", added: 1..7)).to eq([ 1..7 ])
+  # conventions.md rule 3: a one-line gist plus a pointer, so two lines at most.
+  it "fails a new comment block longer than two lines" do
+    expect(violations(ruby_comment(3), path: "app/models/x.rb", added: 1..3)).to eq([ 1..3 ])
   end
 
-  it "passes a block at the limit" do
-    expect(violations(ruby_comment(6), path: "app/models/x.rb", added: 1..6)).to be_empty
+  it "passes a gist and a pointer line" do
+    expect(violations(ruby_comment(2), path: "app/models/x.rb", added: 1..2)).to be_empty
   end
 
   # The failure this exists for is accretion: each review round appends a line
   # to a block that was fine when written.
   it "fails an existing block that an added line pushes past the limit" do
-    expect(violations(ruby_comment(7), path: "app/models/x.rb", added: [ 7 ])).to eq([ 1..7 ])
+    expect(violations(ruby_comment(3), path: "app/models/x.rb", added: [ 3 ])).to eq([ 1..3 ])
   end
 
   it "leaves an untouched long block alone" do
@@ -27,8 +28,8 @@ RSpec.describe CommentBlockCheck do
   end
 
   it "does not count functional comments as prose" do
-    source = "# frozen_string_literal: true\n# rubocop:disable Foo\n" + ruby_comment(6)
-    expect(violations(source, path: "app/models/x.rb", added: 1..8)).to be_empty
+    source = "# frozen_string_literal: true\n# rubocop:disable Foo\n" + ruby_comment(2)
+    expect(violations(source, path: "app/models/x.rb", added: 1..4)).to be_empty
   end
 
   it "reads a multi-line ERB comment as one block, and skips strict locals" do
@@ -58,7 +59,7 @@ RSpec.describe CommentBlockCheck do
   # POSITIVE CONTROL for the gem-derived set: if it came back empty, every
   # vendored controller would be checked and regenerations would fail.
   it "recognises a controller the installed gem vendors, and not an app-owned one" do
-    check = described_class.new(max_lines: 6)
+    check = described_class.new
 
     expect(check.violations(path: "app/javascript/controllers/form_draft_controller.js",
                             source: "//\n" * 9, added_lines: 1..9)).to be_empty

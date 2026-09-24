@@ -12,7 +12,7 @@ class CommentBlockCheck
     end
   end
 
-  def initialize(max_lines: 6, vendored_basenames: nil)
+  def initialize(max_lines: 2, vendored_basenames: nil)
     @max_lines = max_lines
     @vendored_basenames = vendored_basenames
   end

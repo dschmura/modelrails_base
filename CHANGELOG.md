@@ -6,7 +6,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Added
 
-- Pre-commit check refuses comment blocks over six lines that a commit touches (`bin/comment-block-check`).
+- Pre-commit check refuses comment blocks over two lines that a commit touches (`bin/comment-block-check`).
 
 ### Changed
 

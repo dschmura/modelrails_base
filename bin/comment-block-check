@@ -21,7 +21,7 @@ end
 exit if failures.empty?
 
 warn <<~MSG
-  Comment blocks longer than 6 lines, touched by this commit:
+  Comment blocks longer than two lines, touched by this commit:
 
   #{failures.join("\n")}
 

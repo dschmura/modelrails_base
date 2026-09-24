@@ -53,8 +53,8 @@ carrying the full story. If the explanation is growing into an essay, the
 essay belongs in a doc page (rule 2) with the gist-and-pointer left behind.
 
 A Lefthook pre-commit check (`bin/comment-block-check`) refuses any comment
-block over six lines that the commit touches, so a block cannot grow past the
-limit one review round at a time. Gem-vendored files are exempt.
+block over two lines (a gist and a pointer) that the commit touches, so a block
+cannot grow past that one review round at a time. Gem-vendored files are exempt.
 
 ### The test a comment must pass
 
