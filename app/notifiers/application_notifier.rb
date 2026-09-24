@@ -263,6 +263,13 @@ class ApplicationNotifier < Noticed::Event
 
     # Per-user iteration so one bad broadcast cannot poison the rest; each
     # call is self-rescuing.
+    #
+    # Measured ceiling, undebounced on purpose (#1200): 4 broadcasts, 3 partial
+    # renders and ~1 ms per recipient per dispatch, plus one solid_cable_messages
+    # INSERT per broadcast in production. Nothing in the template dispatches to
+    # the same recipients more than once per request or job, so there is no
+    # burst to collapse. Add a per-recipient debounce with the first code path
+    # that does -- a bulk member add or bulk role change is the likely one.
     User.where(id: recipient_ids).find_each do |user|
       NotificationBroadcaster.refresh_for(user, announcement_key: "notifications.bell.arrival_announcement",
                                           severity: self.class.severity_name)
