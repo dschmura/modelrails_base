@@ -24,6 +24,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Fixed
 
+- Five developer-doc statements now describe the tree: which mail a suspended address still receives, the visibility suspension rows are written at, the page-rendered flash's unobserved reader behaviour (#1267), the retired draft-count caveat, and when the reconciler logs its warning.
 - Dependabot no longer proposes `modelrails_ui` downgrades: the git-tag gem is ignored in `.github/dependabot.yml` and bumped by hand, with a template invariant keeping it so (#1261).
 - A malformed email reaches the server's error summary instead of the browser's validation bubble (#1117).
 - The actor snapshot cannot be caller-supplied, and a deleted actor no longer shortens the most-active strip (#1122).
