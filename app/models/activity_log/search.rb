@@ -1,15 +1,8 @@
 class ActivityLog < ApplicationRecord
-  # The ledger's one search box, resolved once per request: an email address, a
-  # person's name, a workspace or a project, all four branches evaluated and
-  # OR'd. A value, not an orchestrator — it answers which records the query
-  # named and never filters the feed itself (`ActivityLog.matching_any` does).
-  #
-  # How a query names a PERSON lives on `User::Search`, which owns the
-  # encryption rule and the CPU budget that comes with it — the operations
-  # users index needs the same match, and it gets exactly one home.
+  # Which records a ledger query names: a person, workspace or project. People
+  # match through User::Search; filtering is ActivityLog.matching_any's job.
   class Search
-    # A one-letter query must not build an OR list of the whole instance.
-    # Names carry their own cap; this one bounds the two SQL branches.
+    # Bounds the two SQL branches; names carry their own cap.
     RESULT_LIMIT = 50
 
     attr_reader :query, :users, :workspaces, :projects

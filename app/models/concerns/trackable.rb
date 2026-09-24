@@ -37,12 +37,8 @@
 module Trackable
   extend ActiveSupport::Concern
 
-  # A storage filter first, a display filter second. `activity_logs.metadata` is
-  # a plain JSON column, so anything that slips this list sits unencrypted for the
-  # full retention window — and the operations ledger renders the changes hash
-  # verbatim (operations/activity_logs/_row.html.erb). Encrypted-at-rest and
-  # secret are different sets: Invitation#email is encrypted and belongs in the
-  # ledger, so this list is a human declaration, not a derivable one (#1171).
+  # Storage filter first: metadata is plain JSON and the ledger renders it verbatim.
+  # Declared by hand, since encrypted is not the same as secret (#1171).
   SENSITIVE_ATTRIBUTES = %w[
     token password_digest password_reset_token
     oauth_token oauth_refresh_token

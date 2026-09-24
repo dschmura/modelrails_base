@@ -1,16 +1,7 @@
 class ActivityLog < ApplicationRecord
   belongs_to :actor, class_name: "User", optional: true
-  # No FK backs actor_id (#1122): a user who has ever acted must still be
-  # deletable, and the two obvious cleanups are both wrong -- :destroy deletes
-  # history to delete a person, :nullify rewrites immutable rows to hide who
-  # acted. The row carries the actor's name instead, taken at write time, so
-  # the historical fact survives the user. trackable_id has never had a FK for
-  # the same practical reason; both columns now fail the same way.
-  #
-  # Encrypted because the snapshot copies a person's name onto a table retained
-  # twelve months, so it takes the cipher that name already has on `users`.
-  # Non-deterministic: nothing may sort or search it in SQL, which is why the
-  # ledger has no Who sort.
+  # No FK on actor_id; the row keeps an encrypted name snapshot instead (#1122,
+  # see /docs/developer/architecture, "An audit row outlives the people in it").
   encrypts :actor_name
   belongs_to :trackable, polymorphic: true
   belongs_to :workspace, optional: true
@@ -23,16 +14,7 @@ class ActivityLog < ApplicationRecord
   # sweep job (#438) has its explicit carve-out.
   def readonly? = persisted?
 
-  # Taken once, at write time, and never refreshed -- so a row written from
-  # #1122 onward states the name that was true when it happened, and a later
-  # rename does not travel backwards through it. Rows written BEFORE that
-  # column existed have no snapshot, resolve live through the association, and
-  # therefore do still follow a rename; that asymmetry is the cost of not
-  # backfilling, and it shrinks to nothing as those rows age out.
-  #
-  # Unconditional, and on create only: the column is DERIVED, never accepted
-  # from a caller. A guard that preserved a supplied value would let one write
-  # a name contradicting actor_id into a row that is immutable afterwards.
+  # Derived, never caller-supplied. Pre-#1122 rows have none and resolve live (#1250).
   before_create do
     self.actor_name = actor&.full_name
   end
@@ -103,10 +85,7 @@ class ActivityLog < ApplicationRecord
       .order(created_at: :desc)
   }
   scope :recent, -> { order(created_at: :desc).limit(20) }
-  # Invariant I3 (decline-and-block, defined in security.md "Invitation blocks"):
-  # admin visibility alone doesn't keep a
-  # suppressed-delivery row from an inviter here, since the operator IS often
-  # the inviter. See operations.md "What the area does" (Activity).
+  # Hidden even from an operator who is also the inviter (security.md invariant I3).
   INVITER_UNREADABLE_ACTIONS = %w[invitation.delivery_suppressed].freeze
 
   # The operations feed: workspace and admin rows, never personal — an
@@ -132,33 +111,14 @@ class ActivityLog < ApplicationRecord
     )
   }
 
-  # The overview feed, scoped to what the viewer may actually open (#1154).
-  #
-  # WorkspacePolicy#show? is membership.present?, so every member read every
-  # workspace-visibility row — including rows about projects ProjectPolicy#show?
-  # refuses them. The two policies disagreed; this is the model half of making
-  # them agree.
-  #
-  # Two partitions, and every Trackable includer belongs to exactly one:
-  # rows about the workspace itself, which any member may read, and rows about
-  # a project, which follow that project's own visibility. Invitation is in
-  # both because it is polymorphic — a workspace invitation is workspace-level,
-  # a project invitation follows its project.
-  #
-  # A type in NEITHER list falls out of the feed entirely. That is deliberate:
-  # for a leak fix, invisible is the safe default, and
-  # spec/models/activity_log_feed_scope_spec.rb fails on an unclassified
-  # Trackable includer so a fork adding one is told rather than silently
-  # leaking it.
+  # Only rows the viewer may open (#1154). A Trackable type in neither list is dropped
+  # on purpose; activity_log_feed_scope_spec fails on an unclassified one.
   WORKSPACE_LEVEL_TRACKABLES = %w[Workspace Membership].freeze
   PROJECT_LEVEL_TRACKABLES = %w[Project Resource].freeze
-  # Classified by what they hang off rather than by their type, so they appear
-  # in both partitions above.
+  # Classified by what they hang off, so they appear in both partitions.
   POLYMORPHIC_TRACKABLES = %w[Invitation].freeze
 
-  # `projects` is a relation the CALLER has already scoped to what this viewer
-  # can open (policy_scope), passed as a subselect rather than an id array so
-  # the whole thing stays one query riding (workspace_id, created_at).
+  # `projects:` arrives policy-scoped and stays a subselect, keeping this one query.
   scope :for_workspace_feed, ->(workspace, projects:) {
     project_ids = projects.select(:id)
 
@@ -175,17 +135,8 @@ class ActivityLog < ApplicationRecord
     visible.for_workspace(workspace).merge(workspace_level.or(project_level))
   }
 
-  # The operations ledger's Kind filter. One entry per action family the
-  # locale tree sentences know (spec/models/activity_log_filters_spec.rb pins
-  # the two lists together). Filters on the stored action prefix on purpose:
-  # a trackable_type predicate seeks the trackable index and then sorts the
-  # whole match in a temp B-tree, while a LIKE on action walks
-  # index_activity_logs_on_created_at in output order and stops at LIMIT.
-  # Under the 30-day default every Kind and Tier filter is a range seek on that
-  # index; on All-time each is a full ordered walk of it, the same cost class as
-  # the feed's COUNT. Re-EXPLAIN past ~5 M retained rows, where that crosses
-  # 100 ms — an (action, created_at) or (visibility, created_at) index buys
-  # nothing before then (#1165).
+  # One entry per action family (activity_log_filters_spec). The prefix filter walks
+  # the created_at index; re-EXPLAIN past ~5M rows, in-memory measure (#1165).
   KINDS = %w[workspace membership invitation project resource user operatorship].freeze
 
   scope :of_kind, ->(kind) { where(arel_table[:action].matches("#{kind}.%")) }
@@ -228,16 +179,10 @@ class ActivityLog < ApplicationRecord
   }
   scope :at_instance_level, -> { where(workspace_id: nil) }
 
-  # The feed's loader — call last in a chain
-  # (`ActivityLog.for_workspace_feed(w, projects:).recent.for_feed`). Returns an
-  # Array, not a Relation: `trackable` is polymorphic and only Membership
-  # carries `user`, so a blanket `preload(trackable: :user)` raises
-  # AssociationNotFoundError the moment a Project or Invitation row shares
-  # the page — the membership hop, and separately an operatorship row's User
-  # trackable, are preloaded on their own slice instead (#1120).
+  # Returns an Array: trackable is polymorphic, so each type preloads on its own
+  # slice (#1120).
   def self.for_feed
-    # `all`, not a bare `to_a`: this is reached as `relation.for_feed`, which
-    # Rails delegates to the class under `scoping` -- so `self` is the class.
+    # `all`: reached as relation.for_feed, where self is the class.
     logs = all.to_a
     preload_legacy_actors(logs)
     preload_trackables(logs, "Membership") do |members|
@@ -247,14 +192,8 @@ class ActivityLog < ApplicationRecord
     logs
   end
 
-  # `display_subject` reads the row's own actor_name, so a feed touches the
-  # actor association only for rows written before that column existed (#1122).
-  # A blanket includes(:actor) here was an UNUSED eager load on every modern
-  # row the moment the snapshot landed, and Bullet said so on three feeds.
-  #
-  # The operations ledger is the exception and preloads :actor itself: its row
-  # builds a "only this person" pivot from the actor's live email address, for
-  # every row, which no snapshot can answer.
+  # Only pre-snapshot rows read the actor (#1122). The ops ledger preloads :actor
+  # itself, for the live email its pivot needs.
   def self.preload_legacy_actors(logs)
     rows = logs.select do |log|
       log.actor_id.present? && log.actor_name.blank? && !log.association(:actor).loaded?
@@ -321,32 +260,11 @@ class ActivityLog < ApplicationRecord
     tracked_membership&.user&.full_name
   end
 
-  # The row's sentence subject, or nil when the row genuinely does not know
-  # one. membership.created is the only action whose subject is knowable
-  # WITHOUT an actor: the row is about the person who joined. Onboarding
-  # creates that membership in a User after_create, where Current.user cannot
-  # exist yet — it delegates to a session that starts only after the signup
-  # transaction commits. Every other action keeps the actor as subject; a nil
-  # actor there means a job or console did it, and "System" is the truth.
-  # Gated on the action for that reason: a bare actor-or-member fallback
-  # renders a nil-actor deactivation as "Dee deactivated Dee".
-  # Four outcomes, and naming them matters because two of them are new:
-  #   1. a snapshot            -- every row written from #1122 onward
-  #   2. a living actor        -- a pre-snapshot row, resolved through the
-  #                               association, and the only arm that still
-  #                               follows a rename
-  #   3. "a former member"     -- a pre-snapshot row whose actor is gone; once
-  #                               unreachable, because the FK kept them alive
-  #   4. no subject            -- no actor at all, which is a true answer: a
-  #                               job or the console has no user
-  # Arm 3 is deliberately not "System". Crediting a person's action to a job is
-  # a different claim, not a vaguer one.
+  # Snapshot, else live actor (pre-#1122), else "a former member"; nil means a job did it.
+  # membership.created names its member: onboarding creates it before any session.
   def display_subject
     return actor_name if actor_name.present?
-    # Gated on actor_id, so a row that never had an actor -- the common case,
-    # including every onboarding membership.created -- does not touch the
-    # association at all. Reading it there is a lazy load Bullet counts against
-    # every feed, for a row whose answer is already known to be nil.
+    # Gated on actor_id so an actorless row never touches the association (Bullet).
     return actor&.full_name || I18n.t("activity.departed_actor") if actor_id.present?
 
     display_member if display_action == "membership.created"

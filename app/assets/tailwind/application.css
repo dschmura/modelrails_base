@@ -218,21 +218,14 @@ body:has([data-biscuit-target="banner"]:not([hidden])) {
     @apply hover:bg-interactive-subtle;
   }
 
-  /* Compound rather than bare .btn-text-danger: the tone must out-specify the
-     base's hover tint, not merely follow it in source order. */
-  /* -surface, NOT -hover, though a -hover token exists and is the obvious
-     reach: text-danger on danger-hover (~red-100) measures 6.85:1 light and
-     6.96:1 dark, under the 7:1 floor. Measured with axe on a hovered control,
-     not computed. The pale tint is the price of AAA here. */
+  /* Compound so the tone out-specifies the base hover. -surface, not -hover:
+     text-danger on danger-hover measures 6.85:1, under AAA (#1227). */
   .btn-text.btn-text-danger,
   .btn-text-icon.btn-text-danger {
     @apply hover:bg-danger-surface;
   }
 
-  /* Success mirrors danger for the same reason: an opacity fade on a signal
-     already near the AAA floor lands under it (text-success at 80% measured
-     5.02:1 against the row surface), and a darker text token is not available
-     either — so the cue is a tinted background here too (#1068). */
+  /* Mirrors danger: an opacity fade on success lands under AAA (#1068). */
   .btn-text.btn-text-success,
   .btn-text-icon.btn-text-success {
     @apply hover:bg-success-surface;

@@ -28,19 +28,13 @@ module Operations
     # How many people the "most active" strip names. Few enough to read at a
     # glance — it answers "who has been busiest here", not "here is a breakdown".
     TOP_ACTORS = 5
-    # How far past TOP_ACTORS the grouped count reaches so that deleted actors
-    # cannot shorten the strip. Three deep covers every realistic case without
-    # decrypting names nobody asked for -- the resolve step still only touches
-    # what it renders.
+    # Reach past TOP_ACTORS so deleted actors cannot shorten the strip (#1250).
     DEPARTED_ACTOR_HEADROOM = 3
 
     def index
       authorize [ :operations, ActivityLog ]
       resolve_filters
-      # countish memoizes the COUNT in the page param, so it runs once per filter
-      # change rather than once per page. Under the 30-day default that COUNT is a
-      # range seek on index_activity_logs_on_created_at; on All-time it is a full
-      # ordered walk of it, ~22 ms per million rows (#1130).
+      # countish memoizes the COUNT per filter change; ~22 ms per million rows (#1130).
       @pagy, page = pagy(:countish, filtered_scope, limit: row_limit, max_limit: ALL_ROWS)
       @activities = page.for_feed
       # Page 1 only: "the first 500 of N" is true of the first page and false of
@@ -62,15 +56,11 @@ module Operations
       # builds all say the one thing that was actually searched.
       @query = @search.query
       @workspace_param = params[:workspace].presence
-      # include_discarded: a discarded workspace's rows are in this feed, so the
-      # filter that isolates them has to be able to name it (#1170).
+      # A discarded workspace's rows are in this feed, so the filter must name it (#1170).
       @workspace = if @workspace_param && @workspace_param != "instance"
         operated_workspaces(include_discarded: true).find_by(slug: @workspace_param)
       end
-      # A slug that resolves to nothing is a filter that MATCHED nothing, not an
-      # absent filter. Dropping it here answered "any workspace" — the whole
-      # ledger — to a question about one. The param is kept so the summary and
-      # the empty state both say what was asked for.
+      # An unresolved slug matched nothing; dropping it would widen to the whole ledger.
       @workspace_unresolved = @workspace_param.present? &&
                               @workspace_param != "instance" && @workspace.nil?
       @kind = ActivityLog::KINDS.include?(params[:kind]) ? params[:kind] : nil
@@ -118,9 +108,7 @@ module Operations
     end
 
     def filtered_scope
-      # :actor, because this feed's row is the one that reads the actor's live
-      # email for its "only this person" pivot -- the shared loader preloads
-      # actors only for pre-snapshot rows (#1122).
+      # The row's pivot reads the actor's live email; for_feed preloads only old rows.
       scope = ActivityLog.for_operations_feed.includes(:workspace, :actor)
       # A query that named nobody and nothing is a filter that matched, not an
       # absent filter — `none` is the honest answer, and it still responds to
@@ -164,15 +152,7 @@ module Operations
                  # and volume second — the most RECENT actor wins, not the
                  # busiest. actor_id breaks ties so the strip is stable.
                  .reorder(Arel.sql("COUNT(*) DESC, actor_id ASC"))
-                 # Over-fetch, then re-limit after resolving. The slot is
-                 # claimed here by actor_id and the name is looked up below, so
-                 # an actor who has since been DELETED -- possible only since
-                 # activity_logs.actor_id stopped carrying a FK (#1122) -- used
-                 # to consume a slot and then be dropped, leaving the strip one
-                 # short while still calling itself the busiest N. Dropping them
-                 # is right (every entry is a pivot, and a departed person has
-                 # no page and no email to pivot by); shortening the strip
-                 # silently was not.
+                 # Over-fetch: a deleted actor claims a slot here and drops out below (#1250).
                  .limit(TOP_ACTORS * DEPARTED_ACTOR_HEADROOM)
                  .count
       return [] if counts.empty?

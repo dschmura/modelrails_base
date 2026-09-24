@@ -10,6 +10,10 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- Comments added in app/ and lib/ since the 2026-09-21 plan cut to at most two lines each (658 lines to 125).
+
+### Changed
+
 - **The notification broadcast's cost is measured and written down, not debounced.** #1200 estimated a burst at four partial renders per recipient per dispatch; measured, it is **four broadcasts but three renders** (the aria-live update is a plain string) and about 1 ms per recipient, with one `solid_cable_messages` insert per broadcast in production that the test adapter cannot see. A debounce only pays if something dispatches to the same recipients repeatedly inside one request or job, and nothing in the template does: every membership write is one record per request, and the one dispatching loop — the invitation-expiring sweep — sends each dispatch to a different invitee. So the ceiling now sits beside `broadcast_notifications_arrival` with the trigger that would change the answer: the first bulk member add or bulk role change. (#1200)
 
 ### Fixed
