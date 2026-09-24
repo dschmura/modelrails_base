@@ -23,6 +23,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Fixed
 
+- Dependabot no longer proposes `modelrails_ui` downgrades: the git-tag gem is ignored in `.github/dependabot.yml` and bumped by hand, with a template invariant keeping it so (#1261).
 - A malformed email reaches the server's error summary instead of the browser's validation bubble (#1117).
 - The actor snapshot cannot be caller-supplied, and a deleted actor no longer shortens the most-active strip (#1122).
 - Flash messages asserted in the workspace, account-settings, sign-in and client-area specs (#526).
