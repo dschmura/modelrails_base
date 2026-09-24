@@ -4,6 +4,10 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+### Changed
+
+- **The notification broadcast's cost is measured and written down, not debounced.** #1200 estimated a burst at four partial renders per recipient per dispatch; measured, it is **four broadcasts but three renders** (the aria-live update is a plain string) and about 1 ms per recipient, with one `solid_cable_messages` insert per broadcast in production that the test adapter cannot see. A debounce only pays if something dispatches to the same recipients repeatedly inside one request or job, and nothing in the template does: every membership write is one record per request, and the one dispatching loop — the invitation-expiring sweep — sends each dispatch to a different invitee. So the ceiling now sits beside `broadcast_notifications_arrival` with the trigger that would change the answer: the first bulk member add or bulk role change. (#1200)
+
 ### Fixed
 
 - **A malformed email now reaches the server's error summary instead of the browser's bubble.** The form builder's contract was one server-rendered validation path, and it kept that promise for *presence* — native `required` is never emitted — but not for *format*: `email_field` renders `type="email"`, which the browser validates itself, so `not-an-email` was stopped by a transient native tooltip and never produced the error summary, `aria-invalid`, or the skip link that AAA relies on. Request specs passed throughout because they bypass the browser; a new system spec proves the real path and goes red when the fix is removed. Every `form_with` now renders `novalidate` from one helper, so all 50 forms got it with no call site changed and a fork's new form inherits it; the input types stay, keeping the email keyboard and autofill. A code-smell spec fences the only ways around the helper (`form_for`, `form_tag`, a component calling `form_with` directly). The operations new-workspace spec, whose comment named this issue as the reason it could only test a blank value, now submits a malformed one. (#1117)
