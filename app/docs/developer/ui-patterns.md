@@ -127,8 +127,14 @@ seam over `UI::FormBuilder` (the vendored, regenerable parent). It provides:
 - **Hint text** below the control, linked via `aria-describedby` (error-first when
   both a hint and an error are present)
 - **ARIA attributes** — `aria-required`, `aria-invalid`, `aria-describedby` are set
-  automatically; native HTML `required` is never emitted, so a failed submit always
-  reaches the server and gets a real error response
+  automatically; native HTML `required` is never emitted, and every `form_with`
+  renders `novalidate` (`FormDefaultsHelper`), so a failed submit — blank *or*
+  malformed — always reaches the server and gets a real error response. The input
+  types stay (`type="email"` still picks the email keyboard and drives autofill);
+  only the browser's own validation bubble is suppressed. A form that genuinely
+  wants native validation opts out with `html: { novalidate: false }`. Build forms
+  with `form_with` — `form_for`/`form_tag`, or a component calling `form_with`
+  rather than `helpers.form_with`, skip the default, and a code-smell spec says so
 - **Consistent styling** — all fields use token-backed border, focus ring, and error
   states
 
