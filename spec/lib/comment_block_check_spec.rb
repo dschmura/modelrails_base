@@ -32,6 +32,12 @@ RSpec.describe CommentBlockCheck do
     expect(violations(source, path: "app/models/x.rb", added: 1..4)).to be_empty
   end
 
+  # A heredoc line opening with interpolation is code, and must not merge into a block.
+  it "does not read a heredoc interpolation line as a comment" do
+    source = [ "msg = <<~M", '  #{a}', '  #{b}', '  #{c}', "M" ].join("\n") + "\n"
+    expect(violations(source, path: "spec/x_spec.rb", added: 1..5)).to be_empty
+  end
+
   it "reads a multi-line ERB comment as one block, and skips strict locals" do
     erb = "<%# locals: (a:) -%>\n<%# one\n    two\n    three\n    four\n    five\n    six\n    seven %>\n<p>x</p>\n"
     expect(violations(erb, path: "app/views/x/_y.html.erb", added: 1..9)).to eq([ 2..8 ])

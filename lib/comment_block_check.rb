@@ -46,7 +46,7 @@ class CommentBlockCheck
     when ".erb" then delimited(source, "<%#", "%>")
     when ".css" then delimited(source, "/*", "*/")
     when ".js" then delimited(source, "/*", "*/") | prefixed(source, %r{\A\s*//})
-    else prefixed(source, /\A\s*#/)
+    else prefixed(source, /\A\s*#(?!\{)/)
     end
   end
 
