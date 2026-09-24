@@ -113,7 +113,10 @@ module Operations
     end
 
     def filtered_scope
-      scope = ActivityLog.for_operations_feed.includes(:workspace)
+      # :actor, because this feed's row is the one that reads the actor's live
+      # email for its "only this person" pivot -- the shared loader preloads
+      # actors only for pre-snapshot rows (#1122).
+      scope = ActivityLog.for_operations_feed.includes(:workspace, :actor)
       # A query that named nobody and nothing is a filter that matched, not an
       # absent filter — `none` is the honest answer, and it still responds to
       # `for_feed` (an empty Array) and to countish (count 0).

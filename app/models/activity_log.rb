@@ -1,5 +1,12 @@
 class ActivityLog < ApplicationRecord
   belongs_to :actor, class_name: "User", optional: true
+  # No FK backs actor_id (#1122): a user who has ever acted must still be
+  # deletable, and the two obvious cleanups are both wrong -- :destroy deletes
+  # history to delete a person, :nullify rewrites immutable rows to hide who
+  # acted. The row carries the actor's name instead, taken at write time, so
+  # the historical fact survives the user. trackable_id has never had a FK for
+  # the same practical reason; both columns now fail the same way.
+  encrypts :actor_name
   belongs_to :trackable, polymorphic: true
   belongs_to :workspace, optional: true
 
@@ -10,6 +17,13 @@ class ActivityLog < ApplicationRecord
   # spec/code_smells/activity_log_immutability_spec.rb, where the retention
   # sweep job (#438) has its explicit carve-out.
   def readonly? = persisted?
+
+  # Taken once, at write time, and never refreshed: an audit row states what
+  # was true when it was written, so a later rename does not travel backwards
+  # through the trail.
+  before_validation on: :create do
+    self.actor_name = actor&.full_name if actor_name.nil?
+  end
 
   enum :visibility, { workspace: "workspace", admin: "admin", personal: "personal" }, default: "workspace"
 
@@ -210,13 +224,34 @@ class ActivityLog < ApplicationRecord
   # the page — the membership hop, and separately an operatorship row's User
   # trackable, are preloaded on their own slice instead (#1120).
   def self.for_feed
-    logs = includes(:actor).to_a
+    # `all`, not a bare `to_a`: this is reached as `relation.for_feed`, which
+    # Rails delegates to the class under `scoping` -- so `self` is the class.
+    logs = all.to_a
+    preload_legacy_actors(logs)
     preload_trackables(logs, "Membership") do |members|
       ActiveRecord::Associations::Preloader.new(records: members, associations: :user).call
     end
     preload_trackables(logs, "User")
     logs
   end
+
+  # `display_subject` reads the row's own actor_name, so a feed touches the
+  # actor association only for rows written before that column existed (#1122).
+  # A blanket includes(:actor) here was an UNUSED eager load on every modern
+  # row the moment the snapshot landed, and Bullet said so on three feeds.
+  #
+  # The operations ledger is the exception and preloads :actor itself: its row
+  # builds a "only this person" pivot from the actor's live email address, for
+  # every row, which no snapshot can answer.
+  def self.preload_legacy_actors(logs)
+    rows = logs.select do |log|
+      log.actor_id.present? && log.actor_name.blank? && !log.association(:actor).loaded?
+    end
+    return if rows.empty?
+
+    ActiveRecord::Associations::Preloader.new(records: rows, associations: :actor).call
+  end
+  private_class_method :preload_legacy_actors
 
   def self.preload_trackables(logs, type)
     rows = logs.select { |log| log.trackable_type == type }
@@ -283,8 +318,17 @@ class ActivityLog < ApplicationRecord
   # actor there means a job or console did it, and "System" is the truth.
   # Gated on the action for that reason: a bare actor-or-member fallback
   # renders a nil-actor deactivation as "Dee deactivated Dee".
+  # Three states, not two: a named actor, an actor who has since been deleted,
+  # and no actor at all. The middle one used to be unreachable (the FK kept the
+  # user alive) and now renders as a person rather than as "System", which
+  # would credit a human action to a job.
   def display_subject
-    return actor.full_name if actor
+    return actor_name if actor_name.present?
+    # Gated on actor_id, so a row that never had an actor -- the common case,
+    # including every onboarding membership.created -- does not touch the
+    # association at all. Reading it there is a lazy load Bullet counts against
+    # every feed, for a row whose answer is already known to be nil.
+    return actor&.full_name || I18n.t("activity.departed_actor") if actor_id.present?
 
     display_member if display_action == "membership.created"
   end
