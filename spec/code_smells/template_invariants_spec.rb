@@ -1387,4 +1387,23 @@ RSpec.describe "Template invariants" do
         offenders.map { |site, ref| "  #{site} #{ref}" }.join("\n")
     end
   end
+
+  describe "Dependabot leaves the git-tag-pinned design-system gem to hand bumps (#1261)" do
+    # To Dependabot a git gem's current version is the lockfile SHA, so its default
+    # cooldown proposes the newest OLDER tag as a bump — see /docs/developer/forking.
+    let(:bundler_updates) do
+      config = YAML.safe_load(File.read(root.join(".github/dependabot.yml")))
+      config.fetch("updates").find { |update| update["package-ecosystem"] == "bundler" }
+    end
+
+    it "ignores modelrails_ui in the bundler block" do
+      expect(bundler_updates).not_to be_nil, "expected a bundler block in .github/dependabot.yml"
+
+      ignored = Array(bundler_updates["ignore"]).map { |entry| entry["dependency-name"] }
+      expect(ignored).to include("modelrails_ui"),
+        "expected .github/dependabot.yml to ignore modelrails_ui in its bundler block — " \
+        "a git-tag gem is bumped by hand (re-vendor pre-flight, generator, parity), and " \
+        "Dependabot's cooldown has proposed it as a downgrade three times (#665, #888, #1261)"
+    end
+  end
 end
