@@ -1,16 +1,6 @@
 require "rails_helper"
 
-# An audit row outlives the people in it.
-#
-# `activity_logs.actor_id` carried a real FK to `users` with no cleanup path,
-# so any user who had ever acted could not be destroyed. The natural fixes are
-# both wrong: `dependent: :destroy` deletes history to delete a person, and
-# `dependent: :nullify` rewrites immutable rows to hide who acted (the
-# immutability guard fences that spelling for exactly this reason).
-#
-# So the row carries a SNAPSHOT of the actor's name, taken at write time, and
-# the FK is gone. The historical fact stops depending on the user row still
-# existing — which is what an audit table wants anyway (#1122).
+# An audit row outlives its actor: a name snapshot replaces the actor_id FK (#1122).
 RSpec.describe "ActivityLog actor snapshot" do
   let(:actor) { create(:user, first_name: "Dana", last_name: "Ruiz") }
   let(:workspace) { actor.workspaces.sole }
@@ -31,9 +21,7 @@ RSpec.describe "ActivityLog actor snapshot" do
       expect(log.actor_name).to eq("Dana Ruiz")
     end
 
-    # The column is DERIVED, not passed. A guard that let a caller supply one
-    # would let them write a name that contradicts actor_id into a row nothing
-    # downstream can ever correct (panel, 2026-09-23).
+    # Derived, never caller-supplied (#1250).
     it "refuses a snapshot supplied by the caller" do
       dana = create(:user, first_name: "Dana", last_name: "Ruiz")
 
@@ -44,8 +32,7 @@ RSpec.describe "ActivityLog actor snapshot" do
       expect(log.reload.actor_name).to eq("Dana Ruiz")
     end
 
-    # An empty string is not "no snapshot": it used to slip past a `.nil?` guard
-    # and then read back as blank, rendering a LIVE actor as a former member.
+    # "" used to slip past a `.nil?` guard and read back as departed.
     it "overwrites an empty snapshot rather than reading it back as departed" do
       dana = create(:user, first_name: "Dana", last_name: "Ruiz")
 
@@ -62,7 +49,6 @@ RSpec.describe "ActivityLog actor snapshot" do
       expect(log.actor_name).to be_nil
     end
 
-    # The whole point of a snapshot: the row states what was true then.
     it "does not follow the actor's later rename" do
       log = acting_as(actor) { workspace.update!(name: "Renamed"); workspace.activities.last }
 
@@ -73,10 +59,7 @@ RSpec.describe "ActivityLog actor snapshot" do
   end
 
   describe "after the actor is gone" do
-    # Scoped deliberately: the audit trail is no longer ONE of the things
-    # blocking deletion. Five other columns still are (#1248), so this does not
-    # claim `user.destroy` works in general -- only that this table stopped
-    # being the reason it does not.
+    # Only that this table stopped blocking deletion; five other FKs still do (#1248).
     it "stops being a reason the actor cannot be destroyed" do
       acting_as(actor) { workspace.update!(name: "Renamed") }
       expect(ActivityLog.where(actor_id: actor.id)).to be_any
@@ -91,15 +74,11 @@ RSpec.describe "ActivityLog actor snapshot" do
       expect(log.reload.display_subject).to eq("Dana Ruiz")
     end
 
-    # Rows written before the snapshot column existed have a dangling actor_id
-    # and nothing to fall back to. "System" would be a lie -- a person did this
-    # -- so those rows get their own neutral noun.
+    # A person did this, so a departed actor is never "System".
     it "distinguishes a departed actor from no actor at all" do
       orphan = ActivityLog.create!(action: "workspace.updated", trackable: workspace,
                                    actor: actor, workspace: workspace)
-      # Raw SQL on purpose: ActivityLog#readonly? refuses update_columns, which
-      # is the immutability guarantee doing its job. Nothing in the app may
-      # blank this column -- only a row that predates it can be blank.
+      # Raw SQL: readonly? refuses update_columns; only a legacy row is blank.
       ActiveRecord::Base.connection.execute(
         "UPDATE activity_logs SET actor_name = NULL WHERE id = #{orphan.id}"
       )
@@ -108,10 +87,7 @@ RSpec.describe "ActivityLog actor snapshot" do
       expect(orphan.reload.display_subject).to eq(I18n.t("activity.departed_actor"))
     end
 
-    # The commonest real state after this ships, and the one the rename comment
-    # is careful about: a row written before the column existed, whose actor is
-    # still very much alive. It resolves live -- and therefore DOES follow a
-    # rename, unlike every row written since.
+    # A pre-snapshot row with a living actor resolves live, so it follows a rename.
     it "resolves a pre-snapshot row through its living actor" do
       log = ActivityLog.create!(action: "workspace.updated", trackable: workspace,
                                 actor: actor, workspace: workspace)
@@ -133,14 +109,11 @@ RSpec.describe "ActivityLog actor snapshot" do
     end
   end
 
-  # The other half of the ruling: both columns now fail the same way. Leaving
-  # one with a FK and one without is the state that produced this issue.
+  # Both columns fail the same way (#1122).
   it "keeps actor_id and trackable_id consistently free of foreign keys" do
     fks = ActiveRecord::Base.connection.foreign_keys("activity_logs").map(&:column)
 
-    # POSITIVE CONTROL -- two `not_to include` assertions also pass against an
-    # empty list, which is what a typo'd table name or a changed adapter API
-    # returns. This proves the reader found the real list.
+    # POSITIVE CONTROL: absences also pass on an empty list.
     expect(fks).to include("workspace_id"),
       "the foreign-key reader returned nothing useful, so the two absences below prove nothing"
 

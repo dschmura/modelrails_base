@@ -198,11 +198,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
       end
     end
 
-    # The hold refuses SESSIONS, not writes, which is the documented posture —
-    # but this path applied `verify!` and only then raised, so a suspended
-    # user's parked claim was orphaned with no second chance and the token was
-    # spent. Refusing before the first write costs nothing and leaves the link
-    # usable once the hold lifts (#1129).
+    # Refused before verify!, so the token survives the hold (#1129).
     context "when the account is suspended" do
       before { user.update!(suspended_at: Time.current) }
 
@@ -215,9 +211,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
           "the authentication was verified for a suspended user, and the parked claim orphaned"
       end
 
-      # The refusal is only worth having if the token survives it. Asserting
-      # the intermediate state matters: without it this passes while suspended
-      # because the FIRST post verified the auth, which is the bug.
+      # The intermediate state, or the first post's verification passes this.
       it "leaves the token usable once the hold lifts" do
         token = auth.generate_token_for(:email_verification)
         post settings_connected_account_verification_path, params: { token: token }

@@ -58,10 +58,7 @@ RSpec.describe "Code smell: security events route through record_security_event!
       "allowed_direct_writes in this spec, with its reason."
   end
 
-  # POSITIVE CONTROL — the example below asserts an empty list, which a pattern
-  # that matches nothing also produces. These are the two shapes that must stay
-  # distinguishable: an action written as a string, and a predicate that merely
-  # contains one.
+  # POSITIVE CONTROL: an action string must match; a predicate containing one must not.
   it "matches an action string and not a predicate that contains one" do
     pattern = Regexp.union(
       ActivityLog::SECURITY_ACTIONS.map { |action| /["']#{Regexp.escape(action)}["']/ }
@@ -88,12 +85,7 @@ RSpec.describe "Code smell: security events route through record_security_event!
   # must satisfy this on its own (it names the literal and calls the writer); a
   # split that separates the two breaks this example, and should.
   it "every file naming a security action routes it through the writer" do
-    # QUOTED, because the bare literal is a substring of ordinary Ruby: the
-    # action `user.suspended` sits inside `auth.user.suspended?`, an ordinary
-    # predicate call that names no action at all. An unquoted match reported
-    # that as a file writing security rows without the writer. The rule is
-    # about action STRINGS, so the pattern says so rather than the call sites
-    # bending around it.
+    # QUOTED: `user.suspended` is a substring of `auth.user.suspended?`.
     action_literal = Regexp.union(
       ActivityLog::SECURITY_ACTIONS.map { |action| /["']#{Regexp.escape(action)}["']/ }
     )

@@ -101,11 +101,7 @@ RSpec.describe "Operations activity ledger top actors", type: :request do
     expect(entries(response.body).size).to eq(2)
   end
 
-  # Deleting an actor became possible when activity_logs.actor_id stopped
-  # carrying a foreign key (#1122). The slot is claimed by actor_id in SQL and
-  # the name is resolved afterwards, so a departed heavy actor used to eat a
-  # slot and then vanish -- the strip rendered one short while still calling
-  # itself the busiest N.
+  # A deleted actor claimed a slot and then vanished, shortening the strip (#1250).
   it "stays full when one of the busiest has since been deleted" do
     workspace = create(:workspace)
     stub_const("Operations::ActivityLogsController::TOP_ACTORS", 2)

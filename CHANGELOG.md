@@ -14,6 +14,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 - Comments added in app/ and lib/ since the 2026-09-21 plan cut to at most two lines each (658 lines to 125).
 - Comments added in config/ and db/ cut to at most two lines, and this run's changelog entries to one line each.
+- Comments added in spec/ since the plan cut to at most two lines each (1,149 lines to 259).
 - Activity log rows snapshot the actor's name; `actor_id` no longer carries a foreign key (#1122).
 - Notification broadcast cost measured and documented next to the code rather than debounced (#1200).
 - Theme resolution defined once, in the pre-paint script (#624).

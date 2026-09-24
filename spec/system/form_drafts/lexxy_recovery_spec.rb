@@ -2,18 +2,8 @@
 
 require "rails_helper"
 
-# #479. The draft feature shipped declaring rich text out of scope: a
-# Lexxy body was assumed to live in a hidden input, which `recover()`
-# refuses to write back. That was never measured against the real editor.
-#
-# `<lexxy-editor>` is a FORM-ASSOCIATED custom element — it carries the
-# `name`, it participates in FormData, and its `value` setter re-renders the
-# editor. So `recover()`'s generic `field.value = …` branch already restores
-# it; the only thing missing was a save trigger, because the editor emits
-# `lexxy:change` and neither `input` nor `change`.
-#
-# These examples exercise the real form, not the harness — the harness has no
-# editor, and a fake hidden input is exactly the wrong model of one.
+# A Lexxy body is form-associated, so recover() restores it; only lexxy:change was
+# missing as a save trigger (#479). Real forms, not the harness.
 RSpec.describe "Form drafts on a Lexxy-backed resource form", type: :system do
   let(:user) { create(:user) }
   let(:workspace) { user.workspaces.sole }
@@ -39,8 +29,7 @@ RSpec.describe "Form drafts on a Lexxy-backed resource form", type: :system do
 
     wait_for_draft(draft_key)
 
-    # ARMED TRIPWIRE: a feature that never encrypts passes every assertion
-    # below. Prove the body is in the blob and unreadable.
+    # ARMED TRIPWIRE: the body must be in the blob and unreadable.
     blob = page.evaluate_script(
       "localStorage.getItem(#{draft_storage_key(user, draft_key).to_json})"
     )
@@ -56,10 +45,7 @@ RSpec.describe "Form drafts on a Lexxy-backed resource form", type: :system do
       text: "Agenda for the kickoff")
   end
 
-  # The hidden `resource[type]` field is the reason this needs saying: it has
-  # no visible sibling, so without `data-form-draft-ignore` every restore here
-  # would announce as partial — telling a screen reader user that content was
-  # left behind when the editor had in fact been refilled.
+  # Without data-form-draft-ignore the hidden type field makes every restore partial.
   it "announces a whole restore, not a partial one" do
     visit new_workspace_project_resource_path(workspace, project)
     fill_in title_label, with: "Kickoff notes"
@@ -69,22 +55,14 @@ RSpec.describe "Form drafts on a Lexxy-backed resource form", type: :system do
     visit new_workspace_project_resource_path(workspace, project)
     click_button I18n.t("form_draft.recover")
 
-    # The count is pinned, and exactly. It could not be until v0.23.1: the
-    # editor's toolbar carries a named <select>, and the serializer counted it
-    # as one of this form's fields, so the announcement read one high — "3
-    # fields updated" to someone who filled two (modelrails_ui#262). The title
-    # and the rich-text body are the two fields, and a screen reader user is
-    # being told how much of their work came back, so the number has to be
-    # right.
+    # Exactly two: the toolbar's named <select> no longer counts (modelrails_ui#262).
     expect(status_region).to have_text(
       I18n.t("form_draft.restored_other", count: 2), wait: 3
     )
     expect(status_region).to have_no_text("could not be restored")
   end
 
-  # The editor initialises itself on connect. If that counted as a change, a
-  # form nobody touched would save a draft and offer recovery on the next
-  # visit — the feature turning into noise on every document page.
+  # The editor's own initialisation must not count as a change.
   it "offers nothing for a form the user never touched" do
     visit new_workspace_project_resource_path(workspace, project)
     expect(page).to have_css("lexxy-editor [contenteditable='true']")
@@ -97,9 +75,7 @@ RSpec.describe "Form drafts on a Lexxy-backed resource form", type: :system do
     ).to eq(0)
   end
 
-  # The edit form keys its draft off the form id, where the new form needs an
-  # explicit key — worth exercising, because the two reach the same storage
-  # key by different routes.
+  # The edit form reaches the same storage key by the form id instead.
   it "recovers a draft on the edit form" do
     resource = create(:resource, project: project, created_by: user, title: "Original title")
 
@@ -117,9 +93,7 @@ RSpec.describe "Form drafts on a Lexxy-backed resource form", type: :system do
     expect(page).to have_css("lexxy-editor [contenteditable='true']", text: "A second pass")
   end
 
-  # Axe's teardown audit reads the FINAL DOM, so this one ends with the chip
-  # revealed. The harness already covers the chip itself; what is new here is
-  # the chrome around it on a real form.
+  # Ends with the chip revealed, since axe's teardown audit reads the final DOM.
   it "shows the revealed notice accessibly on the resource form" do
     visit new_workspace_project_resource_path(workspace, project)
     fill_in title_label, with: "Axe state"

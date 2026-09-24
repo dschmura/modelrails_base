@@ -1,22 +1,12 @@
 require "rails_helper"
 
-# Every form reaches FormDefaultsHelper#form_with, which is what puts
-# `novalidate` on it (#1117). The helper is one seam on purpose -- a fork's new
-# form inherits it -- so the thing to guard is the ways around the seam:
-#
-# - `form_for` / `form_tag` build a <form> without calling form_with at all.
-# - A ViewComponent calling `form_with` directly gets ActionView's own method,
-#   not the app's helper; `helpers.form_with` goes through the view context and
-#   is fine.
-#
-# `button_to` also emits a <form>, deliberately out of scope: it carries a
-# button and hidden fields, never an input a browser would validate.
+# Forms must reach FormDefaultsHelper#form_with, which adds novalidate (#1117):
+# no form_for/form_tag, and components call helpers.form_with. button_to is exempt.
 RSpec.describe "Code smell: forms route through form_with" do
   let(:bypass_anywhere) { /\bform_(?:for|tag)\b/ }
   let(:bypass_in_component) { /(?<!helpers\.)\bform_with\b/ }
 
-  # POSITIVE CONTROL -- both examples below assert an EMPTY list, which is also
-  # what a broken pattern produces.
+  # POSITIVE CONTROL: an empty list is also what a broken pattern produces.
   it "recognises every spelling it claims to cover" do
     expect("<%= form_for @user do |f| %>").to match(bypass_anywhere)
     expect("<%= form_tag '/x' do %>").to match(bypass_anywhere)

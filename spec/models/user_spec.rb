@@ -257,10 +257,7 @@ RSpec.describe User, type: :model do
     end
   end
 
-  # The sibling of #operated_workspaces, and the reason the users index does
-  # not start from `User.all`: today every operator reaches every user, and
-  # scoped operators (#1123) must be a one-line change here rather than a hunt
-  # through controllers (#1135).
+  # The users half of the operations reach, one line for scoped operators (#1123).
   describe "#operated_users" do
     let(:user) { create(:user) }
 
