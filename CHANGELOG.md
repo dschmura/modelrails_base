@@ -17,6 +17,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- An rspec run that selects no examples fails, and `bin/comment-block-check` called with no paths refuses rather than passing.
 - Two redundant indexes on `noticed_notifications` are dropped; the composite recipient index serves the unread filter and the inbox, and the plans are pinned (#1199).
 - Ruby 4.0.7 and Bundler 4.0.20; the resolv and net-imap `.trivyignore` exceptions retire because 4.0.7 ships the fixed gems, and json's is re-dated.
 - Comments added in app/ and lib/ since the 2026-09-21 plan cut to at most two lines each (658 lines to 125).

@@ -524,6 +524,20 @@ RSpec.describe "Template invariants" do
     end
   end
 
+  describe "a gate that ran nothing says so" do
+    it "an rspec run that selects no examples fails" do
+      expect(RSpec.configuration.fail_if_no_examples).to be(true),
+        "expected spec_helper to set config.fail_if_no_examples — a filter that matches " \
+        "nothing (a typo'd -e, a stale tag) otherwise reads as a green run of zero examples"
+    end
+
+    it "bin/comment-block-check refuses to run with no paths to check" do
+      output = IO.popen(clean_git_env, [ root.join("bin/comment-block-check").to_s ], err: [ :child, :out ], &:read)
+
+      expect([ $?.exitstatus, output ]).to match([ 64, a_string_including("nothing was checked") ])
+    end
+  end
+
   describe "CI cancels superseded runs (#486)" do
     # Without a concurrency group, a second push to a PR branch lets the stale
     # ~8-min run finish anyway — occupying runners and delaying the fresh run's
