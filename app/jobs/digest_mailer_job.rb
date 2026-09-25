@@ -48,7 +48,7 @@ class DigestMailerJob < ApplicationJob
   def send_digest_for(user)
     prefs = user.preferences&.notification_preferences_object
     return if prefs.nil?
-    return user.preferences.reschedule_digest! if prefs.do_not_disturb? || !prefs.digest_enabled?
+    return user.preferences.reschedule_digest! if prefs.quiet_hours_active? || !prefs.digest_enabled?
 
     cycle_started_at = Time.current
     ids = digest_scope(user, cycle_started_at).pluck(:id)

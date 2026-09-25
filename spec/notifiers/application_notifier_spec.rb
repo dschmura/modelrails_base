@@ -548,7 +548,7 @@ RSpec.describe ApplicationNotifier, type: :notifier do
 
       # Persisted DND flag honored — proves we read THROUGH to the user's row,
       # not a transient stand-in.
-      expect(prefs.do_not_disturb?).to be true
+      expect(prefs.quiet_hours_active?).to be true
     end
   end
 
