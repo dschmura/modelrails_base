@@ -1,5 +1,5 @@
-# A spent token plus a live session for the same address is a replay. Spent means
-# redeemed OR superseded (#1083); each caller decides what a replay says.
+# A redeemed token plus a live session for the same address is a replay; a superseded link the
+# owner never clicked is not (#1083). Each caller decides what a replay says.
 module MagicLinkReplayable
   extend ActiveSupport::Concern
 
@@ -10,7 +10,7 @@ module MagicLinkReplayable
     return nil unless authenticated?
 
     spent = MagicLinkToken.find_spent(token)
-    return nil if spent.nil?
+    return nil unless spent&.redeemed?
 
     spent if spent.email == Current.user.email_address
   end

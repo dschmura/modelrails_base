@@ -76,16 +76,18 @@ RSpec.describe "Magic Link Callback Sessions", type: :request do
         expect(response).to redirect_to(root_path) # authenticated_home_path for a non-client-only user
       end
 
-      # A superseded link was never redeemed, so the answer must not claim it was.
-      it "answers the same for a superseded link the user never clicked" do
+      # A superseded link was never redeemed, so it is not a replay: the signed-in owner
+      # is told the link is invalid, not that they already used it (#1083).
+      it "does not read a superseded link the user never clicked as a replay" do
         superseded = MagicLinkToken.create_for_email(user.email_address, intent: "set_password")
         current = MagicLinkToken.create_for_email(user.email_address)
         post magic_link_callback_session_path(current)
 
         post magic_link_callback_session_path(superseded)
 
-        expect(response).to redirect_to(root_path) # authenticated_home_path for a non-client-only user
-        expect(flash[:notice]).to eq(I18n.t("authentication.already_signed_in"))
+        expect(response).to redirect_to(root_path)
+        expect(flash[:notice]).not_to eq(I18n.t("authentication.already_signed_in"))
+        expect(flash[:alert]).to eq(I18n.t("magic_link_callbacks.show.invalid"))
       end
 
       it "starts no second session" do

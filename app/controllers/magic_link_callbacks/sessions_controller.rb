@@ -16,8 +16,8 @@ module MagicLinkCallbacks
 
       unless user
         if replayed_sign_in
-          # The signed-in owner replaying their link, not a failure (#846). Not routed by
-          # intent: a spent token may be one superseded and never clicked (#1083).
+          # The signed-in owner replaying a link they redeemed, not a failure (#846). Not
+          # routed by intent: the link already did its job.
           redirect_to authenticated_home_path, notice: t("authentication.already_signed_in")
           return
         end
