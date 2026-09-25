@@ -36,7 +36,7 @@ RSpec.describe "Documentation cited paths" do
   let(:cited_paths) { citations.map(&:first).uniq }
 
   let(:tracked) do
-    files = `git -C #{Rails.root} ls-files -z`.split("\0")
+    files = IO.popen(CleanGitEnv::HASH, [ "git", "ls-files", "-z" ], chdir: Rails.root.to_s, &:read).split("\0")
     directories = files.flat_map { |file| Pathname(file).dirname.descend.map(&:to_s) }
     (files + directories).to_set
   end
