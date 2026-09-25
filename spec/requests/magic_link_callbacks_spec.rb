@@ -56,7 +56,7 @@ RSpec.describe "Magic Link Callbacks", type: :request do
 
       it "redirects to sign in" do
         token = MagicLinkToken.create_for_email(user.email_address)
-        MagicLinkToken.find_by(token_digest: MagicLinkToken.digest(token)).consume!
+        MagicLinkToken.consume!(token)
         get magic_link_callback_path(token: token)
         expect(response).to redirect_to(new_session_path)
         expect(flash[:alert]).to be_present
@@ -90,6 +90,20 @@ RSpec.describe "Magic Link Callbacks", type: :request do
         sign_in(user)
 
         get magic_link_callback_path(token: others_token)
+
+        expect(response).to redirect_to(root_path)
+        expect(flash[:alert]).to eq(I18n.t("magic_link_callbacks.show.invalid"))
+      end
+
+      # Superseded is not redeemed: an older link the owner never clicked is invalid,
+      # not a replay (#1083).
+      it "rejects a superseded link the signed-in owner never clicked" do
+        superseded = MagicLinkToken.create_for_email(user.email_address)
+        MagicLinkToken.create_for_email(user.email_address)
+        sign_in(user)
+
+        expect { get magic_link_callback_path(token: superseded) }
+          .not_to change { user.sessions.count }
 
         expect(response).to redirect_to(root_path)
         expect(flash[:alert]).to eq(I18n.t("magic_link_callbacks.show.invalid"))
@@ -211,7 +225,7 @@ RSpec.describe "Magic Link Callbacks", type: :request do
     context "already-consumed token" do
       it "redirects to sign in" do
         token = MagicLinkToken.create_for_email("consumed-reg@example.com")
-        MagicLinkToken.find_by(token_digest: MagicLinkToken.digest(token)).consume!
+        MagicLinkToken.consume!(token)
         post magic_link_callback_path(token: token), params: {
           user: { first_name: "Test", last_name: "User" }
         }
