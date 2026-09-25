@@ -18,6 +18,10 @@ if ARGV.first == "--range"
   touched_by = "this pull request"
 else
   paths = ARGV
+  if paths.empty?
+    warn "usage: bin/comment-block-check <staged paths...> | --range <base>...<head> — no paths given, nothing was checked"
+    exit 64
+  end
   show = ->(path) { [ "git", "show", ":#{path}" ] }
   diff = ->(path) { [ "git", "diff", "--cached", "-U0", "--", path ] }
   touched_by = "this commit"

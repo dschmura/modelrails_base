@@ -524,6 +524,20 @@ RSpec.describe "Template invariants" do
     end
   end
 
+  describe "a gate that ran nothing says so" do
+    it "an rspec run that selects no examples fails" do
+      expect(RSpec.configuration.fail_if_no_examples).to be(true),
+        "expected spec_helper to set config.fail_if_no_examples — a filter that matches " \
+        "nothing (a typo'd -e, a stale tag) otherwise reads as a green run of zero examples"
+    end
+
+    it "bin/comment-block-check refuses to run with no paths to check" do
+      output = IO.popen(clean_git_env, [ root.join("bin/comment-block-check").to_s ], err: [ :child, :out ], &:read)
+
+      expect([ $?.exitstatus, output ]).to match([ 64, a_string_including("nothing was checked") ])
+    end
+  end
+
   describe "CI cancels superseded runs (#486)" do
     # Without a concurrency group, a second push to a PR branch lets the stale
     # ~8-min run finish anyway — occupying runners and delaying the fresh run's
@@ -1171,6 +1185,39 @@ RSpec.describe "Template invariants" do
       expect(offenders).to be_empty,
         "expected no encrypted credential blobs or keys tracked in git, found: " \
         "#{offenders.join(', ')}. The template ships zero credentials; see README."
+    end
+  end
+
+  describe "parallel pull requests do not conflict on the changelog" do
+    let(:repo) { Pathname.new(Dir.mktmpdir) }
+    let(:env) do
+      clean_git_env.merge("GIT_AUTHOR_NAME" => "spec", "GIT_AUTHOR_EMAIL" => "spec@example.com",
+                          "GIT_COMMITTER_NAME" => "spec", "GIT_COMMITTER_EMAIL" => "spec@example.com")
+    end
+
+    after { FileUtils.rm_rf(repo) }
+
+    def git(*args) = system(env, "git", *args, chdir: repo.to_s, out: File::NULL, err: File::NULL)
+
+    def add_entry(line)
+      changelog = repo.join("CHANGELOG.md")
+      changelog.write(changelog.read.sub("### Added\n\n", "### Added\n\n#{line}\n"))
+      git("commit", "-q", "-am", line)
+    end
+
+    it "keeps both sides' entries when two branches append under the same heading" do
+      FileUtils.cp(root.join(".gitattributes"), repo)
+      repo.join("CHANGELOG.md").write("# Changelog\n\n## [Unreleased]\n\n### Added\n\n- An earlier entry.\n")
+      git("init", "-q", "-b", "main")
+      git("add", ".")
+      git("commit", "-q", "-m", "base")
+      git("checkout", "-q", "-b", "second")
+      add_entry("- The second pull request's entry.")
+      git("checkout", "-q", "main")
+      add_entry("- The first pull request's entry.")
+
+      expect(git("rebase", "-q", "main", "second")).to be(true), "the rebase conflicted on CHANGELOG.md"
+      expect(repo.join("CHANGELOG.md").read).to include("- The first pull request's entry.", "- The second pull request's entry.", "- An earlier entry.")
     end
   end
 

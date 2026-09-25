@@ -7,6 +7,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 ### Added
 
 - `bin/rails db:schema:regenerate` rebuilds `db/schema.rb` from `db/migrate` alone, and a pre-commit check refuses a `db/schema.rb` the migrations do not produce.
+- `CHANGELOG.md` merges by union, so parallel pull requests that each add a line no longer conflict on it.
 - A docs spec fails when a tracked developer page cites a repo path that does not exist; absent-by-design citations carry a reason.
 - Specs pin the activity feed's actor snapshot, its legacy-row preloader, and the partial's snapshot render (#1251).
 - The developer notifications doc carries the write-time coalescing recipe, which until now lived only in design notes (#806).
@@ -17,6 +18,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- An rspec run that selects no examples fails, and `bin/comment-block-check` called with no paths refuses rather than passing.
 - Two redundant indexes on `noticed_notifications` are dropped; the composite recipient index serves the unread filter and the inbox, and the plans are pinned (#1199).
 - Ruby 4.0.7 and Bundler 4.0.20; the resolv and net-imap `.trivyignore` exceptions retire because 4.0.7 ships the fixed gems, and json's is re-dated.
 - Comments added in app/ and lib/ since the 2026-09-21 plan cut to at most two lines each (658 lines to 125).
