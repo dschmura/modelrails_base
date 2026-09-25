@@ -19,11 +19,6 @@ require "yaml"
 RSpec.describe "Flash messages are asserted, not just redirects" do
   # Burn-down, not configuration: delete an entry as its assertion lands (#526).
   unasserted_flashes = [
-    "onboarding.projects.create.success",
-    "onboarding.teams.create.no_emails",
-    "onboarding.teams.create.sent",
-    "onboarding.workspaces.create.success",
-    "onboardings.update.complete",
     "project_tools.disabled",
     "project_tools.settings.saved",
     "settings.connected_accounts.destroy.success",
