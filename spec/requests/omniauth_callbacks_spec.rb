@@ -162,6 +162,32 @@ RSpec.describe "OmniAuth Callbacks", type: :request do
     end
   end
 
+  # The hold refuses the writes that ride on the sign-in, not only the session (#1129).
+  describe "a suspended user presenting a new provider with a parked invitation" do
+    let!(:user) { create(:user, :suspended, email_address: "held-oauth@example.com") }
+    let!(:invitation) { create(:invitation, email: "held-oauth@example.com") }
+
+    before do
+      allow(Rails.configuration.x.signup).to receive(:mode).and_return(:invite_only)
+      OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(
+        provider: "google",
+        uid: "held-oauth-new",
+        info: { email: "held-oauth@example.com", first_name: "Held", last_name: "User", email_verified: true },
+        credentials: { token: "token", refresh_token: nil, expires_at: nil }
+      )
+      post accept_invitation_path(token: invitation.token)
+    end
+
+    it "attaches no provider, accepts no invitation, and shows the suspended alert" do
+      expect { get "/auth/google_oauth2/callback" }
+        .not_to change { [ Authentication.count, Membership.count ] }
+
+      expect(response).to redirect_to(new_session_path)
+      expect(flash[:alert]).to eq(I18n.t("sessions.create.suspended"))
+      expect(invitation.reload).to be_pending
+    end
+  end
+
   describe "OAuth does not link to unverified email accounts" do
     let!(:unverified_user) { create(:user, :unverified_email, email_address: "unverified@example.com") }
 
