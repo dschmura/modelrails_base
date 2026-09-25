@@ -1188,6 +1188,39 @@ RSpec.describe "Template invariants" do
     end
   end
 
+  describe "parallel pull requests do not conflict on the changelog" do
+    let(:repo) { Pathname.new(Dir.mktmpdir) }
+    let(:env) do
+      clean_git_env.merge("GIT_AUTHOR_NAME" => "spec", "GIT_AUTHOR_EMAIL" => "spec@example.com",
+                          "GIT_COMMITTER_NAME" => "spec", "GIT_COMMITTER_EMAIL" => "spec@example.com")
+    end
+
+    after { FileUtils.rm_rf(repo) }
+
+    def git(*args) = system(env, "git", *args, chdir: repo.to_s, out: File::NULL, err: File::NULL)
+
+    def add_entry(line)
+      changelog = repo.join("CHANGELOG.md")
+      changelog.write(changelog.read.sub("### Added\n\n", "### Added\n\n#{line}\n"))
+      git("commit", "-q", "-am", line)
+    end
+
+    it "keeps both sides' entries when two branches append under the same heading" do
+      FileUtils.cp(root.join(".gitattributes"), repo)
+      repo.join("CHANGELOG.md").write("# Changelog\n\n## [Unreleased]\n\n### Added\n\n- An earlier entry.\n")
+      git("init", "-q", "-b", "main")
+      git("add", ".")
+      git("commit", "-q", "-m", "base")
+      git("checkout", "-q", "-b", "second")
+      add_entry("- The second pull request's entry.")
+      git("checkout", "-q", "main")
+      add_entry("- The first pull request's entry.")
+
+      expect(git("rebase", "-q", "main", "second")).to be(true), "the rebase conflicted on CHANGELOG.md"
+      expect(repo.join("CHANGELOG.md").read).to include("- The first pull request's entry.", "- The second pull request's entry.", "- An earlier entry.")
+    end
+  end
+
   describe "Fork seams (downstream disentanglement — see /docs/developer/forking)" do
     it "keeps brand identity strings in the fork-owned brand locale file" do
       brand_path = Rails.root.join("config/locales/en/brand.en.yml")

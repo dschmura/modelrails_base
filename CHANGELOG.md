@@ -6,6 +6,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Added
 
+- `CHANGELOG.md` merges by union, so parallel pull requests that each add a line no longer conflict on it.
 - A docs spec fails when a tracked developer page cites a repo path that does not exist; absent-by-design citations carry a reason.
 - Specs pin the activity feed's actor snapshot, its legacy-row preloader, and the partial's snapshot render (#1251).
 - The developer notifications doc carries the write-time coalescing recipe, which until now lived only in design notes (#806).
