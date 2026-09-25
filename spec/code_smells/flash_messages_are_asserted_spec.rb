@@ -19,17 +19,6 @@ require "yaml"
 RSpec.describe "Flash messages are asserted, not just redirects" do
   # Burn-down, not configuration: delete an entry as its assertion lands (#526).
   unasserted_flashes = [
-    "email_verification_resends.create.no_email_auth",
-    "email_verification_resends.create.rate_limited",
-    "email_verification_resends.create.success",
-    "magic_links.create.rate_limited",
-    "omniauth_callbacks.create.already_linked",
-    "omniauth_callbacks.create.collision_other_user",
-    "omniauth_callbacks.create.linked",
-    "omniauth_callbacks.create.pending",
-    "omniauth_callbacks.create.pending_in_progress",
-    "omniauth_callbacks.create.pending_resent",
-    "omniauth_callbacks.create.unverified_email_pending",
     "onboarding.projects.create.success",
     "onboarding.teams.create.no_emails",
     "onboarding.teams.create.sent",
