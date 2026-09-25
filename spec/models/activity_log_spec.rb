@@ -392,13 +392,6 @@ RSpec.describe ActivityLog, type: :model do
       create_list(:activity_log, 2, actor: ada).each { |row| ActivityLog.where(id: row.id).update_all(actor_name: nil) }
     end
 
-    def users_queries_during
-      count = 0
-      counter = ->(_name, _started, _finished, _id, payload) { count += 1 if payload[:sql].match?(/FROM "users"/) }
-      ActiveSupport::Notifications.subscribed(counter, "sql.active_record") { yield }
-      count
-    end
-
     def subjects_of(scope)
       scope.for_feed.map(&:display_subject)
     end
@@ -407,14 +400,14 @@ RSpec.describe ActivityLog, type: :model do
       scope = ActivityLog.where(id: [ snapshot_row.id, *legacy_rows.map(&:id) ])
       subjects = nil
 
-      expect(users_queries_during { subjects = subjects_of(scope) }).to eq(1)
+      expect(count_selects_touching("users") { subjects = subjects_of(scope) }).to eq(1)
       expect(subjects).to all(eq("Ada Owner"))
     end
 
     it "touches users not at all when every row carries its snapshot" do
       scope = ActivityLog.where(id: snapshot_row.id)
 
-      expect(users_queries_during { subjects_of(scope) }).to eq(0)
+      expect(count_selects_touching("users") { subjects_of(scope) }).to eq(0)
     end
   end
 
