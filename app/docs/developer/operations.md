@@ -170,6 +170,10 @@ so set a password in that first window if outbound mail isn't wired up yet.
   every kept workspace, with no notion of "some." A scoped-operator arc that
   narrows this is planned, not built.
 - Impersonate a user.
+- Find a departed actor. The filters resolve people through `users`, so once
+  an account is gone the rows that still carry its name are reachable only by
+  scrolling: `actor_name` is encrypted with the non-deterministic cipher, the
+  same reason there is no Who sort.
 
 ## The Workspace filter changes shape as you grow
 
