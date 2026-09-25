@@ -6,6 +6,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Added
 
+- A docs spec fails when a tracked developer page cites a repo path that does not exist; absent-by-design citations carry a reason.
 - The developer notifications doc carries the write-time coalescing recipe, which until now lived only in design notes (#806).
 - The comment-block gate also runs in CI over a pull request's diff (`bin/comment-block-check --range`), so a skipped hook or a fork without Lefthook still meets it.
 - Pre-commit check refuses comment blocks over two lines that a commit touches (`bin/comment-block-check`).
