@@ -278,6 +278,37 @@ RSpec.describe OauthLink do
     end
   end
 
+  describe "a suspended account (#1129)" do
+    it "refuses an existing identity before refreshing its credentials" do
+      owner = create(:user, :no_authentications, :suspended, email_address: "held@example.com")
+      auth = owner.authentications.create!(
+        provider: "google", uid: "uid-held", email: "held@example.com", verified_at: Time.current, oauth_token: "stale"
+      )
+
+      outcome = described_class.new(google_hash(uid: "uid-held", email: "held@example.com", token: "fresh")).claim
+
+      expect(outcome.code).to eq(:suspended)
+      expect(outcome.user).to eq(owner)
+      expect(auth.reload.oauth_token).to eq("stale")
+    end
+
+    it "refuses a new provider for a suspended address before linking it or spending a parked invitation" do
+      held = create(:user, :suspended, email_address: "person@example.com")
+      invitation = create(:invitation, email: "person@example.com")
+
+      outcome = described_class.new(
+        google_hash(email_verified: true), signups_open: true, invitation_token: invitation.token
+      ).claim
+
+      expect(outcome.code).to eq(:suspended)
+      expect(outcome.user).to eq(held)
+      expect(outcome.spent_tokens).to be_empty
+      expect(Authentication.find_by(provider: "google", uid: "uid-123")).to be_nil
+      expect(invitation.reload).to be_pending
+      expect(held.memberships.count).to eq(1)
+    end
+  end
+
   describe "error narrowing" do
     it "propagates ArgumentError from an unknown provider instead of masking it as :failed" do
       bogus = OmniAuth::AuthHash.new(
