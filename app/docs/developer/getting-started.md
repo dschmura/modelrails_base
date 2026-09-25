@@ -139,7 +139,7 @@ Two things worth knowing when it fires:
   `bundle exec rspec` share `storage/test.sqlite3`. A parallel run and a focused
   run *do* collide.
 - **Stop a run by process group, not by name.** `pkill -f "bundle exec rspec"`
-  matches the shell wrapper and orphans the `bin/rspec` child, which keeps the
+  matches the shell wrapper and orphans the `rspec` child process, which keeps the
   WAL lock — after which every later run fails in its first `create(...)`. Use
   `kill -- -<pgid>`, then confirm with `lsof storage/test.sqlite3*`.
 
