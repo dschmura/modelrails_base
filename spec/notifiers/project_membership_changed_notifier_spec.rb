@@ -148,7 +148,7 @@ RSpec.describe ProjectMembershipChangedNotifier, type: :notifier do
   describe "#url" do
     it "points at the project under its workspace" do
       described_class.with(record: project_membership).deliver(user)
-      notification = user.notifications.reload.last
+      notification = user.notifications.order(:id).last
 
       expect(notification.url).to eq(
         Rails.application.routes.url_helpers.workspace_project_path(project.workspace, project)

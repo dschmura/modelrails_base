@@ -5,18 +5,9 @@ RSpec.describe "ActivityLog actor snapshot" do
   let(:actor) { create(:user, first_name: "Dana", last_name: "Ruiz") }
   let(:workspace) { actor.workspaces.sole }
 
-  def acting_as(user)
-    Current.session = user.sessions.create!(user_agent: "spec", ip_address: "127.0.0.1")
-    Current.workspace = user.workspaces.sole
-    yield
-  ensure
-    Current.session = nil
-    Current.workspace = nil
-  end
-
   describe "at write time" do
     it "records the actor's name on the row" do
-      log = acting_as(actor) { workspace.update!(name: "Renamed"); workspace.activities.last }
+      log = acting_as(actor, workspace: actor.workspaces.sole) { workspace.update!(name: "Renamed"); workspace.activities.last }
 
       expect(log.actor_name).to eq("Dana Ruiz")
     end
@@ -50,7 +41,7 @@ RSpec.describe "ActivityLog actor snapshot" do
     end
 
     it "does not follow the actor's later rename" do
-      log = acting_as(actor) { workspace.update!(name: "Renamed"); workspace.activities.last }
+      log = acting_as(actor, workspace: actor.workspaces.sole) { workspace.update!(name: "Renamed"); workspace.activities.last }
 
       actor.update!(first_name: "Dee", last_name: "Ruiz")
 
@@ -61,14 +52,14 @@ RSpec.describe "ActivityLog actor snapshot" do
   describe "after the actor is gone" do
     # Only that this table stopped blocking deletion; five other FKs still do (#1248).
     it "stops being a reason the actor cannot be destroyed" do
-      acting_as(actor) { workspace.update!(name: "Renamed") }
+      acting_as(actor, workspace: actor.workspaces.sole) { workspace.update!(name: "Renamed") }
       expect(ActivityLog.where(actor_id: actor.id)).to be_any
 
       expect { actor.destroy! }.not_to raise_error
     end
 
     it "still names who acted" do
-      log = acting_as(actor) { workspace.update!(name: "Renamed"); workspace.activities.last }
+      log = acting_as(actor, workspace: actor.workspaces.sole) { workspace.update!(name: "Renamed"); workspace.activities.last }
       actor.destroy!
 
       expect(log.reload.display_subject).to eq("Dana Ruiz")

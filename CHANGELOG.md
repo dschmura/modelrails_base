@@ -16,6 +16,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- Two redundant indexes on `noticed_notifications` are dropped; the composite recipient index serves the unread filter and the inbox, and the plans are pinned (#1199).
 - Ruby 4.0.7 and Bundler 4.0.20; the resolv and net-imap `.trivyignore` exceptions retire because 4.0.7 ships the fixed gems, and json's is re-dated.
 - Comments added in app/ and lib/ since the 2026-09-21 plan cut to at most two lines each (658 lines to 125).
 - Comments added in config/ and db/ cut to at most two lines, and this run's changelog entries to one line each.
@@ -27,6 +28,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Fixed
 
+- Deleting a user no longer raises on their pending challenge rows, and a user who created a project, resource or join link is refused with an error naming what they still own; a guard spec derives every foreign key into `users` from the schema (#1248).
 - Five developer-doc statements now describe the tree: which mail a suspended address still receives, the visibility suspension rows are written at, the page-rendered flash's unobserved reader behaviour (#1267), the retired draft-count caveat, and when the reconciler logs its warning.
 - Dependabot no longer proposes `modelrails_ui` downgrades: the git-tag gem is ignored in `.github/dependabot.yml` and bumped by hand, with a template invariant keeping it so (#1261).
 - A malformed email reaches the server's error summary instead of the browser's validation bubble (#1117).

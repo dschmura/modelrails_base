@@ -60,7 +60,7 @@ RSpec.describe "Account Notifications", type: :request do
       deliver_in_distinct_idempotency_bucket do
         PasswordChangedNotifier.with(record: recipient).deliver(recipient)
       end
-      recipient.notifications.reload.last
+      recipient.notifications.order(:id).last
     end
 
     def deliver_account_access_notification(recipient: user, inviter: nil)
@@ -73,7 +73,7 @@ RSpec.describe "Account Notifications", type: :request do
       deliver_in_distinct_idempotency_bucket do
         WorkspaceInvitationResentNotifier.with(record: invitation).deliver(recipient)
       end
-      recipient.notifications.reload.last
+      recipient.notifications.order(:id).last
     end
 
     # A same-bucket collision dedup-drops the 2nd dispatch and flaked the
