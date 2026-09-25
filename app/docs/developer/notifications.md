@@ -262,6 +262,23 @@ Callers can pass `idempotency_key: "custom"` to override the default. If neither
 
 Callers (e.g., `Workspaces::Invitations::ResendsController#create`) branch on this to choose flash copy. A caller that branches on `:deduplicated` treats `:skipped` like `:delivered` unless it says otherwise — which is correct where the dispatch carries an explicit, known-present recipient and `:skipped` cannot occur.
 
+## Coalescing — not built; the recipe
+
+Idempotency answers "is this the same dispatch?". Coalescing answers "should the recipient experience distinct events as one item?" — every event still exists, the attention row is shared. Nothing below is implemented. The trigger is a notifier whose volume is not bounded by a human action (#807); the current roster is account and security events, so the template does not carry the machinery speculatively. When the trigger fires, the write path must carry all of the following. Each was found necessary in the 2026-08-25 lifecycle design, and dropping one produces a specific bug named alongside it.
+
+- **A unique key namespaced by notifier class.** Two notifiers coalescing on the same record must not share a row.
+- **A single-statement counter increment**, `coalesced_event_count = coalesced_event_count + 1`, on a nullable column populated only for coalescing rows. The name `unread_count` was rejected: it double-represents read state and collides with what `User#unread_notification_breakdown` means.
+- **A `read_at` reset on each coalesced arrival**, so the item returns to unread.
+- **A mark-read compare-and-swap keyed on `event_id`.** A stale `event_id` re-renders the row instead of marking a newer arrival read.
+- **`RecordNotUnique` scoped to the coalescing insert**, distinct from the outer idempotency rescue that returns `:deduplicated`.
+- **The gem-internal write order, pinned to noticed 3.0.0:** `validate!` → transaction → `notifications_count=` → `save!` → `insert_all!` → `EventJob` enqueue. The enqueue must follow the `event_id` re-point, or email fans out over the wrong `has_many`.
+- **One decision between manual `notifications_count` assignment and a counter cache.** Both at once double-count.
+- **The write path returns the touched row ids**, so `broadcast_notifications_arrival` does not silently no-op for a re-pointed row.
+- **`mark_all_read` zeroes the counter.**
+- **The bell decides once whether it counts rows or sums counters.**
+- **A `category :security` notifier that declares coalescing raises at boot.** Security events are never merged.
+- **The key is record plus recipient set, not record alone.** The actor rule above excludes the actor from recipients, and a member re-admitted to a workspace is notified again, so the same record can legitimately produce two items with different audiences.
+
 ## Dispatch reliability
 
 What is atomic is the ledger: `Noticed::Deliverable#deliver` writes the event row, its `idempotency_key`, and every recipient's notification row in one transaction. What is *not* atomic is the delivery job — noticed enqueues `Noticed::EventJob` after that transaction returns, and Solid Queue writes to a separate SQLite database in production, so it never could be. If the enqueue fails (Solid Queue's database busy past its timeout, a full disk) or the process dies in the gap, the recipient sees the notification in the bell, the key is burned so a retry inside the same bucket dedupes away, and the email and broadcast legs never run.
