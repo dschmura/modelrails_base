@@ -438,6 +438,7 @@ git merge upstream/main
 | `Gemfile.lock` | Never hand-merge: `git checkout --theirs Gemfile.lock`, then `bundle install`, commit the regenerated result |
 | Behavior (app code, specs, config) | Take theirs — unless you deliberately diverged, in which case consider sending your version upstream instead |
 | Two migrations, same timestamp | Keep both; rename yours to a later timestamp with `git mv`, then re-run `bin/rails db:migrate` |
+| `db/schema.rb` | Never hand-merge: `git checkout --theirs db/schema.rb`, then `bin/rails db:schema:regenerate`, which rebuilds it from both sides' migrations |
 | Upstream renamed/moved a file you'd edited | Re-apply your edit at the new location, delete the old file. If the same resolution recurs every sync, turn on `git config rerere.enabled true` so git replays it for you |
 
 A conflict looks like this — your side on top, upstream's below:
