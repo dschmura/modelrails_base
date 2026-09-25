@@ -18,13 +18,6 @@ RSpec.describe "Operations activity ledger top actors", type: :request do
   def strip(body) = Capybara.string(body).find("[data-role=top-actors]", visible: :all)
   def entries(body) = strip(body).all("[data-role=top-actor]", visible: :all)
 
-  def acting_as(user)
-    Current.session = user.sessions.create!(user_agent: "test", ip_address: "127.0.0.1")
-    yield
-  ensure
-    Current.session = nil
-  end
-
   # Renames, not creations: a workspace has a project limit, and a rename is the
   # cheapest way to mint an attributed row. Each rename is exactly one activity
   # row actored by `user`, so the count the strip shows is `times`.
