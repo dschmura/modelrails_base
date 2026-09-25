@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_25_125646) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_25_134500) do
   create_table "action_text_rich_texts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -146,6 +146,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_25_125646) do
     t.string "email", null: false
     t.datetime "expires_at", null: false
     t.string "intent"
+    t.datetime "superseded_at"
     t.string "token_digest", null: false
     t.datetime "updated_at", null: false
     t.index ["email"], name: "index_magic_link_tokens_on_email_unconsumed", unique: true, where: "consumed_at IS NULL"
