@@ -13,7 +13,10 @@ RSpec.describe "Documentation cited paths" do
       "app/models/concerns/noticed/deliverable.rb" => "inside the noticed 3.0.0 gem, named beside it",
       "app/models/ssrf_protection.rb" => "Fizzy's file, cited as the port source for #658",
       "app/models/webhook/delivery.rb" => "Fizzy's file, the caller of that port source",
-      "config/credentials.yml.enc" => "gitignored; a fork generates it with credentials:edit"
+      "config/credentials.yml.enc" => "gitignored; a fork generates it with credentials:edit",
+      "config/master.key" => "gitignored; every checkout keeps its own",
+      "config/credentials/production.key" => "gitignored; a deployment keeps its own",
+      "app/assets/builds/tailwind.css" => "a build artifact; tailwindcss:build writes it"
     }
   end
 
@@ -32,16 +35,26 @@ RSpec.describe "Documentation cited paths" do
 
   let(:cited_paths) { citations.map(&:first).uniq }
 
-  it "cites only paths that exist, or are allowed absent with a reason" do
-    absent = citations.reject { |path, _| allowed_absent.key?(path) || File.exist?(Rails.root.join(path)) }
+  let(:tracked) do
+    files = `git -C #{Rails.root} ls-files -z`.split("\0")
+    directories = files.flat_map { |file| Pathname(file).dirname.descend.map(&:to_s) }
+    (files + directories).to_set
+  end
+
+  def tracked?(path)
+    tracked.include?(path.delete_suffix("/"))
+  end
+
+  it "cites only tracked paths, or paths allowed absent with a reason" do
+    absent = citations.reject { |path, _| allowed_absent.key?(path) || tracked?(path) }
     expect(absent).to be_empty, absent.map { |path, at|
-      "#{at} cites #{path}, which does not exist — repoint it, or add it to allowed_absent with a reason"
+      "#{at} cites #{path}, which is not in the repo — repoint it, or add it to allowed_absent with a reason"
     }.join("\n")
   end
 
   it "keeps the allow-list honest: every allowed-absent path is still absent" do
-    stale = allowed_absent.keys.select { |path| File.exist?(Rails.root.join(path)) }
-    expect(stale).to be_empty, "Now present, remove from allowed_absent: #{stale.join(', ')}"
+    stale = allowed_absent.keys.select { |path| tracked?(path) }
+    expect(stale).to be_empty, "Now tracked, remove from allowed_absent: #{stale.join(', ')}"
   end
 
   it "keeps the allow-list honest: every allowed-absent path is still cited" do
