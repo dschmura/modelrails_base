@@ -7,13 +7,6 @@ require "rails_helper"
 RSpec.describe "Embed component accessibility", type: :system do
   let(:scope) { [ "[data-test='embed']" ] }
 
-  def expect_aaa_in_both_themes
-    expect(axe_clean_in_both_themes?(include: scope)).to(
-      be(true),
-      axe_violations_in_both_themes(include: scope).join("\n")
-    )
-  end
-
   # The derived src is asserted: the transformation the preview exists to show.
   it "youtube: a titled iframe carrying the derived embed URL; AAA in both themes" do
     visit "/rails/view_components/ui/embed_component/youtube"
@@ -21,7 +14,7 @@ RSpec.describe "Embed component accessibility", type: :system do
     frame = page.find("[data-test='embed'] iframe")
     expect(frame[:title]).to be_present
     expect(frame[:src]).to include("youtube.com/embed/dQw4w9WgXcQ")
-    expect_aaa_in_both_themes
+    expect_aaa_in_both_themes(include: scope)
   end
 
   it "map: a titled iframe carrying the derived embed URL; AAA in both themes" do
@@ -30,6 +23,6 @@ RSpec.describe "Embed component accessibility", type: :system do
     frame = page.find("[data-test='embed'] iframe")
     expect(frame[:title]).to be_present
     expect(frame[:src]).to include("Eiffel")
-    expect_aaa_in_both_themes
+    expect_aaa_in_both_themes(include: scope)
   end
 end
