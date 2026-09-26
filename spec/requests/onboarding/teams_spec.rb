@@ -63,11 +63,13 @@ RSpec.describe "Onboarding · team step", type: :request do
 
     expect(user.reload.onboarded?).to be(true)
     expect(response).to redirect_to(workspace_project_path(workspace, project))
+    expect(flash[:notice]).to eq(I18n.t("onboarding.teams.create.sent"))
   end
 
   it "re-renders when no emails are provided" do
     post onboarding_team_path, params: { invitation: { emails: "", role_id: member_role.id } }
     expect(response).to have_http_status(:unprocessable_entity)
+    expect(flash[:alert]).to eq(I18n.t("onboarding.teams.create.no_emails"))
     expect(user.reload.onboarded?).to be(false)
   end
 
@@ -77,5 +79,6 @@ RSpec.describe "Onboarding · team step", type: :request do
     }.not_to change(Invitation, :count)
     expect(user.reload.onboarded?).to be(true)
     expect(response).to redirect_to(workspace_project_path(workspace, project))
+    expect(flash[:notice]).to eq(I18n.t("onboardings.update.complete"))
   end
 end

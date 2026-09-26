@@ -31,6 +31,7 @@ RSpec.describe "Onboarding · project step", type: :request do
     expect(project.name).to eq("Acme Website")
     expect(project.project_memberships.find_by(user: user)&.role).to eq("creator")
     expect(response).to redirect_to(new_onboarding_team_path)
+    expect(flash[:notice]).to eq(I18n.t("onboarding.projects.create.success"))
   end
 
   it "re-renders on a blank name" do
