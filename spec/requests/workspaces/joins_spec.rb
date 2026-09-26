@@ -37,6 +37,7 @@ RSpec.describe "Workspaces::Joins (Flow A: authenticated user joins via link)", 
       membership = workspace.memberships.find_by!(user: newcomer)
       expect(membership.role).to eq(member_role)
       expect(response).to redirect_to(workspace_path(workspace))
+      expect(flash[:notice]).to eq(I18n.t("workspaces.joins.create.joined", workspace_name: workspace.name))
     end
 
     # A revoke inside the last guard is refused by admit's re-check (#1061).
@@ -114,6 +115,7 @@ RSpec.describe "Workspaces::Joins (Flow A: authenticated user joins via link)", 
       workspace.memberships.create!(user: newcomer, role: member_role)
       post workspace_join_path(workspace, token: link.plaintext_token)
       expect(response).to redirect_to(workspace_path(workspace))
+      expect(flash[:notice]).to eq(I18n.t("workspaces.joins.create.already_member", workspace_name: workspace.name))
     end
 
     it "returns the same neutral error for invalid + unauthorized cases (no info leak)" do
@@ -181,6 +183,7 @@ RSpec.describe "Workspaces::Joins (Flow B: unauthenticated user via link)", type
 
     expect(session[:pending_join_token]).to eq(link.plaintext_token)
     expect(response).to redirect_to(new_session_path)
+    expect(flash[:notice]).to eq(I18n.t("workspaces.joins.create.register_first", workspace_name: workspace.name))
   end
 
   it "POST with a revoked link uses the neutral error (no session stash, no info leak)" do

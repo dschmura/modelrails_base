@@ -18,5 +18,6 @@ RSpec.describe "Docs tool enablement guard", type: :request do
     project.update!(enabled_tools: [])
     get workspace_project_resources_path(workspace, project)
     expect(response).to redirect_to(workspace_project_path(workspace, project))
+    expect(flash[:alert]).to eq(I18n.t("project_tools.disabled"))
   end
 end

@@ -18,21 +18,7 @@ require "yaml"
 # redirect to root, so only the message tells them apart.
 RSpec.describe "Flash messages are asserted, not just redirects" do
   # Burn-down, not configuration: delete an entry as its assertion lands (#526).
-  unasserted_flashes = [
-    "project_tools.disabled",
-    "project_tools.settings.saved",
-    "workspaces.invitations.create.magic_link_created",
-    "workspaces.invitations.resends.create.rate_limited",
-    "workspaces.join_links.create.rotated",
-    "workspaces.join_links.destroy.revoked",
-    "workspaces.joins.create.already_member",
-    "workspaces.joins.create.joined",
-    "workspaces.joins.create.register_first",
-    "workspaces.projects.invitations.create.success",
-    "workspaces.projects.resources.destroy.success",
-    "workspaces.projects.resources.update.success",
-    "workspaces.settings.update.success"
-  ].freeze
+  unasserted_flashes = [].freeze
 
   def locale_values
     Dir.glob(Rails.root.join("config/locales/en/**/*.yml")).each_with_object({}) do |file, values|

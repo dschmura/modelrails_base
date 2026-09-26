@@ -47,6 +47,8 @@ RSpec.describe "Workspace Invitations", type: :request do
         }.to change(Invitation, :count).by(1)
 
         expect(workspace.invitations.find_by(email: nil)).to be_magic_link
+        expect(response).to redirect_to(workspace_members_path(workspace))
+        expect(flash[:notice]).to eq(I18n.t("workspaces.invitations.create.magic_link_created"))
       end
 
       it "skips existing members" do
@@ -92,6 +94,14 @@ RSpec.describe "Workspace Invitations", type: :request do
         expect {
           post workspace_invitation_resend_path(workspace, invitation)
         }.to change { user.notifications.where(type: "WorkspaceInvitationResentNotifier::Notification").count }.by(1)
+      end
+
+      it "says it was rate limited once the limit is exceeded, and sends nothing" do
+        allow(Rails.cache).to receive(:increment).and_return(11)
+
+        expect { post workspace_invitation_resend_path(workspace, invitation) }.not_to have_enqueued_mail
+        expect(response).to redirect_to(workspace_members_path(workspace))
+        expect(flash[:alert]).to eq(I18n.t("workspaces.invitations.resends.create.rate_limited"))
       end
 
       it "shows the 'resent' flash on first resend" do

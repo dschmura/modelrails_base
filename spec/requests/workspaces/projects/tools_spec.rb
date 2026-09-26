@@ -34,6 +34,7 @@ RSpec.describe "Project tools settings", type: :request do
       params: { project: { enabled_tools: [ "docs", "bogus" ] } }
     expect(project.reload.enabled_tools).to eq([ "docs" ])
     expect(response).to redirect_to(edit_workspace_project_tools_path(workspace, project))
+    expect(flash[:notice]).to eq(I18n.t("project_tools.settings.saved"))
   end
 
   it "treats an absent checkbox group as all-off" do

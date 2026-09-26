@@ -35,6 +35,9 @@ RSpec.describe "Project Invitations", type: :request do
           }
         }.to change(Invitation, :count).by(1)
           .and have_enqueued_mail(InvitationMailer, :invite)
+
+        expect(response).to redirect_to(workspace_project_memberships_path(workspace, project))
+        expect(flash[:notice]).to eq(I18n.t("workspaces.projects.invitations.create.success"))
       end
 
       it "rejects creator role in project_role" do
