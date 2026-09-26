@@ -18,6 +18,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- Each Bullet safelist entry's reason moves from `lib/bullet_safelists.rb` into a table in the testing doc; the file keeps a one-line gist per entry.
 - `Trackable`'s 36-line header becomes a two-line gist; its writer-by-tier list moves to the architecture doc, corrected (WebAuthn removal is audited inside `discard!`).
 - The workspace model's long comments become gists with pointers; why `discard!` cascades in its own transaction now lives in the architecture doc.
 - The flash guard keeps no list of exceptions: every flash a controller sets is asserted by its message (#526).
