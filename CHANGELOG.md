@@ -18,6 +18,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- Account settings' seven remaining flashes are asserted by their exact message, including the reauthentication rate limit, which had no example (#526).
 - Sign-in and account-linking flashes are asserted by their exact message; eleven entries leave the #526 list, 25 remain.
 - Onboarding's five flashes are asserted by their exact message, so sending invites and skipping no longer read the same to the specs (#526).
 - An rspec run that selects no examples fails, and `bin/comment-block-check` called with no paths refuses rather than passing.

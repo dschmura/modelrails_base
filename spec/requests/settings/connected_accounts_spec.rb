@@ -115,6 +115,9 @@ RSpec.describe "Account Connected Accounts", type: :request do
           expect {
             delete settings_connected_account_path(google_auth)
           }.to change(user.authentications.verified, :count).by(-1)
+
+          expect(response).to redirect_to(settings_connected_accounts_path)
+          expect(flash[:notice]).to eq(I18n.t("settings.connected_accounts.destroy.success", provider: google_auth.display_provider))
         end
       end
 
@@ -304,7 +307,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
       it "blocks removal of the verified auth" do
         delete settings_connected_account_path(verified)
         expect(verified.reload).to be_persisted
-        expect(flash[:alert]).to include("last verified")
+        expect(flash[:alert]).to eq(I18n.t("settings.connected_accounts.destroy.cannot_remove_last_verified"))
       end
 
       it "allows cancellation of the pending auth" do
@@ -378,7 +381,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
       it "redirects to connected accounts with success" do
         post settings_connected_account_verification_resend_path(pending_auth)
         expect(response).to redirect_to(settings_connected_accounts_path)
-        expect(flash[:notice]).to include("pending@example.com")
+        expect(flash[:notice]).to eq(I18n.t("settings.connected_accounts.verification_resends.create.resent", email: "pending@example.com"))
       end
     end
 
@@ -391,7 +394,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
 
       it "redirects with already_verified alert" do
         post settings_connected_account_verification_resend_path(verified_auth)
-        expect(flash[:alert]).to include("already verified")
+        expect(flash[:alert]).to eq(I18n.t("settings.connected_accounts.verification_resends.create.already_verified"))
       end
     end
 
@@ -422,7 +425,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
 
         3.times { post settings_connected_account_verification_resend_path(pending_auth) }
         post settings_connected_account_verification_resend_path(pending_auth)
-        expect(flash[:alert]).to include("wait a moment")
+        expect(flash[:alert]).to eq(I18n.t("settings.connected_accounts.verification_resends.create.rate_limited"))
       end
     end
 
@@ -456,7 +459,7 @@ RSpec.describe "Account Connected Accounts", type: :request do
         end
 
         post settings_connected_account_verification_resend_path(pending_auth)
-        expect(flash[:notice]).to include(pending_auth.email)
+        expect(flash[:notice]).to eq(I18n.t("settings.connected_accounts.verification_resends.create.resent", email: pending_auth.email))
       end
     end
 

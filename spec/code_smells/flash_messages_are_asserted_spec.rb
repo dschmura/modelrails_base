@@ -21,13 +21,6 @@ RSpec.describe "Flash messages are asserted, not just redirects" do
   unasserted_flashes = [
     "project_tools.disabled",
     "project_tools.settings.saved",
-    "settings.connected_accounts.destroy.success",
-    "settings.connected_accounts.verification_resends.create.already_verified",
-    "settings.connected_accounts.verification_resends.create.rate_limited",
-    "settings.connected_accounts.verification_resends.create.resent",
-    "settings.reauthentications.rate_limited",
-    "settings.passwords.create.already_has_password",
-    "settings.profiles.update.verification_sent",
     "workspaces.invitations.create.magic_link_created",
     "workspaces.invitations.resends.create.rate_limited",
     "workspaces.join_links.create.rotated",
