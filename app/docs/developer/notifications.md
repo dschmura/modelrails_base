@@ -109,6 +109,10 @@ end
 | `WorkspaceCapacityApproachingNotifier` | `billing` | `warning` | Sweep job finds a workspace approaching its plan limit |
 | `WelcomeNotifier` | `account_access` | `info` | A real registration completes — `MagicLinkCallbacksController#create`, or either signup branch of `OauthLink` |
 
+**Member removal is `account_access`, not `workspace_activity`, on purpose.** Removal used to be silent; a removed member found out by hitting a wall (#933). The category is the user's opt-out axis, and `workspace_activity` is the chattiest one, carrying every join and every workspace created. A member who had muted it would learn they lost access through neither channel, which is the silence this notifier exists to end. `WorkspaceRoleChangedNotifier` sits in `account_access` for the same reason: it changes this person's access, it is not workspace news.
+
+Its copy varies by channel, not by reader. The in-app row is third-person event-log voice for everyone who receives it, the removed member included, and it branches on the event: a member who removed themselves "left", anyone else "was removed". The email is the only second-person surface, and only the removed member gets one. Its link goes to the workspaces index, not the workspace: the workspace is exactly where the removed member can no longer go, the index is the one destination true for every recipient, and reading nothing off the record means a deleted workspace cannot break it.
+
 ### Category → notifier types
 
 `ApplicationNotifier.notification_types_for(category)` returns the `Noticed::Notification` STI type strings for that category — used by `NotificationsController#index` for `?category=foo` filtering, and by `NotificationCleanupJob` for retention-floor enforcement. The suffix-free variant `ApplicationNotifier.notifier_class_names_for(category)` returns the parent Notifier class names.
