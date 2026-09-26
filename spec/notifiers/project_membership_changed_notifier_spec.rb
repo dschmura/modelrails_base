@@ -160,18 +160,10 @@ RSpec.describe ProjectMembershipChangedNotifier, type: :notifier do
   # RENDERING, not URL generation, so one stale row takes down a whole
   # recipient's digest rather than just its own line.
   describe "#url once the workspace is gone" do
-    # Workspace declares no `dependent:` for activity_logs and the FK blocks
-    # the DELETE (#921), so the audit rows go first. The placeholder contract
-    # is about the record being gone, not about how it got there.
-    def hard_delete(workspace)
-      ActivityLog.where(workspace_id: workspace.id).delete_all
-      workspace.destroy!
-    end
-
     it "renders the placeholder instead of raising" do
       project_membership
       notification = Noticed::Event.where(type: described_class.name).last.notifications.first
-      hard_delete(workspace)
+      workspace.destroy!
 
       expect(notification.reload.url).to eq(I18n.t("notifications.placeholder"))
     end
