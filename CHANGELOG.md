@@ -18,6 +18,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- The workspace model's long comments become gists with pointers; why `discard!` cascades in its own transaction now lives in the architecture doc.
 - The flash guard keeps no list of exceptions: every flash a controller sets is asserted by its message (#526).
 - Account settings' seven remaining flashes are asserted by their exact message, including the reauthentication rate limit, which had no example (#526).
 - Workspace and project-tool flashes are asserted by their exact message, so joining and "already a member" no longer read the same to the specs (#526).
