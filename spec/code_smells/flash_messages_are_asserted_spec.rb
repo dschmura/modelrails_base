@@ -17,9 +17,6 @@ require "yaml"
 # (`expired_or_used`), not the `NotAcceptable` rescue (`acceptance_failed`). Both
 # redirect to root, so only the message tells them apart.
 RSpec.describe "Flash messages are asserted, not just redirects" do
-  # Burn-down, not configuration: delete an entry as its assertion lands (#526).
-  unasserted_flashes = [].freeze
-
   def locale_values
     Dir.glob(Rails.root.join("config/locales/en/**/*.yml")).each_with_object({}) do |file, values|
       data = YAML.safe_load_file(file, aliases: true)
@@ -69,17 +66,8 @@ RSpec.describe "Flash messages are asserted, not just redirects" do
     end.uniq
   end
 
-  # Asserted by key (when the point is which key was selected) or by its English
-  # text (when the point is that a real sentence reached the user). The length
-  # guard keeps a short shared word like "Saved." from matching incidentally.
-  #
-  # Key matching is boundary-aware, not a bare substring: a plain `include?`
-  # let a namespaced key falsely "assert" an unrelated shorter one — a spec
-  # asserting operations.workspaces.create.success made the burn-down's
-  # separate workspaces.create.success (the tenant's own create flash) read
-  # as newly-asserted, because the shorter key is a dotted SUFFIX of the
-  # longer one. Neither a `.` nor a word char may sit on either side of the
-  # match.
+  # By key or by English text over 8 characters, so "Saved." can't match by chance. Boundary-aware:
+  # asserting operations.workspaces.create.success must not count for its suffix workspaces.create.success.
   def asserted?(key, values, specs)
     return true if specs.match?(/(?<![\w.])#{Regexp.escape(key)}(?![\w.])/)
 
@@ -89,40 +77,20 @@ RSpec.describe "Flash messages are asserted, not just redirects" do
 
   let(:values) { locale_values }
 
-  # Skips this file, whose burn-down list names every key as a literal.
+  # Skips this file, whose comments name keys as examples.
   let(:specs) do
     Dir.glob(Rails.root.join("spec/**/*_spec.rb"))
       .reject { |f| f == __FILE__ }
       .map { |f| File.read(f) }.join("\n")
   end
 
-  it "asserts every flash a controller sets, or tracks it on the burn-down list" do
+  it "asserts every flash a controller sets" do
     unasserted = controller_flash_keys.reject { |key| asserted?(key, values, specs) }
-    new_arrivals = unasserted - unasserted_flashes
 
-    expect(new_arrivals).to be_empty,
-      "these controller flashes are asserted by no spec:\n  #{new_arrivals.join("\n  ")}\n\n" \
+    expect(unasserted).to be_empty,
+      "these controller flashes are asserted by no spec:\n  #{unasserted.join("\n  ")}\n\n" \
       "Assert the message, not just the redirect — `expect(flash[:notice]).to eq(I18n.t(\"...\"))` " \
       "in the request spec for that action. A redirect-only assertion cannot tell a wrong key " \
       "from a right one."
-  end
-
-  # The reverse: an entry whose flash no controller sets any more is removed (#526).
-  it "keeps the burn-down list honest — no entry that names no flash" do
-    live = controller_flash_keys
-    fossils = unasserted_flashes.reject { |key| live.include?(key) }
-
-    expect(fossils).to be_empty,
-      "no controller sets these any more — the flash was renamed, moved, or removed, " \
-      "so the entry now inflates the debt instead of recording it. Delete them:\n  " \
-      "#{fossils.join("\n  ")}"
-  end
-
-  it "keeps the burn-down list honest — no entry that is now asserted" do
-    stale = unasserted_flashes.select { |key| asserted?(key, values, specs) }
-
-    expect(stale).to be_empty,
-      "these are asserted now — delete them from unasserted_flashes so the list keeps " \
-      "meaning something:\n  #{stale.join("\n  ")}"
   end
 end
