@@ -1,39 +1,5 @@
-# Best-effort audit trail, by design: create_activity rescues and logs rather
-# than ever failing the business write, and the after_commit placement means a
-# crash between commit and callback loses the activity row, not the write.
-# The Current.user/Current.workspace reads here are a deliberate deviation:
-# the activity log is a cross-cutting concern where ambient request context
-# beats threading an actor argument through every tracked write.
-#
-# Retention matches the guarantee: best-effort to write, immutable after
-# (ActivityLog#readonly?), and BOUNDED — ActivityLogRetentionSweepJob deletes
-# rows past 12 months (#438). If a fork promotes this trail to
-# compliance-grade, the write moves inside the business transaction AND the
-# retention window becomes a compliance decision, together.
-#
-# Exactly two ActivityLog write GUARANTEES exist — do not add a third. The
-# tier is the contract, not the call site: several writers share this one.
-#
-#   BEST-EFFORT (rescues; never fails the operation it records) — this
-#   concern, plus four writers that live outside it because their events
-#   never reach these callbacks: Membership#record_ownership_demotion (a
-#   callback-skipping CAS update_all), ApplicationController#log_blocked_role_grant
-#   (a refusal, so there is no record to track),
-#   Authenticatable#detect_and_record_new_device (a sign-in, corroborated by
-#   the Session row), and Invitation#record_suppressed_delivery (fired from
-#   mailer callbacks, where this concern's hooks must not run — the stamp it
-#   records is written callback-free on purpose; PR 4 spec §7).
-#
-#   STRICT (no rescue; the audit row commits with the credential mutation or
-#   neither does) — User#audit_password_digest_change,
-#   WebauthnCredential#audit_added/#audit_removed, and
-#   Operatorship.grant!/#revoke! (write at admin visibility, not personal —
-#   an operator grant has no single workspace to scope to).
-#
-# Tier and retention are independent axes: the new-device row is best-effort
-# yet still an ActivityLog::SECURITY_ACTIONS member, so it keeps the security
-# retention floor. Every SECURITY_ACTIONS row, either tier, is written through
-# ActivityLog.record_security_event! — which owns that row shape.
+# The best-effort tier of exactly two ActivityLog write guarantees; add no third. Reads Current by design.
+# Writers per tier, retention and the Current deviation: /docs/developer/architecture (Activity Tracking).
 module Trackable
   extend ActiveSupport::Concern
 
@@ -69,10 +35,8 @@ module Trackable
     changes
   end
 
-  # Overridable so a model can attach provenance an update row needs beyond the
-  # changed columns — the create path has track_creation's metadata argument for
-  # that, the update path had nothing. Same best-effort guarantee: this is
-  # assembled inside create_activity's rescue, not a new writer.
+  # Overridable: provenance an update row needs beyond the changed columns. Built inside
+  # create_activity's rescue, so it stays best-effort rather than becoming a new writer.
   def tracked_update_metadata(changes)
     { changes: enrich_tracked_changes(changes) }
   end
@@ -95,10 +59,8 @@ module Trackable
     Rails.error.report(e, handled: true, context: { trackable: "#{self.class.name}##{id}", action: action })
   end
 
-  # The workspace an activity row is attributed to. Each includer answers for
-  # itself (Membership/Project return their workspace, Resource its project's,
-  # Invitation its resolved_workspace); the default is the ambient request
-  # workspace for models with no workspace of their own.
+  # An includer with a workspace of its own overrides this; the request's workspace is the
+  # default only for models that have none.
   def activity_workspace
     Current.workspace
   end
