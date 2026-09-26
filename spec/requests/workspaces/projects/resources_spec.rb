@@ -247,6 +247,8 @@ RSpec.describe "Project Resources", type: :request do
           resource: { title: "Updated Title" }
         }
         expect(resource.reload.title).to eq("Updated Title")
+        expect(response).to redirect_to(workspace_project_resource_path(workspace, project, resource))
+        expect(flash[:notice]).to eq(I18n.t("workspaces.projects.resources.update.success"))
       end
     end
 
@@ -283,6 +285,8 @@ RSpec.describe "Project Resources", type: :request do
       it "soft deletes the resource" do
         delete workspace_project_resource_path(workspace, project, resource)
         expect(resource.reload).to be_discarded
+        expect(response).to redirect_to(workspace_project_resources_path(workspace, project))
+        expect(flash[:notice]).to eq(I18n.t("workspaces.projects.resources.destroy.success"))
       end
     end
 
