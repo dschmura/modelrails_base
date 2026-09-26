@@ -18,6 +18,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- Each Bullet safelist entry's reason moves from `lib/bullet_safelists.rb` into a table in the testing doc; the file keeps a one-line gist per entry.
 - The flash guard keeps no list of exceptions: every flash a controller sets is asserted by its message (#526).
 - Account settings' seven remaining flashes are asserted by their exact message, including the reauthentication rate limit, which had no example (#526).
 - Workspace and project-tool flashes are asserted by their exact message, so joining and "already a member" no longer read the same to the specs (#526).
