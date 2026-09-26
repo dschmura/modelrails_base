@@ -36,10 +36,6 @@ RSpec.describe "Code smell: security events route through record_security_event!
   # so it satisfies the third example below on its own.
   literal_definers = [ "app/models/activity_log.rb" ].freeze
 
-  def ruby_sources
-    Dir[Rails.root.join("{app,lib}/**/*.rb")]
-  end
-
   it "no app or lib code writes ActivityLog rows directly outside the reviewed best-effort writers" do
     offenders = ruby_sources.flat_map do |file|
       relative = Pathname(file).relative_path_from(Rails.root).to_s
