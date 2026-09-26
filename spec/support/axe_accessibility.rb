@@ -674,6 +674,13 @@ module AxeAccessibility
     light + dark
   end
 
+  def expect_aaa_in_both_themes(options = {}, include: nil)
+    expect(axe_clean_in_both_themes?(options, include: include)).to(
+      be(true),
+      axe_violations_in_both_themes(options, include: include).join("\n")
+    )
+  end
+
   # Force the document into light mode by setting the theme controller's value
   # and removing the .dark class. Mirrors what the theme-toggle controller does
   # when the user picks "light" but bypasses the cycle/click ergonomics so it

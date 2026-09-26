@@ -23,10 +23,10 @@ RSpec.describe "Code smell: spec copy assertions go through I18n.t" do
   # fake key or desync the assertion from what's actually rendered. Keep this
   # list a decision, not a fossil.
   allowed = {
-    "spec/system/ui/card_component_spec.rb:42" => "preview fixture text, not app copy",
-    "spec/system/ui/card_component_spec.rb:43" => "preview fixture text, not app copy",
+    "spec/system/ui/card_component_spec.rb:35" => "preview fixture text, not app copy",
+    "spec/system/ui/card_component_spec.rb:36" => "preview fixture text, not app copy",
     "spec/system/ui/dialog_component_spec.rb:60" => "preview fixture text, not app copy",
-    "spec/system/ui/timeline_component_spec.rb:34" => "preview fixture text, not app copy",
+    "spec/system/ui/timeline_component_spec.rb:27" => "preview fixture text, not app copy",
     "spec/views/shared/section_nav_strip_spec.rb:13" => "arbitrary local passed to a generic partial spec, not app copy",
     "spec/config/vocabulary_fork_spec.rb:38" => "type: :config spec asserting the template's real key against a deliberately absent override — proves defaults are template-owned, not app copy a rename must survive",
     "spec/config/vocabulary_interpolation_spec.rb:39" => "backend-hook mechanism spec; an around block pins the vocabulary to the template's words on purpose",
