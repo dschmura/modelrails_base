@@ -29,7 +29,7 @@ RSpec.describe "Code smell: git spawns clear the GIT_DIR family" do
         close = balanced_end(source, open_paren)
         next unless close
 
-        args = source[(open_paren + 1)...close].to_s
+        args = source[(open_paren + 1)...(close - 1)].to_s
         if args.match?(/clean_?git_?env/i)
           carrying += 1
           next
@@ -43,16 +43,6 @@ RSpec.describe "Code smell: git spawns clear the GIT_DIR family" do
     end
 
     [ offenders, carrying ]
-  end
-
-  def balanced_end(source, open_index)
-    depth = 0
-    source[open_index..].each_char.with_index do |char, offset|
-      depth += 1 if char == "("
-      depth -= 1 if char == ")"
-      return open_index + offset if depth.zero?
-    end
-    nil
   end
 
   def source_files

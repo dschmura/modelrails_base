@@ -6,10 +6,6 @@ RSpec.describe TailwindFormBuilder, "WCAG AAA accessibility", type: :component d
   let(:user) { User.new }
   let(:builder) { described_class.new(:user, user, vc_test_controller.view_context, {}) }
 
-  def parse(html)
-    Capybara.string(html.to_s)
-  end
-
   # ---------------------------------------------------------------------------
   # aria-required — never native `required`
   # ---------------------------------------------------------------------------

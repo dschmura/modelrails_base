@@ -6,6 +6,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Added
 
+- A code-smell guard refuses a spec helper copied into a second spec file or shadowing one in `spec/support` (#1273).
 - `bin/rails db:schema:regenerate` rebuilds `db/schema.rb` from `db/migrate` alone, and a pre-commit check refuses a `db/schema.rb` the migrations do not produce.
 - `CHANGELOG.md` merges by union, so parallel pull requests that each add a line no longer conflict on it.
 - A docs spec fails when a tracked developer page cites a repo path that does not exist; absent-by-design citations carry a reason.
