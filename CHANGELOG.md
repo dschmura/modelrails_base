@@ -18,6 +18,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- Notifier specs share one `drain_noticed_jobs` and `notifier_events`, and a stale `hard_delete` workaround becomes a plain `destroy!` (#1273).
 - The member-removed notifier's category, copy and link reasoning moves into the notifications doc; the notifier keeps two-line gists.
 - Each Bullet safelist entry's reason moves from `lib/bullet_safelists.rb` into a table in the testing doc; the file keeps a one-line gist per entry.
 - `Trackable`'s 36-line header becomes a two-line gist; its writer-by-tier list moves to the architecture doc, corrected (WebAuthn removal is audited inside `discard!`).
