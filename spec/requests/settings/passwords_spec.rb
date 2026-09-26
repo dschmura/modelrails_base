@@ -130,6 +130,7 @@ RSpec.describe "Account Passwords", type: :request do
             }
           }
           expect(response).to redirect_to(edit_settings_password_path)
+          expect(flash[:alert]).to eq(I18n.t("settings.passwords.create.already_has_password"))
         end
       end
     end
