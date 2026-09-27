@@ -44,6 +44,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 ### Fixed
 
 - A fresh fork's suite no longer fails the cookie-classification doc check: the security doc names Rails' session cookie as `_<app_name>_session`.
+- `bin/fork`'s verify step no longer reports the template's own code namespaces (the `ModelRails/` cop department, `window.ModelRails`) as rename misses.
 - A suspended user's OAuth callback no longer links the provider or accepts a parked invitation before the refusal (#1129).
 - Deleting a user no longer raises on their pending challenge rows, and a user who created a project, resource or join link is refused with an error naming what they still own; a guard spec derives every foreign key into `users` from the schema (#1248).
 - A magic link superseded by a newer one is no longer read as a replay when its signed-in owner clicks it; redemption and supersession are told apart (#1083).
