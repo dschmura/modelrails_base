@@ -342,7 +342,7 @@ one of the two fails the suite.
 | Cookie | Category | Reason |
 |---|---|---|
 | `session_id` | necessary | authentication session (the app's own signed cookie, `Authenticatable#start_new_session_for`) |
-| `_modelrails_base_session` (Rails' configured session-store key) | necessary | Rails' encrypted session cookie: CSRF token, flash messages, and short-lived flow state (pending join/invitation tokens, post-auth redirect target) |
+| `_<app_name>_session` (Rails' default session-store key, named for the application) | necessary | Rails' encrypted session cookie: CSRF token, flash messages, and short-lived flow state (pending join/invitation tokens, post-auth redirect target) |
 | `biscuit_consent` | necessary | the consent record itself |
 | `theme` | necessary | display choice made through a control; no identifier; first-party |
 | `sidebar_collapsed` | necessary | layout choice made through a control; no identifier; first-party |
