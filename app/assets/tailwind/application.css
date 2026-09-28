@@ -583,7 +583,7 @@ dialog[open]::backdrop {
   --color-interactive-hover: var(--neutral-100);
   --color-interactive-focus: var(--neutral-300);
   --color-interactive-subtle: var(--neutral-800);
-  --color-accent: var(--neutral-400);
+  --color-accent: var(--neutral-300);
 }
 
 /* Markdowndocs gem views — required so Tailwind scans the gem's templates.

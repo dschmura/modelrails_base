@@ -45,6 +45,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Fixed
 
+- Links in a document body reach AAA contrast in a personal workspace's dark theme (`--color-accent` moves from `neutral-400`, 6.78:1, to `neutral-300`).
 - The rich-text editor shows its formatting toolbar: Lexxy's stylesheet is linked and themed onto the semantic tokens, and focus rings the whole field instead of drawing the browser's outline inside it.
 - A fresh fork's suite no longer fails the cookie-classification doc check: the security doc names Rails' session cookie as `_<app_name>_session`.
 - `bin/fork`'s verify step no longer reports the template's own code namespaces (the `ModelRails/` cop department, `window.ModelRails`) as rename misses.
