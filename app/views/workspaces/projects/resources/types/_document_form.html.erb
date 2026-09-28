@@ -15,7 +15,6 @@
   <%= fields_for :document, @resourceable do |document_form| %>
     <%= document_form.rich_text_area :body,
           **field.html_input_attrs,
-          class: "block w-full rounded-md border border-border-strong
-                  focus-ring focus:border-interactive-focus" %>
+          class: "lexxy-content block w-full" %>
   <% end %>
 <% end %>
