@@ -55,5 +55,6 @@ RSpec.describe "Document with a blocked-loader attachment", type: :request do
 
     expect(figure["class"]).to include("attachment--preview")
     expect(figure.at_css("img")).to be_present
+    expect(figure.at_css("img")["alt"]).to eq("avatar")
   end
 end

@@ -25,8 +25,7 @@ RSpec.describe "Lexxy editor aria contract", type: :system do
     click_button I18n.t("workspaces.projects.resources.new.submit")
 
     expect(page).to have_css("#document_body-error", text: "Body is too plain")
-    textbox = find("lexxy-editor [contenteditable='true']")
-    expect(textbox["aria-invalid"]).to eq("true")
-    expect(textbox["aria-describedby"].to_s.split).to include("document_body-error")
+    expect(page).to have_css("lexxy-editor [contenteditable='true'][aria-invalid='true']")
+    expect(page).to have_css("lexxy-editor [contenteditable='true'][aria-describedby~='document_body-error']")
   end
 end

@@ -197,8 +197,8 @@ RSpec.describe "Project Resources", type: :request do
         expect(page).to have_css("[data-slot='control'] #document_body", visible: :all)
       end
 
-      # ARMED TRIPWIRE: Lexxy hides ALT until Action Text has `alt` (Rails 8.2).
-      # When this flips, render the alt in active_storage/blobs/_blob and extend the axe gate.
+      # ARMED TRIPWIRE: flips when Action Text gains alt (Rails 8.2); _blob already reads it.
+      # Then: assert "true", axe-gate an ALT-dialog image, and clear pre-1.0 alt=filename (see the 8.2 issue).
       it "renders the editor with alt-text authoring off until Action Text supports it" do
         get new_workspace_project_resource_path(workspace, project, type: "Document")
         editor = Capybara.string(response.body).find("#document_body", visible: :all)
