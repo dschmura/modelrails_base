@@ -19,6 +19,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- **Rich text runs on Lexxy 1.0.** The editor now keeps its textbox's ARIA in step when the field's attributes change after load, and supports `setCustomValidity`; the existing aria contract (error and description reaching the textbox a screen reader reads) is pinned in `spec/system/lexxy_editor_aria_spec.rb`. Link dialogs trap Tab, and Escape on a closed toolbar menu no longer throws focus into the document. Lexxy 1.0 also authors image alt text, but only when Action Text has an `alt` attachment attribute, which arrives in Rails 8.2; a request-spec tripwire fails the day it switches on. Newly uploaded images carry an empty alt inside the editor until then (the rendered page still falls back to the filename).
 - Rails 8.1.4 and a bundle update: `db/schema.rb` lists columns in definition order again, and the activity feed passes Pagy's `client_limit` instead of the deprecated `max_limit`. Tailwind 4.3.3's default sans stack now names Roboto, Noto Sans and Arial before the generic fallback, so non-Apple platforms may render a different face.
 - Notifier specs share one `drain_noticed_jobs` and `notifier_events`, and a stale `hard_delete` workaround becomes a plain `destroy!` (#1273).
 - System specs share one `expect_aaa_in_both_themes`, `focused_text`, and `dismiss_cookie_banner`, and use `cdp_press` for keys, instead of per-file copies (#1273).
