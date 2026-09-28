@@ -252,6 +252,17 @@ RSpec.describe "Operations activity ledger filters", type: :request do
     )
   end
 
+  it "honours a limit off the query string, capped at the all-rows ceiling" do
+    stub_const("Operations::ActivityLogsController::ALL_ROWS", 3)
+    5.times { create(:workspace) }
+
+    get operations_activity_logs_path(limit: "2")
+    expect(rows(response.body).size).to eq(2)
+
+    get operations_activity_logs_path(limit: "100")
+    expect(rows(response.body).size).to eq(3)
+  end
+
   # The filter band lives OUTSIDE the results frame, so a frame-local swap
   # cannot re-render it. Every link inside the frame therefore navigates the
   # whole page; only control CHANGES stay frame-local (for focus).

@@ -19,6 +19,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- Rails 8.1.4 and a bundle update: `db/schema.rb` lists columns in definition order again, and the activity feed passes Pagy's `client_limit` instead of the deprecated `max_limit`. Tailwind 4.3.3's default sans stack now names Roboto, Noto Sans and Arial before the generic fallback, so non-Apple platforms may render a different face.
 - Notifier specs share one `drain_noticed_jobs` and `notifier_events`, and a stale `hard_delete` workaround becomes a plain `destroy!` (#1273).
 - System specs share one `expect_aaa_in_both_themes`, `focused_text`, and `dismiss_cookie_banner`, and use `cdp_press` for keys, instead of per-file copies (#1273).
 - The member-removed notifier's category, copy and link reasoning moves into the notifications doc; the notifier keeps two-line gists.
