@@ -196,6 +196,14 @@ RSpec.describe "Project Resources", type: :request do
         expect(page).to have_css("[data-slot='label'][for='document_body']")
         expect(page).to have_css("[data-slot='control'] #document_body", visible: :all)
       end
+
+      # ARMED TRIPWIRE: Lexxy hides ALT until Action Text has `alt` (Rails 8.2).
+      # When this flips, render the alt in active_storage/blobs/_blob and extend the axe gate.
+      it "renders the editor with alt-text authoring off until Action Text supports it" do
+        get new_workspace_project_resource_path(workspace, project, type: "Document")
+        editor = Capybara.string(response.body).find("#document_body", visible: :all)
+        expect(editor["data-action-text-supports-alt"]).to eq("false")
+      end
     end
 
     # #757: SR users re-orient by document title after Turbo's 422 re-render;
