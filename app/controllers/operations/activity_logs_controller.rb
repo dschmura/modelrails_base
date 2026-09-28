@@ -23,7 +23,7 @@ module Operations
       authorize [ :operations, ActivityLog ]
       resolve_filters
       # countish memoizes the COUNT per filter change; ~22 ms per million rows (#1130).
-      @pagy, page = pagy(:countish, filtered_scope, limit: row_limit, max_limit: ALL_ROWS)
+      @pagy, page = pagy(:countish, filtered_scope, limit: row_limit, client_limit: ALL_ROWS)
       @activities = page.for_feed
       # Page 1 only: "the first 500 of N" is true of the first page and false of
       # every one after it, which shows the ordinary Showing 501–1000 copy.
