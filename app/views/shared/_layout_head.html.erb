@@ -18,6 +18,8 @@
       <meta name="form-draft-scope" content="<%= FormDraftKey.scope_for(Current.user) %>">
     <% end %>
     <%= stylesheet_link_tag "biscuit/biscuit", "data-turbo-track": "reload" %>
+    <%# Before :app, whose --lexxy-* token mapping must win. %>
+    <%= stylesheet_link_tag "lexxy", "data-turbo-track": "reload" %>
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
     <%# Per-layout head injection (e.g. the settings layout's turbo_refreshes_with). %>

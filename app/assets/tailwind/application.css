@@ -150,6 +150,34 @@ body:has([data-biscuit-target="banner"]:not([hidden])) {
   min-width: var(--form-input-height);
 }
 
+/* Lexxy's stylesheet (linked before this one) themed onto the semantic tokens,
+   so it follows .dark. Unlayered on purpose: layered rules lose to Lexxy's. */
+:root {
+  --lexxy-color-ink: var(--color-text-heading);
+  --lexxy-color-ink-medium: var(--color-text-body);
+  --lexxy-color-ink-light: var(--color-text-muted);
+  --lexxy-color-ink-lighter: var(--color-border-strong);
+  --lexxy-color-ink-lightest: var(--color-surface-sunken);
+  --lexxy-color-ink-inverted: var(--color-surface-raised);
+  --lexxy-color-accent-dark: var(--color-interactive);
+  --lexxy-color-accent-medium: var(--color-interactive-hover);
+  --lexxy-color-accent-light: var(--color-interactive-subtle);
+  --lexxy-color-accent-lightest: var(--color-interactive-subtle);
+  --lexxy-color-selected-dark: var(--color-interactive);
+  --lexxy-focus-ring-color: var(--color-interactive-focus);
+  --lexxy-font-base: var(--font-sans);
+}
+
+/* Focus lands on the contenteditable inside the host; ring the whole field as focus-ring does. */
+lexxy-editor:has(.lexxy-editor__content:focus) {
+  outline: 2px solid var(--color-interactive-focus);
+  outline-offset: 2px;
+}
+
+.lexxy-editor__content:focus {
+  outline: none;
+}
+
 /* Overlays promoted to the top layer (app/javascript/overlays/top_layer.js) take the
    UA's `[popover]` box with them: fixed, inset-0, centred, bordered, opaque. We want
    only the top layer — the component's own classes keep owning geometry and chrome.
