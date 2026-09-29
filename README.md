@@ -168,20 +168,23 @@ workspace-visible activity trail — on top of the authentication below.
 ```
 app/
   controllers/
-    account/                          # Profile, avatar, passwords, theme, connected accounts
+    settings/                         # Profile, avatar, password, passkeys, theme, connected accounts
     concerns/
       authenticatable.rb              # Rails 8 auth concern
-    sessions_controller.rb            # Smart lookup + password sign-in
+      signupable.rb                   # One transaction for a new user and their pending claims
+    sessions/
+      lookups_controller.rb           # Email-first step: sends a sign-in or registration link
+    sessions_controller.rb            # Sign-in page and password sign-in
     magic_links_controller.rb         # Request a magic link
-    magic_link_sessions_controller.rb # Consume magic link token (existing user)
-    magic_link_registrations_controller.rb  # Passwordless registration via magic link
-    registrations_controller.rb
-    passwords_controller.rb
+    magic_link_callbacks_controller.rb  # Open a magic link; registration form for a new email
+    magic_link_callbacks/
+      sessions_controller.rb          # Spend the token and start the session (existing user)
+    password_resets_controller.rb
     email_verifications_controller.rb
     omniauth_callbacks_controller.rb
     pages_controller.rb
   models/
-    user.rb               # Core user with has_secure_password (optional password)
+    user.rb               # Core user; the optional password lives in user/password.rb
     session.rb            # DB-backed sessions
     magic_link_token.rb   # Secure tokens for passwordless sign-in and registration
     authentication.rb     # Multi-provider identity (email, Google, GitHub)
