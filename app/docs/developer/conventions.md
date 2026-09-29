@@ -86,3 +86,21 @@ A longer comment that passes the test can survive — a header documenting a
 claim-exception matrix that lives in one place precisely because it used to
 drift across two, for example. The bar isn't length; it's whether the code
 could say it instead.
+
+## Docs index their code
+
+A page here that explains a feature lists the code behind it in its front
+matter, grouped by feature:
+
+```yaml
+code:
+  signup:
+    - app/controllers/magic_link_callbacks_controller.rb
+    - app/views/sessions/
+```
+
+That gives two lookups. Starting on a feature, search `app/docs` for its name
+followed by a colon (`signup:`) to find every page that explains it and the
+files each one covers. Changing a file, search `app/docs` for its path to find
+the pages that may need updating. A page lists only what its own text covers,
+and `spec/docs/code_index_spec.rb` fails when a listed path no longer exists.
