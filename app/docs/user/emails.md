@@ -2,6 +2,14 @@
 title: Email Flows
 description: All transactional emails, their triggers, token expiry windows, and customization
 keywords: email mailer authentication invitation magic link verification token expiry smtp
+code:
+  signup:
+    - app/controllers/sessions/lookups_controller.rb
+    - app/models/magic_link_token.rb
+    - app/mailers/magic_link_mailer.rb
+    - app/views/magic_link_mailer/
+    - app/controllers/magic_link_callbacks_controller.rb
+    - app/views/magic_link_callbacks/
 ---
 
 # Email Flows
