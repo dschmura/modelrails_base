@@ -35,25 +35,15 @@ RSpec.describe "Documentation cited paths" do
 
   let(:cited_paths) { citations.map(&:first).uniq }
 
-  let(:tracked) do
-    files = IO.popen(CleanGitEnv::HASH, [ "git", "ls-files", "-z" ], chdir: Rails.root.to_s, &:read).split("\0")
-    directories = files.flat_map { |file| Pathname(file).dirname.descend.map(&:to_s) }
-    (files + directories).to_set
-  end
-
-  def tracked?(path)
-    tracked.include?(path.delete_suffix("/"))
-  end
-
   it "cites only tracked paths, or paths allowed absent with a reason" do
-    absent = citations.reject { |path, _| allowed_absent.key?(path) || tracked?(path) }
+    absent = citations.reject { |path, _| allowed_absent.key?(path) || tracked_path?(path) }
     expect(absent).to be_empty, absent.map { |path, at|
       "#{at} cites #{path}, which is not in the repo — repoint it, or add it to allowed_absent with a reason"
     }.join("\n")
   end
 
   it "keeps the allow-list honest: every allowed-absent path is still absent" do
-    stale = allowed_absent.keys.select { |path| tracked?(path) }
+    stale = allowed_absent.keys.select { |path| tracked_path?(path) }
     expect(stale).to be_empty, "Now tracked, remove from allowed_absent: #{stale.join(', ')}"
   end
 
