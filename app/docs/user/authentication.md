@@ -2,6 +2,12 @@
 title: Authentication
 description: How to sign in and out — magic links, passkeys, and OAuth (Google / GitHub)
 keywords: sign in sign out magic link passkey passwordless oauth google github account recovery first sign-in
+code:
+  signup:
+    - app/views/sessions/
+    - app/views/magic_link_callbacks/
+    - app/views/shared/_oauth_buttons.html.erb
+    - app/controllers/passkey_prompts_controller.rb
 ---
 
 ## Signing in

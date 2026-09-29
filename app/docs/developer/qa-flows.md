@@ -2,6 +2,15 @@
 title: "QA: User Flow Walkthroughs"
 description: Manual verification guide for the core user-facing flows — signup, magic-link, OAuth, workspace join, identity surfaces, onboarding wizard, client invite, and passkeys. Each section lists the config required, a numbered walkthrough, and edge cases.
 keywords: qa testing signup invitation magic-link oauth workspace join identity verification manual walkthrough onboarding client clientside
+code:
+  signup:
+    - app/controllers/sessions/lookups_controller.rb
+    - app/views/sessions/
+    - app/controllers/magic_link_callbacks_controller.rb
+    - app/views/magic_link_callbacks/
+    - app/controllers/omniauth_callbacks_controller.rb
+    - app/lib/oauth_link.rb
+    - app/controllers/email_verifications_controller.rb
 ---
 
 # QA: User Flow Walkthroughs
