@@ -428,10 +428,15 @@ lexxy-editor:has(.lexxy-editor__content:focus) {
   .ui-select::picker-icon {
     flex: none;
     color: var(--color-text-body);
-    transition: rotate 0.2s ease;
   }
   .ui-select:open::picker-icon {
     rotate: 180deg;
+  }
+  /* The flip is motion (WCAG 2.3.3), so it animates only when the OS allows. */
+  @media (prefers-reduced-motion: no-preference) {
+    .ui-select::picker-icon {
+      transition: rotate 0.2s ease;
+    }
   }
 
   /* The popup — same overlay/border/shadow language as the combobox panel. */

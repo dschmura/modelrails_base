@@ -48,6 +48,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Fixed
 
+- Reduce Motion reaches the components: every moving utility in the vendored UI components, three views, two previews and the select's picker arrow now honors `prefers-reduced-motion`, and a code-smell guard ported from modelrails_ui keeps it so (#1313).
 - README's project tree lists only files that exist, and a docs spec fails when it names one that is gone; the QA OAuth walkthrough and the email doc's registration steps name the current sign-in methods.
 - Links in a document body reach AAA contrast in a personal workspace's dark theme (`--color-accent` moves from `neutral-400`, 6.78:1, to `neutral-300`).
 - The rich-text editor shows its formatting toolbar: Lexxy's stylesheet is linked and themed onto the semantic tokens, and focus rings the whole field instead of drawing the browser's outline inside it.
