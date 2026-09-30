@@ -20,6 +20,8 @@ The two gates exist because a parallel splitter can silently drop work:
 1. **Example-count parity.** A `--dry-run` enumeration fixes the expected example count before the run, and the per-worker counts must sum to exactly that number. The enumeration costs about 50 seconds per run — a deliberate price (#496) for "green means everything ran". It exists because the splitter really has dropped files; don't move it to a schedule or hide it behind a cache.
 2. **Merged coverage floor.** Each worker sees only ~1/N of the suite, so workers skip the minimum-coverage check; `SimpleCov.collate` enforces the floor on the merged result instead.
 
+The floor is a whole-suite number everywhere. A bare `bundle exec rspec` is held to it; a focused run (`bundle exec rspec spec/models/user_spec.rb`) is measured but not held to it, because `spec/rails_helper.rb` asks `CoverageConfig.floor_for` whether the files RSpec was given are the whole suite. `SKIP_COVERAGE=1` turns instrumentation off altogether, which is faster for a tight loop but is not needed to make a focused run pass.
+
 Worker count comes from `PARALLEL_TEST_PROCESSORS` or the machine's core count.
 
 ### CI sharding
