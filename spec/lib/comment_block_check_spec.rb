@@ -54,6 +54,13 @@ RSpec.describe CommentBlockCheck do
     expect(violations(ruby_comment(9), path: "app/components/ui/button_component.rb", added: 1..9)).to be_empty
   end
 
+  # A preview's comments are the notes Lookbook renders, not commentary on code.
+  it "skips Lookbook preview classes, whose comments render as notes" do
+    expect(violations(ruby_comment(9), path: "spec/components/previews/ui/skeleton_component_preview.rb", added: 1..9)).to be_empty
+    erb = "<%# one\n    two\n    three %>\n<p>x</p>\n"
+    expect(violations(erb, path: "spec/components/previews/ui/skeleton_component_preview/default.html.erb", added: 1..3)).to eq([ 1..3 ])
+  end
+
   describe ".added_lines" do
     it "reads the new-side line numbers from a zero-context diff" do
       diff = "@@ -3,0 +4,3 @@\n+a\n+b\n+c\n@@ -10 +13 @@\n-x\n+y\n@@ -20,2 +22,0 @@\n-p\n-q\n"
