@@ -49,6 +49,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Fixed
 
+- Production mail leaves over SMTP configured from the environment instead of Rails' `localhost:25` default; the boot guard refuses a deployment with no mail server, a failed delivery fails its job, and the deployment doc walks Postmark through with SES over SMTP as the second recipe (#1318).
 - Reduce Motion reaches the components: every moving utility in the vendored UI components, three views, two previews and the select's picker arrow now honors `prefers-reduced-motion`, and a code-smell guard ported from modelrails_ui keeps it so (#1313).
 - A focused `rspec` run is no longer held to the 90% coverage floor, which it could only meet within ten minutes of a full run; the floor applies to the whole suite and `bin/parallel-rspec`'s merge, as documented (#1315).
 - README's project tree lists only files that exist, and a docs spec fails when it names one that is gone; the QA OAuth walkthrough and the email doc's registration steps name the current sign-in methods.
