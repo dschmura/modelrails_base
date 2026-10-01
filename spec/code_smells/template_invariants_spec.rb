@@ -73,13 +73,6 @@ RSpec.describe "Template invariants" do
     let(:gemfile) { File.read(root.join("Gemfile")) }
     let(:lockfile) { Bundler::LockfileParser.new(File.read(root.join("Gemfile.lock"))) }
 
-    def requirement_for(gem_name)
-      line = gemfile[/^gem "#{Regexp.escape(gem_name)}".*$/]
-      raise "no `gem \"#{gem_name}\"` line in Gemfile" if line.nil?
-
-      Gem::Requirement.new(line.scan(/"([~><=!\s\d.]+)"/).flatten)
-    end
-
     def locked_version(gem_name)
       spec = lockfile.specs.find { |s| s.name == gem_name }
       raise "#{gem_name} is not in Gemfile.lock" if spec.nil?
@@ -87,21 +80,38 @@ RSpec.describe "Template invariants" do
       spec.version
     end
 
-    # GHSA-xr9x-r78c-5hrm / CVE-2026-66066 — Active Storage did not disable
-    # libvips's unfuzzed loaders, so a crafted upload could read arbitrary
-    # server files. Patched in 7.2.3.2 / 8.0.5.1 / 8.1.3.1.
-    it "excludes Rails versions vulnerable to CVE-2026-66066" do
-      requirement = requirement_for("rails")
+    # GHSA-xr9x-r78c-5hrm / CVE-2026-66066: the last unpatched release of each series.
+    let(:vulnerable_rails_releases) { %w[8.1.3 8.0.5 7.2.3.1].map { |v| Gem::Version.new(v) } }
 
-      expect(requirement).not_to be_satisfied_by(Gem::Version.new("8.1.3")),
-        "Gemfile `rails` requirement (#{requirement}) still admits 8.1.3, which is vulnerable " \
-        "to CVE-2026-66066; raise the floor to >= 8.1.3.1"
-      expect(requirement).not_to be_satisfied_by(Gem::Version.new("8.0.5"))
-      expect(requirement).to be_satisfied_by(Gem::Version.new("8.1.3.1"))
+    def rails_pin_problems(line)
+      if line.match?(/\b(?:github|git):/)
+        line.match?(/\bref:\s*"\h{40}"/) ? [] : [ "a git-sourced rails must pin `ref:` to a 40-character commit" ]
+      else
+        requirement = Gem::Requirement.new(line.scan(/"([~><=!\s\d.]+)"/).flatten)
+        vulnerable_rails_releases.select { |v| requirement.satisfied_by?(v) }.map { |v| "admits #{v}" }
+      end
     end
 
-    it "locks a Rails version at or above the CVE-2026-66066 fix" do
-      expect(locked_version("rails")).to be >= Gem::Version.new("8.1.3.1")
+    it "reads the rails line by its shape: a released requirement or a pinned commit" do
+      sha = "0" * 40
+      expect(rails_pin_problems(%(gem "rails", "~> 8.2.0"))).to be_empty
+      expect(rails_pin_problems(%(gem "rails", "~> 8.1.3", ">= 8.1.3.1"))).to be_empty
+      expect(rails_pin_problems(%(gem "rails", "~> 8.1.3"))).to eq([ "admits 8.1.3" ])
+      expect(rails_pin_problems(%(gem "rails", github: "rails/rails", ref: "#{sha}"))).to be_empty
+      expect(rails_pin_problems(%(gem "rails", github: "rails/rails", branch: "main"))).not_to be_empty
+      expect(rails_pin_problems(%(gem "rails", github: "rails/rails", ref: "0901f2cc"))).not_to be_empty
+    end
+
+    it "pins rails so a fresh resolve cannot land on a release vulnerable to CVE-2026-66066" do
+      line = gemfile[/^gem "rails".*$/]
+      expect(rails_pin_problems(line)).to be_empty, "Gemfile `#{line}`: #{rails_pin_problems(line).join("; ")}"
+    end
+
+    # The fix itself, read from the locked source: a git pin's version string cannot show it.
+    it "locks an Active Storage that disables libvips's untrusted loaders (the CVE-2026-66066 fix)" do
+      vips = File.join(Gem.loaded_specs.fetch("activestorage").full_gem_path, "lib/active_storage/vips.rb")
+      code = File.readlines(vips).reject { |l| l.lstrip.start_with?("#") }.join
+      expect(code).to match(/Vips\.block_untrusted\(true\)/), "#{vips} no longer calls Vips.block_untrusted(true)"
     end
 
     # Active Storage raises at boot below this — it cannot disable the unfuzzed
