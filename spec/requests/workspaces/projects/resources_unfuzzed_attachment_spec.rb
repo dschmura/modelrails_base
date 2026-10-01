@@ -22,14 +22,15 @@ RSpec.describe "Document with a blocked-loader attachment", type: :request do
     sign_in(user)
   end
 
-  def attach_to_document(fixture, content_type)
+  def attach_to_document(fixture, content_type, alt: nil)
     blob = ActiveStorage::Blob.create_and_upload!(
       io: Rails.root.join("spec/fixtures/files", fixture).open,
       filename: fixture,
       content_type: content_type
     )
+    alt_attribute = alt && %( alt="#{ERB::Util.html_escape(alt)}")
     document.update!(
-      body: %(<action-text-attachment sgid="#{blob.attachable_sgid}"></action-text-attachment>)
+      body: %(<action-text-attachment sgid="#{blob.attachable_sgid}"#{alt_attribute}></action-text-attachment>)
     )
   end
 
@@ -56,5 +57,11 @@ RSpec.describe "Document with a blocked-loader attachment", type: :request do
     expect(figure["class"]).to include("attachment--preview")
     expect(figure.at_css("img")).to be_present
     expect(figure.at_css("img")["alt"]).to eq("avatar")
+  end
+
+  it "renders the alternative text the author wrote in place of the filename" do
+    attach_to_document("avatar.png", "image/png", alt: "A red canoe on a still lake")
+
+    expect(rendered_figure.at_css("img")["alt"]).to eq("A red canoe on a still lake")
   end
 end

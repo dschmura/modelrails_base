@@ -197,12 +197,11 @@ RSpec.describe "Project Resources", type: :request do
         expect(page).to have_css("[data-slot='control'] #document_body", visible: :all)
       end
 
-      # ARMED TRIPWIRE: flips when Action Text gains alt (Rails 8.2); _blob already reads it.
-      # Then: assert "true", axe-gate an ALT-dialog image, and clear pre-1.0 alt=filename (see the 8.2 issue).
-      it "renders the editor with alt-text authoring off until Action Text supports it" do
+      # Action Text's attachment alt switches on Lexxy's ALT button; the dialog's axe gate is #1339.
+      it "renders the editor with alt-text authoring on" do
         get new_workspace_project_resource_path(workspace, project, type: "Document")
         editor = Capybara.string(response.body).find("#document_body", visible: :all)
-        expect(editor["data-action-text-supports-alt"]).to eq("false")
+        expect(editor["data-action-text-supports-alt"]).to eq("true")
       end
     end
 

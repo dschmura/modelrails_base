@@ -22,6 +22,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- Rails runs from a pinned commit of Rails main (8.2.0.alpha), with `load_defaults 8.1` kept: Action Text attachments carry alternative text and Lexxy's ALT button is on. `rspec-rails` is pinned to a main commit (#1338), Bullet loads through a patch until it supports Active Record 8.2 (#1337), and Dependabot ignores exactly the git-pinned gems.
 - The Rails security floor and the `ModelRails/StackFloor` cop accept a later Rails minor or a git pin to a full commit; the CVE-2026-66066 check now reads the fix from the locked Active Storage source.
 - The `modelrails_ui` pin moves to `v0.24.0`: every doc a vendored component's header points at now says when to use the component, and a guard fails the suite on a pin whose docs do not. The release's Reduce Motion fix is not yet carried into the vendored copies.
 - The comment-block gate skips Lookbook preview classes, whose comments are the notes Lookbook renders (#1313).

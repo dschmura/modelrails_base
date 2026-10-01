@@ -536,7 +536,9 @@ Three guardrails before you open the PR:
   update — it did, three times. The bundler block ignores the gem; a bump is
   a hand PR that diffs each vendored component against the tag it came from
   before regenerating (see [Components](components)). The suite's invariant
-  fails if the ignore is removed.
+  fails if the ignore is removed. Rails and `rspec-rails` come from git
+  commits too, and are ignored and moved by hand the same way (see
+  [Getting started](getting-started)).
 - **Fetching a URL a user typed?** Read the outbound-request (SSRF) posture
   in [Security](security) first — the template deliberately ships no
   fetch-by-URL feature, and the first fork that adds one owns the pinning.
