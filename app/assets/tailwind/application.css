@@ -43,6 +43,16 @@
   --color-border-strong: var(--color-border-strong);
   --color-border-focus: var(--color-border-focus);
 
+  /* Chrome (header bar) */
+  --color-chrome: var(--color-chrome);
+  --color-chrome-border: var(--color-chrome-border);
+  --color-on-chrome: var(--color-on-chrome);
+  --color-on-chrome-strong: var(--color-on-chrome-strong);
+  --color-on-chrome-muted: var(--color-on-chrome-muted);
+  --color-on-chrome-hover: var(--color-on-chrome-hover);
+  --color-chrome-mark: var(--color-chrome-mark);
+  --color-chrome-focus: var(--color-chrome-focus);
+
   /* Signals — Danger */
   --color-danger: var(--color-danger);
   --color-danger-strong: var(--color-danger-strong);
@@ -116,6 +126,14 @@ body:has([data-biscuit-target="banner"]:not([hidden])) {
 @utility focus-ring {
   &:focus-visible {
     outline: 2px solid var(--color-interactive-focus);
+    outline-offset: 2px;
+  }
+}
+
+/* focus-ring for controls on the header bar, whose color a brand may set. */
+@utility focus-ring-chrome {
+  &:focus-visible {
+    outline: 2px solid var(--color-chrome-focus);
     outline-offset: 2px;
   }
 }

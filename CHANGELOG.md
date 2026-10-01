@@ -6,6 +6,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Added
 
+- The header bar paints from a family of chrome tokens (`--color-chrome`, `--color-on-chrome`, `--color-chrome-focus`, …) that default to today's look, so a fork brands the bar from `_brand.css` without editing the header; a code-smell spec holds a branded chrome to AAA, and the account and mobile menus keep their own surface.
 - The UI patterns doc carries recipes for the pages the template repeats, each naming its parts and a view to copy from, and a docs spec holds each recipe to the views it names (#1308).
 - Docs that explain sign-up list the code behind it under `code: signup:` in their front matter, and a docs spec fails when a listed path no longer exists.
 - A code-smell guard refuses a spec helper copied into a second spec file or shadowing one in `spec/support` (#1273).
