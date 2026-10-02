@@ -184,6 +184,16 @@ body:has([data-biscuit-target="banner"]:not([hidden])) {
   --lexxy-color-selected-dark: var(--color-interactive);
   --lexxy-focus-ring-color: var(--color-interactive-focus);
   --lexxy-font-base: var(--font-sans);
+  /* Code blocks use the Rouge palette and ground, which syntax_contrast_spec holds to 7:1. */
+  --lexxy-color-code-bg: var(--color-surface);
+  --lexxy-color-code-token-att: var(--syntax-keyword);
+  --lexxy-color-code-token-comment: var(--syntax-comment);
+  --lexxy-color-code-token-function: var(--syntax-function);
+  --lexxy-color-code-token-operator: var(--syntax-operator);
+  --lexxy-color-code-token-property: var(--syntax-name);
+  --lexxy-color-code-token-punctuation: var(--syntax-operator);
+  --lexxy-color-code-token-selector: var(--syntax-string);
+  --lexxy-color-code-token-variable: var(--syntax-escape);
 }
 
 /* Focus lands on the contenteditable inside the host; ring the whole field as focus-ring does. */
@@ -196,9 +206,10 @@ lexxy-editor:has(.lexxy-editor__content:focus) {
   outline: none;
 }
 
-/* Lexxy's floating controls (attachment ALT/Remove) and ALT-dialog buttons sit under the 44px floor. */
+/* Lexxy's floating controls, ALT-dialog buttons and code-language picker sit under the 44px floor. */
 .lexxy-floating-controls button,
-.lexxy-alternative-text-dialog button {
+.lexxy-alternative-text-dialog button,
+.lexxy-code-language-picker {
   min-block-size: var(--form-input-height);
   min-inline-size: var(--form-input-height);
 }
