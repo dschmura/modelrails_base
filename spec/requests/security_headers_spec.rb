@@ -6,6 +6,11 @@ RSpec.describe "Security headers" do
     expect(response.headers["Referrer-Policy"]).to eq("strict-origin-when-cross-origin")
   end
 
+  it "does not send X-XSS-Protection, which every browser has dropped" do
+    get root_path
+    expect(response.headers).not_to have_key("X-XSS-Protection")
+  end
+
   it "includes Permissions-Policy" do
     get root_path
     expect(response.headers["Permissions-Policy"]).to be_present
