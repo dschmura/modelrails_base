@@ -22,7 +22,7 @@ require_relative "bullet_on_rails_main" if Rails.env.local?
 module ModelrailsBase
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.
-    config.load_defaults 8.1
+    config.load_defaults 8.2
 
     config.yjit = true
 
