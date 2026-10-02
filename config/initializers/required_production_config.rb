@@ -24,14 +24,13 @@ module RequiredProductionConfig
   end
 
   def self.check_mail!(env)
-    address = env["SMTP_ADDRESS"].to_s.strip
-    return unless address.empty? || LOOPBACK.match?(address) || PLACEHOLDER_HOST.match?(address)
+    problem = mail_problem(env) or return
 
     raise <<~MSG
-      Production preflight failed: SMTP_ADDRESS is #{address.empty? ? "unset" : address.inspect}.
+      Production preflight failed: #{problem}.
 
-      Sign-in is an email. With no mail server the app boots, /up reports healthy,
-      and every magic link, invitation and reset is a job that fails to connect.
+      Sign-in is an email. Without a mail server it can log in to, the app boots,
+      /up reports healthy, and every magic link, invitation and reset is a failed job.
 
       Fix: point SMTP_ADDRESS at your provider and set SMTP_USERNAME and SMTP_PASSWORD
         - Kamal: SMTP_ADDRESS under env.clear in config/deploy.yml, the credentials
@@ -42,6 +41,16 @@ module RequiredProductionConfig
       Opting out for good: git rm config/initializers/required_production_config.rb
     MSG
   end
+
+  def self.mail_problem(env)
+    address = env["SMTP_ADDRESS"].to_s.strip
+    return "SMTP_ADDRESS is unset" if address.empty?
+    return "SMTP_ADDRESS is #{address.inspect}" if LOOPBACK.match?(address) || PLACEHOLDER_HOST.match?(address)
+
+    blank = %w[SMTP_USERNAME SMTP_PASSWORD].select { |name| env[name].to_s.strip.empty? }
+    "#{blank.to_sentence} #{blank.one? ? "is" : "are"} unset" if blank.any?
+  end
+  private_class_method :mail_problem
 
   def self.check_host!(env)
     host = env["RAILS_HOST"].to_s.strip

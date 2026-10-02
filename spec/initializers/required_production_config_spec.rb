@@ -6,6 +6,8 @@ load Rails.root.join("config/initializers/required_production_config.rb").to_s u
 
 RSpec.describe RequiredProductionConfig do
   describe ".check!" do
+    let(:mail) { { "SMTP_ADDRESS" => "smtp.postmarkapp.com", "SMTP_USERNAME" => "token", "SMTP_PASSWORD" => "token" } }
+
     it "raises when RAILS_HOST is unset" do
       expect { described_class.check!({}) }
         .to raise_error(RuntimeError, /RAILS_HOST is unset/)
@@ -32,12 +34,12 @@ RSpec.describe RequiredProductionConfig do
     end
 
     it "accepts a real hostname" do
-      expect { described_class.check!({ "RAILS_HOST" => "app.humbledaisy.com", "SMTP_ADDRESS" => "smtp.postmarkapp.com" }) }
+      expect { described_class.check!({ "RAILS_HOST" => "app.humbledaisy.com", **mail }) }
         .not_to raise_error
     end
 
     it "accepts a hostname that merely contains the word example" do
-      expect { described_class.check!({ "RAILS_HOST" => "goodexample.io", "SMTP_ADDRESS" => "smtp.postmarkapp.com" }) }
+      expect { described_class.check!({ "RAILS_HOST" => "goodexample.io", **mail }) }
         .not_to raise_error
     end
 
@@ -64,6 +66,13 @@ RSpec.describe RequiredProductionConfig do
           .to raise_error(RuntimeError, /"mail\.my_app\.example"/)
       end
 
+      it "raises when the address is real but a credential is blank, since every send would be refused" do
+        expect { described_class.check!(host.merge(mail, "SMTP_PASSWORD" => " ")) }
+          .to raise_error(RuntimeError, /SMTP_PASSWORD is unset/)
+        expect { described_class.check!(host.merge(mail.except("SMTP_USERNAME", "SMTP_PASSWORD"))) }
+          .to raise_error(RuntimeError, /SMTP_USERNAME and SMTP_PASSWORD are unset/)
+      end
+
       it "names the fix and the doc in the message" do
         described_class.check!(host)
         raise "expected check! to raise"
@@ -86,7 +95,7 @@ RSpec.describe RequiredProductionConfig do
     # Personal data is encrypted at rest (#902); without keys the app boots,
     # /up reports healthy, and the first user read raises.
     describe "Active Record encryption keys" do
-      let(:host) { { "RAILS_HOST" => "app.humbledaisy.com", "SMTP_ADDRESS" => "smtp.postmarkapp.com" } }
+      let(:host) { { "RAILS_HOST" => "app.humbledaisy.com", **mail } }
       let(:keys) { { primary_key: "p", deterministic_key: "d", key_derivation_salt: "s" } }
 
       it "raises when neither credentials nor config carry the keys" do
