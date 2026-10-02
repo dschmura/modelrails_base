@@ -22,6 +22,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- The Rails security floor and the `ModelRails/StackFloor` cop accept a later Rails minor or a git pin to a full commit; the CVE-2026-66066 check now reads the fix from the locked Active Storage source.
 - The `modelrails_ui` pin moves to `v0.24.0`: every doc a vendored component's header points at now says when to use the component, and a guard fails the suite on a pin whose docs do not. The release's Reduce Motion fix is not yet carried into the vendored copies.
 - The comment-block gate skips Lookbook preview classes, whose comments are the notes Lookbook renders (#1313).
 - **Rich text runs on Lexxy 1.0.** The editor now keeps its textbox's ARIA in step when the field's attributes change after load, and supports `setCustomValidity`; the existing aria contract (error and description reaching the textbox a screen reader reads) is pinned in `spec/system/lexxy_editor_aria_spec.rb`. Link dialogs trap Tab, and Escape on a closed toolbar menu no longer throws focus into the document. Lexxy 1.0 also authors image alt text, but only when Action Text has an `alt` attachment attribute, which arrives in Rails 8.2; a request-spec tripwire fails the day it switches on. Newly uploaded images carry an empty alt inside the editor until then (the rendered page still falls back to the filename).
