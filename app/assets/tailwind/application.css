@@ -170,7 +170,9 @@ body:has([data-biscuit-target="banner"]:not([hidden])) {
 
 /* Lexxy's stylesheet (linked before this one) themed onto the semantic tokens,
    so it follows .dark. Unlayered on purpose: layered rules lose to Lexxy's. */
-:root {
+:root,
+lexxy-editor,
+.lexxy-content {
   --lexxy-color-ink: var(--color-text-heading);
   --lexxy-color-ink-medium: var(--color-text-body);
   --lexxy-color-ink-light: var(--color-text-muted);
@@ -184,6 +186,16 @@ body:has([data-biscuit-target="banner"]:not([hidden])) {
   --lexxy-color-selected-dark: var(--color-interactive);
   --lexxy-focus-ring-color: var(--color-interactive-focus);
   --lexxy-font-base: var(--font-sans);
+  /* Lexxy derives these on :root alone; restated so a workspace's interactive colour reaches them. */
+  --lexxy-color-link: var(--lexxy-color-accent-dark);
+  --lexxy-color-selected: var(--lexxy-color-accent-lightest);
+  --lexxy-color-selected-hover: var(--lexxy-color-accent-light);
+  --lexxy-color-selected-50: color-mix(in oklch, var(--lexxy-color-selected-dark) 50%, transparent);
+  --lexxy-color-table-cell-selected: var(--lexxy-color-selected);
+  --lexxy-color-table-cell-selected-border: var(--lexxy-color-selected-dark);
+  --lexxy-color-table-cell-selected-bg: var(--lexxy-color-accent-lightest);
+  --lexxy-color-table-cell-add: var(--lexxy-color-selected-50);
+  --lexxy-color-table-cell-toggle: var(--lexxy-color-accent-lightest);
   /* Code blocks use the Rouge palette and ground, which syntax_contrast_spec holds to 7:1. */
   --lexxy-color-code-bg: var(--color-surface);
   --lexxy-color-code-token-att: var(--syntax-keyword);
@@ -194,6 +206,22 @@ body:has([data-biscuit-target="banner"]:not([hidden])) {
   --lexxy-color-code-token-punctuation: var(--syntax-operator);
   --lexxy-color-code-token-selector: var(--syntax-string);
   --lexxy-color-code-token-variable: var(--syntax-escape);
+}
+
+/* The ALT dialog floats over the form, so it needs a visible edge; Save is its only filled button. */
+.lexxy-alternative-text-dialog {
+  @apply shadow-lg;
+  border-color: var(--color-border-strong);
+}
+
+.lexxy-alternative-text-dialog button:not(.lexxy-alternative-text-dialog__save) {
+  background-color: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-body);
+
+  &:hover {
+    background-color: var(--color-surface-sunken);
+  }
 }
 
 /* Focus lands on the contenteditable inside the host; ring the whole field as focus-ring does. */

@@ -55,6 +55,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Fixed
 
+- The rich-text editor takes a workspace's interactive colour (links, selection, the ALT dialog's Save) instead of the default brand blue, and the ALT dialog has a visible edge in dark mode with an outlined Cancel (#1348).
 - A code block in the rich-text editor highlights its syntax at AAA in both themes: Lexxy's code colours now use the app's syntax tokens and code ground (keywords, strings and comments failed even AA in light mode), and the code-language picker meets the 44px target floor. A system spec holds both. (#1346)
 - The signed-out Sign in link on the header bar paints from the chrome tokens, so it stays readable on a branded bar (1.45:1 before, on a dark brand); a signed-out example now holds the branded header to AAA.
 - A fork's chrome tokens in `_brand.css` reach the header: the defaults sit in a zero-specificity `:where(:root)` block, since `_brand.css` loads before `_semantic.css` and a `:root` default outranked it. A system spec now brands the bar from a stylesheet loaded ahead of the app's.
