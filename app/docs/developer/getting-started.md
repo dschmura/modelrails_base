@@ -19,6 +19,15 @@ Rails 8.1 or newer, and the pieces Rails ships: Propshaft for assets, import map
 
 The template runs on Rails main (8.2.0.alpha) for two features that have not shipped in a release yet: HTML templates compiled through Herb, and alternative text on Action Text attachments, which turns on Lexxy's ALT button. The Gemfile pins `rails` with `ref:` to one full commit, never a branch, so every checkout and every fork resolves exactly the code that was tested.
 
+**Images saved before Lexxy 1.0.** Lexxy 0.9 wrote each uploaded image's file name into its alternative text, so on Rails main those images open the ALT dialog pre-filled with something like `IMG_2034.JPG`, which reads as a description someone wrote. A deployment that saved images under Lexxy 0.9 runs this once:
+
+```bash
+DRY_RUN=1 bin/rails action_text:clear_filename_alts   # counts the rich texts it would change
+bin/rails action_text:clear_filename_alts
+```
+
+It removes `alt` only where it equals that same attachment's file name, leaves every other attribute and the surrounding text alone, and writes the body without touching the owning record or its timestamps. A second run finds nothing. Afterwards those images open the dialog empty and render like new uploads, with the file name minus its extension as the fallback.
+
 With `load_defaults 8.2`, HTML templates compile through [Herb](https://herb-tools.dev), which parses the HTML around the ERB. A template with broken structure, such as an unclosed tag or ERB output where an attribute name belongs, fails when it compiles, naming the file and line, instead of rendering malformed markup. `bin/rails herb:check` compiles every HTML template on the view paths without rendering anything. It reports one file today, a partial inside the biscuit-rails gem that the app overrides and never renders (#1341), so it is not in CI yet. Other formats, such as text mailers and Turbo Stream templates, still compile through Erubi.
 
 Two test gems needed accommodating on Rails main. `rspec-rails` is pinned to a commit of its own main branch, where its Rails-main fixes are merged but not yet released (#1338). Bullet loads through `config/bullet_on_rails_main.rb`, which hands it its Active Record 8.1 patches because Bullet 8.2.0 refuses to load on 8.2 (#1337). `spec/config/bullet_on_rails_main_spec.rb` proves Bullet still catches an N+1, and fails the day Bullet supports 8.2 itself.
