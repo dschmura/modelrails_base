@@ -82,6 +82,7 @@ The default (and currently only) resource type. Documents use **Action Text** fo
 - Rich text content lives in Action Text's `rich_texts` table via `has_rich_text :body`
 - The `Resource` wrapper provides title, status, position, and creator tracking
 - Unsaved edits survive a closed tab — see [Form drafts (developer)](/docs/developer/form-drafts)
+- To describe an image for people who can't see it, move to it with the arrow keys (or click it), press **Alt+F10** to reach its toolbar, and choose **ALT**. An image left undescribed is skipped by screen readers, and its caption names the file
 
 ### Resource Status
 

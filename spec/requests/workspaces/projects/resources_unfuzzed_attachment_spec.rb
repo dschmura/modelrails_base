@@ -56,7 +56,7 @@ RSpec.describe "Document with a blocked-loader attachment", type: :request do
 
     expect(figure["class"]).to include("attachment--preview")
     expect(figure.at_css("img")).to be_present
-    expect(figure.at_css("img")["alt"]).to eq("avatar")
+    expect(figure.at_css("img")["alt"]).to eq("")
   end
 
   it "renders the alternative text the author wrote in place of the filename" do

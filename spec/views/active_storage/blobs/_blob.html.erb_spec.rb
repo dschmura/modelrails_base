@@ -22,11 +22,14 @@ RSpec.describe "active_storage/blobs/_blob.html.erb", type: :view do
     expect(render_blob(alt: "A red canoe on a still lake")).to have_css("img[alt='A red canoe on a still lake']")
   end
 
-  it "falls back to the filename when no alternative text was written" do
-    expect(render_blob(alt: nil)).to have_css("img[alt='canoe']")
+  it "leaves an undescribed image to its caption, which names the file once" do
+    figure = render_blob(alt: nil)
+
+    expect(figure).to have_css("img[alt='']")
+    expect(figure).to have_css("figcaption", text: "canoe.png", count: 1)
   end
 
   it "treats a blank description as no description" do
-    expect(render_blob(alt: "  ")).to have_css("img[alt='canoe']")
+    expect(render_blob(alt: "  ")).to have_css("img[alt='']")
   end
 end

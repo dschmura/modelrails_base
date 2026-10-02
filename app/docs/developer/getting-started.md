@@ -26,7 +26,7 @@ DRY_RUN=1 bin/rails action_text:clear_filename_alts   # counts the rich texts it
 bin/rails action_text:clear_filename_alts
 ```
 
-It removes `alt` only where it equals that same attachment's file name, leaves every other attribute and the surrounding text alone, and writes the body without touching the owning record or its timestamps. A second run finds nothing. Afterwards those images open the dialog empty and render like new uploads, with the file name minus its extension as the fallback.
+It removes `alt` only where it equals that same attachment's file name, leaves every other attribute and the surrounding text alone, and writes the body without touching the owning record or its timestamps. A second run finds nothing. Afterwards those images open the dialog empty and render like new uploads: an image nobody has described gets `alt=""`, so screen readers skip it and read the caption, which names the file once.
 
 With `load_defaults 8.2`, HTML templates compile through [Herb](https://herb-tools.dev), which parses the HTML around the ERB. A template with broken structure, such as an unclosed tag or ERB output where an attribute name belongs, fails when it compiles, naming the file and line, instead of rendering malformed markup. `bin/rails herb:check` compiles every HTML template on the view paths without rendering anything. It reports one file today, a partial inside the biscuit-rails gem that the app overrides and never renders (#1341), so it is not in CI yet. Other formats, such as text mailers and Turbo Stream templates, still compile through Erubi.
 
