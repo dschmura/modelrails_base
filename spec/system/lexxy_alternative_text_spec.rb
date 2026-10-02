@@ -19,6 +19,22 @@ RSpec.describe "Lexxy's alternative text dialog", type: :system do
 
   before { sign_in_via_form(user) }
 
+  it "takes the workspace's colours, with Save as the one filled button, in both themes" do
+    expect(workspace).to be_personal
+    visit edit_workspace_project_resource_path(workspace, project, resource)
+    find("lexxy-editor figure img").click
+    find("lexxy-editor button[aria-label='Alternative text']").click
+    dialog = find("lexxy-editor dialog.lexxy-alternative-text-dialog[open]")
+    computed = ->(element, property) { page.evaluate_script("getComputedStyle(arguments[0]).#{property}", element) }
+
+    %w[light dark].each do |theme|
+      set_theme(theme)
+      page_save = find_button(I18n.t("workspaces.projects.resources.edit.submit"))
+      expect([ theme, computed.(dialog.find_button("Save"), :backgroundColor) ]).to eq([ theme, computed.(page_save, :backgroundColor) ])
+      expect([ theme, computed.(dialog.find_button("Cancel"), :backgroundColor) ]).to eq([ theme, "rgba(0, 0, 0, 0)" ])
+    end
+  end
+
   it "lets an author describe an image, in an AAA dialog, and the description reaches the page" do
     visit edit_workspace_project_resource_path(workspace, project, resource)
     find("lexxy-editor figure img").click
