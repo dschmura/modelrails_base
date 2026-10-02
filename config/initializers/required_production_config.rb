@@ -4,12 +4,12 @@
 # user read raises. Deterministic checks only — a previously-healthy config
 # must never fail a restart. See /docs/developer/deployment (Production
 # preflight).
-require_relative "../../lib/mail_delivery"
-
 module RequiredProductionConfig
   # example.com is IANA-reserved (RFC 2606); `.example` is the TLD bin/fork
   # substitutes into placeholders. Neither can ever be a real deployment host.
   PLACEHOLDER_HOST = /\A(.+\.)?example(\.com)?\z/
+  # Where Rails mails by default; nothing listens there on a deployed host.
+  LOOPBACK = /\A(localhost|127\.0\.0\.1)\z/
 
   # The three values `bin/rails db:encryption:init` generates. Credentials are
   # the template's home for them; the config path is the environment-variable
@@ -24,10 +24,11 @@ module RequiredProductionConfig
   end
 
   def self.check_mail!(env)
-    reason = MailDelivery.unconfigured_reason(env) or return
+    address = env["SMTP_ADDRESS"].to_s.strip
+    return unless address.empty? || LOOPBACK.match?(address) || PLACEHOLDER_HOST.match?(address)
 
     raise <<~MSG
-      Production preflight failed: SMTP_ADDRESS is #{reason}.
+      Production preflight failed: SMTP_ADDRESS is #{address.empty? ? "unset" : address.inspect}.
 
       Sign-in is an email. With no mail server the app boots, /up reports healthy,
       and every magic link, invitation and reset is a job that fails to connect.

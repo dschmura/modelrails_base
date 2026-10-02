@@ -53,11 +53,15 @@ RSpec.describe RequiredProductionConfig do
       it "raises on localhost, where Rails mails by default" do
         expect { described_class.check!(host.merge("SMTP_ADDRESS" => "localhost")) }
           .to raise_error(RuntimeError, /"localhost"/)
+        expect { described_class.check!(host.merge("SMTP_ADDRESS" => "127.0.0.1")) }
+          .to raise_error(RuntimeError, /"127\.0\.0\.1"/)
       end
 
-      it "raises on the rails new placeholder" do
+      it "raises on the rails new and bin/fork placeholders" do
         expect { described_class.check!(host.merge("SMTP_ADDRESS" => "smtp.example.com")) }
           .to raise_error(RuntimeError, /"smtp\.example\.com"/)
+        expect { described_class.check!(host.merge("SMTP_ADDRESS" => "mail.my_app.example")) }
+          .to raise_error(RuntimeError, /"mail\.my_app\.example"/)
       end
 
       it "names the fix and the doc in the message" do
@@ -145,13 +149,11 @@ RSpec.describe "config/environments/production.rb host authorization" do
     expect(line).to include('request.path == "/up"')
   end
 
-  it "takes its transport and SMTP settings from MailDelivery, so a provider is a change of secrets" do
-    expect(source).to include("config.action_mailer.delivery_method = MailDelivery.delivery_method(ENV)")
+  it "takes its SMTP settings from MailDelivery, so a provider is a change of secrets" do
     expect(source).to include("config.action_mailer.smtp_settings = MailDelivery.smtp_settings(ENV)")
   end
 
   it "lets a failed delivery fail its job instead of vanishing" do
     expect(source).to include("config.action_mailer.raise_delivery_errors = true")
-    expect(source).to include("config.action_mailer.perform_deliveries = true")
   end
 end

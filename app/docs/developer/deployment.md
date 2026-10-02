@@ -99,14 +99,11 @@ values, never of code:
 | `SMTP_USERNAME`, `SMTP_PASSWORD` | The provider's credentials, as secrets | none |
 | `SMTP_DOMAIN` | The HELO domain | `RAILS_HOST` |
 | `MAIL_FROM` | The sender on every message | `noreply@RAILS_HOST` |
-| `MAIL_DELIVERY` | The transport; only `smtp` ships | `smtp` |
 
 `config/deploy.yml` already carries the Postmark host under `env.clear` and the
 two credentials under `env.secret`; `.kamal/secrets` references them from the
-deployer's environment. `MAIL_DELIVERY` is reserved: an API transport, for
-tags, bounce webhooks or inbound mail, would join under that name without
-renaming anything a deployment already sets. A failed delivery raises, so it
-fails its Solid Queue job where you can see it rather than vanishing.
+deployer's environment. A failed delivery raises, so it fails its Solid Queue
+job where you can see it rather than vanishing.
 
 #### Postmark, the worked default
 
@@ -167,8 +164,8 @@ campaign should never cost a sign-in link its reputation.
   data-processing agreement, which satisfies GDPR for most apps; a fork that
   promises EU residency uses the SES recipe in an EU region.
 - **Inbound mail** (replies into the app, an address users can write to) is the
-  trigger for an API transport under `MAIL_DELIVERY`. Postmark and SES both
-  receive mail; neither is wired here.
+  trigger for an API transport. Postmark and SES both receive mail; neither is
+  wired here.
 - **Self-hosting the mail server** becomes worth a look when sending costs
   exceed the hours it takes to run one. Deliverability — IP reputation,
   warm-up, blocklists — is the cost that moves from the provider to you.
