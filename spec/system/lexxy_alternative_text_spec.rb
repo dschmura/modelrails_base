@@ -54,4 +54,32 @@ RSpec.describe "Lexxy's alternative text dialog", type: :system do
     visit workspace_project_resource_path(workspace, project, resource)
     expect(page).to have_css("figure.attachment img[alt='A red canoe on a still lake']")
   end
+
+  it "reaches the dialog from the keyboard alone, through Alt+F10, and hands focus back to ALT" do
+    visit edit_workspace_project_resource_path(workspace, project, resource)
+    expect(page).to have_css("lexxy-editor figure img")
+    find_field(I18n.t("workspaces.projects.resources.edit.title_label")).send_keys(:tab, :tab)
+    editable = find("lexxy-editor [contenteditable='true']:focus")
+    # Lexical takes up the Tab's caret a task later; until then it sits after the image, where Lexxy's
+    # spacer paragraph shows, and Down would skip the image.
+    expect(page).to have_css("lexxy-editor p.provisional-paragraph.hidden")
+    editable.send_keys(:down)
+    expect(page).to have_css("lexxy-editor lexxy-attachment-toolbar:not([hidden])")
+
+    editable.send_keys([ :alt, :f10 ])
+    alt_button = find("lexxy-editor button[aria-label='Alternative text']")
+    expect(alt_button).to match_selector(":focus")
+    alt_button.send_keys(:enter)
+
+    description = find("lexxy-editor dialog.lexxy-alternative-text-dialog[open] textarea[aria-label='Description']")
+    expect(description).to match_selector(":focus")
+    description.send_keys("A red canoe on a still lake", :tab, :tab, :enter)
+    expect(page).to have_no_css("lexxy-editor dialog.lexxy-alternative-text-dialog[open]")
+    expect(alt_button).to match_selector(":focus")
+
+    find_button(I18n.t("workspaces.projects.resources.edit.submit")).send_keys(:enter)
+    expect(page).to have_text(I18n.t("workspaces.projects.resources.update.success"))
+    visit workspace_project_resource_path(workspace, project, resource)
+    expect(page).to have_css("figure.attachment img[alt='A red canoe on a still lake']")
+  end
 end

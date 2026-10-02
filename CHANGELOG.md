@@ -23,6 +23,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- An image without a description renders `alt=""` and leaves its caption to name the file, instead of announcing the file name twice; a keyboard-only spec covers the ALT dialog through Alt+F10 (#1347).
 - The test environment shuffles the rows of every unordered SELECT (`shuffle_unordered_selects`), so a spec that leans on SQLite's incidental order fails deterministically.
 - `load_defaults 8.2`: HTML templates compile through Herb, writes are verified by `Sec-Fetch-Site` instead of an authenticity token, jobs enqueue after the transaction commits, attachments are analyzed before validation, and `X-XSS-Protection` is no longer sent. `development.rb` keeps only its local decisions (#625), and `SOLID_QUEUE_IN_PUMA=false` or `0` now turns the in-Puma supervisor off.
 - Rails runs from a pinned commit of Rails main (8.2.0.alpha), with `load_defaults 8.1` kept: Action Text attachments carry alternative text and Lexxy's ALT button is on. `rspec-rails` is pinned to a main commit (#1338), Bullet loads through a patch until it supports Active Record 8.2 (#1337), and Dependabot ignores exactly the git-pinned gems.
