@@ -29,6 +29,9 @@ Rails.application.configure do
   # value equal to the pin closes the class for any future task spec.
   config.rake_eager_load = true
 
+  # Unordered SELECTs return shuffled rows, so a spec leaning on SQLite's incidental order fails here.
+  config.active_record.shuffle_unordered_selects = true
+
   # Configure public file server for tests with cache-control for performance.
   config.public_file_server.headers = { "cache-control" => "public, max-age=3600" }
 
