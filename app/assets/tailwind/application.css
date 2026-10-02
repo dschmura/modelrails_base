@@ -196,6 +196,13 @@ lexxy-editor:has(.lexxy-editor__content:focus) {
   outline: none;
 }
 
+/* Lexxy's floating controls (attachment ALT/Remove) and ALT-dialog buttons sit under the 44px floor. */
+.lexxy-floating-controls button,
+.lexxy-alternative-text-dialog button {
+  min-block-size: var(--form-input-height);
+  min-inline-size: var(--form-input-height);
+}
+
 /* Overlays promoted to the top layer (app/javascript/overlays/top_layer.js) take the
    UA's `[popover]` box with them: fixed, inset-0, centred, bordered, opaque. We want
    only the top layer — the component's own classes keep owning geometry and chrome.
