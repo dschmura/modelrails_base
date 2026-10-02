@@ -2,13 +2,9 @@ source "https://rubygems.org"
 
 ruby file: ".tool-versions"
 
-# Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-# The `>= x.y.z` floor is a security floor, not decoration: it keeps a fork's
-# fresh resolve off a version patched for a known CVE (here 8.1.3.1 for
-# CVE-2026-66066). Dependabot rewrites this line on every Rails bump and will
-# drop the floor — spec/code_smells/template_invariants_spec.rb fails if the
-# requirement ever admits a vulnerable release again.
-gem "rails", "~> 8.1.3", ">= 8.1.3.1"
+# Rails main at a full commit, moved by hand; Dependabot ignores it.
+# See /docs/developer/getting-started (Rails comes from a pinned commit).
+gem "rails", github: "rails/rails", ref: "0901f2cc03e7c8dc9bc1d3be67895be7ee0141ea"
 # Security floor: resolv < 0.7.2 carries CVE-2026-80212. Ruby 4.0.7 ships 0.7.2
 # as the default gem; the pin keeps a fork's fresh resolve from landing below it.
 gem "resolv", ">= 0.7.2"
@@ -84,8 +80,8 @@ group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
 
-  # N+1 query detection
-  gem "bullet"
+  # N+1 query detection; loaded by config/bullet_on_rails_main.rb until Bullet supports 8.2 (#1337).
+  gem "bullet", require: false
 
   # Audits gems for known security defects (use config/bundler-audit.yml to ignore issues)
   gem "bundler-audit", require: false
@@ -101,7 +97,8 @@ group :development, :test do
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
 
-  gem "rspec-rails"
+  # A main commit: the Rails main fixes are merged but unreleased (#1338).
+  gem "rspec-rails", github: "rspec/rspec-rails", ref: "89b571228152ac00e21a0cd79e71896d9c446b2f"
   gem "factory_bot_rails"
   gem "faker"
 

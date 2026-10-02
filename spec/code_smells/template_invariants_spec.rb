@@ -1473,5 +1473,16 @@ RSpec.describe "Template invariants" do
         "a git-tag gem is bumped by hand (re-vendor pre-flight, generator, parity), and " \
         "Dependabot's cooldown has proposed it as a downgrade three times (#665, #888, #1261)"
     end
+
+    it "ignores exactly the gems the lockfile takes from git" do
+      lockfile = Bundler::LockfileParser.new(File.read(root.join("Gemfile.lock")))
+      from_git = lockfile.specs.select { |s| s.source.is_a?(Bundler::Source::Git) }.map(&:name).uniq.sort
+      ignored = Array(bundler_updates["ignore"]).map { |entry| entry["dependency-name"] }.sort
+
+      expect(ignored).to eq(from_git),
+        "Dependabot's bundler ignore must list exactly the git-pinned gems. Missing: #{(from_git - ignored).join(", ")}; " \
+        "released, so drop the ignore: #{(ignored - from_git).join(", ")} " \
+        "(/docs/developer/getting-started, Rails comes from a pinned commit)"
+    end
   end
 end

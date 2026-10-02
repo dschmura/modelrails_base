@@ -2,8 +2,7 @@
 
 require "rails_helper"
 
-# Lexxy 1.0 authors alt text apart from the caption; Action Text exposes it as
-# Attachment#alt from Rails 8.2. Until then try(:alt) is nil and the name holds.
+# Lexxy 1.0 authors alt apart from the caption and Action Text exposes it as Attachment#alt.
 RSpec.describe "active_storage/blobs/_blob.html.erb", type: :view do
   let(:image_attachment) do
     Struct.new(:alt, :caption, keyword_init: true) do

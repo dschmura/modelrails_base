@@ -15,6 +15,18 @@ keywords: setup install mise ruby bundle rspec tests oauth credentials developme
 
 Rails 8.1 or newer, and the pieces Rails ships: Propshaft for assets, import maps for JavaScript (with `tailwindcss-rails` for CSS), Hotwire (Turbo and Stimulus) for interaction, the built-in authentication generator's shape for sessions, and Solid Queue, Solid Cache, and Solid Cable on SQLite. That is a floor, not a preference list: there is no Devise, no JavaScript bundler, no React, no Sprockets, and no Redis-backed queue, and a fork that adds one of them is off the path every other page here describes. The `ModelRails/StackFloor` cop (`lib/rubocop`) fails a Gemfile line that brings in what the floor replaces, or pins `rails` below it, on commit.
 
+### Rails comes from a pinned commit
+
+The template runs on Rails main (8.2.0.alpha) for two features that have not shipped in a release yet: HTML templates compiled through Herb, and alternative text on Action Text attachments, which turns on Lexxy's ALT button. The Gemfile pins `rails` with `ref:` to one full commit, never a branch, so every checkout and every fork resolves exactly the code that was tested.
+
+Two test gems needed accommodating on Rails main. `rspec-rails` is pinned to a commit of its own main branch, where its Rails-main fixes are merged but not yet released (#1338). Bullet loads through `config/bullet_on_rails_main.rb`, which hands it its Active Record 8.1 patches because Bullet 8.2.0 refuses to load on 8.2 (#1337). `spec/config/bullet_on_rails_main_spec.rb` proves Bullet still catches an N+1, and fails the day Bullet supports 8.2 itself.
+
+Dependabot does not bump git-pinned gems: its bundler block ignores exactly the gems `Gemfile.lock` takes from git, and a template invariant keeps the two lists equal in both directions. The pin moves by hand:
+
+- **When.** On every Rails security release, and otherwise at most once a month.
+- **How.** Take the commit from `gh api repos/rails/rails/commits/main --jq .sha`, put it in the `ref:`, run `bundle update rails`, then the full suite, `bin/rails herb:check`, `bin/bundler-audit`, and both the production image and devcontainer builds. A security advisory written as "fixed in 8.2.0" may flag `8.2.0.alpha` even on a commit that has the fix; record that in the audit's ignore file with the commit that carries the fix, and remove the entry at the next move.
+- **The way back.** When 8.2.0 ships, `gem "rails", "~> 8.2.0"` replaces the git line. The security-floor invariant and the StackFloor cop already accept that requirement, and the Dependabot invariant fails until the Rails gems leave the ignore list.
+
 ## Setup
 
 ```bash
