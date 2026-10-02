@@ -23,6 +23,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- The production preflight refuses a blank `SMTP_USERNAME` or `SMTP_PASSWORD`, so a relay that needs no login must opt out of the preflight; `MAIL_DELIVERY` is gone, since SMTP is the only transport (#1349).
 - An image without a description renders `alt=""` and leaves its caption to name the file, instead of announcing the file name twice; a keyboard-only spec covers the ALT dialog through Alt+F10 (#1347).
 - The test environment shuffles the rows of every unordered SELECT (`shuffle_unordered_selects`), so a spec that leans on SQLite's incidental order fails deterministically.
 - `load_defaults 8.2`: HTML templates compile through Herb, writes are verified by `Sec-Fetch-Site` instead of an authenticity token, jobs enqueue after the transaction commits, attachments are analyzed before validation, and `X-XSS-Protection` is no longer sent. `development.rb` keeps only its local decisions (#625), and `SOLID_QUEUE_IN_PUMA=false` or `0` now turns the in-Puma supervisor off.
@@ -56,6 +57,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Fixed
 
+- A mail send that could not reach the SMTP server (connect timeout, refused connection, busy reply) retries for about seven minutes instead of losing the sign-in link, and `bin/deploy-guide` names the SMTP settings (#1349).
 - The rich-text editor takes a workspace's interactive colour (links, selection, the ALT dialog's Save) instead of the default brand blue, and the ALT dialog has a visible edge in dark mode with an outlined Cancel (#1348).
 - A code block in the rich-text editor highlights its syntax at AAA in both themes: Lexxy's code colours now use the app's syntax tokens and code ground (keywords, strings and comments failed even AA in light mode), and the code-language picker meets the 44px target floor. A system spec holds both. (#1346)
 - The signed-out Sign in link on the header bar paints from the chrome tokens, so it stays readable on a branded bar (1.45:1 before, on a dark brand); a signed-out example now holds the branded header to AAA.
