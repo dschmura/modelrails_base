@@ -95,6 +95,19 @@ RSpec.describe "Session Lookups", type: :request do
         expect(response.body).to include(I18n.t("sessions.lookups.create.invalid_email"))
       end
 
+      it "re-renders a form that posts the address under the name the controller reads" do
+        post session_lookup_path, params: { email_address: "notanemail" }
+        field = Capybara.string(response.body).find("turbo-frame#sign_in_form input[type='email']")
+        expect(field[:name]).to eq("email_address")
+      end
+
+      it "accepts the corrected address from that re-rendered form" do
+        post session_lookup_path, params: { email_address: "notanemail" }
+        name = Capybara.string(response.body).find("input[type='email']")[:name]
+        post session_lookup_path, params: { name => "someone@example.com" }
+        expect(response.body).to include(I18n.t("sessions.check_email.title"))
+      end
+
       it "rejects blank email" do
         post session_lookup_path, params: { email_address: "" }
         expect(response).to have_http_status(:ok)
