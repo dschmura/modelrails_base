@@ -23,6 +23,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- **Fork-facing:** a failed password sign-in re-renders the password step (422) with a focused error summary and the address kept, instead of redirecting to the lookup step; an unknown address, a blank password and a locked account get the identical response, and a blank password no longer counts toward the lock. A lock is announced to the holder by email (`PasswordLockedNotifier`), never on the page. The lookup step answers every address alike: the password form is inline for everyone (the `GET /session/password/new` route and its `email_address` query are gone), and with signups closed an unknown address sees the same "check your email" page and is sent nothing, instead of the invitation-only notice. Specs that asserted the old redirect, the closed page or the password route need updating.
 - The production preflight refuses a blank `SMTP_USERNAME` or `SMTP_PASSWORD`, so a relay that needs no login must opt out of the preflight; `MAIL_DELIVERY` is gone, since SMTP is the only transport (#1349).
 - An image without a description renders `alt=""` and leaves its caption to name the file, instead of announcing the file name twice; a keyboard-only spec covers the ALT dialog through Alt+F10 (#1347).
 - The test environment shuffles the rows of every unordered SELECT (`shuffle_unordered_selects`), so a spec that leans on SQLite's incidental order fails deterministically.

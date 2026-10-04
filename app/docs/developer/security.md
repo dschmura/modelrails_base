@@ -154,9 +154,31 @@ adding the notifier.
 unauthenticated endpoints and are rate-limited at 10 requests per 3 minutes
 per IP.
 
+### Password sign-in
+
+An observer must not learn whether an address has an account, holds a
+password, or is locked. `PasswordSignIn` (`app/models/password_sign_in.rb`)
+is the one place that decides a password attempt, and every failure it
+returns is the same:
+
+- **One response.** An unknown address, a wrong password, a blank password
+  and a locked account all re-render the password step with status 422 and
+  one generic message in the error summary, the address kept read-only.
+  The password field is never refilled.
+- **One duration.** A miss hashes the submitted password anyway, as Rails'
+  `authenticate_by` does; so does an account without a password.
+- **A blank password is not an attempt** and does not count toward the lock.
+- **The lookup step answers every address alike:** the same "check your
+  email" page, with the password form offered inline for everyone, so no
+  URL carries the address. With signups closed an unknown address gets that
+  page too, and no email.
+
 ### Account Locking
 
 After 5 failed login attempts, accounts are locked for 1 hour. Auto-unlock occurs after the lockout period.
+The page never says so: the holder gets `PasswordLockedNotifier` by email when
+the lock starts. `register_failed_login!` decides under `with_lock`, so
+concurrent failures count from the database rather than a stale load.
 
 **Scope — password sign-in only, by design.** The failed-attempt counter and
 the `locked?` gate live in the password path (`sessions#create`). Passkey and

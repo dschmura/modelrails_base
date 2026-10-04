@@ -15,10 +15,8 @@ Rails.application.routes.draw do
 
   resource :session do
     scope module: :sessions do
-      # The two steps of email-first sign-in (#1007): the lookup sends the right
-      # link and renders the next step; the password step's form posts to sessions#create.
+      # Email-first sign-in (#1007): the lookup renders the next step, whose password form posts to sessions#create.
       resource :lookup, only: [ :create ]
-      resource :password, only: [ :new ]
     end
   end
   resource :email_verification, only: [ :new, :show, :create ]
