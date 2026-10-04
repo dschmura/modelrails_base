@@ -8,6 +8,12 @@ class User < ApplicationRecord
     MAX_FAILED_ATTEMPTS = 5
     LOCK_DURATION = 1.hour
 
+    class_methods do
+      def passwords_enabled?
+        Rails.configuration.x.authentication.passwords == :enabled
+      end
+    end
+
     included do
       has_secure_password validations: false
 

@@ -57,6 +57,9 @@ module ModelrailsBase
 
     config.x.signup.mode = ENV.fetch("SIGNUP_MODE", "invite_only").to_sym
 
+    # Off by default: the template avoids storing passwords. See /docs/developer/security (Password sign-in).
+    config.x.authentication.passwords = ENV.fetch("AUTH_PASSWORDS", "disabled").to_sym
+
     # Instance ceiling on per-workspace Workspace#join_policy. Defaults to
     # [:invite] (preserves Solo-default). Operators opt in to :open_link by
     # setting SIGNUP_PERMITTED_JOIN_STRATEGIES=invite,open_link.

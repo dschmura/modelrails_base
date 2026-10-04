@@ -156,7 +156,15 @@ per IP.
 
 ### Password sign-in
 
-An observer must not learn whether an address has an account, holds a
+**Off unless the instance opts in.** `config.x.authentication.passwords`
+reads `AUTH_PASSWORDS` and defaults to `disabled`. Disabled means the routes
+are not drawn: no password sign-in (`POST /session`), no password reset, no
+`/settings/password`, no password factor at reauthentication, and no password
+form at the lookup step. A leftover `set_password` link signs in and lands on
+the home page. The template avoids storing passwords, so supporting them is a
+fork's explicit choice: set `AUTH_PASSWORDS=enabled`.
+
+When enabled, an observer must not learn whether an address has an account, holds a
 password, or is locked. `PasswordSignIn` (`app/models/password_sign_in.rb`)
 is the one place that decides a password attempt, and every failure it
 returns is the same:

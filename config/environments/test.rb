@@ -42,6 +42,9 @@ Rails.application.configure do
   # Render exception templates for rescuable exceptions and raise for other exceptions.
   config.action_dispatch.show_exceptions = :rescuable
 
+  # Factory users carry a password; spec/requests/passwords_opt_in_spec.rb runs the default (off).
+  config.x.authentication.passwords = :enabled
+
   # Disable request forgery protection in test environment.
   config.action_controller.allow_forgery_protection = false
 
