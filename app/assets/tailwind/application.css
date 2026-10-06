@@ -242,6 +242,17 @@ lexxy-editor:has(.lexxy-editor__content:focus) {
   min-inline-size: var(--form-input-height);
 }
 
+/* Reading defaults, once: playbook standards/frontend/css.md (Reading type and layout defaults). */
+@layer base {
+  h1, h2, h3 {
+    text-wrap: balance;
+  }
+
+  code, kbd, .font-mono {
+    font-variant-ligatures: none;
+  }
+}
+
 /* Overlays promoted to the top layer (app/javascript/overlays/top_layer.js) take the
    UA's `[popover]` box with them: fixed, inset-0, centred, bordered, opaque. We want
    only the top layer — the component's own classes keep owning geometry and chrome.
