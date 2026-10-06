@@ -107,11 +107,16 @@ RSpec.describe "Template invariants" do
       expect(rails_pin_problems(line)).to be_empty, "Gemfile `#{line}`: #{rails_pin_problems(line).join("; ")}"
     end
 
-    # The fix itself, read from the locked source: a git pin's version string cannot show it.
+    # The fix itself, which a git pin's version string cannot show: libvips refuses an untrusted loader.
     it "locks an Active Storage that disables libvips's untrusted loaders (the CVE-2026-66066 fix)" do
-      vips = File.join(Gem.loaded_specs.fetch("activestorage").full_gem_path, "lib/active_storage/vips.rb")
-      code = File.readlines(vips).reject { |l| l.lstrip.start_with?("#") }.join
-      expect(code).to match(/Vips\.block_untrusted\(true\)/), "#{vips} no longer calls Vips.block_untrusted(true)"
+      bmp = Rails.root.join("spec/fixtures/files/unfuzzed.bmp").to_s
+      expect { Vips::Image.new_from_file(bmp).avg }.to raise_error(Vips::Error)
+
+      # The control: unblocked, this libvips reads the file, so the refusal above is the block.
+      Vips.block_untrusted(false)
+      expect(Vips::Image.new_from_file(bmp).avg).to be_a(Float)
+    ensure
+      Vips.block_untrusted(true)
     end
 
     # Active Storage raises at boot below this — it cannot disable the unfuzzed

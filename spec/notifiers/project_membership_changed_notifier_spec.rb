@@ -51,7 +51,7 @@ RSpec.describe ProjectMembershipChangedNotifier, type: :notifier do
     it "does not enqueue any NotificationMailer email job (in-app + digest only)" do
       expect {
         described_class.with(record: project_membership).deliver(user)
-        perform_enqueued_jobs(only: Noticed::EventJob)
+        drain_noticed_jobs
       }.not_to have_enqueued_mail
     end
   end
