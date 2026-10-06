@@ -60,6 +60,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Fixed
 
+- Under Reduce Motion the sidebar no longer animates its width when it collapses (its labels still fade), and the rich-text editor's block caret stops blinking; the motion guard now reads `transition-[…]` lists (#1350).
 - A mail send that could not reach the SMTP server (connect timeout, refused connection, busy reply) retries for about seven minutes instead of losing the sign-in link, and `bin/deploy-guide` names the SMTP settings (#1349).
 - The rich-text editor takes a workspace's interactive colour (links, selection, the ALT dialog's Save) instead of the default brand blue, and the ALT dialog has a visible edge in dark mode with an outlined Cancel (#1348).
 - A code block in the rich-text editor highlights its syntax at AAA in both themes: Lexxy's code colours now use the app's syntax tokens and code ground (keywords, strings and comments failed even AA in light mode), and the code-language picker meets the 44px target floor. A system spec holds both. (#1346)

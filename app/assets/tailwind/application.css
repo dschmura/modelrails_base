@@ -224,6 +224,13 @@ lexxy-editor,
   }
 }
 
+/* Lexxy blinks its block caret with no Reduce Motion fallback; its rule has zero specificity. */
+@media (prefers-reduced-motion: reduce) {
+  [data-lexical-cursor] {
+    animation: none;
+  }
+}
+
 /* Focus lands on the contenteditable inside the host; ring the whole field as focus-ring does. */
 lexxy-editor:has(.lexxy-editor__content:focus) {
   outline: 2px solid var(--color-interactive-focus);
