@@ -7,7 +7,7 @@ module UI
     # modelrails_ui gem (`bundle show modelrails_ui`); live examples in Lookbook.
 
     RAIL_CLS = "group peer fixed inset-y-0 left-0 z-30 flex h-full flex-col " \
-               "border-r border-border bg-surface-raised transition-[width] duration-300 " \
+               "border-r border-border bg-surface-raised motion-safe:transition-[width] duration-300 " \
                "data-[collapsed=true]:w-16 data-[collapsed=false]:w-64"
 
     HEADER_CLS = "flex h-14 items-center justify-between border-b border-border px-4"
@@ -51,7 +51,7 @@ module UI
                    "not-supports-[position-area:bottom]:top-1/2 " \
                    "not-supports-[position-area:bottom]:-translate-y-1/2"
 
-    ITEM_LABEL = "transition-[opacity,width] group-data-[collapsed=true]:w-0 " \
+    ITEM_LABEL = "motion-safe:transition-[opacity,width] motion-reduce:transition-opacity group-data-[collapsed=true]:w-0 " \
                  "group-data-[collapsed=true]:opacity-0 group-data-[collapsed=true]:overflow-hidden " \
                  "whitespace-nowrap"
 
