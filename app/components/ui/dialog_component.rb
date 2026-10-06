@@ -12,7 +12,7 @@ module UI
     ROLES = %i[dialog alertdialog].freeze
 
     PANEL = "relative w-full mx-auto rounded-lg bg-surface-overlay border border-border shadow-xl " \
-            "max-h-[calc(100vh-3rem)] flex flex-col opacity-0"
+            "max-h-[calc(100dvh-3rem)] flex flex-col opacity-0"
 
     # title:       heading text (also the accessible name via aria-labelledby)
     # id:          dialog id (auto-generated if omitted)
