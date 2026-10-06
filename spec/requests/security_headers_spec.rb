@@ -11,8 +11,8 @@ RSpec.describe "Security headers" do
     expect(response.headers).not_to have_key("X-XSS-Protection")
   end
 
-  it "includes Permissions-Policy" do
+  it "denies the camera, microphone and location through Permissions-Policy" do
     get root_path
-    expect(response.headers["Permissions-Policy"]).to be_present
+    expect(response.headers["Permissions-Policy"]).to eq("camera=(), microphone=(), geolocation=()")
   end
 end
