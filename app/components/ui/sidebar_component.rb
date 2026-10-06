@@ -18,7 +18,7 @@ module UI
 
     NAV_CLS = "flex-1 overflow-y-auto px-2 py-3"
 
-    GROUP_LABEL = "mb-1 px-3 text-xs font-medium uppercase tracking-wide text-text-muted " \
+    GROUP_LABEL = "mb-1 px-3 text-sm font-medium text-text-muted " \
                   "transition-opacity group-data-[collapsed=true]:opacity-0 group-data-[collapsed=true]:h-0 " \
                   "group-data-[collapsed=true]:overflow-hidden group-data-[collapsed=true]:mb-0"
 
