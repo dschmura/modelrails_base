@@ -8,7 +8,8 @@ require "tmpdir"
 # so a mismatched tag or unsafe ERB output fails here instead of in a browser.
 RSpec.describe "Code smell: templates compile through Herb" do
   let(:view_paths) { ActionController::Base.view_paths.select { |resolver| resolver.respond_to?(:all_unbound_templates) } }
-  let(:app_paths) { view_paths.select { |resolver| resolver.path.to_s.start_with?(Rails.root.to_s) } }
+  # Under app/, not Rails.root: CI bundles gems into vendor/bundle inside the repo.
+  let(:app_paths) { view_paths.select { |resolver| resolver.path.to_s.start_with?("#{Rails.root.join('app')}/") } }
   let(:app_templates_written_against) { 185 }
 
   # A gem's template that fails, with the issue tracking it upstream; an entry that starts compiling fails below.
