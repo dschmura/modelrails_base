@@ -6,6 +6,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Added
 
+- The Herb check also covers the 289 Lookbook previews, the Turbo Stream templates (compiled through Herb although Rails still uses Erubi for that format) and the static pages in `public/`, each with a floor.
 - A code-smell spec compiles every HTML+ERB template through Herb on every pull request, so a mismatched tag or ERB output in attribute position fails the suite; the one gem template that fails today (#1341) is a reviewed exception the spec drops once it compiles.
 - `bin/rails action_text:clear_filename_alts` (with `DRY_RUN=1`) removes the file-name alt text Lexxy 0.9 wrote on uploaded images, so they open the ALT dialog empty; run it once on a deployment with pre-1.0 content. Lexxy's attachment toolbar and ALT-dialog buttons meet the 44px target floor, held by an AAA system spec. (#1339)
 - The header bar paints from a family of chrome tokens (`--color-chrome`, `--color-on-chrome`, `--color-chrome-focus`, …) that default to today's look, so a fork brands the bar from `_brand.css` without editing the header; a code-smell spec holds a branded chrome to AAA, and the account and mobile menus keep their own surface.
