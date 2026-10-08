@@ -41,6 +41,18 @@ RSpec.describe "CSRF protection by Sec-Fetch-Site", type: :request do
     expect(response).to have_http_status(:unprocessable_content)
   end
 
+  it "accepts a same-origin JSON POST to a passkey endpoint that carries no token, as webauthn_controller sends it" do
+    post passkeys_authentication_challenge_path, as: :json, headers: { "Sec-Fetch-Site" => "same-origin" }
+
+    expect(response).to have_http_status(:ok)
+  end
+
+  it "rejects a cross-site JSON POST to a passkey endpoint" do
+    post passkeys_authentication_challenge_path, as: :json, headers: { "Sec-Fetch-Site" => "cross-site" }
+
+    expect(response).to have_http_status(:unprocessable_content)
+  end
+
   it "lets the OmniAuth request phase through from the same origin" do
     post "/auth/google_oauth2", headers: { "Sec-Fetch-Site" => "same-origin" }
 
