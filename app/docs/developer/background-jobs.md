@@ -156,7 +156,9 @@ The same image runs in both `web` and `job` roles — only the `cmd` differs. Mi
 
 ## Local development
 
-`bin/dev` (the default development command) runs Puma in foreground mode. With `SOLID_QUEUE_IN_PUMA` semantics also active in production, your local dev setup is intentionally similar — recurring jobs will fire on schedule when `bin/dev` is running.
+Development runs jobs the way production does: `config.active_job.queue_adapter = :solid_queue`, on the `queue` database. `bin/dev` starts the web server, the Tailwind watcher and `bin/jobs` (from `Procfile.dev`), so jobs, mail and recurring schedules run while it's up, and concurrency limits apply as in production.
+
+**If you start only `bin/rails server`, jobs queue up and nothing works them.** That includes mail sent with `deliver_later`. Use `bin/dev`, or run `bin/jobs` alongside the server.
 
 If you want to test job processing in isolation:
 

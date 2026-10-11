@@ -927,6 +927,17 @@ RSpec.describe "Template invariants" do
         "expected `timeout: 5000` — installs the sqlite3 busy handler so writers wait up to 5s " \
         "for the lock (NOT the busy_timeout PRAGMA; see spec/config/sqlite_pragmas_spec.rb)"
     end
+
+    # Development wires the queue database and runs bin/jobs; without the adapter every job ran
+    # in-process instead, so concurrency limits and recurring schedules behaved unlike production.
+    it "runs development's jobs through Solid Queue, as production does" do
+      %w[development production].each do |env|
+        config = File.read(root.join("config/environments/#{env}.rb"))
+        expect(config).to match(/^\s*config\.active_job\.queue_adapter = :solid_queue$/),
+          "expected config/environments/#{env}.rb to set `config.active_job.queue_adapter = :solid_queue`"
+      end
+      expect(File.read(root.join("Procfile.dev"))).to match(/^jobs: bin\/jobs$/)
+    end
   end
 
   describe "Devops architecture is documented for forkers (app/docs surface)" do
