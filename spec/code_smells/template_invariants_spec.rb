@@ -938,6 +938,16 @@ RSpec.describe "Template invariants" do
       end
       expect(File.read(root.join("Procfile.dev"))).to match(/^jobs: bin\/jobs$/)
     end
+
+    # A job in bin/jobs is a separate process; the async cable adapter reaches only its own process's browsers.
+    it "carries development's broadcasts across processes, so a job's updates reach the browser" do
+      cable = YAML.safe_load(File.read(root.join("config/cable.yml")), aliases: true)
+      expect(cable.dig("development", "adapter")).to eq("solid_cable")
+      expect(cable.dig("development", "connects_to", "database", "writing")).to eq("cable")
+
+      db = YAML.safe_load(ERB.new(File.read(root.join("config/database.yml"))).result, aliases: true)
+      expect(db.dig("development", "cable", "migrations_paths")).to eq("db/cable_migrate")
+    end
   end
 
   describe "Devops architecture is documented for forkers (app/docs surface)" do

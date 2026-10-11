@@ -160,6 +160,8 @@ Development runs jobs the way production does: `config.active_job.queue_adapter 
 
 **If you start only `bin/rails server`, jobs queue up and nothing works them.** That includes mail sent with `deliver_later`. Use `bin/dev`, or run `bin/jobs` alongside the server.
 
+Action Cable uses Solid Cable in development too, on its own `cable` database. A job runs in `bin/jobs`, a separate process, and Rails' default `async` cable adapter only reaches browsers connected to the process that broadcast. With Solid Cable, a job's Turbo broadcasts reach the page. An existing checkout needs `bin/rails db:prepare` once to create `storage/development_cable.sqlite3`.
+
 If you want to test job processing in isolation:
 
 ```bash
