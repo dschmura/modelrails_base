@@ -25,6 +25,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- The production image build is its own workflow: a pull request runs it only when a build input changes (`Dockerfile`, `.dockerignore`, `Gemfile`, `Gemfile.lock`, `.tool-versions`, `bin/docker-entrypoint`) and every push to `main` runs it unfiltered; the pre-push hook runs the same build locally through `bin/docker-build-check` on the same inputs.
 - The timezone beacon renders only while a user's timezone is unset, so a Turbo visit no longer sends a PATCH; the passkey, identity-picker and beacon requests stop attaching an authenticity token that header-only CSRF never reads (#1351).
 - The sidebar spec moves the pointer off the rail before it checks the tooltip bubble is hidden, so a pointer left over the rail by an earlier spec can no longer hover the bubble in and fail it.
 - The identity picker specs wait for the hub to render, not only to load, so a late render can no longer save the default hue in place of the dragged one (#1344).
@@ -65,6 +66,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Fixed
 
+- `bin/parallel-rspec` reloads the schema and seeds every worker database before the suite, so a pre-push run starts from the same global roles CI does instead of an empty table; CI's shards no longer prepare databases in a separate step.
 - Under Reduce Motion the sidebar no longer animates its width when it collapses (its labels still fade), and the rich-text editor's block caret stops blinking; the motion guard now reads `transition-[…]` lists (#1350).
 - A mail send that could not reach the SMTP server (connect timeout, refused connection, busy reply) retries for about seven minutes instead of losing the sign-in link, and `bin/deploy-guide` names the SMTP settings (#1349).
 - The rich-text editor takes a workspace's interactive colour (links, selection, the ALT dialog's Save) instead of the default brand blue, and the ALT dialog has a visible edge in dark mode with an outlined Cancel (#1348).
