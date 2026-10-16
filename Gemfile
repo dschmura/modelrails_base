@@ -80,8 +80,8 @@ group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
 
-  # N+1 query detection; loaded by config/bullet_on_rails_main.rb until Bullet supports 8.2 (#1337).
-  gem "bullet", require: false
+  # N+1 query detection
+  gem "bullet"
 
   # Audits gems for known security defects (use config/bundler-audit.yml to ignore issues)
   gem "bundler-audit", require: false
@@ -135,7 +135,7 @@ end
 gem "axe-core-rspec", "~> 4.13", group: :test
 gem "axe-core-api", "~> 4.11", group: :test
 
-gem "lefthook", "~> 2.1", groups: [ :development, :test ], require: false
+gem "lefthook", "~> 2.2", groups: [ :development, :test ], require: false
 
 gem "biscuit-rails", "~> 0.3.0"
 
