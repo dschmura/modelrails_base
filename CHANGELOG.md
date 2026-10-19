@@ -27,6 +27,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- The pre-push bundler-audit updates the advisory database before it checks, as CI's fresh clone does, so a new advisory fails the push instead of only CI; it needs the network.
 - CI's `test` check is the coverage-merge job itself, which fails first unless every shard succeeded, so a run bills one job fewer; the required check keeps its name.
 - A pull request that changes a build input builds the production image once, in `image_scan`'s cold build, instead of twice; `docker_build` runs on every push to `main` and on pull requests only to test its own workflow.
 - Bullet 8.3.0 supports Active Record 8.2, so it loads like any other gem and the Rails-main load shim is gone (#1337, #1409).
