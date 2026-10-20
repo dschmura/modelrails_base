@@ -29,6 +29,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- The attachment guard accepts only validators known to leave an upload's bytes alone, so a new decoding validator (`pages:`, `duration:`, spoofing protection) fails it until someone has checked it.
 - The pre-push bundler-audit updates the advisory database before it checks, as CI's fresh clone does, so a new advisory fails the push instead of only CI; it needs the network.
 - A member's **Deactivate** asks for confirmation and says what they lose: workspace access now, and their project memberships, which Reactivate does not restore.
 - The destroy-target guard counts a destroy that discards through a model method (`Membership#deactivate!`) and accepts `turbo_confirm` as the confirmation.
