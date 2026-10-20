@@ -24,6 +24,19 @@ RSpec.describe "config/initializers/hotcell.rb" do
     )
   end
 
+  it "treats an empty HOTCELL_ROOT as unset" do
+    out, status = boot("HOTCELL_ROOT" => "")
+
+    expect(status).to be_success, out
+    expect(out.lines.last.strip).to start_with("ActiveStorage::Transformers::Vips|")
+  end
+
+  it "boots with an empty HOTCELL_GROUP" do
+    out, status = boot("HOTCELL_GROUP" => "")
+
+    expect(status).to be_success, out
+  end
+
   it "refuses a non-numeric HOTCELL_GROUP at boot" do
     out, status = boot("HOTCELL_ROOT" => "/nonexistent/hotcell", "HOTCELL_GROUP" => "abc")
 

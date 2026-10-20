@@ -1,8 +1,8 @@
 # Off until HOTCELL_ROOT is set: then variants and image analysis run in the sandboxed cell, and nothing
 # previews in this process. See /docs/developer/hot-cell.
-HotCell.root = ENV["HOTCELL_ROOT"]
-HotCell.group = ENV["HOTCELL_GROUP"]
-cell = HotCell.register "active_storage"
+HotCell.root = ENV["HOTCELL_ROOT"].presence
+HotCell.group = ENV["HOTCELL_GROUP"].presence
+cell = HotCell.register "active_storage", timeout: 30
 
 if cell.enabled?
   Rails.application.config.active_storage.variant_processor = ActiveStorage::HotCell::Client::Transformers::Image::Vips

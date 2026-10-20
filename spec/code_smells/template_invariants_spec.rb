@@ -1754,6 +1754,29 @@ RSpec.describe "Template invariants" do
         "and the cell requires nothing the app never calls (/docs/developer/hot-cell)"
     end
 
+    it "the cell answers before the app stops waiting" do
+      keywords = lambda do |source, method|
+        stack = [ Prism.parse(source).value ]
+        found = {}
+        while (node = stack.pop)
+          if node.is_a?(Prism::CallNode) && node.name == method
+            node.arguments&.arguments&.grep(Prism::KeywordHashNode)&.each do |hash|
+              hash.elements.each { |pair| found[pair.key.unescaped.to_sym] = pair.value.slice if pair.key.is_a?(Prism::SymbolNode) }
+            end
+          end
+          stack.concat(node.compact_child_nodes)
+        end
+        found
+      end
+      limits = keywords.call(File.read(root.join("hotcell/config.rb")), :limits)
+      timeout = Integer(keywords.call(initializer, :register).fetch(:timeout, "30"))
+      answer_within = Integer(limits.fetch(:queue_wait, "10")) + Integer(limits.fetch(:deadline, "60")) + 1
+
+      expect(answer_within).to be < timeout,
+        "the cell may take #{answer_within}s (queue_wait + deadline + 1) and the app waits #{timeout}s: every boot warns, " \
+        "and a slow request is a client timeout instead of the cell's own answer (/docs/developer/hot-cell, Tune it)"
+    end
+
     it "catches an operation the app never calls, and a class the cell does not serve" do
       extra = operation_sources + [ %(require "active_storage/hot_cell/server/previewers/pdf/mutool"\n) ]
       expect(required_operations.call(extra)).not_to match_array(configured_operations.call(initializer))
