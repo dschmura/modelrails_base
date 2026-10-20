@@ -1754,6 +1754,16 @@ RSpec.describe "Template invariants" do
         "and the cell requires nothing the app never calls (/docs/developer/hot-cell)"
     end
 
+    it "the Hot Cell docs sample's gid is the cell image's user" do
+      gid = File.read(root.join("hotcell/Dockerfile"))[/groupadd --gid (\d+)/, 1]
+      doc = File.read(root.join("app/docs/developer/hot-cell.md"))
+
+      expect(gid).to be_present
+      expect(doc).to include(%(HOTCELL_GROUP: "#{gid}"), "group-add: #{gid}", %(user: "#{gid}:#{gid}")),
+        "the app's group-add, HOTCELL_GROUP and the accessory's user must all be the cell image's gid (#{gid}), " \
+        "or every conversion fails with EPERM after deploy"
+    end
+
     it "catches an operation the app never calls, and a class the cell does not serve" do
       extra = operation_sources + [ %(require "active_storage/hot_cell/server/previewers/pdf/mutool"\n) ]
       expect(required_operations.call(extra)).not_to match_array(configured_operations.call(initializer))
