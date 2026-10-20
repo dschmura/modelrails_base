@@ -1,5 +1,5 @@
-# A variant that cannot be processed answers its image request, never 500s it: permanent failures redirect to a
-# placeholder that may be cached, transient ones answer 503 so the browser asks again. /docs/developer/security
+# A variant that fails to process answers its image request instead of raising: permanent failures redirect to a
+# placeholder that may be cached, transient ones 503 with no-store so the next view fetches again. /docs/developer/security
 module ActiveStorage::RepresentationFailures
   extend ActiveSupport::Concern
 
@@ -11,7 +11,7 @@ module ActiveStorage::RepresentationFailures
   private
     def representation_unavailable
       expires_in 100.years, public: true
-      redirect_to helpers.asset_path("representation-unavailable.svg")
+      redirect_to helpers.asset_path("representation-unavailable.svg"), allow_other_host: true
     end
 
     def representation_pending
