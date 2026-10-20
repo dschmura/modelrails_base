@@ -1,7 +1,7 @@
 # Off until HOTCELL_ROOT is set: then variants and image analysis run in the sandboxed cell, and nothing
 # previews in this process. See /docs/developer/hot-cell.
-HotCell.root = ENV["HOTCELL_ROOT"]
-HotCell.group = ENV["HOTCELL_GROUP"]
+HotCell.root = ENV["HOTCELL_ROOT"].presence
+HotCell.group = ENV["HOTCELL_GROUP"].presence
 cell = HotCell.register "active_storage"
 
 if cell.enabled?
