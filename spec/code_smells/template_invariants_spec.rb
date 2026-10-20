@@ -1716,6 +1716,52 @@ RSpec.describe "Template invariants" do
       versions = hotcell_versions.call(File.read(root.join("Gemfile.lock")), skewed).map { |entry| entry.split.last }.uniq
       expect(versions.size).to eq(2)
     end
+
+    configured_operations = lambda do |initializer|
+      prefix = "ActiveStorage::HotCell::Client::"
+      stack = [ Prism.parse(initializer).value ]
+      found = []
+      while (node = stack.pop)
+        if node.is_a?(Prism::ConstantPathNode) && node.full_name.start_with?(prefix)
+          found << "active_storage/hot_cell/server/#{node.full_name.delete_prefix(prefix).split("::").map(&:underscore).join("/")}"
+        else
+          stack.concat(node.compact_child_nodes)
+        end
+      end
+      found.uniq
+    end
+
+    required_operations = lambda do |operation_sources|
+      operation_sources.flat_map do |source|
+        stack = [ Prism.parse(source).value ]
+        found = []
+        while (node = stack.pop)
+          argument = node.is_a?(Prism::CallNode) && node.name == :require ? node.arguments&.arguments&.first : nil
+          found << argument.unescaped if argument.is_a?(Prism::StringNode)
+          stack.concat(node.compact_child_nodes)
+        end
+        found
+      end
+    end
+
+    let(:initializer) { File.read(root.join("config/initializers/hotcell.rb")) }
+    let(:operation_sources) { Dir[root.join("hotcell/operations/**/*.rb")].map { |file| File.read(file) } }
+
+    it "the cell serves exactly the operations the app configures" do
+      expect(configured_operations.call(initializer)).to include("active_storage/hot_cell/server/transformers/image/vips")
+      expect(required_operations.call(operation_sources)).to match_array(configured_operations.call(initializer)),
+        "every Hot Cell class config/initializers/hotcell.rb names needs its operation required under hotcell/operations/, " \
+        "and the cell requires nothing the app never calls (/docs/developer/hot-cell)"
+    end
+
+    it "catches an operation the app never calls, and a class the cell does not serve" do
+      extra = operation_sources + [ %(require "active_storage/hot_cell/server/previewers/pdf/mutool"\n) ]
+      expect(required_operations.call(extra)).not_to match_array(configured_operations.call(initializer))
+
+      unserved = initializer.sub("previewers = []", "previewers = [ ActiveStorage::HotCell::Client::Previewers::Pdf::Mutool ]")
+      expect(unserved).not_to eq(initializer), "the injection point moved; the simulation proves nothing"
+      expect(required_operations.call(operation_sources)).not_to match_array(configured_operations.call(unserved))
+    end
   end
 
   describe "CI scans the cell image" do
