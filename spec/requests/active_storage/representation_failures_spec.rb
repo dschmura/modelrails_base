@@ -20,6 +20,18 @@ RSpec.describe "A representation request whose processing fails", type: :request
     expect(response.headers["Cache-Control"]).to include("max-age=#{100.years.to_i}", "public")
   end
 
+  it "redirects to the placeholder on an asset host too" do
+    saved = ActionController::Base.asset_host
+    ActionController::Base.asset_host = "https://cdn.example.com"
+    fail_processing_with(HotCell::PermanentFailure.new("unreadable"))
+    get path
+
+    expect(response).to have_http_status(:found)
+    expect(response.location).to start_with("https://cdn.example.com/assets/representation-unavailable-")
+  ensure
+    ActionController::Base.asset_host = saved
+  end
+
   it "answers a transient cell failure with 503 and no-store" do
     fail_processing_with(HotCell::TransientFailure.new("capacity"))
     get path
