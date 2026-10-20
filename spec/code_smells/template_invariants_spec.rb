@@ -47,6 +47,11 @@ RSpec.describe "Template invariants" do
         "expected Dockerfile ARG RUBY_VERSION to equal .tool-versions Ruby (#{tool_versions_ruby})"
     end
 
+    it "hotcell/Dockerfile ARG RUBY_VERSION matches .tool-versions" do
+      expect(File.read(root.join("hotcell/Dockerfile"))).to match(/^ARG RUBY_VERSION=#{Regexp.escape(tool_versions_ruby)}\b/),
+        "expected the Hot Cell image's ARG RUBY_VERSION to equal .tool-versions Ruby (#{tool_versions_ruby})"
+    end
+
     it "Dockerfile comment references .tool-versions (not the obsolete .ruby-version)" do
       expect(dockerfile).to include(".tool-versions"),
         "expected Dockerfile to reference .tool-versions in its comments"
