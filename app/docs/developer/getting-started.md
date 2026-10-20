@@ -230,11 +230,12 @@ Runs automatically when you `git push`. No setup needed beyond `bundle exec left
 |-------|------|
 | Stylesheet | `tailwindcss:build`, first, so system specs never read a half-written stylesheet |
 | Security scan | Brakeman |
-| Gem CVEs | bundler-audit, after updating the advisory database to the latest, as CI's fresh clone does; it needs the network |
+| Gem CVEs | bundler-audit, after updating the advisory database to the latest, as CI's fresh clone does; it needs the network. It audits the Hot Cell image's lockfile (`hotcell/Gemfile.lock`) too |
 | Code style | RuboCop |
 | ERB templates | erb_lint |
 | Markdown | `mdl` |
 | Full test suite | `bin/parallel-rspec`, including the axe-core WCAG 2.2 AAA audit on every system spec |
+| Hot Cell image | `docker build --pull hotcell`, only when the branch changes something under `hotcell/`; the build installs libheif's HEVC and AV1 decoders by name and fails unless libvips registers its HEIF loader |
 | Production image | `docker build`, last, and only when the branch changes a build input (`Dockerfile`, `.dockerignore`, `Gemfile`, `Gemfile.lock`, `.tool-versions`, `bin/docker-entrypoint`); refuses the push if Docker isn't running |
 
 Pre-commit hooks also auto-fix Ruby style issues on staged files.
@@ -253,15 +254,16 @@ Runs the same checks plus additional linting:
 
 ### Gate 3: Scheduled lanes (not on push/PR)
 
-Three checks answer questions a per-PR run cannot, because what they watch changes without anyone committing. Each also runs on demand from the Actions tab (`workflow_dispatch`).
+Four checks answer questions a per-PR run cannot, because what they watch changes without anyone committing. Each also runs on demand from the Actions tab (`workflow_dispatch`).
 
 | Workflow | When | What it checks |
 |----------|------|---------------|
 | `js_advisory` | Daily | The same importmap audit as the `static` job, against `main` — an advisory published between pushes is otherwise invisible until the next PR happens to touch the tree. `static` stays the required check; this is additive. |
 | `image_scan` | Weekly, plus every PR that changes a build input | OS-package CVEs in the production image, which appear without any code change. It builds the image from scratch, so on those PRs it is also the proof that the image builds. |
+| `hotcell_image_scan` | Weekly where the `HOTCELL_SCAN` repository variable is set, plus every PR that changes `hotcell/` | The same scan of the [Hot Cell](/docs/developer/hot-cell) image. A fork that keeps the cell off leaves the variable unset and pays for no weekly build. |
 | `fork_vocabulary` | Weekly | The whole suite under `spec/fixtures/vocabulary.course.yml`, proving the promise that a fork renaming its nouns keeps this suite green. The per-PR gate catches literal-noun copy assertions in the shapes it knows; this catches the rest. |
 
-**Scheduled workflows switch themselves off in an inactive public repository.** GitHub disables them after 60 days with no repository activity — see [Events that trigger workflows](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows) (`schedule`). The condition is repository *visibility*, so a private fork is not affected; a public fork that goes quiet loses these three lanes silently and re-enables them with any repository activity.
+**Scheduled workflows switch themselves off in an inactive public repository.** GitHub disables them after 60 days with no repository activity — see [Events that trigger workflows](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows) (`schedule`). The condition is repository *visibility*, so a private fork is not affected; a public fork that goes quiet loses these four lanes silently and re-enables them with any repository activity.
 
 ### Development Workflow
 
