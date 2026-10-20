@@ -610,6 +610,23 @@ RSpec.describe "Template invariants" do
         "failed on GHSA-w3mx-4vv9-hjpg (css_parser, #1424), so the pre-push gate must update it first"
     end
 
+    it "Lefthook builds the cell image when hotcell/ changes" do
+      command = lefthook_config.dig("pre-push", "commands", "hotcell_build") || {}
+
+      expect(command["glob"].to_s).to include("hotcell/**")
+      expect(command["run"].to_s).to include("docker build --pull hotcell")
+      expect(command["files"].to_s).to include("origin/main...HEAD"),
+        "diffed against main, like docker_build, so a rebase replay still builds the cell"
+    end
+
+    it "audits the cell's gems pre-push and in CI" do
+      static_runs = Array(ci_workflow.dig("jobs", "static", "steps")).map { |step| step["run"].to_s }
+
+      expect(lefthook_config.dig("pre-push", "commands", "bundler_audit", "run").to_s).to include("bin/bundler-audit check hotcell")
+      expect(static_runs).to include(match(%r{bin/bundler-audit check hotcell})),
+        "the cell's Gemfile.lock is a second dependency graph; auditing only the app's lock leaves it unchecked"
+    end
+
     it "Lefthook's pre-push rspec command runs bin/parallel-rspec" do
       run = lefthook_config.dig("pre-push", "commands", "rspec", "run").to_s
       expect(run).to include("bin/parallel-rspec"),
