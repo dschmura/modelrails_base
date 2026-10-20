@@ -1652,15 +1652,17 @@ RSpec.describe "Template invariants" do
         "on a private fork that was ~87 billed minutes per gem, six gems in one morning (2026-10-14)"
     end
 
-    it "ignores exactly the gems the lockfile takes from git" do
+    it "ignores exactly the git-pinned gems and the Hot Cell family" do
       lockfile = Bundler::LockfileParser.new(File.read(root.join("Gemfile.lock")))
-      from_git = lockfile.specs.select { |s| s.source.is_a?(Bundler::Source::Git) }.map(&:name).uniq.sort
+      from_git = lockfile.specs.select { |s| s.source.is_a?(Bundler::Source::Git) }.map(&:name)
+      hotcell = lockfile.specs.map(&:name).grep(/\A(hotcell|activestorage-hotcell)/)
+      hand_bumped = (from_git + hotcell).uniq.sort
       ignored = Array(bundler_updates["ignore"]).map { |entry| entry["dependency-name"] }.sort
 
-      expect(ignored).to eq(from_git),
-        "Dependabot's bundler ignore must list exactly the git-pinned gems. Missing: #{(from_git - ignored).join(", ")}; " \
-        "released, so drop the ignore: #{(ignored - from_git).join(", ")} " \
-        "(/docs/developer/getting-started, Rails comes from a pinned commit)"
+      expect(ignored).to eq(hand_bumped),
+        "Dependabot's bundler ignore must list exactly the git-pinned gems and the Hot Cell family (bumped by hand " \
+        "in both lockfiles together). Missing: #{(hand_bumped - ignored).join(", ")}; no longer hand-bumped, so drop " \
+        "the ignore: #{(ignored - hand_bumped).join(", ")} (/docs/developer/getting-started, /docs/developer/hot-cell)"
     end
   end
 
@@ -1679,6 +1681,40 @@ RSpec.describe "Template invariants" do
       expect(gemfile).to match(/^gem "activestorage-hotcell-client"/)
       expect(gemfile[/^group :test do(.*?)^end/m, 1]).to include('gem "activestorage-hotcell-server", require: false'),
         "the cell's gems belong in the test group only, for the proving spec; the production image installs without it"
+    end
+
+    hotcell_versions = lambda do |*lockfiles|
+      lockfiles.flat_map do |lockfile|
+        Bundler::LockfileParser.new(lockfile).specs.select { |spec| spec.name.match?(/\A(hotcell|activestorage-hotcell)/) }
+      end.map { |spec| "#{spec.name} #{spec.version}" }.uniq
+    end
+
+    it "Dependabot leaves the Hot Cell gems to a hand bump of both lockfiles" do
+      updates = YAML.safe_load(File.read(root.join(".github/dependabot.yml"))).fetch("updates")
+      bundler = updates.find { |update| update["package-ecosystem"] == "bundler" }
+      family = hotcell_versions.call(File.read(root.join("Gemfile.lock"))).map { |entry| entry.split.first }
+
+      expect(family).to include("activestorage-hotcell-client", "hotcell-client")
+      expect(Array(bundler["ignore"]).map { |entry| entry["dependency-name"] }).to include(*family),
+        "a Dependabot bump of one lockfile alone would leave the app and the cell on different Hot Cell versions"
+      expect(updates.flat_map { |update| Array(update["directories"] || update["directory"]) }).not_to include("/hotcell")
+    end
+
+    it "the app and the cell lock the same Hot Cell version" do
+      app_lock = File.read(root.join("Gemfile.lock"))
+      locked = hotcell_versions.call(app_lock, File.read(root.join("hotcell/Gemfile.lock")))
+
+      expect(locked.map { |entry| entry.split.last }.uniq.size).to eq(1),
+        "the app's client and the cell's server must run one Hot Cell version: #{locked.sort.join(", ")}"
+      expect(locked.map(&:split).map(&:first)).to include("hotcell-client", "hotcell-server", "activestorage-hotcell-server")
+    end
+
+    it "catches a cell locked to another Hot Cell version" do
+      skewed = File.read(root.join("hotcell/Gemfile.lock")).sub(/^    hotcell-server \([^)]+\)/, "    hotcell-server (9.9.9)")
+      expect(skewed).to include("hotcell-server (9.9.9)"), "the injection point moved; the simulation proves nothing"
+
+      versions = hotcell_versions.call(File.read(root.join("Gemfile.lock")), skewed).map { |entry| entry.split.last }.uniq
+      expect(versions.size).to eq(2)
     end
   end
 
