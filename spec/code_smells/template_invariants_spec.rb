@@ -1681,4 +1681,32 @@ RSpec.describe "Template invariants" do
         "the cell's gems belong in the test group only, for the proving spec; the production image installs without it"
     end
   end
+
+  describe "CI scans the cell image" do
+    let(:scan_workflow) { YAML.safe_load(File.read(root.join(".github/workflows/hotcell_image_scan.yml")), aliases: true) }
+    let(:triggers) { scan_workflow[true] }
+    let(:scan_job) { scan_workflow.dig("jobs", "scan_hotcell_image") || {} }
+    let(:build_step) { Array(scan_job["steps"]).find { |step| step["uses"].to_s.include?("docker/build-push-action") } || {} }
+    let(:trivy_step) { Array(scan_job["steps"]).find { |step| step["uses"].to_s.include?("aquasecurity/trivy-action") } || {} }
+
+    it "runs on changes to the cell, and weekly only where a fork asks" do
+      expect(triggers.dig("pull_request", "paths")).to include("hotcell/**", ".github/workflows/hotcell_image_scan.yml")
+      expect(triggers).to include("schedule")
+      expect(scan_job["if"].to_s).to include("vars.HOTCELL_SCAN"),
+        "a fork that keeps the cell off must not pay for a weekly cold build of it"
+    end
+
+    it "builds the cell from scratch and loads it for the scanner" do
+      expect(build_step.dig("with", "context")).to eq("hotcell")
+      expect(build_step.dig("with", "load")).to be(true)
+      expect(build_step.dig("with", "no-cache")).to be(true), "a cached apt layer hides current package state (#536)"
+      expect(build_step.dig("with", "cache-from")).to be_nil
+    end
+
+    it "fails on a fixable HIGH or CRITICAL finding" do
+      expect(trivy_step.dig("with", "severity")).to eq("CRITICAL,HIGH")
+      expect(trivy_step.dig("with", "exit-code")).to eq("1")
+      expect(trivy_step.dig("with", "image-ref")).to eq(build_step.dig("with", "tags"))
+    end
+  end
 end
