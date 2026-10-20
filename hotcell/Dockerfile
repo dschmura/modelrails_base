@@ -19,9 +19,9 @@ FROM ruby:${RUBY_VERSION}-slim
 # yet. It costs a layer and a little build time on every build.
 RUN apt-get update && apt-get upgrade -y --no-install-recommends && rm -rf /var/lib/apt/lists/*
 
-# libvips and its HEIF plugins, for the operations in operations/, and nothing else.
+# libvips and libheif's HEVC and AV1 decoders (named, so a missing one fails the build), and nothing else.
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends libvips42t64 && \
+    apt-get install -y --no-install-recommends libvips42t64 libheif-plugin-libde265 libheif-plugin-dav1d && \
     rm -rf /var/lib/apt/lists/*
 
 # A fork's own tools go on a RUN here, apart from the line above so upstream's changes to it merge cleanly.
@@ -62,7 +62,7 @@ COPY --chown=hotcell:hotcell Gemfile* ./
 USER hotcell
 RUN bundle install
 
-# HEIC and HEIF are allowed uploads (ApplicationRecord::IMAGE_CONTENT_TYPES); the build fails if this libvips can't load them.
+# HEIC and HEIF are allowed uploads (ApplicationRecord::IMAGE_CONTENT_TYPES): the build fails unless libvips registers its HEIF loader.
 RUN bundle exec ruby -e 'require "vips"; abort("heifload missing") if Vips.type_find("VipsForeignLoad", "heifload").zero?'
 
 COPY config.rb /hotcell/config.rb

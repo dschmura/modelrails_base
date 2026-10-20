@@ -1764,6 +1764,29 @@ RSpec.describe "Template invariants" do
         "or every conversion fails with EPERM after deploy"
     end
 
+    it "the cell answers before the app stops waiting" do
+      keywords = lambda do |source, method|
+        stack = [ Prism.parse(source).value ]
+        found = {}
+        while (node = stack.pop)
+          if node.is_a?(Prism::CallNode) && node.name == method
+            node.arguments&.arguments&.grep(Prism::KeywordHashNode)&.each do |hash|
+              hash.elements.each { |pair| found[pair.key.unescaped.to_sym] = pair.value.slice if pair.key.is_a?(Prism::SymbolNode) }
+            end
+          end
+          stack.concat(node.compact_child_nodes)
+        end
+        found
+      end
+      limits = keywords.call(File.read(root.join("hotcell/config.rb")), :limits)
+      timeout = Integer(keywords.call(initializer, :register).fetch(:timeout, "30"))
+      answer_within = Integer(limits.fetch(:queue_wait, "10")) + Integer(limits.fetch(:deadline, "60")) + 1
+
+      expect(answer_within).to be < timeout,
+        "the cell may take #{answer_within}s (queue_wait + deadline + 1) and the app waits #{timeout}s: every boot warns, " \
+        "and a slow request is a client timeout instead of the cell's own answer (/docs/developer/hot-cell, Tune it)"
+    end
+
     it "catches an operation the app never calls, and a class the cell does not serve" do
       extra = operation_sources + [ %(require "active_storage/hot_cell/server/previewers/pdf/mutool"\n) ]
       expect(required_operations.call(extra)).not_to match_array(configured_operations.call(initializer))
@@ -1799,6 +1822,24 @@ RSpec.describe "Template invariants" do
       expect(trivy_step.dig("with", "severity")).to eq("CRITICAL,HIGH")
       expect(trivy_step.dig("with", "exit-code")).to eq("1")
       expect(trivy_step.dig("with", "image-ref")).to eq(build_step.dig("with", "tags"))
+    end
+  end
+
+  describe "Hot Cell ships wired but off" do
+    it "names no Hot Cell class in any environment file" do
+      hits = Dir[root.join("config/environments/*.rb")].select { |file| File.read(file).match?(/HotCell/) }
+
+      expect(hits).to be_empty,
+        "the Hot Cell flip lives only in config/initializers/hotcell.rb, keyed on the cell being enabled: #{hits.join(", ")}"
+      expect(File.read(root.join("config/initializers/hotcell.rb"))).to include('HotCell.register "active_storage"')
+    end
+
+    it "loads the client everywhere and the server only in test" do
+      gemfile = File.read(root.join("Gemfile"))
+
+      expect(gemfile).to match(/^gem "activestorage-hotcell-client"/)
+      expect(gemfile[/^group :test do(.*?)^end/m, 1]).to include('gem "activestorage-hotcell-server", require: false'),
+        "the cell's gems belong in the test group only, for the proving spec; the production image installs without it"
     end
   end
 end
