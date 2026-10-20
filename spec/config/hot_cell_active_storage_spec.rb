@@ -1,17 +1,27 @@
 require "rails_helper"
-require "hot_cell/test_cell"
 
-# Active Storage through a real Hot Cell, forked from this process: every allowed image type thumbnails
-# and analyzes there, and failures are classified. The cell image's own libvips is proven in its build.
+# Active Storage through a real Hot Cell spawned as its own process (a cell forked from a process that has run
+# libvips crashes on Linux): every allowed image type thumbnails and analyzes there, and failures are classified.
 RSpec.describe "Active Storage through a Hot Cell" do
   fixtures = {
     "image/png" => "sample.png", "image/jpeg" => "sample.jpg", "image/gif" => "sample.gif",
     "image/webp" => "sample.webp", "image/heic" => "sample.heic", "image/heif" => "sample.heif"
   }
 
-  def boot_cell
-    HotCell::TestCell.boot(name: HotCell::Cell.new("active_storage").name,
-                           operations: -> { require "active_storage/hot_cell/server" })
+  def spawn_cell(root)
+    directory = File.join(root, "active_storage")
+    log = File.join(root, "cell.log")
+    pid = Process.spawn({ "HOTCELL_DIR" => directory,
+                          "HOTCELL_CONFIG" => Rails.root.join("hotcell/config.rb").to_s,
+                          "HOTCELL_OPERATIONS" => Rails.root.join("hotcell/operations").to_s },
+                        "bundle", "exec", "hotcell", "--development", out: log, err: log, chdir: Rails.root.to_s)
+    give_up = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 30
+    until File.socket?(File.join(directory, "work.sock")) && File.socket?(File.join(directory, "control.sock"))
+      exited = Process.waitpid(pid, Process::WNOHANG)
+      raise "the cell did not boot:\n#{File.read(log)}" if exited || Process.clock_gettime(Process::CLOCK_MONOTONIC) > give_up
+      sleep 0.05
+    end
+    pid
   end
 
   def upload(name, content_type)
@@ -31,20 +41,20 @@ RSpec.describe "Active Storage through a Hot Cell" do
   end
 
   before(:all) do
-    @tmpdir = ENV["TMPDIR"]
-    ENV["TMPDIR"] = "/tmp" if RUBY_PLATFORM.include?("darwin")
-    @cell = boot_cell
+    Vips::Image.new_from_file(Rails.root.join("spec/fixtures/files/hotcell/sample.png").to_s).thumbnail_image(8).write_to_buffer(".png")
+    @root = Dir.mktmpdir("hotcell", "/tmp")
+    @pid = spawn_cell(@root)
     @saved = [ HotCell.root, ActiveStorage.variant_transformer, ActiveStorage.analyzers ]
-    HotCell.root = @cell.socket_root
+    HotCell.root = @root
     ActiveStorage.variant_transformer = ActiveStorage::HotCell::Client::Transformers::Image::Vips
     ActiveStorage.analyzers = [ ActiveStorage::HotCell::Client::Analyzers::Image::Vips ]
   end
 
   after(:all) do
     HotCell.root, ActiveStorage.variant_transformer, ActiveStorage.analyzers = @saved
-    @cell.stop
-    @cell.cleanup
-    ENV["TMPDIR"] = @tmpdir
+    Process.kill(:TERM, @pid)
+    Process.wait(@pid)
+    FileUtils.rm_rf(@root)
   end
 
   it "covers every allowed image type" do
@@ -73,13 +83,12 @@ RSpec.describe "Active Storage through a Hot Cell" do
   end
 
   it "classifies an unreachable cell as a transient failure" do
-    stopped = boot_cell
-    HotCell.root = stopped.socket_root
-    stopped.stop
+    Dir.mktmpdir("hotcell", "/tmp") do |nobody_listening|
+      HotCell.root = nobody_listening
 
-    expect { thumbnail(upload("sample.png", "image/png")) }.to raise_error(HotCell::TransientFailure)
-  ensure
-    HotCell.root = @cell.socket_root
-    stopped&.cleanup
+      expect { thumbnail(upload("sample.png", "image/png")) }.to raise_error(HotCell::TransientFailure)
+    ensure
+      HotCell.root = @root
+    end
   end
 end
