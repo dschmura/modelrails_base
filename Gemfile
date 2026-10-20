@@ -66,8 +66,8 @@ gem "thruster", require: false
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
 gem "image_processing", "~> 2.2"
-# Variants run in this process while the Hot Cell is off (config/initializers/hotcell.rb),
-# so ruby-vips and the libvips system library stay; require: false, it loads on first use.
+# Variants run in this process while the Hot Cell is off (config/initializers/hotcell.rb), so ruby-vips
+# and the libvips system library stay. Active Storage's engine loads it at boot, whatever require says.
 gem "ruby-vips", require: false
 gem "active_storage_validations"
 gem "activestorage-hotcell-client"
