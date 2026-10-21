@@ -12,9 +12,7 @@ CVE-2026-33210
 # precompiled binary (0.1.27, the newest release; toolchain read from the
 # published x86_64-linux binary). Three denial-of-service findings, all fixed
 # only in Go 1.27.2 (stdlib) and x/net 0.60.0: crafted-HTTP net/http (78667),
-# net/http/internal/http2 and x/net/http2 (78669), crypto/tls (97031). A
-# crypto/x509 certificate finding (111943, HIGH, first reported by the 2026-10-21 scan) is fixed
-# only in Go 1.27.3; thruster's main builds on 1.27.2 and is unreleased. No
+# net/http/internal/http2 and x/net/http2 (78669), crypto/tls (97031). No
 # thruster release built on the fixed versions exists, so there is no action
 # available to us regardless of reachability. The eight go1.26.5-era entries
 # this block held were cleared by 0.1.27's go1.27.1 build, their Revisit
@@ -23,4 +21,3 @@ CVE-2026-33210
 CVE-2026-78667
 CVE-2026-78669
 CVE-2026-97031
-CVE-2026-111943
