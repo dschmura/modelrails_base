@@ -87,6 +87,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Fixed
 
+- crass 1.0.8 (the HTML sanitizer's CSS tokenizer) fixes GHSA-pq4g-8rxf-4g29, where incorrect tokenization of bad URLs enabled a CSS sanitizer bypass, so bundler-audit passes again.
 - modelrails_ui is pinned to v0.25.0, whose time-picker, panel-height, text-size and Reduce Motion fixes the vendored components already carry.
 - Choosing or removing a photo keeps the header avatar's unread dot and the profile avatar's pencil: each avatar is one partial that the page and both streams render.
 - axe-core 4.14 enforces WCAG 2.5.3 Label in Name, and every control whose name left out the text it shows now leads with that text: the user menu, avatar and logo buttons name the initials, the settings nav, ledger filters, Allow again and the time picker carry their visible words, and Lexxy's ALT button is renamed by the host until basecamp/lexxy#1304 ships.
