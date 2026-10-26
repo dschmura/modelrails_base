@@ -79,10 +79,10 @@
 
 /docs/
 
-# Credentials stay LOCAL. This template ships ZERO credential blobs or keys
-# (enforced by spec/code_smells/template_invariants_spec.rb) so a fork never
-# inherits the author's secrets — forks generate their own; deploys provide the
-# key/secrets via env. Ignore the whole credentials dir (both .enc and .key).
+# Credentials and other local secrets stay local; the template ships none
+# (spec/code_smells/template_invariants_spec.rb).
 /config/credentials/
 /config/credentials.yml.enc
 /config/master.key
+/fnox.local.toml
+/age.txt
