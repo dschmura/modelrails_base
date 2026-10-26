@@ -19,12 +19,12 @@ module RequiredProductionConfig
   def self.check!(env = ENV, credentials = Rails.application.credentials,
                   encryption = Rails.application.config.active_record.encryption)
     check_host!(env)
-    check_mail!(env)
+    check_mail!(env, credentials)
     check_encryption_keys!(credentials, encryption)
   end
 
-  def self.check_mail!(env)
-    problem = mail_problem(env) or return
+  def self.check_mail!(env, credentials)
+    problem = mail_problem(env, credentials) or return
 
     raise <<~MSG
       Production preflight failed: #{problem}.
@@ -32,23 +32,23 @@ module RequiredProductionConfig
       Sign-in is an email. Without a mail server it can log in to, the app boots,
       /up reports healthy, and every magic link, invitation and reset is a failed job.
 
-      Fix: point SMTP_ADDRESS at your provider and set SMTP_USERNAME and SMTP_PASSWORD
-        - Kamal: SMTP_ADDRESS under env.clear in config/deploy.yml, the credentials
-          under env.secret and referenced from .kamal/secrets, then redeploy
-        - Anything else: set the three environment variables
+      Fix: point SMTP_ADDRESS at your provider and put its login in credentials
+        - SMTP_ADDRESS: under env.clear in config/deploy.yml (Kamal), or the environment
+        - smtp.user_name and smtp.password: bin/rails credentials:edit --environment production
+          (staging: --environment staging), then redeploy
 
       Details: /docs/developer/deployment (Configure outbound mail section).
       Opting out for good: git rm config/initializers/required_production_config.rb
     MSG
   end
 
-  def self.mail_problem(env)
+  def self.mail_problem(env, credentials)
     address = env["SMTP_ADDRESS"].to_s.strip
     return "SMTP_ADDRESS is unset" if address.empty?
     return "SMTP_ADDRESS is #{address.inspect}" if LOOPBACK.match?(address) || PLACEHOLDER_HOST.match?(address)
 
-    blank = %w[SMTP_USERNAME SMTP_PASSWORD].select { |name| env[name].to_s.strip.empty? }
-    "#{blank.to_sentence} #{blank.one? ? "is" : "are"} unset" if blank.any?
+    blank = %i[user_name password].select { |key| credentials.dig(:smtp, key).to_s.strip.empty? }.map { |key| "smtp.#{key}" }
+    "#{blank.to_sentence} #{blank.one? ? "is" : "are"} unset in credentials" if blank.any?
   end
   private_class_method :mail_problem
 

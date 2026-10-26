@@ -16,6 +16,7 @@ RSpec.describe "Documentation cited paths" do
       "config/credentials.yml.enc" => "gitignored; a fork generates it with credentials:edit",
       "config/master.key" => "gitignored; every checkout keeps its own",
       "config/credentials/production.key" => "gitignored; a deployment keeps its own",
+      "config/credentials/staging.yml.enc" => "gitignored; a staging deploy generates its own",
       "app/assets/builds/tailwind.css" => "a build artifact; tailwindcss:build writes it"
     }
   end

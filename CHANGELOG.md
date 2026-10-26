@@ -87,6 +87,8 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Breaking
 
+- The SMTP login moves from `SMTP_USERNAME`/`SMTP_PASSWORD` into the credentials as `smtp.user_name` and `smtp.password`; production refuses to boot until it is there. `SMTP_ADDRESS` stays in the environment.
+- A deploy that sets `RAILS_CREDENTIALS_ENV=staging` decrypts `config/credentials/staging.yml.enc` while running as production, so staging no longer reads production's secrets.
 - CI's four static jobs (`scan_ruby`, `scan_js`, `lint`, `lint_docs`) are one `static` job, so a pull request bills one runner minute for them instead of four, and each check still runs after an earlier one fails. A ruleset that required the four names must require `static` instead.
 
 ### Fixed
