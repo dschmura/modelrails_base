@@ -1366,6 +1366,40 @@ RSpec.describe "Template invariants" do
     end
   end
 
+  describe "a deployer's local secrets stay out of git and out of the image" do
+    let(:local_secrets) { %w[config/master.key config/credentials/production.key .env fnox.local.toml age.txt] }
+    let(:dockerignore_rules) do
+      File.readlines(root.join(".dockerignore"), chomp: true).grep_v(/\A\s*(#|\z)/)
+    end
+
+    def git_ignores?(path)
+      system(clean_git_env, "git", "-C", root.to_s, "check-ignore", "--quiet", path)
+    end
+
+    def docker_excludes?(path)
+      dockerignore_rules.reduce(false) do |excluded, rule|
+        pattern = rule.delete_prefix("!").delete_prefix("/")
+        File.fnmatch?(pattern, path, File::FNM_PATHNAME | File::FNM_DOTMATCH) ? !rule.start_with?("!") : excluded
+      end
+    end
+
+    it "git ignores every one of them" do
+      tracked_if_created = local_secrets.reject { |path| git_ignores?(path) }
+      expect(tracked_if_created).to be_empty,
+        "expected .gitignore to cover #{tracked_if_created.join(', ')}"
+    end
+
+    it "still lets an app commit its fnox.toml, which holds only ciphertext" do
+      expect(git_ignores?("fnox.toml")).to be(false)
+    end
+
+    it "leaves every one of them out of the Docker build context" do
+      copied_into_image = local_secrets.reject { |path| docker_excludes?(path) }
+      expect(copied_into_image).to be_empty,
+        "expected .dockerignore to exclude #{copied_into_image.join(', ')}: `COPY . .` would bake them into the image"
+    end
+  end
+
   describe "parallel pull requests do not conflict on the changelog" do
     let(:repo) { Pathname.new(Dir.mktmpdir) }
     let(:env) do
