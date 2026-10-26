@@ -1,15 +1,5 @@
-# Audits the workflow tree with zizmor (https://docs.zizmor.sh) — the static
-# analyzer for GitHub Actions security: unpinned refs, credential persistence,
-# dangerous triggers, template injection.
-#
-# The auditor must not itself float: setup-uv is SHA-pinned and zizmor is
-# version-pinned below. Bump both deliberately (Dependabot rewrites the
-# setup-uv pin; the zizmor version is manual).
-#
-# Suppressions live inline in the workflows as `# zizmor: ignore[rule]`
-# comments with a justification comment beside each — the only current ones
-# are in dependabot-checksums.yml, whose pull_request_target + credentialed
-# checkout are that job's documented, actor-gated purpose.
+# Audits the workflow tree with zizmor, pinned so the auditor never floats; Dependabot bumps
+# setup-uv, the zizmor version is bumped by hand. A suppression is an inline `# zizmor: ignore[rule]`.
 
 name: Workflow audit
 

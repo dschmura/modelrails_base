@@ -1624,6 +1624,25 @@ RSpec.describe "Template invariants" do
     end
   end
 
+  describe "no workflow runs on pull_request_target" do
+    let(:triggers_by_workflow) do
+      Dir[root.join(".github/workflows/*.{yml,yaml}").to_s].to_h do |path|
+        on = YAML.safe_load(File.read(path), aliases: true).then { |workflow| workflow[true] || workflow["on"] }
+        [ Pathname(path).relative_path_from(root).to_s, Array(on.is_a?(Hash) ? on.keys : on) ]
+      end
+    end
+
+    it "reads a trigger from every workflow" do
+      expect(triggers_by_workflow.reject { |_path, triggers| triggers.any? }.keys).to be_empty
+    end
+
+    it "keeps every workflow off the trigger that pairs a writable token with a pull request's code" do
+      offenders = triggers_by_workflow.select { |_path, triggers| triggers.include?("pull_request_target") }.keys
+      expect(offenders).to be_empty,
+        "expected no workflow on pull_request_target, found: #{offenders.join(', ')}"
+    end
+  end
+
   describe "Dependabot leaves the git-tag-pinned design-system gem to hand bumps (#1261)" do
     # To Dependabot a git gem's current version is the lockfile SHA, so its default
     # cooldown proposes the newest OLDER tag as a bump — see /docs/developer/forking.
