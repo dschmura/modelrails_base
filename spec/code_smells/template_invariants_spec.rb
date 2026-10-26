@@ -1677,6 +1677,40 @@ RSpec.describe "Template invariants" do
     end
   end
 
+  describe "jactionlint audits the workflows at one version, in CI and before a push" do
+    let(:audit_steps) do
+      YAML.safe_load(File.read(root.join(".github/workflows/workflow_audit.yml")), aliases: true)
+        .fetch("jobs").values.flat_map { |job| job["steps"] }
+    end
+    let(:mise_tools) { File.read(root.join("mise.toml")).scan(/^([\w-]+) = "([^"]+)"$/).to_h }
+
+    it "pins jactionlint and the shellcheck it runs to exact versions that mise.lock locks" do
+      expect(mise_tools.keys).to include("jactionlint", "shellcheck")
+      mise_lock = File.read(root.join("mise.lock"))
+      mise_tools.each do |tool, version|
+        expect(version).to match(/\A\d+\.\d+\.\d+\z/), "expected mise.toml to pin #{tool} to an exact X.Y.Z"
+        expect(mise_lock).to include(%([[tools.#{tool}]]\nversion = "#{version}")),
+          "expected mise.lock to lock #{tool} #{version}; run `mise lock #{mise_tools.keys.join(' ')}`"
+      end
+    end
+
+    it "installs exactly mise.toml's tools in CI, from the lockfile, and runs the online checks" do
+      install = audit_steps.find { |step| step["uses"].to_s.start_with?("jdx/mise-action@") }
+      lint = audit_steps.find { |step| step["run"].to_s.include?("jactionlint") }
+
+      expect(install&.dig("with", "install_args").to_s.split).to match_array(mise_tools.keys),
+        "expected jdx/mise-action to install mise.toml's tools alone, not compile the .tool-versions Ruby"
+      expect(lint&.dig("run")).to include("--online")
+      expect(lint&.dig("env", "GITHUB_TOKEN")).to eq("${{ github.token }}")
+    end
+
+    it "runs the same jactionlint before a push that changes .github" do
+      command = YAML.safe_load(File.read(root.join("lefthook.yml")), aliases: true).dig("pre-push", "commands", "jactionlint") || {}
+      expect(command["run"].to_s).to start_with("mise exec -- jactionlint")
+      expect(command["glob"].to_s).to include(".github/**")
+    end
+  end
+
   describe "Dependabot leaves the git-tag-pinned design-system gem to hand bumps (#1261)" do
     # To Dependabot a git gem's current version is the lockfile SHA, so its default
     # cooldown proposes the newest OLDER tag as a bump — see /docs/developer/forking.

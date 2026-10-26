@@ -32,6 +32,8 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- jactionlint replaces zizmor as the workflow audit: one version, with the shellcheck it runs, pinned in `mise.toml` and checksummed in `mise.lock`, checked online in CI and offline before a push that touches `.github/`.
+- Dependabot waits seven days after a release before proposing a version bump; security updates still arrive at once.
 - Dependabot's lockfile bumps no longer get a job that restores the `CHECKSUMS` section: Dependabot keeps it now, and no workflow runs on `pull_request_target`.
 - An app's local fnox overrides (`fnox.local.toml`) and an age identity (`age.txt`) stay out of git and out of the production image, beside the credential keys.
 - The attachment guard accepts only validators known to leave an upload's bytes alone, so a new decoding validator (`pages:`, `duration:`, spoofing protection) fails it until someone has checked it.
