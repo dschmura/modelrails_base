@@ -355,8 +355,10 @@ bin/kamal deploy            # Standard deploy
 bin/kamal app logs -f       # Tail container logs
 bin/kamal app exec -i 'bin/rails console'   # Console on prod
 bin/kamal app exec 'bin/rails db:migrate'   # Run a one-off task
-bin/kamal redeploy          # Re-pull image and restart (no rebuild)
-bin/kamal rollback          # Revert to the previous deploy
+bin/kamal redeploy          # Deploy without re-bootstrapping servers or the proxy
+bin/kamal redeploy -P       # Same, on the image already pushed (no rebuild)
+bin/kamal app containers    # The versions still on the hosts
+bin/kamal rollback VERSION  # Boot one of those versions again
 ```
 
 Aliases defined in `config/deploy.yml` (you can shortcut these):
