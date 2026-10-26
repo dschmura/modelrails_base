@@ -78,6 +78,24 @@ so the key is `config/credentials/production.key` — not the single
 `.kamal/secrets` already reads that file; the value itself is what goes into a
 managed platform's settings.
 
+#### Credentials per deploy
+
+A staging deploy runs `RAILS_ENV=production`, so by default it would decrypt
+the production credentials, mail login included. Set
+`RAILS_CREDENTIALS_ENV=staging` in that deploy's environment and it decrypts
+`config/credentials/staging.yml.enc` with `staging.key` instead, whose value
+is then that deploy's `RAILS_MASTER_KEY`. Unset, nothing changes. Create the
+file through the same switch:
+
+```bash
+RAILS_ENV=production RAILS_CREDENTIALS_ENV=staging bin/rails credentials:edit
+```
+
+`bin/rails credentials:edit --environment staging` refuses here: it boots a
+`staging` Rails environment, and the template has none. Give staging your mail
+provider's sandbox or test stream as its `smtp` login, so it never mails a
+real user.
+
 > A root `.env` does **not** reach Kamal. Kamal's dotenv parses its own secrets
 > files, not `.env` — that file is for local Rails only.
 
@@ -88,21 +106,22 @@ the box through Action Mailer, so a deployment with no mail server boots,
 reports healthy at `/up`, and nobody can sign in. The preflight guard refuses
 that boot, which is why this step sits before the first deploy.
 
-Mail leaves over SMTP, configured entirely from the environment. Every
-provider named below speaks SMTP, so moving between them is a change of
+Mail leaves over SMTP. Where it goes comes from the environment and how it
+signs in comes from the credentials, which keep every app-runtime secret.
+Every provider named below speaks SMTP, so moving between them is a change of
 values, never of code:
 
-| Variable | Meaning | Default |
-| --- | --- | --- |
-| `SMTP_ADDRESS` | The provider's SMTP host | none; the guard refuses `localhost` and placeholders |
-| `SMTP_PORT` | Submission port | `587` |
-| `SMTP_USERNAME`, `SMTP_PASSWORD` | The provider's credentials, as secrets | none; the guard refuses a blank one |
-| `SMTP_DOMAIN` | The HELO domain | `RAILS_HOST` |
-| `MAIL_FROM` | The sender on every message | `noreply@RAILS_HOST` |
+| Setting | Where | Meaning | Default |
+| --- | --- | --- | --- |
+| `SMTP_ADDRESS` | environment | The provider's SMTP host | none; the guard refuses `localhost` and placeholders |
+| `SMTP_PORT` | environment | Submission port | `587` |
+| `smtp.user_name`, `smtp.password` | credentials | The provider's login | none; the guard refuses a blank one |
+| `SMTP_DOMAIN` | environment | The HELO domain | `RAILS_HOST` |
+| `MAIL_FROM` | environment | The sender on every message | `noreply@RAILS_HOST` |
 
-`config/deploy.yml` already carries the Postmark host under `env.clear` and the
-two credentials under `env.secret`; `.kamal/secrets` references them from the
-deployer's environment. A send that could not reach the server (a connect
+`config/deploy.yml` already carries the Postmark host under `env.clear`. The
+login travels inside the encrypted credentials, so `.kamal/secrets` and the
+deploy job never hold it. A send that could not reach the server (a connect
 timeout, a refused connection, a busy reply) is retried four more times over
 about seven minutes, inside a magic link's fifteen. Any other failure raises at
 once, so it fails its Solid Queue job where you can see it rather than
@@ -118,12 +137,14 @@ thousands. Check the current limits on their pricing page.
 1. Create a server for this app and keep its **Server API token**.
 2. Add your domain under Sender Signatures and publish the two DNS records it
    gives you (DKIM and Return-Path). Wait for both to verify.
-3. Export the token twice, as both halves of the credential, and deploy:
+3. Put the token in the production credentials twice, as both halves of the
+   login, then deploy:
 
-   ```bash
-   export SMTP_USERNAME=<server-api-token>
-   export SMTP_PASSWORD=<server-api-token>
-   kamal deploy
+   ```yaml
+   # bin/rails credentials:edit --environment production
+   smtp:
+     user_name: <server-api-token>
+     password: <server-api-token>
    ```
 
 `SMTP_ADDRESS` is already `smtp.postmarkapp.com` and the port `587`. Messages go
@@ -132,12 +153,13 @@ to the server's default transactional stream.
 #### Amazon SES over SMTP, the second recipe
 
 The path when a fork needs an EU region, a BAA, or volume pricing. Same six
-variables; the differences are where the values come from.
+settings; the differences are where the values come from.
 
 1. In the region you want, verify the sending domain (Easy DKIM publishes the
    DNS records for you).
-2. Create **SMTP credentials** from the SES console. They are an IAM user's
-   derived SMTP password, not the account's access keys.
+2. Create **SMTP credentials** from the SES console and put them in the
+   production credentials as `smtp.user_name` and `smtp.password`. They are an
+   IAM user's derived SMTP password, not the account's access keys.
 3. Request production access; a new account starts in a sandbox that only
    delivers to verified addresses.
 4. Point the deployment at the regional endpoint:
@@ -294,7 +316,7 @@ Before the first deploy:
 
 ## Production preflight
 
-`config/initializers/required_production_config.rb` refuses to boot a production process when `RAILS_HOST` is unset or still a placeholder (`example.com`, anything ending in `.example`), when `SMTP_ADDRESS` is unset, `localhost` or a placeholder, or `SMTP_USERNAME` or `SMTP_PASSWORD` is blank (see [Configure outbound mail](#3-configure-outbound-mail)), or when the Active Record encryption keys are missing from the production credentials. The reason it refuses rather than warns: every mailer link — magic links, password resets, invitations — is generated from `RAILS_HOST`, and DNS-rebinding protection (`config.hosts`) is derived from it. With a placeholder value the app boots, `/up` reports healthy, and nobody can sign in. Missing encryption keys fail the same way — healthy `/up`, then the first read of a user raises. A failed boot is the only version of either failure you can see. Keys: `bin/rails db:encryption:init`, pasted into `bin/rails credentials:edit --environment production` ([Forking](/docs/developer/forking#bootstrap-secrets-and-configuration)).
+`config/initializers/required_production_config.rb` refuses to boot a production process when `RAILS_HOST` is unset or still a placeholder (`example.com`, anything ending in `.example`), when `SMTP_ADDRESS` is unset, `localhost` or a placeholder, or the credentials' `smtp.user_name` or `smtp.password` is blank (see [Configure outbound mail](#3-configure-outbound-mail)), or when the Active Record encryption keys are missing from the production credentials. The reason it refuses rather than warns: every mailer link — magic links, password resets, invitations — is generated from `RAILS_HOST`, and DNS-rebinding protection (`config.hosts`) is derived from it. With a placeholder value the app boots, `/up` reports healthy, and nobody can sign in. Missing encryption keys fail the same way — healthy `/up`, then the first read of a user raises. A failed boot is the only version of either failure you can see. Keys: `bin/rails db:encryption:init`, pasted into `bin/rails credentials:edit --environment production` ([Forking](/docs/developer/forking#bootstrap-secrets-and-configuration)).
 
 Rules the guard follows:
 

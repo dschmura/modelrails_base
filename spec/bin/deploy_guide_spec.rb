@@ -63,11 +63,11 @@ RSpec.describe "bin/deploy-guide" do
   end
 
   describe "outbound mail" do
-    it "names the SMTP settings for every target, since the preflight refuses to boot without them" do
+    it "names the SMTP server and the credentials login for every target, since the preflight refuses to boot without them" do
       %w[kamal managed].each do |target|
         stdout, _stderr, _status = run_guide(target)
 
-        expect(stdout).to include("SMTP_ADDRESS", "SMTP_USERNAME", "SMTP_PASSWORD"), target
+        expect(stdout).to include("SMTP_ADDRESS", "smtp.user_name", "smtp.password"), target
       end
     end
   end
