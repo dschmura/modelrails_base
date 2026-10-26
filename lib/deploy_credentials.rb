@@ -1,5 +1,4 @@
-# Staging runs RAILS_ENV=production on its own credentials, named in RAILS_CREDENTIALS_ENV.
-# Unset, Rails picks credentials by RAILS_ENV. /docs/developer/deployment (Credentials per deploy).
+# Staging runs as production on its own credentials: /docs/developer/deployment (Credentials per deploy).
 module DeployCredentials
   NAME = /\A[a-z][a-z0-9_]*\z/
 

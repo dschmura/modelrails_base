@@ -1,7 +1,6 @@
 require "rails_helper"
 require "mail_delivery"
 
-# Where mail goes comes from ENV and how it signs in from credentials (#1318).
 RSpec.describe MailDelivery do
   let(:env) { { "RAILS_HOST" => "app.humbledaisy.com", "SMTP_ADDRESS" => "smtp.postmarkapp.com" } }
   let(:credentials) { { smtp: { user_name: "token", password: "token" } } }
