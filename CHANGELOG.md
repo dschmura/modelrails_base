@@ -93,6 +93,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Fixed
 
+- net-ssh 7.3.8 (Kamal's SSH transport) fixes seven advisories published against 7.3.3, among them shell injection through ProxyCommand and ProxyJump templates, so bundler-audit passes again.
 - crass 1.0.8 (the HTML sanitizer's CSS tokenizer) fixes GHSA-pq4g-8rxf-4g29, where incorrect tokenization of bad URLs enabled a CSS sanitizer bypass, so bundler-audit passes again.
 - modelrails_ui is pinned to v0.25.0, whose time-picker, panel-height, text-size and Reduce Motion fixes the vendored components already carry.
 - Choosing or removing a photo keeps the header avatar's unread dot and the profile avatar's pencil: each avatar is one partial that the page and both streams render.
