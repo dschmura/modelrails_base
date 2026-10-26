@@ -32,6 +32,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- A fork commits its encrypted credentials: `.gitignore` ignores only the key files, since Kamal builds the image from a clone of the commit. The template itself still ships none.
 - jactionlint replaces zizmor as the workflow audit: one version, with the shellcheck it runs, pinned in `mise.toml` and checksummed in `mise.lock`, checked online in CI and offline before a push that touches `.github/`.
 - Dependabot waits seven days after a release before proposing a version bump; security updates still arrive at once.
 - Dependabot's lockfile bumps no longer get a job that restores the `CHECKSUMS` section: Dependabot keeps it now, and no workflow runs on `pull_request_target`.

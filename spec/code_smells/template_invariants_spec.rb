@@ -1351,18 +1351,19 @@ RSpec.describe "Template invariants" do
     end
   end
 
-  describe "the template ships zero encrypted credential blobs" do
-    # A committed .yml.enc is undecryptable dead weight to every fork and a
-    # guaranteed merge conflict whenever upstream rotates a secret. Forks
-    # generate per-environment credentials on day one (README "Forking this
-    # template") and may commit their own blobs in their private repos.
-    it "tracks no credential blobs or keys in git" do
-      tracked = IO.popen(clean_git_env, [ "git", "-C", root.to_s, "ls-files", "config" ], &:read)
-        .to_s.lines.map(&:strip)
-      offenders = tracked.grep(/\.yml\.enc\z|master\.key\z|credentials\/.*\.key\z/)
-      expect(offenders).to be_empty,
-        "expected no encrypted credential blobs or keys tracked in git, found: " \
-        "#{offenders.join(', ')}. The template ships zero credentials; see README."
+  describe "credentials in git: keys never, encrypted files only from a fork" do
+    let(:tracked) { IO.popen(clean_git_env, [ "git", "-C", root.to_s, "ls-files", "config" ], &:read).to_s.lines.map(&:strip) }
+
+    it "tracks no credentials key" do
+      keys = tracked.grep(/master\.key\z|credentials\/.*\.key\z/)
+      expect(keys).to be_empty, "expected no credentials key tracked in git, found: #{keys.join(', ')}"
+    end
+
+    it "ships no encrypted credentials from the template itself" do
+      skip "fork — a fork commits the encrypted credentials its image is built from" if root.join(".fork.yml").exist?
+
+      blobs = tracked.grep(/\.yml\.enc\z/)
+      expect(blobs).to be_empty, "expected the template to track no encrypted credentials, found: #{blobs.join(', ')}"
     end
   end
 
@@ -1389,8 +1390,11 @@ RSpec.describe "Template invariants" do
         "expected .gitignore to cover #{tracked_if_created.join(', ')}"
     end
 
-    it "still lets an app commit its fnox.toml, which holds only ciphertext" do
-      expect(git_ignores?("fnox.toml")).to be(false)
+    it "still lets an app commit the encrypted files it deploys from" do
+      encrypted = %w[fnox.toml config/credentials/production.yml.enc config/credentials/staging.yml.enc config/credentials.yml.enc]
+      ignored = encrypted.select { |path| git_ignores?(path) }
+      expect(ignored).to be_empty,
+        "expected #{ignored.join(', ')} to stay committable: Kamal builds the image from a clone of the commit"
     end
 
     it "leaves every one of them out of the Docker build context" do

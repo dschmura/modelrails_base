@@ -79,10 +79,6 @@
 
 /docs/
 
-# Credentials and other local secrets stay local; the template ships none
-# (spec/code_smells/template_invariants_spec.rb).
-/config/credentials/
-/config/credentials.yml.enc
-/config/master.key
+# Local secrets beside the key files above; encrypted credentials stay committable for the image.
 /fnox.local.toml
 /age.txt

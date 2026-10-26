@@ -91,6 +91,9 @@ file through the same switch:
 RAILS_ENV=production RAILS_CREDENTIALS_ENV=staging bin/rails credentials:edit
 ```
 
+Commit `staging.yml.enc` beside `production.yml.enc`: Kamal builds the image
+from a clone of the commit, and only the keys stay out of git.
+
 `bin/rails credentials:edit --environment staging` refuses here: it boots a
 `staging` Rails environment, and the template has none. Give staging your mail
 provider's sandbox or test stream as its `smtp` login, so it never mails a
