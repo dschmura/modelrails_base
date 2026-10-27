@@ -1,7 +1,6 @@
 name: Deploy
 
-# A merge into main deploys production; into release/** deploys staging. Off until
-# DEPLOY_PRODUCTION / DEPLOY_STAGING is true: /docs/developer/deployment (Deploy from CI).
+# Setup (variables, environments, secrets): /docs/developer/deployment (Deploy from CI).
 on:
   push:
     branches: [ main, "release/**" ]
