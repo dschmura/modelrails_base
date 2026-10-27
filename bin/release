@@ -19,6 +19,7 @@ class Release
   TEMPLATE = ".github/PULL_REQUEST_TEMPLATE/release.md"
   USAGE = "usage: bin/release prepare | cut | ship <PR> <reviewed-sha> | merge-back"
   ONCE_READY = "once its checks pass and any required approval is given"
+  BODY_LIMIT = 60_000
 
   def initialize(options, root: Dir.pwd)
     @opts = options
@@ -62,11 +63,11 @@ class Release
     raise Error, "next's CHANGELOG.md names no release yet: run bin/release prepare and let its PR merge" unless name
     raise Error, "v#{name} already shipped: run bin/release prepare for the next one" if tagged?(name)
 
-    open = remote_refs.find { |ref| ref.start_with?("refs/heads/release/") }
+    branch = "release/#{name}"
+    open = remote_refs.find { |ref| ref.start_with?("refs/heads/release/") && ref != "refs/heads/#{branch}" }
     raise Error, "#{open.delete_prefix('refs/heads/')} is still open: ship it or delete it before cutting another" if open
     raise Error, "main isn't in next yet: merge the open merge-back PR first" unless ancestor?("origin/main", "origin/next")
 
-    branch = "release/#{name}"
     say("== Cut #{branch} ==")
     return dry("push #{branch} at next and open its PR into main") if dry_run?
 
@@ -141,7 +142,8 @@ class Release
     fetch
     return say("  ✓ v#{name} already published") if tagged?(name)
 
-    notes = ReleaseChangelog.section(git("show", "#{commit}:CHANGELOG.md"), name).to_s
+    notes = fit(ReleaseChangelog.section(git("show", "#{commit}:CHANGELOG.md"), name).to_s,
+                BODY_LIMIT, "the full list is in CHANGELOG.md at v#{name}")
     gh("release", "create", "v#{name}", "--target", commit, "--title", "Release #{name}", "--notes-file", "-", stdin: notes)
     say("  → merged and published v#{name}")
   end
@@ -151,15 +153,24 @@ class Release
     git("push", "-q", "origin", "#{at}:refs/heads/#{branch}") unless branch?(branch)
     url, created = gh("pr", "create", "--base", base, "--head", branch, "--title", title, "--body-file", "-",
                       stdin: body, status: true)
+    raise Error, "gh pr create failed: #{url}" unless created || url.include?("already exists")
+
     url = gh("pr", "view", branch, "--json", "url", "--jq", ".url") unless created
     gh("pr", "merge", url, "--auto", "--merge") if auto_merge
     url
   end
 
   def release_body(branch, section)
-    File.read(File.join(@root, TEMPLATE))
-        .sub("`release/YYYY.MM.DD`", "`#{branch}`")
-        .sub(/(## What ships\n\n)<!--.*?-->/m) { "#{$1}#{section}" }
+    template = File.read(File.join(@root, TEMPLATE)).sub("`release/YYYY.MM.DD`", "`#{branch}`")
+    room = BODY_LIMIT - template.length
+    template.sub(/(## What ships\n\n)<!--.*?-->/m) { "#{$1}#{fit(section, room, "the full list is in CHANGELOG.md on #{branch}")}" }
+  end
+
+  def fit(text, limit, rest)
+    note = "\n\n…and more: #{rest}."
+    return text if text.length <= limit
+
+    text[0, limit - note.length].sub(/\n[^\n]*\z/, "") + note
   end
 
   def commit_on(parent, files, message:)

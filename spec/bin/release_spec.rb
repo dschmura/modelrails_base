@@ -216,6 +216,36 @@ RSpec.describe Release do
       expect(remote_heads).not_to include("release/2026.10.27")
     end
 
+    it "picks up its own branch when a stopped run already pushed it" do
+      setup_repo(next_changelog: named)
+      git("push", "-q", "origin", "origin/next:refs/heads/release/2026.10.27")
+      run_release("cut")
+
+      expect(calls).to include("CALL pr create --base main --head release/2026.10.27")
+    end
+
+    context "when GitHub refuses to open the PR for a reason other than an open one" do
+      let(:gh_create) { "echo 'Body is too long (maximum is 65536 characters)' >&2; exit 1" }
+
+      it "reports GitHub's reason" do
+        setup_repo(next_changelog: named)
+
+        expect { run_release("cut") }.to raise_error(Release::Error, /Body is too long/)
+        expect(calls).not_to include("--jq .url")
+      end
+    end
+
+    it "trims what ships to fit GitHub's limit and points to the full section" do
+      long = named.sub("- First feature.\n", "- First feature.\n" + ("- An entry long enough to add up quickly across a release.\n" * 1500))
+      setup_repo(next_changelog: long)
+      run_release("cut")
+
+      body = calls[/BODY<<\n(.*?)>>BODY/m, 1]
+      expect(body.length).to be <= Release::BODY_LIMIT
+      expect(body).to include("CHANGELOG.md on release/2026.10.27")
+      expect(body).to include("bin/release ship")
+    end
+
     it "refuses until the last merge-back has landed on next" do
       setup_repo(next_changelog: named)
       git("commit", "-q", "--allow-empty", "-m", "hotfix")
@@ -252,6 +282,19 @@ RSpec.describe Release do
         expect(calls).not_to include("release create")
         expect(remote_heads).not_to include("merge-back/2026.10.27")
       end
+    end
+
+    it "trims the release notes to fit GitHub's limit" do
+      long = named.sub("- First feature.\n", "- First feature.\n" + ("- An entry long enough to add up quickly across a release.\n" * 2500))
+      clone.join("CHANGELOG.md").write(long)
+      git("commit", "-q", "-am", "long")
+      git("push", "-q", "origin", "HEAD:main")
+      mark_merged(release_pr, git("rev-parse", "HEAD"))
+      run_release("ship", "42", "abc1234")
+
+      notes = calls[/CALL release create.*?BODY<<\n(.*?)>>BODY/m, 1]
+      expect(notes.length).to be <= Release::BODY_LIMIT
+      expect(notes).to include("CHANGELOG.md")
     end
 
     it "skips what a stopped run already did when run again" do
