@@ -161,3 +161,8 @@ The flow is a default, not a requirement. The branch rules live in
 steps in `bin/release`, and this page and the release template in
 `.github/PULL_REQUEST_TEMPLATE/release.md` describe them. Change all of them
 together.
+
+The changelog convention is separate from the flow. It lives in
+`lib/release_changelog.rb`, which `bin/release` uses only through `cut`,
+`section` and `prepared_name`. A fork that keeps its changelog another way
+replaces that file and leaves the rest alone.

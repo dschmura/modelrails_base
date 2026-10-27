@@ -102,31 +102,6 @@ RSpec.describe Release do
   def remote_heads = git("ls-remote", "--heads", "origin").lines.map { |l| l.split.last.delete_prefix("refs/heads/") }
   def remote_file(ref, path) = git("show", "#{ref}:#{path}")
 
-  describe "the changelog cut" do
-    subject(:cut) { Release::Changelog.cut(changelog, "2026.10.27") }
-
-    it "names the release and starts a fresh, empty [Unreleased] above it" do
-      expect(cut).to start_with("# Changelog\n\n## [Unreleased]\n\n## v2026.10.27\n\n")
-    end
-
-    it "folds repeated subsections into one each, in first-appearance order" do
-      section = cut[/## v2026\.10\.27\n(.*?)## v2\.0\.0/m, 1]
-
-      expect(section.scan(/^### .+/)).to eq([ "### Added", "### Fixed" ])
-      expect(section).to include("### Added\n\n- First feature.\n- Second feature.\n")
-    end
-
-    it "leaves earlier releases alone" do
-      expect(cut).to end_with("## v2.0.0 — Earlier\n\n- Old.\n")
-    end
-
-    it "refuses an [Unreleased] with nothing in it" do
-      empty = "# Changelog\n\n## [Unreleased]\n\n## v2.0.0\n\n- Old.\n"
-
-      expect { Release::Changelog.cut(empty, "2026.10.27") }.to raise_error(Release::Error, /nothing/)
-    end
-  end
-
   describe "naming" do
     before { setup_repo }
 
@@ -152,7 +127,7 @@ RSpec.describe Release do
       run_release("prepare")
 
       expect(remote_heads).to include("changelog/2026.10.27")
-      expect(remote_file("origin/changelog/2026.10.27", "CHANGELOG.md")).to eq(Release::Changelog.cut(changelog, "2026.10.27").chomp)
+      expect(remote_file("origin/changelog/2026.10.27", "CHANGELOG.md")).to eq(ReleaseChangelog.cut(changelog, "2026.10.27").chomp)
       expect(git("rev-parse", "origin/changelog/2026.10.27^")).to eq(git("rev-parse", "origin/next"))
       expect(calls).to include("CALL pr create --base next --head changelog/2026.10.27")
       expect(calls).to include("CALL pr merge https://github.com/me/app/pull/42 --auto --merge")
@@ -174,7 +149,7 @@ RSpec.describe Release do
   end
 
   describe "cut" do
-    let(:prepared) { Release::Changelog.cut(changelog, "2026.10.27").sub("## [Unreleased]\n", "## [Unreleased]\n\n### Added\n\n- Landed after prepare.\n") }
+    let(:prepared) { ReleaseChangelog.cut(changelog, "2026.10.27").sub("## [Unreleased]\n", "## [Unreleased]\n\n### Added\n\n- Landed after prepare.\n") }
 
     it "pushes release/<name> at next and opens the release PR with what ships" do
       setup_repo(next_changelog: prepared)
