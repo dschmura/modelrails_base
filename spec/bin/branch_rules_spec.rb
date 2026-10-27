@@ -90,7 +90,7 @@ RSpec.describe BranchRules do
     end
   end
 
-  it "makes next the default branch, deletes merged branches and allows auto-merge for agents like Sitehut" do
+  it "makes next the default branch, deletes merged branches and allows auto-merge" do
     run_rules
 
     expect(writes).to include("CALL api -X PATCH repos/me/app -f default_branch=next -F delete_branch_on_merge=true -F allow_merge_commit=true -F allow_auto_merge=true")

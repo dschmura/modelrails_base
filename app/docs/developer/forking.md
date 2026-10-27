@@ -269,7 +269,7 @@ bin/branch-rules --solo   # no approval: you merge your own PRs
 ```
 
 It creates `next` from `main` and makes it the default branch, turns on
-auto-merge (which an agent such as Sitehut uses to land a PR once its checks
+auto-merge (a PR, yours or an agent's, can be queued to merge once its checks
 pass; the rules still apply), then applies
 the rulesets in `config/github/rulesets/`. Under those rules, `next`,
 `release/**` and `main` take changes only by PR, and only after `static` and
