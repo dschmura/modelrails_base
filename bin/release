@@ -1,0 +1,209 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Walks a release from next to main: /docs/developer/releasing. Swap it with the flow.
+# Commits through a temporary index, so the checkout and working tree are never touched.
+
+require "date"
+require "json"
+require "open3"
+require "optparse"
+require "tmpdir"
+require_relative "../lib/clean_git_env"
+
+class Release
+  class Error < StandardError; end
+
+  CLEAN_GIT_ENV = ::CleanGitEnv::HASH
+  TEMPLATE = ".github/PULL_REQUEST_TEMPLATE/release.md"
+  NAME = '\d{4}\.\d{2}\.\d{2}(?:-\d+)?'
+
+  module Changelog
+    UNRELEASED = "## [Unreleased]\n"
+
+    module_function
+
+    def cut(text, name)
+      head, rest = text.split(UNRELEASED, 2)
+      raise Error, "CHANGELOG.md has no #{UNRELEASED.strip} section" if rest.nil?
+
+      body, tail = rest.split(/^(?=## )/, 2)
+      sections = fold(body)
+      raise Error, "#{UNRELEASED.strip} has nothing in it; there is nothing to release" if sections.empty?
+
+      released = sections.map { |title, lines| "### #{title}\n\n#{lines.join("\n")}\n" }.join("\n")
+      "#{head}#{UNRELEASED}\n## v#{name}\n\n#{released}\n#{tail}"
+    end
+
+    def fold(body)
+      body.lines(chomp: true).each_with_object({}) do |line, sections|
+        if (title = line[/\A### (.+)/, 1])
+          @current = title
+          sections[title] ||= []
+        elsif !line.strip.empty?
+          (sections[@current || "Changed"] ||= []) << line
+        end
+      end.tap { @current = nil }
+    end
+
+    def section(text, name)
+      text[/^## v#{Regexp.escape(name)}\n(.*?)(?=^## |\z)/m, 1]&.strip
+    end
+
+    def prepared_name(text)
+      text[/^## \[Unreleased\]\n.*?^## v(#{NAME})$/m, 1]
+    end
+  end
+
+  def initialize(options, root: Dir.pwd)
+    @opts = options
+    @root = File.expand_path(root)
+  end
+
+  def run(command, *args)
+    case command
+    when "prepare" then prepare
+    when "cut"     then cut
+    when "ship"    then ship(*args)
+    when "sync"    then sync("main-#{git('rev-parse', '--short=7', 'origin/main')}", after: "a hotfix")
+    else raise Error, "usage: bin/release prepare | cut | ship <PR> <reviewed-sha> | sync"
+    end
+  end
+
+  def prepare
+    fetch
+    name = free_name
+    changelog = Changelog.cut(git("show", "origin/next:CHANGELOG.md") + "\n", name)
+    branch = "changelog/#{name}"
+    say("== Prepare v#{name} ==")
+    return dry("push #{branch} (CHANGELOG.md cut for v#{name}) and queue its PR into next") if dry_run?
+
+    commit = commit_on("origin/next", "CHANGELOG.md" => changelog, message: "The changelog names release #{name}")
+    git("push", "-q", "origin", "#{commit}:refs/heads/#{branch}")
+    url = gh("pr", "create", "--base", "next", "--head", branch, "--title", "Changelog for release #{name}",
+             "--body-file", "-", stdin: "Names `[Unreleased]` as v#{name} so `bin/release cut` can cut it.\n")
+    gh("pr", "merge", url, "--auto", "--merge")
+    say("  → #{url}, merging into next once its checks pass")
+    say("Next: bin/release cut, once it has merged.")
+  end
+
+  def cut
+    fetch
+    changelog = git("show", "origin/next:CHANGELOG.md")
+    name = Changelog.prepared_name(changelog)
+    raise Error, "next's CHANGELOG.md names no release yet: run bin/release prepare and let its PR merge" unless name
+    raise Error, "v#{name} already shipped: run bin/release prepare for the next one" if remote_refs.include?("refs/tags/v#{name}")
+
+    branch = "release/#{name}"
+    raise Error, "#{branch} already exists: its release PR is open" if remote_refs.include?("refs/heads/#{branch}")
+
+    say("== Cut #{branch} ==")
+    return dry("push #{branch} at next and open its PR into main") if dry_run?
+
+    git("push", "-q", "origin", "#{git('rev-parse', 'origin/next')}:refs/heads/#{branch}")
+    url = gh("pr", "create", "--base", "main", "--head", branch, "--title", "Release #{name}",
+             "--body-file", "-", stdin: release_body(branch, Changelog.section(changelog, name)))
+    say("  → #{url}")
+    say("Next: review it on staging, then bin/release ship <PR> <the commit staging runs>.")
+  end
+
+  def ship(pr = nil, sha = nil)
+    raise Error, "usage: bin/release ship <PR> <the commit reviewed on staging>" unless pr && sha
+
+    info = JSON.parse(gh("pr", "view", pr, "--json", "headRefName,baseRefName,mergeCommit"))
+    name = info["headRefName"].to_s[%r{\Arelease/(#{NAME})\z}, 1]
+    raise Error, "PR #{pr} is not a release/* branch into main" unless name && info["baseRefName"] == "main"
+
+    say("== Ship v#{name} ==")
+    return dry("merge PR #{pr} at #{sha}, tag v#{name}, and queue the merge-back into next") if dry_run?
+
+    gh("pr", "merge", pr, "--merge", "--match-head-commit", sha)
+    merged = JSON.parse(gh("pr", "view", pr, "--json", "headRefName,baseRefName,mergeCommit")).dig("mergeCommit", "oid")
+    fetch
+    git("tag", "-a", "v#{name}", merged, "-m", "Release #{name}")
+    git("push", "-q", "origin", "v#{name}")
+    say("  → merged and tagged v#{name}")
+    sync(name, after: "release #{name}")
+  end
+
+  def sync(label, after:)
+    fetch
+    branch = "sync/#{label}"
+    say("== Merge main back into next ==")
+    return dry("push #{branch} at main and queue its PR into next") if dry_run?
+
+    git("push", "-q", "origin", "#{git('rev-parse', 'origin/main')}:refs/heads/#{branch}")
+    url = gh("pr", "create", "--base", "next", "--head", branch, "--title", "Merge main back into next after #{after}",
+             "--body-file", "-", stdin: "Brings `main` back into `next` after #{after}. Merge with a merge commit.\n")
+    gh("pr", "merge", url, "--auto", "--merge")
+    gh("api", "-X", "PUT", "repos/{owner}/{repo}/pulls/#{url.split('/').last}/update-branch", allow_failure: true)
+    say("  → #{url}, merging into next once its checks pass")
+  end
+
+  private
+
+  def dry_run? = @opts[:dry_run]
+  def say(msg) = puts(msg)
+  def dry(msg) = say("  [dry-run] would #{msg}")
+  def fetch = git("fetch", "-q", "--prune", "--tags", "origin")
+
+  def free_name
+    date = @opts.fetch(:today) { Date.today }.strftime("%Y.%m.%d")
+    taken = remote_refs
+    (1..).lazy.map { |n| n == 1 ? date : "#{date}-#{n}" }.find do |name|
+      !taken.include?("refs/tags/v#{name}") && !taken.include?("refs/heads/release/#{name}")
+    end
+  end
+
+  def remote_refs = git("ls-remote", "--heads", "--tags", "origin").lines.map { |l| l.split.last }
+
+  def release_body(branch, section)
+    File.read(File.join(@root, TEMPLATE))
+        .sub("`release/YYYY.MM.DD`", "`#{branch}`")
+        .sub(/(## What ships\n\n)<!--.*?-->/m) { "#{$1}#{section}" }
+  end
+
+  def commit_on(parent, files)
+    message = files.delete(:message)
+    Dir.mktmpdir do |dir|
+      env = CLEAN_GIT_ENV.merge("GIT_INDEX_FILE" => File.join(dir, "index"))
+      git("read-tree", parent, env: env)
+      files.each do |path, content|
+        blob = git("hash-object", "-w", "--stdin", stdin: content)
+        git("update-index", "--add", "--cacheinfo", "100644,#{blob},#{path}", env: env)
+      end
+      git("commit-tree", git("write-tree", env: env), "-p", parent, "-m", message)
+    end
+  end
+
+  def git(*args, env: CLEAN_GIT_ENV, stdin: nil)
+    out, err, status = Open3.capture3(env, "git", "-C", @root, *args, stdin_data: stdin.to_s)
+    raise Error, "git #{args.first} failed: #{err.strip}" unless status.success?
+
+    out.strip
+  end
+
+  def gh(*args, stdin: nil, allow_failure: false)
+    out, err, status = Open3.capture3(CLEAN_GIT_ENV, "gh", *args, stdin_data: stdin.to_s, chdir: @root)
+    raise Error, "gh #{args.first(2).join(' ')} failed: #{err.strip}" unless status.success? || allow_failure
+
+    out.strip
+  rescue Errno::ENOENT
+    raise Error, "bin/release needs the GitHub CLI (gh), signed in"
+  end
+end
+
+if $PROGRAM_NAME == __FILE__
+  options = {}
+  parser = OptionParser.new do |o|
+    o.banner = "Usage: bin/release prepare | cut | ship <PR> <reviewed-sha> | sync   (see /docs/developer/releasing)"
+    o.on("--dry-run", "Print the plan without changing anything") { options[:dry_run] = true }
+  end
+  parser.parse!
+
+  begin
+    Release.new(options, root: File.expand_path("..", __dir__)).run(*ARGV)
+  rescue Release::Error => e
+    abort("bin/release: #{e.message}")
+  end
+end

@@ -7,7 +7,7 @@
 
 ## What ships
 
-<!-- The PRs merged since the last release: git log --merges --oneline origin/main..HEAD -->
+<!-- bin/release cut fills this with the release's CHANGELOG.md section. -->
 
 ## Held back
 
@@ -15,8 +15,8 @@
 
 ## Ship it
 
-The merge button doesn't check what was reviewed. This does, and refuses if the branch moved since:
+The merge button doesn't check what was reviewed. This does, refusing if the branch moved since, then tags the release and merges `main` back into `next`:
 
 ```bash
-gh pr merge <this PR> --merge --match-head-commit <the commit above>
+bin/release ship <this PR> <the commit above>
 ```
