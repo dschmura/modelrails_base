@@ -321,12 +321,13 @@ bin/rails credentials:edit --environment development
 ```
 
 ```yaml
-google:
-  client_id: your_id
-  client_secret: your_secret
-github:
-  client_id: your_id
-  client_secret: your_secret
+oauth:
+  google:
+    client_id: your_id
+    client_secret: your_secret
+  github:
+    client_id: your_id
+    client_secret: your_secret
 ```
 
 ## Next steps

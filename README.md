@@ -70,13 +70,13 @@ bin/rails credentials:edit --environment development
 Add the following structure:
 
 ```yaml
-google:
-  client_id: your_google_client_id
-  client_secret: your_google_client_secret
-
-github:
-  client_id: your_github_client_id
-  client_secret: your_github_client_secret
+oauth:
+  google:
+    client_id: your_google_client_id
+    client_secret: your_google_client_secret
+  github:
+    client_id: your_github_client_id
+    client_secret: your_github_client_secret
 ```
 
 OAuth is optional — email/password sign-up works without it.
