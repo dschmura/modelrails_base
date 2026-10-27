@@ -57,6 +57,7 @@ RSpec.describe ForkFlow do
       ".gitignore" => ".env\n",
       "config/application.rb" => "module ModelrailsBase\n  class Application < Rails::Application\n  end\nend\n",
       "config/deploy.yml" => "service: modelrails_base\nimage: you/modelrails_base\n",
+      "config/deploy.staging.yml" => "volumes:\n  - \"modelrails_base_staging_storage:/rails/storage\"\n",
       "config/locales/en/brand.en.yml" => %(en:\n  application:\n    name: "ModelRails"\n),
       "config/locales/en/pages.en.yml" => %(en:\n  pages:\n    brand: "ModelRails"\n    address: "support@example.com"\n),
       "public/manifest.webmanifest" => %({"name": "ModelRails"}\n),
@@ -340,6 +341,7 @@ RSpec.describe ForkFlow do
 
       expect(repo.join("config/application.rb").read).to include("module MyApp")
       expect(repo.join("config/deploy.yml").read).not_to include("modelrails_base")
+      expect(repo.join("config/deploy.staging.yml").read).to include("my_app_staging_storage")
       expect(repo.join("config/locales/en/brand.en.yml").read).to include("My App")
       expect(repo.join("public/manifest.webmanifest").read).to include("My App")
       expect(repo.join(".github/workflows/docker_build.yml").read).to include("my_app:")

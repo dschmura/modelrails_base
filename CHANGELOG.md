@@ -6,6 +6,8 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Added
 
+- A merge into `main` deploys production and into `release/**` deploys staging (`.github/workflows/deploy.yml`), each off until `DEPLOY_PRODUCTION` or `DEPLOY_STAGING` is `true`.
+- `config/deploy.staging.yml` and `.kamal/secrets.staging` make staging a Kamal destination with its own credentials and storage volume.
 - `bin/branch-rules` protects `next`, `release/**` and `main` on GitHub from rulesets in `config/github/rulesets/`, with one approval per PR unless `--solo`; `bin/fork` names it as the step after the first push.
 - Hot Cell for Active Storage ships wired but off: set `HOTCELL_ROOT` and run the cell to sandbox image processing; nothing changes until a fork does.
 - `hotcell/` is the Hot Cell image: libvips only, built pre-push and scanned in CI when it changes, locked to the app's Hot Cell version.

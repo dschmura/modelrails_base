@@ -83,11 +83,14 @@ is what goes into a managed platform's settings.
 #### Credentials per deploy
 
 A staging deploy runs `RAILS_ENV=production`, so by default it would decrypt
-the production credentials, mail login included. Set
-`RAILS_CREDENTIALS_ENV=staging` in that deploy's environment and it decrypts
-`config/credentials/staging.yml.enc` with `staging.key` instead, whose value
-is then that deploy's `RAILS_MASTER_KEY`. Unset, nothing changes. Create the
-file through the same switch:
+the production credentials, mail login included. `RAILS_CREDENTIALS_ENV=staging`
+switches it to `config/credentials/staging.yml.enc` with `staging.key`, whose
+value is then that deploy's `RAILS_MASTER_KEY`. Unset, nothing changes. The
+staging destination, `config/deploy.staging.yml`, sets it, and
+`.kamal/secrets.staging` reads `staging.key` the way `.kamal/secrets` reads
+production's. That destination also keeps its own storage volume, so staging
+can share production's host without sharing its databases. Create the file
+through the same switch:
 
 ```bash
 RAILS_ENV=production RAILS_CREDENTIALS_ENV=staging bin/rails credentials:edit
@@ -214,7 +217,38 @@ bin/kamal deploy    # Subsequent deploys
 
 CI verifies your production image builds on every pull request that touches a build input (the `image_scan` workflow's cold build) and on every push to `main` (the `docker_build` workflow; see [Getting Started](/docs/developer/getting-started)), and the pre-push hook runs the same build locally when you change one, so the first time you run `kamal deploy` you're not also debugging Dockerfile issues.
 
+For staging, set its host in `config/deploy.staging.yml`, then
+`bin/kamal setup -d staging` and `bin/kamal deploy -d staging`.
+
 Once the app is up, mint the first instance operator — see [Instance operations: Day one](operations#day-one-on-an-invite-only-instance).
+
+### 5. Deploy from CI
+
+`.github/workflows/deploy.yml` deploys whatever lands on a branch, with
+production and staging switched on separately:
+
+| Merge into | Deploys | Switched on by the repository variable |
+| --- | --- | --- |
+| `main` | production (`bin/kamal deploy`) | `DEPLOY_PRODUCTION=true` |
+| `release/**` | staging (`bin/kamal deploy -d staging`) | `DEPLOY_STAGING=true` |
+
+Until a variable is `true`, its deploy is skipped. Each job runs in the GitHub
+environment of the same name (`production` or `staging`). Give each one these
+secrets:
+
+- `RAILS_MASTER_KEY`: that environment's key file contents.
+- `SSH_PRIVATE_KEY`: a key the host accepts for Kamal's SSH user.
+- `SSH_KNOWN_HOSTS`: the host's line from `ssh-keyscan`, checked against the
+  host itself, so the runner never trusts on first use.
+
+The workflow doesn't run the suite again. The branch rules
+([Forking](forking#protect-the-branches)) let a PR merge only after `static`
+and `test` pass on an up-to-date branch, and a merge commit then carries the
+tree CI tested. Deploys into one environment queue rather than cancel each
+other. Every deploy leaves a deployment record with its commit on the
+repository's Environments page, which is the answer to "what's live?". To make
+the first deploy after switching one on, rerun the skipped run for that
+branch's latest push.
 
 ## Production-safety invariants
 

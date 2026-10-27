@@ -1,0 +1,13 @@
+# The staging destination, merged over deploy.yml: bin/kamal deploy -d staging.
+# Its own host or production's; either way the volume and credentials stay its own.
+servers:
+  web:
+    hosts:
+      - 192.168.0.2
+
+env:
+  clear:
+    RAILS_CREDENTIALS_ENV: staging
+
+volumes:
+  - "modelrails_base_staging_storage:/rails/storage"
