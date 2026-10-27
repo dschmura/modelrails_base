@@ -37,6 +37,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Changed
 
+- Ruby 4.0.9 (from 4.0.7), in `.tool-versions`, both Dockerfiles, `config/deploy.yml` and the devcontainer.
 - `.kamal/secrets` takes `RAILS_MASTER_KEY` from the deploying environment when it is set and not blank, else from `config/credentials/production.key`, so a CI deploy needs no key file.
 - A fork commits its encrypted credentials: `.gitignore` ignores only the key files, since Kamal builds the image from a clone of the commit. The template itself still ships none.
 - jactionlint replaces zizmor as the workflow audit: one version, with the shellcheck it runs, pinned in `mise.toml` and checksummed in `mise.lock`, checked online in CI and offline before a push that touches `.github/`.

@@ -5,7 +5,7 @@ ruby file: ".tool-versions"
 # Rails main at a full commit, moved by hand; Dependabot ignores it.
 # See /docs/developer/getting-started (Rails comes from a pinned commit).
 gem "rails", github: "rails/rails", ref: "0901f2cc03e7c8dc9bc1d3be67895be7ee0141ea"
-# Security floor: resolv < 0.7.2 carries CVE-2026-80212. Ruby 4.0.7 ships 0.7.2
+# Security floor: resolv < 0.7.2 carries CVE-2026-80212. Ruby 4.0.9 ships 0.7.2
 # as the default gem; the pin keeps a fork's fresh resolve from landing below it.
 gem "resolv", ">= 0.7.2"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
