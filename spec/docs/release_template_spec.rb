@@ -19,4 +19,8 @@ RSpec.describe "the release pull request template" do
   it "is how the releasing guide opens a release" do
     expect(guide).to include("--body-file .github/PULL_REQUEST_TEMPLATE/release.md")
   end
+
+  it "says how to switch a ruleset off in an emergency, and back on" do
+    expect(guide).to include("enforcement=disabled").and include("bin/branch-rules")
+  end
 end

@@ -6,6 +6,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Added
 
+- The releasing guide's "In case of emergency" section switches a ruleset off for a direct push to `main` and back on with `bin/branch-rules`.
 - `/docs/developer/releasing` walks a release from `next` through staging to `main`, with partial approval, hotfixes, tags and the merge-back; `.github/PULL_REQUEST_TEMPLATE/release.md` records the commit reviewed on staging and ships only that commit.
 - A merge into `main` deploys production and into `release/**` deploys staging (`.github/workflows/deploy.yml`), each off until `DEPLOY_PRODUCTION` or `DEPLOY_STAGING` is `true`.
 - `config/deploy.staging.yml` and `.kamal/secrets.staging` make staging a Kamal destination with its own credentials and storage volume.

@@ -116,6 +116,24 @@ Merging it deploys production. Then merge `main` back into `next` as above.
 If a release branch is open, bring the fix into it the same way, through a
 branch cut from `main` with a PR into `release/<date>`.
 
+## In case of emergency
+
+The rulesets give no one a bypass, admins included. When production is down
+and the PR path can't carry the fix (CI itself is broken, say), an admin
+switches the blocking ruleset off, pushes, and switches it back on:
+
+```bash
+gh api repos/OWNER/REPO/rulesets --jq '.[] | "\(.id) \(.name)"'
+gh api -X PUT repos/OWNER/REPO/rulesets/<id> -f enforcement=disabled
+git push origin hotfix/sign-in-loop:main
+bin/branch-rules   # add --solo if the repo runs solo; turns every ruleset back on
+```
+
+Rerunning `bin/branch-rules` puts back every ruleset exactly as
+`config/github/rulesets/` describes it. Then merge `main` back into `next` as
+after any hotfix. A ruleset left disabled is the risk here, so rerun the
+script in the same sitting as the push.
+
 ## Changing the flow
 
 The flow is a default, not a requirement. The branch rules live in
