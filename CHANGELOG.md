@@ -6,6 +6,7 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ### Added
 
+- `bin/branch-rules` protects `next`, `release/**` and `main` on GitHub from rulesets in `config/github/rulesets/`, with one approval per PR unless `--solo`; `bin/fork` names it as the step after the first push.
 - Hot Cell for Active Storage ships wired but off: set `HOTCELL_ROOT` and run the cell to sandbox image processing; nothing changes until a fork does.
 - `hotcell/` is the Hot Cell image: libvips only, built pre-push and scanned in CI when it changes, locked to the app's Hot Cell version.
 - A spec boots a real Hot Cell and proves every allowed image type thumbnails through it, and that broken bytes and an unreachable cell are classified as permanent and transient.

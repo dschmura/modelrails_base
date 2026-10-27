@@ -353,6 +353,14 @@ RSpec.describe ForkFlow do
       expect(pages).to include("support@my_app.example")
     end
 
+    it "protects the branches after main reaches GitHub, since the rules then refuse a direct push" do
+      flow = run_fork(name: "my_app", yes: true)
+
+      push = flow.todos.index { |t| t.include?("git push") }
+      rules = flow.todos.index { |t| t.include?("bin/branch-rules") }
+      expect(rules).to be > push
+    end
+
     it "records provenance that round-trips through safe YAML" do
       run_fork(name: "my_app", preset: "none", yes: true)
 

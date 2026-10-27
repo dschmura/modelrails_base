@@ -371,6 +371,8 @@ class ForkFlow
       @todos << "Add your repository (create it EMPTY on GitHub first — no README/license):\n" \
                 "     git remote add origin git@github.com:YOU/#{snake}.git && git push -u origin #{current_branch}"
     end
+    @todos << "Once main is on GitHub, protect the branches: bin/branch-rules " \
+              "(add --solo if you merge your own PRs; /docs/developer/forking)"
 
     @todos << "Record the cut point, in your TEMPLATE checkout:\n" \
               "     git tag forks/#{snake}-baseline main && git push origin forks/#{snake}-baseline"

@@ -251,6 +251,43 @@ For production you'll also set `RAILS_HOST`, pick a tenancy preset
 (`WORKSPACE_ON_SIGNUP`), and choose a signup mode — see `.env.example`,
 [Presets](presets), and [Deployment](deployment).
 
+## Protect the branches
+
+The template's default flow uses three branches:
+
+| Branch | Role |
+| --- | --- |
+| `next` | Integration, and the default branch: every feature PR targets it. Deploys nowhere. |
+| `release/<date>` | A candidate cut from `next`, deployed to staging for review. Fixes and reverts land on it by PR. |
+| `main` | Production. Takes a release by PR, with merge commits only. |
+
+Once `main` is on GitHub, run:
+
+```bash
+bin/branch-rules          # one approval on every PR
+bin/branch-rules --solo   # no approval: you merge your own PRs
+```
+
+It creates `next` from `main` and makes it the default branch, then applies
+the rulesets in `config/github/rulesets/`. Under those rules, `next`,
+`release/**` and `main` take changes only by PR, and only after `static` and
+`test` pass on an up-to-date branch. Rerunning it updates the rulesets in
+place. It names any other ruleset on the repo, which you reconcile by hand.
+
+- **Push `main` first.** Once the rules apply, a direct push to `main` is refused.
+- **`--solo`** exists because GitHub refuses an approval from a PR's own author.
+- **No one bypasses.** A bypass, even "through pull requests only", lets an
+  admin's ordinary merge skip the approval and the up-to-date check, and nothing
+  asks first.
+- **After anything lands on `main`, merge it back into `next`** through a branch
+  cut from `main` (`sync/main-into-next`). A PR whose head is `main` can't be
+  brought up to date, since that would push to `main`.
+- **Plan limits.** GitHub Free applies rulesets to public repositories only. On
+  a private one the script reports each refused ruleset and exits non-zero.
+
+To change the flow, edit the JSON files, or replace the script. `bin/fork`
+names it only as a next step.
+
 ## Fork-owned files
 
 These paths are yours. Upstream froze them the day the seams shipped and will
