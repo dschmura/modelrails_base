@@ -285,8 +285,9 @@ place. It names any other ruleset on the repo, which you reconcile by hand.
 - **Plan limits.** GitHub Free applies rulesets to public repositories only. On
   a private one the script reports each refused ruleset and exits non-zero.
 
-To change the flow, edit the JSON files, or replace the script. `bin/fork`
-names it only as a next step.
+Cutting, reviewing and shipping a release, hotfixes, and the merge-back are in
+[Releasing](releasing). To change the flow, edit the JSON files, or replace the
+script. `bin/fork` names it only as a next step.
 
 ## Fork-owned files
 
