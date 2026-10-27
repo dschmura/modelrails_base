@@ -74,9 +74,9 @@ class BranchRules
   end
 
   def set_default_branch!
-    write("make #{INTEGRATION} the default branch; delete branches once merged",
+    write("make #{INTEGRATION} the default branch; delete branches once merged; allow auto-merge",
           "api", "-X", "PATCH", "repos/#{@repo}", "-f", "default_branch=#{INTEGRATION}",
-          "-F", "delete_branch_on_merge=true", "-F", "allow_merge_commit=true")
+          "-F", "delete_branch_on_merge=true", "-F", "allow_merge_commit=true", "-F", "allow_auto_merge=true")
   end
 
   def apply!(ruleset, existing)
