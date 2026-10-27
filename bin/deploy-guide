@@ -23,7 +23,8 @@ GUIDES = {
        documented inline. Set service/image/volume names (see /docs/developer/forking),
        your server's IP or hostname, and proxy.host.
     3. Generate production credentials (bin/rails credentials:edit --environment
-       production); .kamal/secrets reads config/credentials/production.key.
+       production); .kamal/secrets takes RAILS_MASTER_KEY from the environment,
+       else reads config/credentials/production.key.
     4. Outbound mail: sign-in is an email, and the app refuses to boot without
        it. deploy.yml already points SMTP_ADDRESS at Postmark; put the login in
        the production credentials as smtp.user_name and smtp.password (for

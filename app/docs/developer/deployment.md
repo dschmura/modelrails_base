@@ -75,8 +75,10 @@ For `RAILS_MASTER_KEY`: the template uses per-environment credentials
 (`bin/rails credentials:edit --environment production`, see [Forking](forking)),
 so the key is `config/credentials/production.key` — not the single
 `config/master.key` a default `rails new` would use. The tracked
-`.kamal/secrets` already reads that file; the value itself is what goes into a
-managed platform's settings.
+`.kamal/secrets` takes `RAILS_MASTER_KEY` from the deploying environment when
+it is set and not blank, so a CI job passes the key from its secret store, and
+otherwise reads that file, so a laptop deploys with no setup. The value itself
+is what goes into a managed platform's settings.
 
 #### Credentials per deploy
 

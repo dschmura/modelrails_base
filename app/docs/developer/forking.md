@@ -226,7 +226,8 @@ and to production the mail provider's login as `smtp.user_name` and `smtp.passwo
 Commit your `.yml.enc` files; the `.key` files stay gitignored. Kamal builds the
 image from a clone of the commit, so an uncommitted credentials file never
 reaches production, and the app refuses to boot without it. `.kamal/secrets`
-reads `config/credentials/production.key` at deploy time.
+takes `RAILS_MASTER_KEY` from the deploying environment, else reads
+`config/credentials/production.key`.
 
 Personal data — email addresses, names, company names — is encrypted at rest
 with Active Record Encryption, and **production refuses to boot without the
