@@ -15,7 +15,7 @@
 
 ## Ship it
 
-The merge button doesn't check what was reviewed. This does, refusing if the branch moved since, then tags the release and merges `main` back into `next`:
+The merge button doesn't check what was reviewed. This does, refusing if the branch moved since, then publishes the release and merges `main` back into `next`:
 
 ```bash
 bin/release ship <this PR> <the commit above>

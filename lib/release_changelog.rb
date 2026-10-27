@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-# The changelog convention bin/release relies on: cut, section and prepared_name.
-# A fork with another convention replaces this file and keeps those three.
+# The changelog and release-name convention bin/release reads through this module's public methods.
+# A fork that keeps its changelog another way replaces this file and keeps their signatures.
 module ReleaseChangelog
   class Error < StandardError; end
 
@@ -10,7 +10,12 @@ module ReleaseChangelog
 
   module_function
 
-  def cut(text, name)
+  def names(today)
+    date = today.strftime("%Y.%m.%d")
+    (1..).lazy.map { |n| n == 1 ? date : "#{date}-#{n}" }
+  end
+
+  def name_release(text, name)
     head, rest = text.split(UNRELEASED, 2)
     raise Error, "CHANGELOG.md has no #{UNRELEASED.strip} section" if rest.nil?
 
@@ -22,23 +27,23 @@ module ReleaseChangelog
     "#{head}#{UNRELEASED}\n## v#{name}\n\n#{released}\n#{tail}"
   end
 
-  def fold(body)
-    current = nil
-    body.lines(chomp: true).each_with_object({}) do |line, sections|
-      if (title = line[/\A### (.+)/, 1])
-        current = title
-        sections[title] ||= []
-      elsif !line.strip.empty?
-        (sections[current || "Changed"] ||= []) << line
-      end
-    end
+  def named_release(text)
+    text[/^## \[Unreleased\]\n.*?^## v(#{NAME})$/m, 1]
   end
 
   def section(text, name)
     text[/^## v#{Regexp.escape(name)}\n(.*?)(?=^## |\z)/m, 1]&.strip
   end
 
-  def prepared_name(text)
-    text[/^## \[Unreleased\]\n.*?^## v(#{NAME})$/m, 1]
+  def fold(body)
+    current = "Changed"
+    body.lines(chomp: true).each_with_object({}) do |line, sections|
+      if (title = line[/\A### (.+)/, 1])
+        current = title
+      elsif !line.strip.empty?
+        (sections[current] ||= []) << line
+      end
+    end
   end
+  private_class_method :fold
 end

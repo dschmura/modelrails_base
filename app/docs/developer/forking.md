@@ -281,9 +281,10 @@ place. It names any other ruleset on the repo, which you reconcile by hand.
 - **No one bypasses.** A bypass, even "through pull requests only", lets an
   admin's ordinary merge skip the approval and the up-to-date check, and nothing
   asks first.
-- **After anything lands on `main`, merge it back into `next`** through a branch
-  cut from `main` (`sync/main-into-next`). A PR whose head is `main` can't be
-  brought up to date, since that would push to `main`.
+- **After anything lands on `main`, merge it back into `next`** with
+  `bin/release merge-back`, which goes through a branch cut from `main`. A PR
+  whose head is `main` can't be brought up to date, since that would push to
+  `main`.
 - **Plan limits.** GitHub Free applies rulesets to public repositories only. On
   a private one the script reports each refused ruleset and exits non-zero.
 
