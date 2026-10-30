@@ -138,13 +138,55 @@ RSpec.describe Release do
     end
   end
 
+  describe "pushing" do
+    let(:hook_log) { workdir.join("hook.log") }
+
+    def install_failing_pre_push_hook
+      hook = Pathname.new(git("rev-parse", "--absolute-git-dir")).join("hooks/pre-push")
+      hook.write(<<~SH)
+        #!/bin/sh
+        echo ran >> "#{hook_log}"
+        echo "docker_build: no space left on device"
+        for i in 1 2 3 4 5 6; do echo "summary line $i"; done
+        exit 1
+      SH
+      hook.chmod(0o755)
+    end
+
+    it "says the pre-push hook is running before a new commit goes through it" do
+      setup_repo
+      install_failing_pre_push_hook
+
+      expect { run_release("prepare") }.to raise_error(Release::Error)
+      expect(@output).to include("the pre-push hook")
+      expect(hook_log).to exist
+    end
+
+    it "shows what the hook said when it refuses the push, and where the whole of it is" do
+      setup_repo
+      install_failing_pre_push_hook
+
+      expect { run_release("prepare") }.to raise_error(Release::Error, %r{no space left on device.*tmp/release-push\.log}m)
+      expect(clone.join("tmp/release-push.log").read).to include("summary line 6")
+    end
+
+    it "skips the hook for a commit already on origin, which it has checked before" do
+      setup_repo(next_changelog: named)
+      install_failing_pre_push_hook
+      run_release("cut")
+
+      expect(remote_heads).to include("release/2026.10.27")
+      expect(hook_log).not_to exist
+    end
+  end
+
   describe "naming" do
     before { setup_repo }
 
-    it "names the first release of the day for the date" do
+    it "names the first release of the day for the date, in the repository it acts on" do
       run_release("prepare", dry_run: true)
 
-      expect(@output).to include("== Prepare v2026.10.27 ==")
+      expect(@output).to include("== Prepare v2026.10.27 in me/app ==")
     end
 
     it "takes the next free suffix when the day already has a tag" do
@@ -152,7 +194,7 @@ RSpec.describe Release do
       git("push", "-q", "origin", "main:refs/tags/v2026.10.27-2")
       run_release("prepare", dry_run: true)
 
-      expect(@output).to include("== Prepare v2026.10.27-3 ==")
+      expect(@output).to include("== Prepare v2026.10.27-3 in me/app ==")
     end
   end
 
@@ -243,7 +285,7 @@ RSpec.describe Release do
       git("push", "-q", "origin", "main:refs/tags/v2026.10.27")
       run_release("prepare", dry_run: true)
 
-      expect(@output).to include("== Prepare v2026.10.27-2 ==")
+      expect(@output).to include("== Prepare v2026.10.27-2 in me/app ==")
     end
   end
 
@@ -310,6 +352,16 @@ RSpec.describe Release do
 
         expect { run_release("cut") }.to raise_error(Release::Error, /CI failed on \h{7}.*## v2026\.10\.27/m)
         expect(remote_heads).not_to include("release/2026.10.27")
+      end
+    end
+
+    context "when CI's run on the commit was skipped" do
+      let(:gh_runs) { %q(echo '[{"status":"completed","conclusion":"skipped"}]') }
+
+      it "refuses, since a skipped run proves nothing" do
+        setup_repo(next_changelog: named)
+
+        expect { run_release("cut") }.to raise_error(Release::Error, /CI failed on \h{7}/)
       end
     end
 
@@ -439,7 +491,7 @@ RSpec.describe Release do
       fork_from_template
       run_release("prepare", if_needed: true, dry_run: true)
 
-      expect(@output).to include("== Prepare v2026.10.27-2 ==")
+      expect(@output).to include("== Prepare v2026.10.27-2 in me/app ==")
     end
 
     it "has nothing to cut when the release next names is one the template shipped" do
@@ -464,7 +516,7 @@ RSpec.describe Release do
       fork_from_template(tagged: commit_outside_next)
       run_release("prepare", dry_run: true)
 
-      expect(@output).to include("== Prepare v2026.10.27-2 ==")
+      expect(@output).to include("== Prepare v2026.10.27-2 in me/app ==")
     end
 
     it "stops, rather than guess, when it can't read the template's tags" do

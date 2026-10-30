@@ -537,6 +537,14 @@ names the release in the changelog and opens that as a PR into `next`, `cut`
 pushes `release/<name>` and opens its PR into `main`, and `ship` merges it,
 tags it and opens the merge-back. A person and a workflow run the same
 commands, so automating a step changes who runs it, not what it does.
+Each command names the repository it acts on in its first line.
+
+Run by hand, its pushes go through your pre-push hook, except a commit
+already on origin: `cut` pushes a commit on `next`, the merge-back one on
+`main`, and both passed CI's required checks on their way there. `cut`
+only cuts a commit whose CI run passed, and every branch it pushes lands
+through a PR whose required checks run again. If a push fails, it shows the
+end of what the hook said and saves the rest to `tmp/release-push.log`.
 
 **Workflows react to events.** Each file in `.github/workflows/` names the
 event that starts it:

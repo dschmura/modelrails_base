@@ -5,6 +5,7 @@
 # Commits through a temporary index, so the checkout and working tree are never touched.
 
 require "date"
+require "fileutils"
 require "json"
 require "open3"
 require "optparse"
@@ -52,7 +53,7 @@ class Release
 
     name = ReleaseChangelog.names(@opts.fetch(:today) { Date.today })
                            .find { |n| !tagged?(n) && !template_tags.key?(n) && !branch?("release/#{n}") }
-    say("== Prepare v#{name} ==")
+    say("== Prepare v#{name} in #{@repo} ==")
     return dry("push changelog/#{name} (CHANGELOG.md naming v#{name}) and queue its PR into next") if dry_run?
 
     commit = commit_on("origin/next", { "CHANGELOG.md" => ReleaseChangelog.name_release(changelog + "\n", name) },
@@ -78,7 +79,7 @@ class Release
     raise Error, "main isn't in next yet: merge the open merge-back PR first" unless ancestor?("origin/main", commit)
     require_passing_ci(commit, name)
 
-    say("== Cut #{branch} ==")
+    say("== Cut #{branch} in #{@repo} ==")
     say("  at #{commit[0, 7]}; #{waiting} later commit#{'s' unless waiting == 1} on next wait#{'s' if waiting == 1} for the next release") if waiting.positive?
     return dry("push #{branch} at #{commit[0, 7]} and open its PR into main") if dry_run?
 
@@ -93,7 +94,7 @@ class Release
 
     info = pr_info(pr)
     name = release_name(info)
-    say("== Ship v#{name} ==")
+    say("== Ship v#{name} in #{@repo} ==")
     return dry("merge PR #{pr} at #{sha}, publish release v#{name}, and queue the merge-back into next") if dry_run?
 
     if info["state"] == "MERGED"
@@ -117,7 +118,7 @@ class Release
   def merge_back(label, after:)
     fetch
     branch = "merge-back/#{label}"
-    say("== Merge main back into next ==")
+    say("== Merge main back into next in #{@repo} ==")
     return dry("push #{branch} at main and queue its PR into next") if dry_run?
 
     url = propose(branch, at: git("rev-parse", "origin/main"), base: "next", title: "Merge main back into next after #{after}",
@@ -193,7 +194,7 @@ class Release
     unless runs.any? && runs.all? { |run| run["status"] == "completed" }
       raise Error, "CI hasn't passed on #{commit[0, 7]} yet: run cut again once it has"
     end
-    return if runs.all? { |run| %w[success neutral skipped].include?(run["conclusion"]) }
+    return if runs.all? { |run| run["conclusion"] == "success" }
 
     raise Error, "CI failed on #{commit[0, 7]}, where v#{name} would be cut. Fix it by a PR into next, with its " \
                  "changelog line under ## v#{name} so this release takes the fix, then run cut again"
@@ -240,7 +241,7 @@ class Release
 
   # Pushes the branch unless a stopped run already did, then opens its PR or finds the open one.
   def propose(branch, at:, base:, title:, body:, auto_merge: false)
-    git("push", "-q", "origin", "#{at}:refs/heads/#{branch}") unless branch?(branch)
+    push(at, branch) unless branch?(branch)
     url, created = gh("pr", "create", "--base", base, "--head", branch, "--title", title, "--body-file", "-",
                       stdin: body, status: true)
     raise Error, "gh pr create failed: #{url}" unless created || url.include?("already exists")
@@ -249,6 +250,25 @@ class Release
     gh("pr", "merge", url, "--auto", "--merge") if auto_merge
     url
   end
+
+  # A commit already on origin passed CI's required checks on its way there; the hook adds nothing.
+  def push(at, branch)
+    ref = "#{at}:refs/heads/#{branch}"
+    return git("push", "-q", "--no-verify", "origin", ref) unless git("for-each-ref", "--contains", at, "refs/remotes/origin").empty?
+
+    say("  pushing #{branch}; the pre-push hook checks it first, which can take a few minutes") if pre_push_hook?
+    out, err, status = Open3.capture3(CLEAN_GIT_ENV, "git", "-C", @root, "push", "-q", "origin", ref)
+    return if status.success?
+
+    output = "#{out}#{err}".gsub(/\e\[[\d;]*m/, "")
+    log = File.join(@root, "tmp/release-push.log")
+    FileUtils.mkdir_p(File.dirname(log))
+    File.write(log, output)
+    raise Error, "git push of #{branch} failed. The end of what it said:\n#{output.lines.last(15).join.rstrip}\n" \
+                 "All of it is in #{log.delete_prefix("#{@root}/")}"
+  end
+
+  def pre_push_hook? = File.executable?(File.expand_path(git("rev-parse", "--git-path", "hooks/pre-push"), @root))
 
   def release_body(branch, section)
     template = File.read(File.join(@root, TEMPLATE)).sub("`release/YYYY.MM.DD`", "`#{branch}`")
