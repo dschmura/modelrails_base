@@ -463,6 +463,18 @@ If `next` already has the template's latest release, it says so and stops.
 It needs a clean working tree, an `upstream` remote (`bin/setup` adds it) and
 the GitHub CLI, signed in.
 
+**A fork made before `bin/sync` existed doesn't have it yet.** Its first sync
+brings it in, so run that one from the template's copy:
+
+```bash
+git fetch upstream
+d=$(mktemp -d); mkdir -p $d/bin $d/lib
+for f in bin/sync lib/clean_git_env.rb lib/github_origin.rb lib/release_changelog.rb; do git show upstream/main:$f > $d/$f; done
+ruby -e "load '$d/bin/sync'; Sync.new(root: Dir.pwd).run"
+```
+
+Once its PR merges, every later sync is `bin/sync`.
+
 **Don't merge the template by hand.** Your changelog and the template's share a
 file but not their releases, and git's union merge files the template's lines
 into your shipped releases without a conflict. CI refuses that

@@ -47,7 +47,7 @@ class Sync
     say("== Bring in the template's release v#{latest} ==")
     git("switch", "-q", "-C", branch, "origin/next")
     git_ok?("merge", "-q", "--no-ff", "--no-commit", "-m", "Bring in the template's release v#{latest}", commit)
-    keep_our_changelog(added.map { |name, _| "- Brings in the template's release v#{name}: https://github.com/#{template}/releases/tag/v#{name}" })
+    keep_our_changelog(added.map { |name, _| "- Brings in the template's release [v#{name}](https://github.com/#{template}/releases/tag/v#{name})." })
     if (stuck = unmerged).any?
       raise Error, "the merge stopped on conflicts in:\n  #{stuck.join("\n  ")}\n" \
                    "CHANGELOG.md is done. Resolve those files (the forking guide's table says which side to keep), " \
