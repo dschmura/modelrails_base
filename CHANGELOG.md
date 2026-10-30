@@ -4,6 +4,8 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+## v2026.10.30-3
+
 ### Added
 
 - `/docs/developer/releasing` walks through creating the `RELEASE_TOKEN` automatic releases need, and the release workflow stops at its first step with "RELEASE_TOKEN isn't set" when `AUTO_RELEASE` is on without one.
