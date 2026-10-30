@@ -4,6 +4,10 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+### Fixed
+
+- `bin/sync` writes each template release as a markdown link, so a fork's markdown check passes; the forking guide shows how a fork made before `bin/sync` runs its first sync.
+
 ## v2026.10.30
 
 ### Added
