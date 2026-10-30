@@ -15,6 +15,8 @@ RSpec.describe Release do
   let(:gh_merge) { "exit 0" }
   let(:gh_api) { "exit 0" }
   let(:gh_runs) { %q(echo '[{"status":"completed","conclusion":"success"}]') }
+  let(:gh_prs) { "echo '[]'" }
+  let(:gh_deploys) { "echo '[]'" }
   let(:changelog) do
     <<~MD
       # Changelog
@@ -90,9 +92,11 @@ RSpec.describe Release do
       case "$*" in
         "pr create"*) #{gh_create} ;;
         "pr view"*"--jq .url"*) echo "https://github.com/me/app/pull/41" ;;
+        "pr list"*) #{gh_prs} ;;
         "pr view"*) if [ -f "#{bin}/merged" ]; then cat "#{bin}/merged.json"; else cat "#{bin}/open.json"; fi ;;
         "pr merge"*"--match-head-commit"*) ( #{gh_merge} ); s=$?; [ $s = 0 ] && touch "#{bin}/merged"; exit $s ;;
         "api -X PUT"*) #{gh_api} ;;
+        "run list --workflow deploy.yml"*) #{gh_deploys} ;;
         "run list"*) #{gh_runs} ;;
         *) : ;;
       esac
@@ -104,18 +108,23 @@ RSpec.describe Release do
     bin.join("merged.json").write(JSON.dump(release_pr.merge("state" => "MERGED", "mergeCommit" => { "oid" => oid })))
   end
 
-  def run_release(command, *args, **opts)
+  def run_release(command, *args, stdin: StringIO.new, **opts)
     original_path = ENV["PATH"]
     original_stdout = $stdout
+    original_stdin = $stdin
     install_fake_gh unless bin.join("gh").exist?
     ENV["PATH"] = "#{bin}:#{original_path}"
     $stdout = StringIO.new
+    $stdin = stdin
     described_class.new({ today: today }.merge(opts), root: clone.to_s).run(command, *args)
   ensure
     @output = $stdout.string if $stdout.is_a?(StringIO)
     $stdout = original_stdout
+    $stdin = original_stdin
     ENV["PATH"] = original_path
   end
+
+  def terminal(answer) = StringIO.new(answer).tap { |io| io.define_singleton_method(:tty?) { true } }
 
   def calls = log.exist? ? log.read : ""
   def remote_heads = git("ls-remote", "--heads", "origin").lines.map { |l| l.split.last.delete_prefix("refs/heads/") }
@@ -138,13 +147,55 @@ RSpec.describe Release do
     end
   end
 
+  describe "pushing" do
+    let(:hook_log) { workdir.join("hook.log") }
+
+    def install_failing_pre_push_hook
+      hook = Pathname.new(git("rev-parse", "--absolute-git-dir")).join("hooks/pre-push")
+      hook.write(<<~SH)
+        #!/bin/sh
+        echo ran >> "#{hook_log}"
+        echo "docker_build: no space left on device"
+        for i in 1 2 3 4 5 6; do echo "summary line $i"; done
+        exit 1
+      SH
+      hook.chmod(0o755)
+    end
+
+    it "says the pre-push hook is running before a new commit goes through it" do
+      setup_repo
+      install_failing_pre_push_hook
+
+      expect { run_release("prepare") }.to raise_error(Release::Error)
+      expect(@output).to include("the pre-push hook")
+      expect(hook_log).to exist
+    end
+
+    it "shows what the hook said when it refuses the push, and where the whole of it is" do
+      setup_repo
+      install_failing_pre_push_hook
+
+      expect { run_release("prepare") }.to raise_error(Release::Error, %r{no space left on device.*tmp/release-push\.log}m)
+      expect(clone.join("tmp/release-push.log").read).to include("summary line 6")
+    end
+
+    it "skips the hook for a commit already on origin, which it has checked before" do
+      setup_repo(next_changelog: named)
+      install_failing_pre_push_hook
+      run_release("cut")
+
+      expect(remote_heads).to include("release/2026.10.27")
+      expect(hook_log).not_to exist
+    end
+  end
+
   describe "naming" do
     before { setup_repo }
 
-    it "names the first release of the day for the date" do
+    it "names the first release of the day for the date, in the repository it acts on" do
       run_release("prepare", dry_run: true)
 
-      expect(@output).to include("== Prepare v2026.10.27 ==")
+      expect(@output).to include("== Prepare v2026.10.27 in me/app ==")
     end
 
     it "takes the next free suffix when the day already has a tag" do
@@ -152,7 +203,7 @@ RSpec.describe Release do
       git("push", "-q", "origin", "main:refs/tags/v2026.10.27-2")
       run_release("prepare", dry_run: true)
 
-      expect(@output).to include("== Prepare v2026.10.27-3 ==")
+      expect(@output).to include("== Prepare v2026.10.27-3 in me/app ==")
     end
   end
 
@@ -243,7 +294,7 @@ RSpec.describe Release do
       git("push", "-q", "origin", "main:refs/tags/v2026.10.27")
       run_release("prepare", dry_run: true)
 
-      expect(@output).to include("== Prepare v2026.10.27-2 ==")
+      expect(@output).to include("== Prepare v2026.10.27-2 in me/app ==")
     end
   end
 
@@ -310,6 +361,16 @@ RSpec.describe Release do
 
         expect { run_release("cut") }.to raise_error(Release::Error, /CI failed on \h{7}.*## v2026\.10\.27/m)
         expect(remote_heads).not_to include("release/2026.10.27")
+      end
+    end
+
+    context "when CI's run on the commit was skipped" do
+      let(:gh_runs) { %q(echo '[{"status":"completed","conclusion":"skipped"}]') }
+
+      it "refuses, since a skipped run proves nothing" do
+        setup_repo(next_changelog: named)
+
+        expect { run_release("cut") }.to raise_error(Release::Error, /CI failed on \h{7}/)
       end
     end
 
@@ -439,7 +500,7 @@ RSpec.describe Release do
       fork_from_template
       run_release("prepare", if_needed: true, dry_run: true)
 
-      expect(@output).to include("== Prepare v2026.10.27-2 ==")
+      expect(@output).to include("== Prepare v2026.10.27-2 in me/app ==")
     end
 
     it "has nothing to cut when the release next names is one the template shipped" do
@@ -464,7 +525,7 @@ RSpec.describe Release do
       fork_from_template(tagged: commit_outside_next)
       run_release("prepare", dry_run: true)
 
-      expect(@output).to include("== Prepare v2026.10.27-2 ==")
+      expect(@output).to include("== Prepare v2026.10.27-2 in me/app ==")
     end
 
     it "stops, rather than guess, when it can't read the template's tags" do
@@ -522,7 +583,8 @@ RSpec.describe Release do
   end
 
   describe "ship" do
-    let(:release_pr) { { "headRefName" => "release/2026.10.27", "baseRefName" => "main", "headRefOid" => "abc1234#{'0' * 33}" } }
+    let(:head) { "abc1234#{'0' * 33}" }
+    let(:release_pr) { { "headRefName" => "release/2026.10.27", "baseRefName" => "main", "headRefOid" => head } }
     let(:main_sha) { git("rev-parse", "origin/main") }
 
     before do
@@ -534,7 +596,7 @@ RSpec.describe Release do
     it "merges only the reviewed commit, publishes the release and queues the merge-back" do
       run_release("ship", "42", "abc1234")
 
-      expect(calls).to include("CALL pr merge 42 --merge --match-head-commit abc1234")
+      expect(calls).to include("CALL pr merge 42 --merge --match-head-commit #{head}")
       expect(calls).to include("CALL release create v2026.10.27 --target #{main_sha} --title Release 2026.10.27 --notes-file -")
       expect(git("rev-parse", "origin/merge-back/2026.10.27")).to eq(main_sha)
       expect(calls).to include("CALL pr create --base next --head merge-back/2026.10.27")
@@ -579,6 +641,104 @@ RSpec.describe Release do
       expect { run_release("ship", "42", "def5678") }.to raise_error(Release::Error, /merged at abc1234, not def5678/)
       expect(calls).not_to include("release create")
       expect(remote_heads).not_to include("merge-back/2026.10.27")
+    end
+
+    it "refuses an open PR whose branch isn't at the reviewed commit" do
+      expect { run_release("ship", "42", "def5678") }.to raise_error(Release::Error, /PR 42 is at abc1234, not def5678/)
+      expect(calls).not_to include("pr merge")
+    end
+
+    it "refuses a PR given without the commit reviewed on staging" do
+      expect { run_release("ship", "42") }.to raise_error(Release::Error, /usage: bin\/release ship/)
+      expect(calls).not_to include("pr merge")
+    end
+
+    describe "with nothing named, finding the release waiting to ship" do
+      let(:gh_prs) { %(echo '[{"number":42,"headRefName":"release/2026.10.27","state":"OPEN","headRefOid":"#{head}"}]') }
+      let(:gh_deploys) { %(echo '[{"headSha":"#{head}","conclusion":"success"}]') }
+
+      it "ships the commit staging ran once you say yes" do
+        run_release("ship", stdin: terminal("y\n"))
+
+        expect(@output).to include("PR #42, release/2026.10.27 into main, at abc1234: the commit staging's last deploy ran")
+        expect(calls).to include("CALL run list --workflow deploy.yml --branch release/2026.10.27 --event push")
+        expect(calls).to include("CALL pr merge 42 --merge --match-head-commit #{head}")
+        expect(calls).to include("CALL release create v2026.10.27")
+      end
+
+      it "ships nothing when you don't say yes" do
+        run_release("ship", stdin: terminal("\n"))
+
+        expect(@output).to include("Not shipped.")
+        expect(calls).not_to include("pr merge")
+      end
+
+      it "asks for the PR and commit by name when there's no terminal to confirm on" do
+        expect { run_release("ship") }.to raise_error(ReleaseCandidate::Error, /bin\/release ship 42 abc1234/)
+        expect(calls).not_to include("pr merge")
+      end
+
+      it "shows what it found without asking on a dry run" do
+        run_release("ship", dry_run: true)
+
+        expect(@output).to include("PR #42, release/2026.10.27 into main, at abc1234")
+        expect(@output).to include("[dry-run] would merge PR 42 at abc1234")
+        expect(calls).not_to include("pr merge")
+      end
+
+      context "when the branch has moved past what staging ran" do
+        let(:gh_deploys) { %(echo '[{"headSha":"def5678#{'0' * 33}","conclusion":"success"}]') }
+
+        it "refuses, naming both commits" do
+          expect { run_release("ship", stdin: terminal("y\n")) }
+            .to raise_error(ReleaseCandidate::Error, %r{staging last ran def5678, but release/2026\.10\.27 is at abc1234})
+          expect(calls).not_to include("pr merge")
+        end
+      end
+
+      context "when staging has no successful deploy of the branch" do
+        let(:gh_deploys) { %(echo '[{"headSha":"#{head}","conclusion":"skipped"}]') }
+
+        it "offers the branch's head and says no staging deploy was found" do
+          run_release("ship", stdin: terminal("y\n"))
+
+          expect(@output).to include("at abc1234: the branch's head; no successful staging deploy found for it")
+          expect(calls).to include("CALL pr merge 42 --merge --match-head-commit #{head}")
+        end
+      end
+
+      context "when the release PR was merged on GitHub and not yet published" do
+        let(:gh_prs) { %(echo '[{"number":42,"headRefName":"release/2026.10.27","state":"MERGED","headRefOid":"#{head}"}]') }
+
+        it "finishes shipping it" do
+          bin.join("merged").write("")
+          run_release("ship", stdin: terminal("y\n"))
+
+          expect(@output).to include("✓ PR 42 already merged")
+          expect(calls).to include("CALL release create v2026.10.27")
+        end
+      end
+
+      context "when every release PR has shipped" do
+        let(:gh_prs) { %(echo '[{"number":41,"headRefName":"release/2026.10.27","state":"MERGED","headRefOid":"#{head}"}]') }
+
+        it "says there's nothing to ship" do
+          git("push", "-q", "origin", "main:refs/tags/v2026.10.27")
+
+          expect { run_release("ship", stdin: terminal("y\n")) }.to raise_error(ReleaseCandidate::Error, /No release PR is waiting to ship/)
+        end
+      end
+
+      context "when two release PRs are waiting" do
+        let(:gh_prs) do
+          %(echo '[{"number":42,"headRefName":"release/2026.10.27","state":"OPEN","headRefOid":"#{head}"},) +
+            %({"number":43,"headRefName":"release/2026.10.28","state":"OPEN","headRefOid":"#{head}"}]')
+        end
+
+        it "asks which one" do
+          expect { run_release("ship", stdin: terminal("y\n")) }.to raise_error(ReleaseCandidate::Error, /#42 and #43 are waiting to ship/)
+        end
+      end
     end
 
     context "when the PR is not a release into main" do

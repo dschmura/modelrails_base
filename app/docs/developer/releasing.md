@@ -230,7 +230,7 @@ its tag and a commit to roll back to.
 | --- | --- |
 | Name the release in the changelog | `bin/release prepare` |
 | Cut a release | `bin/release cut` |
-| Ship the reviewed commit | `bin/release ship <PR> <commit reviewed on staging>` |
+| Ship the reviewed commit | `bin/release ship` |
 | Merge `main` back after a hotfix | `bin/release merge-back` |
 
 ## Before it merges
@@ -405,8 +405,24 @@ commits as already merged, so nothing comes back.
 ## Ship it
 
 ```bash
-bin/release ship <release PR> <commit reviewed on staging>
+bin/release ship
 ```
+
+It finds the release PR waiting to ship and the commit staging's last
+successful deploy ran, shows you both, and asks before it ships:
+
+```text
+== Ship v2026.10.27 in me/app ==
+  PR #42, release/2026.10.27 into main, at abc1234: the commit staging's last deploy ran
+Ship abc1234? [y/N]
+```
+
+It refuses when the branch has moved past what staging ran, since that commit
+hasn't been reviewed. Where staging deploys are off, it offers the branch's
+head and says no staging deploy was found. To name them yourself, or where
+there's no terminal to answer on, as in CI, pass both:
+`bin/release ship <release PR> <commit reviewed on staging>`. A short commit
+ID is enough; it must be the PR's head.
 
 It does three things:
 
@@ -423,7 +439,7 @@ when the PR is already merged, skips publishing when `v<name>` exists, and
 reuses a merge-back branch and PR that are already open.
 
 If the PR was merged on GitHub instead, `ship` still checks the merge. It
-refuses to publish when the merged branch wasn't at the commit you name.
+refuses to publish when the merged branch wasn't at the commit it ships.
 
 ## Merge main back into next
 
@@ -447,8 +463,8 @@ changes `main` already has, and can conflict on them.
 
 By hand, a release starts when someone runs `bin/release prepare`. A fork can
 have it start whenever staging is free instead, so nothing waits in `next`
-longer than one review on staging. Set the `AUTO_RELEASE` repository variable
-to `true` and add a `RELEASE_TOKEN` secret, and
+longer than one review on staging. Add a `RELEASE_TOKEN` secret (below), set
+the `AUTO_RELEASE` repository variable to `true`, and
 `.github/workflows/next_release.yml` takes the first two steps itself:
 
 1. When any PR merges into `next`, it runs `bin/release prepare --if-needed`.
@@ -464,11 +480,39 @@ PRs from forks of this repository start nothing, since GitHub withholds the
 token from them; the next merge from a branch here, or `prepare` by hand,
 starts the release.
 
+### Set up the release token
+
 The workflow needs its own token because GitHub runs no workflows on pull
 requests opened with a workflow's built-in token, so the changelog PR's checks
-would never start and it would never merge. A fine-grained token for this
-repository with Contents and Pull requests set to read and write is enough;
-add Workflows if GitHub refuses a push that carries workflow changes.
+would never start and it would never merge. With `AUTO_RELEASE` on and no
+token, each run stops at its first step with "RELEASE_TOKEN isn't set".
+
+1. On GitHub, open **Settings → Developer settings → Personal access tokens →
+   Fine-grained tokens → Generate new token**.
+2. Under **Repository access**, choose **Only select repositories** and pick
+   this repository.
+3. Under **Permissions**, set **Contents** and **Pull requests** to **Read and
+   write**. Add **Workflows** too if GitHub later refuses a push that carries
+   workflow changes.
+4. Choose an expiry, and note it. An expired token still counts as set, so
+   the run gets past that first check and fails at its `bin/release` step
+   instead; releases stop starting on their own until you replace it.
+5. Generate it, then store it as the secret. The command asks for the token,
+   so it stays out of your shell history:
+
+   ```bash
+   gh secret set RELEASE_TOKEN --repo <owner>/<repo>
+   ```
+
+6. Turn it on:
+
+   ```bash
+   gh variable set AUTO_RELEASE --body true --repo <owner>/<repo>
+   ```
+
+Paste the token only into that prompt. A token left in a file, an editor tab
+or a chat can be read by anything that sees it; if that happens, revoke it on
+the same settings page and make a new one.
 
 ## Hotfix
 
@@ -537,6 +581,14 @@ names the release in the changelog and opens that as a PR into `next`, `cut`
 pushes `release/<name>` and opens its PR into `main`, and `ship` merges it,
 tags it and opens the merge-back. A person and a workflow run the same
 commands, so automating a step changes who runs it, not what it does.
+Each command names the repository it acts on in its first line.
+
+Run by hand, its pushes go through your pre-push hook, except a commit
+already on origin: `cut` pushes a commit on `next`, the merge-back one on
+`main`, and both passed CI's required checks on their way there. `cut`
+only cuts a commit whose CI run passed, and every branch it pushes lands
+through a PR whose required checks run again. If a push fails, it shows the
+end of what the hook said and saves the rest to `tmp/release-push.log`.
 
 **Workflows react to events.** Each file in `.github/workflows/` names the
 event that starts it:

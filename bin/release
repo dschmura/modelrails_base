@@ -5,6 +5,7 @@
 # Commits through a temporary index, so the checkout and working tree are never touched.
 
 require "date"
+require "fileutils"
 require "json"
 require "open3"
 require "optparse"
@@ -12,6 +13,7 @@ require "tmpdir"
 require "yaml"
 require_relative "../lib/clean_git_env"
 require_relative "../lib/github_origin"
+require_relative "../lib/release_candidate"
 require_relative "../lib/release_changelog"
 
 class Release
@@ -19,7 +21,8 @@ class Release
 
   CLEAN_GIT_ENV = ::CleanGitEnv::HASH
   TEMPLATE = ".github/PULL_REQUEST_TEMPLATE/release.md"
-  USAGE = "usage: bin/release prepare | cut | ship <PR> <commit reviewed on staging> | merge-back | check"
+  SHIP_USAGE = "bin/release ship [<PR> <commit reviewed on staging>]"
+  USAGE = "usage: bin/release prepare | cut | #{SHIP_USAGE.delete_prefix('bin/release ')} | merge-back | check"
   ONCE_READY = "once its checks pass and any required approval is given"
   BODY_LIMIT = 60_000
 
@@ -52,7 +55,7 @@ class Release
 
     name = ReleaseChangelog.names(@opts.fetch(:today) { Date.today })
                            .find { |n| !tagged?(n) && !template_tags.key?(n) && !branch?("release/#{n}") }
-    say("== Prepare v#{name} ==")
+    say("== Prepare v#{name} in #{@repo} ==")
     return dry("push changelog/#{name} (CHANGELOG.md naming v#{name}) and queue its PR into next") if dry_run?
 
     commit = commit_on("origin/next", { "CHANGELOG.md" => ReleaseChangelog.name_release(changelog + "\n", name) },
@@ -78,31 +81,33 @@ class Release
     raise Error, "main isn't in next yet: merge the open merge-back PR first" unless ancestor?("origin/main", commit)
     require_passing_ci(commit, name)
 
-    say("== Cut #{branch} ==")
+    say("== Cut #{branch} in #{@repo} ==")
     say("  at #{commit[0, 7]}; #{waiting} later commit#{'s' unless waiting == 1} on next wait#{'s' if waiting == 1} for the next release") if waiting.positive?
     return dry("push #{branch} at #{commit[0, 7]} and open its PR into main") if dry_run?
 
     url = propose(branch, at: commit, base: "main", title: "Release #{name}",
                   body: release_body(branch, ReleaseChangelog.section(git("show", "#{commit}:CHANGELOG.md"), name)))
     say("  → #{url}")
-    say("Then: review it on staging, and run bin/release ship <PR> <commit reviewed on staging>.")
+    say("Then: review it on staging, and run bin/release ship.")
   end
 
   def ship(pr = nil, sha = nil)
-    raise Error, "usage: bin/release ship <PR> <commit reviewed on staging>" unless pr && sha
+    raise Error, "usage: #{SHIP_USAGE}" if pr.nil? != sha.nil? || (sha && !sha.match?(/\A\h{7,40}\z/))
 
+    pr, sha, found = waiting_release unless pr
     info = pr_info(pr)
     name = release_name(info)
-    say("== Ship v#{name} ==")
-    return dry("merge PR #{pr} at #{sha}, publish release v#{name}, and queue the merge-back into next") if dry_run?
+    head = info["headRefOid"]
+    say("== Ship v#{name} in #{@repo} ==")
+    say("  PR ##{pr}, #{info['headRefName']} into main, at #{head[0, 7]}: #{found}") if found
+    return dry("merge PR #{pr} at #{head[0, 7]}, publish release v#{name}, and queue the merge-back into next") if dry_run?
+    return say("Not shipped.") if found && !ReleaseCandidate.confirmed?(pr, head)
+    raise Error, "PR #{pr} #{info['state'] == 'MERGED' ? 'was merged' : 'is'} at #{head[0, 7]}, not #{sha}, the commit reviewed on staging" unless head.start_with?(sha)
 
     if info["state"] == "MERGED"
-      merged = info["headRefOid"]
-      raise Error, "PR #{pr} was merged at #{merged[0, 7]}, not #{sha}, the commit reviewed on staging" unless merged.start_with?(sha)
-
       say("  ✓ PR #{pr} already merged")
     else
-      gh("pr", "merge", pr, "--merge", "--match-head-commit", sha)
+      gh("pr", "merge", pr, "--merge", "--match-head-commit", head)
       info = pr_info(pr)
     end
     publish(name, info.dig("mergeCommit", "oid"))
@@ -117,7 +122,7 @@ class Release
   def merge_back(label, after:)
     fetch
     branch = "merge-back/#{label}"
-    say("== Merge main back into next ==")
+    say("== Merge main back into next in #{@repo} ==")
     return dry("push #{branch} at main and queue its PR into next") if dry_run?
 
     url = propose(branch, at: git("rev-parse", "origin/main"), base: "next", title: "Merge main back into next after #{after}",
@@ -193,7 +198,7 @@ class Release
     unless runs.any? && runs.all? { |run| run["status"] == "completed" }
       raise Error, "CI hasn't passed on #{commit[0, 7]} yet: run cut again once it has"
     end
-    return if runs.all? { |run| %w[success neutral skipped].include?(run["conclusion"]) }
+    return if runs.all? { |run| run["conclusion"] == "success" }
 
     raise Error, "CI failed on #{commit[0, 7]}, where v#{name} would be cut. Fix it by a PR into next, with its " \
                  "changelog line under ## v#{name} so this release takes the fix, then run cut again"
@@ -219,8 +224,16 @@ class Release
                  "What ships:\n#{since_named.first.last.join("\n")}\nMove them under ## v#{name} by a PR into next, then run cut again"
   end
 
+  def waiting_release
+    pr = ReleaseCandidate.waiting(JSON.parse(gh("pr", "list", "--base", "main", "--state", "all", "--limit", "30", "--json", "number,headRefName,state,headRefOid")), usage: SHIP_USAGE) { |name| tagged?(name) }
+    runs, listed = gh("run", "list", "--workflow", "deploy.yml", "--branch", pr["headRefName"], "--event", "push",
+                      "--json", "headSha,conclusion", status: true)
+    [ pr["number"].to_s, pr["headRefOid"], ReleaseCandidate.found(pr, listed ? JSON.parse(runs) : []) ]
+  end
+
+
   def release_name(info)
-    name = info["headRefName"].to_s[%r{\Arelease/(#{ReleaseChangelog::NAME})\z}, 1]
+    name = info["headRefName"].to_s[ReleaseCandidate::BRANCH, 1]
     raise Error, "that PR is not a release/* branch into main" unless name && info["baseRefName"] == "main"
 
     name
@@ -240,7 +253,7 @@ class Release
 
   # Pushes the branch unless a stopped run already did, then opens its PR or finds the open one.
   def propose(branch, at:, base:, title:, body:, auto_merge: false)
-    git("push", "-q", "origin", "#{at}:refs/heads/#{branch}") unless branch?(branch)
+    push(at, branch) unless branch?(branch)
     url, created = gh("pr", "create", "--base", base, "--head", branch, "--title", title, "--body-file", "-",
                       stdin: body, status: true)
     raise Error, "gh pr create failed: #{url}" unless created || url.include?("already exists")
@@ -249,6 +262,25 @@ class Release
     gh("pr", "merge", url, "--auto", "--merge") if auto_merge
     url
   end
+
+  # A commit already on origin passed CI's required checks on its way there; the hook adds nothing.
+  def push(at, branch)
+    ref = "#{at}:refs/heads/#{branch}"
+    return git("push", "-q", "--no-verify", "origin", ref) unless git("for-each-ref", "--contains", at, "refs/remotes/origin").empty?
+
+    say("  pushing #{branch}; the pre-push hook checks it first, which can take a few minutes") if pre_push_hook?
+    out, err, status = Open3.capture3(CLEAN_GIT_ENV, "git", "-C", @root, "push", "-q", "origin", ref)
+    return if status.success?
+
+    output = "#{out}#{err}".gsub(/\e\[[\d;]*m/, "")
+    log = File.join(@root, "tmp/release-push.log")
+    FileUtils.mkdir_p(File.dirname(log))
+    File.write(log, output)
+    raise Error, "git push of #{branch} failed. The end of what it said:\n#{output.lines.last(15).join.rstrip}\n" \
+                 "All of it is in #{log.delete_prefix("#{@root}/")}"
+  end
+
+  def pre_push_hook? = File.executable?(File.expand_path(git("rev-parse", "--git-path", "hooks/pre-push"), @root))
 
   def release_body(branch, section)
     template = File.read(File.join(@root, TEMPLATE)).sub("`release/YYYY.MM.DD`", "`#{branch}`")
@@ -308,7 +340,7 @@ if $PROGRAM_NAME == __FILE__
 
   begin
     Release.new(options, root: File.expand_path("..", __dir__)).run(*ARGV)
-  rescue Release::Error, ReleaseChangelog::Error => e
+  rescue Release::Error, ReleaseCandidate::Error, ReleaseChangelog::Error => e
     abort("bin/release: #{e.message}")
   end
 end
