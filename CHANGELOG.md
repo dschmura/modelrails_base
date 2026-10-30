@@ -4,6 +4,10 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+### Fixed
+
+- The activity ledger's workspace-search spec no longer fails when a random operator name contains its search term.
+
 ## v2026.10.30-3
 
 ### Added
