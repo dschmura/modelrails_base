@@ -12,6 +12,8 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 - `bin/release` names the repository it acts on, says when the pre-push hook is checking its push, and skips the hook for a commit already on origin; a failed push shows the end of what the hook said and saves the rest to `tmp/release-push.log`.
 - `bin/release cut` cuts only a commit whose CI run passed, not one whose run was skipped.
+- `bin/release ship` with nothing named finds the release PR and the commit staging ran, and asks before shipping it; a short commit ID now works too.
+
 ## v2026.10.30-2
 
 ### Fixed

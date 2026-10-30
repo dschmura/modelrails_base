@@ -230,7 +230,7 @@ its tag and a commit to roll back to.
 | --- | --- |
 | Name the release in the changelog | `bin/release prepare` |
 | Cut a release | `bin/release cut` |
-| Ship the reviewed commit | `bin/release ship <PR> <commit reviewed on staging>` |
+| Ship the reviewed commit | `bin/release ship` |
 | Merge `main` back after a hotfix | `bin/release merge-back` |
 
 ## Before it merges
@@ -405,8 +405,24 @@ commits as already merged, so nothing comes back.
 ## Ship it
 
 ```bash
-bin/release ship <release PR> <commit reviewed on staging>
+bin/release ship
 ```
+
+It finds the release PR waiting to ship and the commit staging's last
+successful deploy ran, shows you both, and asks before it ships:
+
+```text
+== Ship v2026.10.27 in me/app ==
+  PR #42, release/2026.10.27 into main, at abc1234: the commit staging's last deploy ran
+Ship abc1234? [y/N]
+```
+
+It refuses when the branch has moved past what staging ran, since that commit
+hasn't been reviewed. Where staging deploys are off, it offers the branch's
+head and says no staging deploy was found. To name them yourself, or where
+there's no terminal to answer on, as in CI, pass both:
+`bin/release ship <release PR> <commit reviewed on staging>`. A short commit
+ID is enough; it must be the PR's head.
 
 It does three things:
 
@@ -423,7 +439,7 @@ when the PR is already merged, skips publishing when `v<name>` exists, and
 reuses a merge-back branch and PR that are already open.
 
 If the PR was merged on GitHub instead, `ship` still checks the merge. It
-refuses to publish when the merged branch wasn't at the commit you name.
+refuses to publish when the merged branch wasn't at the commit it ships.
 
 ## Merge main back into next
 
