@@ -541,7 +541,7 @@ Each command names the repository it acts on in its first line.
 
 Run by hand, its pushes go through your pre-push hook, except a commit
 already on origin: `cut` pushes a commit on `next`, the merge-back one on
-`main`, and both went through the hook and CI on their way there. `cut`
+`main`, and both passed CI's required checks on their way there. `cut`
 only cuts a commit whose CI run passed, and every branch it pushes lands
 through a PR whose required checks run again. If a push fails, it shows the
 end of what the hook said and saves the rest to `tmp/release-push.log`.

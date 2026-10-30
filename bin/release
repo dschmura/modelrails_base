@@ -251,7 +251,7 @@ class Release
     url
   end
 
-  # A commit already on origin went through the hook, and CI, on its way there.
+  # A commit already on origin passed CI's required checks on its way there; the hook adds nothing.
   def push(at, branch)
     ref = "#{at}:refs/heads/#{branch}"
     return git("push", "-q", "--no-verify", "origin", ref) unless git("for-each-ref", "--contains", at, "refs/remotes/origin").empty?
