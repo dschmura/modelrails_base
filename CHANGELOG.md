@@ -4,6 +4,10 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+### Added
+
+- `/docs/developer/releasing` walks through creating the `RELEASE_TOKEN` automatic releases need, and the release workflow stops at its first step with "RELEASE_TOKEN isn't set" when `AUTO_RELEASE` is on without one.
+
 ### Changed
 
 - `bin/release` names the repository it acts on, says when the pre-push hook is checking its push, and skips the hook for a commit already on origin; a failed push shows the end of what the hook said and saves the rest to `tmp/release-push.log`.

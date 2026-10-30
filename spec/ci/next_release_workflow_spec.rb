@@ -37,6 +37,20 @@ RSpec.describe "the next-release workflow" do
     expect([ prepare, cut ].map { |job| release_step.(job).dig("env", "GH_TOKEN") }).to all(eq("${{ secrets.RELEASE_TOKEN }}"))
   end
 
+  it "stops each job first, saying so plainly, when the RELEASE_TOKEN secret isn't set" do
+    [ prepare, cut ].each do |job|
+      check = job["steps"].first
+      expect(check["env"]).to eq("RELEASE_TOKEN" => "${{ secrets.RELEASE_TOKEN }}")
+
+      said, missing = Open3.capture2e({ "RELEASE_TOKEN" => "" }, "bash", "-e", "-c", check["run"])
+      expect(missing).not_to be_success
+      expect(said).to include("RELEASE_TOKEN isn't set").and include("/docs/developer/releasing")
+
+      _, present = Open3.capture2e({ "RELEASE_TOKEN" => "a-token" }, "bash", "-e", "-c", check["run"])
+      expect(present).to be_success
+    end
+  end
+
   it "queues each job behind its own earlier run, so a cut never waits behind a prepare or is cancelled by one" do
     expect([ prepare, cut ].map { |job| job.dig("concurrency", "group") }).to eq(%w[next-release-prepare next-release-cut])
     expect([ prepare, cut ].map { |job| job.dig("concurrency", "cancel-in-progress") }).to all(be(false))

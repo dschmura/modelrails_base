@@ -27,6 +27,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Require the release token
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          if [ -z "$RELEASE_TOKEN" ]; then
+            echo "::error title=RELEASE_TOKEN isn't set::AUTO_RELEASE is on, but this repository has no RELEASE_TOKEN secret, so no release can start. Add one as /docs/developer/releasing says under \"Set up the release token\", or set AUTO_RELEASE to false."
+            exit 1
+          fi
+
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -58,6 +67,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Require the release token
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          if [ -z "$RELEASE_TOKEN" ]; then
+            echo "::error title=RELEASE_TOKEN isn't set::AUTO_RELEASE is on, but this repository has no RELEASE_TOKEN secret, so no release can start. Add one as /docs/developer/releasing says under \"Set up the release token\", or set AUTO_RELEASE to false."
+            exit 1
+          fi
+
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
