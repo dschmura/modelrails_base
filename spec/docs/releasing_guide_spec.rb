@@ -18,6 +18,16 @@ RSpec.describe "The releasing guide" do
     expect(before_it_merges).to include("changelog.d/")
   end
 
+  it "says the cut runs when CI finishes on next, failed or passed, so a red run is reported" do
+    expect(source).to include("| `next_release.yml` | CI finishes on a push to `next` |")
+  end
+
+  it "has changelog.d's README send a fix for the release under review to that release's section" do
+    readme = Rails.root.join("changelog.d/README.md").read
+
+    expect(readme).to include("## v<name>").and match(/release under review/)
+  end
+
   it "shows how to hold back a squash-merged PR as well as a merged one" do
     expect(source).to include("git revert -m 1 <the feature's merge commit>").and include("git revert <its squash commit>")
   end

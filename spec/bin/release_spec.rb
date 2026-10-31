@@ -235,6 +235,7 @@ RSpec.describe Release do
       section = ReleaseChangelog.section(git("show", "origin/changelog/2026.10.27:CHANGELOG.md"), "2026.10.27")
       expect(section).to include("### Fixed\n\n- A bug.\n- Login works.").and include("- First feature.")
       expect(git("ls-tree", "--name-only", "origin/changelog/2026.10.27", "changelog.d/")).to eq("changelog.d/README.md")
+      expect(calls[/BODY<<\n(.*?)>>BODY/m, 1]).to include("changelog.d/")
     end
 
     it "starts a release under --if-needed from fragments alone" do
