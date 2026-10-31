@@ -26,10 +26,10 @@ RSpec.describe "the next-release workflow" do
     expect(release_step.(prepare)["run"]).to include("bin/release prepare --if-needed")
   end
 
-  it "cuts only once CI has passed on a push to next" do
+  it "tries the cut whenever CI passes or fails on a push to next, so a failure stops it loudly instead of skipping it" do
     expect(cut["if"]).to include("github.event_name == 'workflow_run'")
       .and include("github.event.workflow_run.event == 'push'")
-      .and include("github.event.workflow_run.conclusion == 'success'")
+      .and include("(github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure')")
     expect(release_step.(cut)["run"]).to include("bin/release cut --if-needed")
   end
 
