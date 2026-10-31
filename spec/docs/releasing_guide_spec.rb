@@ -1,5 +1,6 @@
 require "rails_helper"
 require "nokogiri"
+require "release_flow"
 
 RSpec.describe "The releasing guide" do
   let(:source) { Rails.root.join("app/docs/developer/releasing.md").read }
