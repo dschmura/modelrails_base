@@ -475,8 +475,12 @@ the `AUTO_RELEASE` repository variable to `true`, and
    That names a release only if none is under way and a changelog entry is
    waiting; otherwise it says why and stops. So a release starts when
    the last one's merge-back lands, or with the first PR after a quiet spell.
-2. When CI passes on `next`, it runs `bin/release cut --if-needed`, which cuts
+2. When CI finishes on `next`, it runs `bin/release cut --if-needed`, which cuts
    a release once one is named, deploying it to staging and opening its PR.
+   If CI failed where the release would be cut, the run fails and says so,
+   and GitHub tells whoever merged. Re-run a flake's failed jobs, or merge a
+   fix with its changelog line under the release's section; the cut follows
+   once CI passes.
 
 Reviewers hear about it once, from the release PR. Shipping stays a person's
 call: `bin/release ship` still takes the commit someone reviewed on staging.

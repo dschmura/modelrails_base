@@ -400,6 +400,12 @@ RSpec.describe Release do
         expect { run_release("cut") }.to raise_error(Release::Error, /CI failed on \h{7}.*## v2026\.10\.27/m)
         expect(remote_heads).not_to include("release/2026.10.27")
       end
+
+      it "refuses even when run only if needed, since a release is waiting, and says a flake can be re-run" do
+        setup_repo(next_changelog: named)
+
+        expect { run_release("cut", if_needed: true) }.to raise_error(Release::Error, /CI failed on \h{7}.*re-run its failed jobs/m)
+      end
     end
 
     context "when CI's run on the commit was skipped" do

@@ -196,8 +196,8 @@ class Release
     end
     return if runs.all? { |run| run["conclusion"] == "success" }
 
-    raise Error, "CI failed on #{commit[0, 7]}, where v#{name} would be cut. Fix it by a PR into next, with its " \
-                 "changelog line under ## v#{name} so this release takes the fix, then run cut again"
+    raise Error, "CI failed on #{commit[0, 7]}, where v#{name} would be cut. If it was a flake, re-run its failed jobs; otherwise " \
+                 "fix it by a PR into next, its changelog line under ## v#{name}. Then cut again (AUTO_RELEASE does once CI passes)"
   end
 
   def fetch
