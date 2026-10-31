@@ -8,8 +8,8 @@ RSpec.describe "the release pull request template" do
     expect(template).to match(/reviewed on staging/i)
   end
 
-  it "ships with bin/release, which merges only that commit" do
-    expect(template).to include("bin/release ship <this PR> <commit reviewed on staging>")
+  it "ships with plain bin/release ship, which finds this PR and the commit staging ran" do
+    expect(template).to include("```bash\nbin/release ship\n```")
   end
 
   it "spells the ship command's commit the same way in the script, the template and the guide" do

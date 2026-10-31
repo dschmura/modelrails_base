@@ -351,7 +351,8 @@ their files, with a PR into `next`, and run `cut` again.
 **Only what CI passed.** CI runs on every push to `next`, and `cut` refuses
 until it has passed on the commit it would cut. If it failed there, fix it by
 a PR into `next` with its changelog line under `## v<name>`, so this release
-takes the fix, then run `cut` again.
+takes the fix, then run `cut` again. A file in `changelog.d/` would leave the
+fix waiting for the next release, and `cut` would pick the failing commit again.
 
 **One release at a time.** `cut` refuses while another `release/*` branch is
 open, because staging runs one build and a second candidate would replace the
@@ -483,7 +484,7 @@ the `AUTO_RELEASE` repository variable to `true`, and
    once CI passes.
 
 Reviewers hear about it once, from the release PR. Shipping stays a person's
-call: `bin/release ship` still takes the commit someone reviewed on staging.
+call: `bin/release ship` asks before it ships the commit staging ran.
 PRs from forks of this repository start nothing, since GitHub withholds the
 token from them; the next merge from a branch here, or `prepare` by hand,
 starts the release.
@@ -606,7 +607,7 @@ event that starts it:
 | `ci.yml` | a PR opens or updates; a push to `next` or `main` | runs the checks |
 | `deploy.yml` | a push to `release/**` or `main` | deploys: release branches to staging, `main` to production |
 | `next_release.yml` | a PR merges into `next` | `bin/release prepare --if-needed` |
-| `next_release.yml` | CI passes on a push to `next` | `bin/release cut --if-needed` |
+| `next_release.yml` | CI finishes on a push to `next` | `bin/release cut --if-needed`, which fails loudly if CI failed |
 
 One step's output is the next one's event. `cut` pushing a release branch is
 what deploys staging, and the changelog PR merging is a push to `next`, which

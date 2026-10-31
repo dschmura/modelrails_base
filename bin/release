@@ -63,7 +63,7 @@ class Release
     commit = commit_on("origin/next", { "CHANGELOG.md" => named, **fragments.transform_values { nil } },
                        message: "The changelog names release #{name}")
     url = propose("changelog/#{name}", at: commit, base: "next", title: "Changelog for release #{name}",
-                  body: "Names `[Unreleased]` as v#{name} so `bin/release cut` can cut it.\n", auto_merge: true)
+                  body: "Gathers `changelog.d/` and `[Unreleased]` into v#{name} so `bin/release cut` can cut it.\n", auto_merge: true)
     say("  → #{url}, merging into next #{ONCE_READY}")
     say("Then: bin/release cut, once it has merged.")
   end
@@ -226,7 +226,6 @@ class Release
                       "--json", "headSha,conclusion", status: true)
     [ pr["number"].to_s, pr["headRefOid"], ReleaseCandidate.found(pr, listed ? JSON.parse(runs) : []) ]
   end
-
 
   def release_name(info)
     name = info["headRefName"].to_s[ReleaseCandidate::BRANCH, 1]
