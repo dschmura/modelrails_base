@@ -4,6 +4,12 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+## v2026.10.31
+
+### Changed
+
+- The release workflow's cut fails and says so when CI failed where a waiting release would be cut, instead of skipping without a word; its message says to re-run a flake.
+
 ## v2026.10.30-4
 
 ### Fixed
