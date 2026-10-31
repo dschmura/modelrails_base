@@ -650,6 +650,22 @@ steps in `bin/release`, and this page, the release template in
 `.github/PULL_REQUEST_TEMPLATE.md` describe them. Change all of them
 together.
 
+`bin/release` takes its names from an optional `.release_flow.yml` at the
+repository's root. Each setting defaults to this repository's:
+
+| Setting | Default | What it names |
+| --- | --- | --- |
+| `integration_branch` | `next` | the branch PRs merge into |
+| `production_branch` | `main` | the branch production deploys |
+| `ci_workflow` | `ci.yml` | the workflow `cut` waits on |
+| `staging_workflow` | `deploy.yml` | the workflow whose deploys `ship` reads |
+| `guide` | `/docs/developer/releasing` | the page `bin/release --help` points to |
+| `template` | none | the GitHub repository this one forks, as `owner/repo` |
+
+A setting it doesn't know stops `bin/release` with the list of those it
+does. The workflow `next_release.yml` and the branch rules name the branches
+too, so rename them there as well.
+
 The changelog and release-name convention is separate from the flow. It lives
 in `lib/release_changelog.rb`, and `bin/release` reads it only through that
 module's public methods. A fork that keeps its changelog another way replaces

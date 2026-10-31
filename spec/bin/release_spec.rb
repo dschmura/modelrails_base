@@ -198,6 +198,52 @@ RSpec.describe Release do
     end
   end
 
+  describe "a repository with other names, set in .release_flow.yml" do
+    let(:gh_create) { 'echo "https://github.com/me/app/pull/42"' }
+
+    def rename_branches
+      clone.join(".release_flow.yml").write("integration_branch: develop\nproduction_branch: trunk\n" \
+                                            "ci_workflow: test.yml\nstaging_workflow: staging.yml\n")
+      git("add", ".release_flow.yml")
+      git("commit", "-q", "-m", "names")
+      git("push", "-q", "origin", "HEAD:develop", "refs/remotes/origin/main:refs/heads/trunk")
+    end
+
+    it "prepares on the integration branch it names" do
+      setup_repo
+      rename_branches
+      run_release("prepare")
+
+      expect(git("rev-parse", "origin/changelog/2026.10.27^")).to eq(git("rev-parse", "origin/develop"))
+      expect(calls).to include("CALL pr create --base develop --head changelog/2026.10.27")
+    end
+
+    it "cuts only what its CI workflow passed, into the production branch it names" do
+      setup_repo(next_changelog: named)
+      rename_branches
+      run_release("cut")
+
+      expect(calls).to include("CALL run list --workflow test.yml")
+      expect(calls).to include("CALL pr create --base trunk --head release/2026.10.27")
+    end
+
+    context "when a release waits to ship" do
+      let(:head) { "abc1234#{'0' * 33}" }
+      let(:gh_prs) { %(echo '[{"number":42,"headRefName":"release/2026.10.27","state":"OPEN","headRefOid":"#{head}"}]') }
+
+      it "finds it on the production branch, and what its staging workflow deployed" do
+        setup_repo(next_changelog: named)
+        rename_branches
+        install_fake_gh(release_pr: { "headRefName" => "release/2026.10.27", "baseRefName" => "trunk", "headRefOid" => head })
+        run_release("ship", dry_run: true)
+
+        expect(calls).to include("CALL pr list --base trunk")
+        expect(calls).to include("CALL run list --workflow staging.yml --branch release/2026.10.27")
+        expect(@output).to include("PR #42, release/2026.10.27 into trunk")
+      end
+    end
+  end
+
   describe "naming" do
     before { setup_repo }
 
@@ -568,6 +614,17 @@ RSpec.describe Release do
     it "never names a release after one the template tagged" do
       setup_repo
       fork_from_template(tagged: commit_outside_next)
+      run_release("prepare", dry_run: true)
+
+      expect(@output).to include("== Prepare v2026.10.27-2 in me/app ==")
+    end
+
+    it "reads the template that .release_flow.yml names, with no .fork.yml" do
+      setup_repo
+      git("init", "-q", "--bare", template.to_s, dir: workdir)
+      git("config", "url.#{template}.insteadOf", "https://github.com/me/template.git")
+      git("push", "-q", template.to_s, "#{git('rev-parse', commit_outside_next)}:refs/tags/v2026.10.27")
+      clone.join(".release_flow.yml").write("template: me/template\n")
       run_release("prepare", dry_run: true)
 
       expect(@output).to include("== Prepare v2026.10.27-2 in me/app ==")

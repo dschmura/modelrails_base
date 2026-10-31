@@ -22,6 +22,13 @@ RSpec.describe "The releasing guide" do
     expect(source).to include("| `next_release.yml` | CI finishes on a push to `next` |")
   end
 
+  it "names every setting .release_flow.yml takes, so a repository with other names can use the flow" do
+    section = source[/^## Changing the flow\n.*\z/m].to_s
+
+    expect(section).to include("`.release_flow.yml`")
+    ReleaseFlow::DEFAULTS.each_key { |setting| expect(section).to include("`#{setting}`") }
+  end
+
   it "has changelog.d's README send a fix for the release under review to that release's section" do
     readme = Rails.root.join("changelog.d/README.md").read
 
