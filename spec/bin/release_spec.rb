@@ -129,6 +129,15 @@ RSpec.describe Release do
   def calls = log.exist? ? log.read : ""
   def remote_heads = git("ls-remote", "--heads", "origin").lines.map { |l| l.split.last.delete_prefix("refs/heads/") }
 
+  def add_fragment(name, text)
+    clone.join("changelog.d").mkpath
+    clone.join("changelog.d/README.md").write("How to add a changelog entry.\n")
+    clone.join("changelog.d/#{name}").write(text)
+    git("add", "-A")
+    git("commit", "-q", "-m", "fragment #{name}")
+    git("push", "-q", "origin", "HEAD:next")
+  end
+
   describe "the repository it acts on" do
     it "is origin's, not upstream's, which gh would pick" do
       setup_repo(next_changelog: named)
@@ -218,6 +227,25 @@ RSpec.describe Release do
       expect(calls).to include("CALL pr merge https://github.com/me/app/pull/42 --auto --merge")
     end
 
+    it "gathers changelog.d's fragments into the named release and deletes them, keeping the README" do
+      setup_repo
+      add_fragment("fix-login.md", "### Fixed\n\n- Login works.\n")
+      run_release("prepare")
+
+      section = ReleaseChangelog.section(git("show", "origin/changelog/2026.10.27:CHANGELOG.md"), "2026.10.27")
+      expect(section).to include("### Fixed\n\n- A bug.\n- Login works.").and include("- First feature.")
+      expect(git("ls-tree", "--name-only", "origin/changelog/2026.10.27", "changelog.d/")).to eq("changelog.d/README.md")
+    end
+
+    it "starts a release under --if-needed from fragments alone" do
+      setup_repo(next_changelog: named)
+      git("push", "-q", "origin", "main:refs/tags/v2026.10.27")
+      add_fragment("fix-login.md", "- Login works.\n")
+      run_release("prepare", if_needed: true)
+
+      expect(remote_heads).to include("changelog/2026.10.27-2")
+    end
+
     it "says the PR waits for an approval too, where the rules require one" do
       setup_repo
       run_release("prepare")
@@ -256,12 +284,12 @@ RSpec.describe Release do
       expect(remote_heads).not_to include("changelog/2026.10.27")
     end
 
-    it "starts no release under --if-needed when nothing is under [Unreleased], and says so" do
+    it "starts no release under --if-needed when no changelog entry is waiting, and says so" do
       setup_repo(next_changelog: named)
       git("push", "-q", "origin", "main:refs/tags/v2026.10.27")
       run_release("prepare", if_needed: true)
 
-      expect(@output).to include("Nothing under [Unreleased] on next")
+      expect(@output).to include("No changelog entries are waiting on next")
       expect(remote_heads).to contain_exactly("main", "next")
     end
 
@@ -328,6 +356,16 @@ RSpec.describe Release do
 
       expect(git("rev-parse", "origin/release/2026.10.27")).to eq(named_at)
       expect(calls[/BODY<<\n(.*?)>>BODY/m, 1]).not_to include("Landed after prepare")
+      expect(@output).to include("1 later commit on next waits for the next release")
+    end
+
+    it "cuts before a fragment that landed after the release was named" do
+      setup_repo(next_changelog: named)
+      named_at = git("rev-parse", "origin/next")
+      add_fragment("later.md", "- Landed after prepare.\n")
+      run_release("cut")
+
+      expect(git("rev-parse", "origin/release/2026.10.27")).to eq(named_at)
       expect(@output).to include("1 later commit on next waits for the next release")
     end
 
@@ -560,7 +598,7 @@ RSpec.describe Release do
       git("commit", "-q", "-am", "a line in the wrong place")
 
       expect { run_release("check") }
-        .to raise_error(Release::Error, /v2026\.10\.27 has shipped.*- A late fix\..*\[Unreleased\]/m)
+        .to raise_error(Release::Error, %r{v2026\.10\.27 has shipped.*- A late fix\..*changelog\.d/}m)
     end
 
     it "fails when a line is removed from a shipped release" do

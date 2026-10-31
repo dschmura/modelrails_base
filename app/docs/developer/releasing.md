@@ -251,9 +251,12 @@ The PR template asks for three things the release depends on:
   write the spec instead: it then runs on every PR without anyone's time.
 - **Depends on.** Any unreleased PR this one needs, so both stay in a release
   or come out of it together.
-- **A changelog line.** One line under `## [Unreleased]` in `CHANGELOG.md`,
-  saying what changed for someone using the app. `prepare` turns those lines
-  into the release's notes, and refuses a release that has none.
+- **A changelog entry.** A file of its own in `changelog.d/`, such as
+  `changelog.d/fix-login.md`, with one line saying what changed for someone
+  using the app, under a `### Added` or `### Fixed` heading if it fits one.
+  Two PRs never edit the same lines, so their entries can't conflict.
+  `prepare` turns the files into the release's notes, and refuses a release
+  that has none.
 
 An agent writing a PR takes the same path: run the suite, run the app, walk
 the steps, then write them into the PR. Steps a person can follow are steps an
@@ -289,19 +292,20 @@ as Flipper, which switches a PR's feature off instead of reverting it.
 bin/release prepare
 ```
 
-PRs add their lines under `## [Unreleased]` in `CHANGELOG.md`. `prepare`
-opens a PR into `next` that renames that section to the release, such as
-`## v2026.10.27`, and folds its repeated `### Added` / `### Fixed` / ...
-subsections into one each. It then starts a fresh, empty `[Unreleased]`
-above it, drops subsections with no entries, and turns on auto-merge, so the
+PRs add their entries as files in `changelog.d/`. `prepare` opens a PR into
+`next` that gathers them, with any lines still under `## [Unreleased]` in
+`CHANGELOG.md`, into a section for the release, such as `## v2026.10.27`,
+and deletes the files. It folds repeated `### Added` / `### Fixed` / ...
+subsections into one each, keeps an empty `[Unreleased]` above the new
+section, drops subsections with no entries, and turns on auto-merge, so the
 PR lands once its checks pass and any approval the rules require is given. It
 commits through a temporary index, so your checkout is never touched. It
 refuses while a release it named earlier hasn't shipped yet. A fork can have
 it run itself once staging is free ([When a release starts](#when-a-release-starts)).
 
-The rename happens on `next`, before the cut, so that work merged during
-review lands under the new `[Unreleased]`. Renaming on the release branch
-instead would collide with those lines at the merge-back.
+The naming happens on `next`, before the cut, so that work merged during
+review adds new entries that wait for the next release. Naming on the release
+branch instead would collide with them at the merge-back.
 
 **A release is named for the day.** A second one the same day becomes
 `2026.10.27-2`, then `-3`. The script skips any name already used by a tag or
@@ -318,8 +322,8 @@ has used. If the template is private and the token can't read it,
 
 **A shipped release's notes don't change.** CI runs `bin/release check`, which
 fails a PR that adds, removes or edits a line in a release section that has
-been tagged, and names the line. A late line belongs under `[Unreleased]`, and
-ships with the next release.
+been tagged, and names the line. A late line belongs in a new file in
+`changelog.d/`, and ships with the next release.
 
 ## Cut a release
 
@@ -328,20 +332,21 @@ bin/release cut
 ```
 
 Run it once the changelog PR has merged. The release is `next` as it stood
-the last time its `[Unreleased]` section was empty: the commit that named the
-release, or a later one if the PRs merged since added no changelog line. The
-first PR that adds one waits for the next release, its line still under
-`[Unreleased]`, and `cut` says how many commits wait. However long after
+the last time no changelog entry was waiting, in `changelog.d/` or under
+`[Unreleased]`: the commit that named the release, or a later one if the PRs
+merged since added no entry. The first PR that adds one waits for the next
+release, its file still in `changelog.d/`, and `cut` says how many commits
+wait. However long after
 `prepare` you run it, the code in a release matches its "What ships".
 
 `cut` pushes that commit as `release/<name>`, which deploys to staging, and
 opens the release PR into `main` from the release template. The PR body names
 the branch, and its "What ships" section is that release's changelog section.
 
-A PR that merged while the changelog PR was still open can leave its line
-under `[Unreleased]` when the release was named, though its code is in the
-release. `cut` then refuses and lists what's under `[Unreleased]`. Move those
-lines under `## v<name>` with a PR into `next`, and run `cut` again.
+A PR that merged while the changelog PR was still open can leave its entry
+waiting when the release was named, though its code is in the release. `cut`
+then refuses and lists those entries. Move them under `## v<name>`, deleting
+their files, with a PR into `next`, and run `cut` again.
 
 **Only what CI passed.** CI runs on every push to `next`, and `cut` refuses
 until it has passed on the commit it would cut. If it failed there, fix it by
@@ -370,9 +375,8 @@ branch however you test, and record its head commit (`git rev-parse
 origin/release/<name>`).
 
 A fix made on the release branch puts its changelog line under that release's
-`## v<name>` section, not under `[Unreleased]`. A line under `[Unreleased]`
-would reach `next` with the merge-back and be listed again in the next
-release.
+`## v<name>` section, not in a file in `changelog.d/`. A file there would
+reach `next` with the merge-back and be listed again in the next release.
 
 On a repository whose rules require an approval, someone other than the
 author approves the release PR on GitHub before `ship`. That's separate from
@@ -398,8 +402,8 @@ List each held-back PR and its revert commit under "Held back".
 
 **The revert reaches `next` too.** After the release merges back, the held-back
 feature is gone from `next` as well. To bring it back, revert the revert on
-`next` by PR (`git revert <the revert commit>`), and put its changelog line
-back under `[Unreleased]`. Don't re-merge the feature branch: git sees its
+`next` by PR (`git revert <the revert commit>`), and put its changelog entry
+back in a file in `changelog.d/`. Don't re-merge the feature branch: git sees its
 commits as already merged, so nothing comes back.
 
 ## Ship it
@@ -468,8 +472,8 @@ the `AUTO_RELEASE` repository variable to `true`, and
 `.github/workflows/next_release.yml` takes the first two steps itself:
 
 1. When any PR merges into `next`, it runs `bin/release prepare --if-needed`.
-   That names a release only if none is under way and something is under
-   `[Unreleased]`; otherwise it says why and stops. So a release starts when
+   That names a release only if none is under way and a changelog entry is
+   waiting; otherwise it says why and stops. So a release starts when
    the last one's merge-back lands, or with the first PR after a quiet spell.
 2. When CI passes on `next`, it runs `bin/release cut --if-needed`, which cuts
    a release once one is named, deploying it to staging and opening its PR.
@@ -525,7 +529,7 @@ gh pr create --base main --title "Sign-in no longer loops after a password reset
 ```
 
 Merging it deploys production. A hotfix ships untagged: put its changelog
-line under `## [Unreleased]`, and the next release lists it under that
+entry in a file in `changelog.d/`, and the next release lists it under that
 release's tag. Until then, rolling back to the last tag rolls back the hotfix
 too.
 

@@ -87,19 +87,39 @@ RSpec.describe ReleaseChangelog do
     end
   end
 
-  describe ".add_unreleased" do
-    it "puts the entries first under [Unreleased], in a subsection of their own, leaving the rest as it was" do
-      added = described_class.add_unreleased(changelog, "Changed", [ "- New one." ])
+  describe "fragments" do
+    let(:fixed) { "### Fixed\n\n- A fragment's fix.\n" }
+    let(:loose) { "- A loose fragment entry.\n" }
 
-      expect(added).to start_with("# Changelog\n\n## [Unreleased]\n\n### Changed\n\n- New one.\n\n### Added\n")
-      expect(added.delete_prefix(added[/\A.*?- New one\.\n/m])).to eq(changelog.split("## [Unreleased]\n", 2).last)
+    it "counts each markdown file in changelog.d as a fragment, except its README" do
+      expect(described_class.fragment?("changelog.d/fix-login.md")).to be(true)
+      expect(described_class.fragment?("changelog.d/README.md")).to be(false)
+      expect(described_class.fragment?("changelog.d/notes.txt")).to be(false)
+      expect(described_class.fragment?("changelog.d/nested/fix.md")).to be(false)
+      expect(described_class.fragment?("docs/fix.md")).to be(false)
     end
 
-    it "keeps a blank line before the next release when [Unreleased] was empty" do
-      named = described_class.name_release(changelog, "2026.10.27")
+    it "returns the fragments' entries along with any under [Unreleased]" do
+      expect(described_class.unreleased(changelog, [ fixed, loose ]))
+        .to contain_exactly("- First feature.", "- A bug.", "- Second feature.", "- A fragment's fix.", "- A loose fragment entry.")
+    end
 
-      expect(described_class.add_unreleased(named, "Changed", [ "- New one." ]))
-        .to include("## [Unreleased]\n\n### Changed\n\n- New one.\n\n## v2026.10.27\n")
+    it "folds the fragments into the named release, after [Unreleased]'s entries under each subsection" do
+      section = described_class.name_release(changelog, "2026.10.27", [ fixed, loose ])[/## v2026\.10\.27\n(.*?)## v2\.0\.0/m, 1]
+
+      expect(section.scan(/^### .+/)).to eq([ "### Added", "### Fixed", "### Changed" ])
+      expect(section).to include("### Fixed\n\n- A bug.\n- A fragment's fix.\n", "### Changed\n\n- A loose fragment entry.\n")
+    end
+
+    it "names a release from fragments alone" do
+      empty = described_class.name_release(changelog, "2026.10.27")
+
+      expect(described_class.section(described_class.name_release(empty, "2026.10.28", [ fixed ]), "2026.10.28"))
+        .to eq("### Fixed\n\n- A fragment's fix.")
+    end
+
+    it "writes a fragment from a subsection and its entries" do
+      expect(described_class.fragment("Changed", [ "- New one." ])).to eq("### Changed\n\n- New one.\n")
     end
   end
 

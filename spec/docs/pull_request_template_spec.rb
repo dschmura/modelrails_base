@@ -13,8 +13,8 @@ RSpec.describe "the pull request template" do
     expect(guide).to include("What the specs can't show")
   end
 
-  it "asks for the PR's changelog line under [Unreleased]" do
-    expect(template).to include("`## [Unreleased]`")
+  it "asks for the PR's changelog entry as a file of its own in changelog.d" do
+    expect(template).to include("`changelog.d/`")
   end
 
   it "asks the author to keep the PR removable from a release" do

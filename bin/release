@@ -46,19 +46,21 @@ class Release
   def prepare
     fetch
     changelog = next_changelog
+    fragments = fragments_at("origin/next")
     if (under_way = release_under_way(changelog))
       return say("#{under_way}, so the next release waits for it.") if @opts[:if_needed]
 
       raise Error, "#{under_way}: finish that release before starting another"
     end
-    return say("Nothing under [Unreleased] on next, so no release to start.") if @opts[:if_needed] && ReleaseChangelog.unreleased(changelog).empty?
+    return say("No changelog entries are waiting on next, so no release to start.") if @opts[:if_needed] && ReleaseChangelog.unreleased(changelog, fragments.values).empty?
 
     name = ReleaseChangelog.names(@opts.fetch(:today) { Date.today })
                            .find { |n| !tagged?(n) && !template_tags.key?(n) && !branch?("release/#{n}") }
     say("== Prepare v#{name} in #{@repo} ==")
     return dry("push changelog/#{name} (CHANGELOG.md naming v#{name}) and queue its PR into next") if dry_run?
 
-    commit = commit_on("origin/next", { "CHANGELOG.md" => ReleaseChangelog.name_release(changelog + "\n", name) },
+    named = ReleaseChangelog.name_release(changelog + "\n", name, fragments.values)
+    commit = commit_on("origin/next", { "CHANGELOG.md" => named, **fragments.transform_values { nil } },
                        message: "The changelog names release #{name}")
     url = propose("changelog/#{name}", at: commit, base: "next", title: "Changelog for release #{name}",
                   body: "Names `[Unreleased]` as v#{name} so `bin/release cut` can cut it.\n", auto_merge: true)
@@ -136,28 +138,22 @@ class Release
   private
 
   def check
-    changelog = git("show", "HEAD:CHANGELOG.md")
-    changed = git("tag", "--list", "v*").lines(chomp: true).filter_map do |tag|
-      name = tag[/\Av(#{ReleaseChangelog::NAME})\z/, 1] or next
-      shipped = ReleaseChangelog.section(git("show", "#{tag}:CHANGELOG.md"), name)
-      now = ReleaseChangelog.section(changelog, name)
-      [ name, shipped.lines(chomp: true), now.lines(chomp: true) ] if shipped && now && now != shipped
-    end
-    raise Error, changed.map { |name, shipped, now| changed_notes(name, shipped, now) }.join("\n\n") if changed.any?
+    tagged = git("tag", "--list", "v*").lines(chomp: true).filter_map { |tag| tag[/\Av(#{ReleaseChangelog::NAME})\z/, 1] }
+    changed = ReleaseChangelog.changed_releases(git("show", "HEAD:CHANGELOG.md"), tagged.to_h { |name| [ name, git("show", "v#{name}:CHANGELOG.md") ] })
+    raise Error, changed.join("\n\n") if changed.any?
 
     say("Shipped release notes are unchanged.")
-  end
-
-  def changed_notes(name, shipped, now)
-    lines = { "added" => now - shipped, "removed" => shipped - now }.flat_map { |how, ls| ls.map { |l| "  #{how}: #{l}" } }
-    "v#{name} has shipped, so its notes in CHANGELOG.md stay as tagged:\n#{lines.join("\n")}\n" \
-      "A new line belongs under ## [Unreleased]."
   end
 
   def dry_run? = @opts[:dry_run]
   def say(msg) = puts(msg)
   def dry(msg) = say("  [dry-run] would #{msg}")
   def next_changelog = git("show", "origin/next:CHANGELOG.md")
+
+  def fragments_at(commit)
+    git("ls-tree", "--name-only", commit, "#{ReleaseChangelog::FRAGMENTS}/").lines(chomp: true)
+      .select { |path| ReleaseChangelog.fragment?(path) }.to_h { |path| [ path, git("show", "#{commit}:#{path}") ] }
+  end
   def tagged?(name) = remote_refs.include?("refs/tags/v#{name}")
   def branch?(name) = remote_refs.include?("refs/heads/#{name}")
   def remote_refs = @remote_refs ||= git("ls-remote", "--heads", "--tags", "origin").lines.map { |l| l.split.last }
@@ -215,12 +211,12 @@ class Release
       changelog = git("show", "#{commit}:CHANGELOG.md")
       break unless ReleaseChangelog.named_release(changelog) == name
 
-      since_named << [ commit, ReleaseChangelog.unreleased(changelog) ]
+      since_named << [ commit, ReleaseChangelog.unreleased(changelog, fragments_at(commit).values) ]
     end
     later = since_named.index { |_, unreleased| unreleased.empty? }
     return [ since_named[later].first, later ] if later
 
-    raise Error, "these landed under [Unreleased] before v#{name} was named, so they'd ship without a line in " \
+    raise Error, "these changelog entries landed before v#{name} was named, so they'd ship without a line in " \
                  "What ships:\n#{since_named.first.last.join("\n")}\nMove them under ## v#{name} by a PR into next, then run cut again"
   end
 
@@ -300,8 +296,9 @@ class Release
       env = CLEAN_GIT_ENV.merge("GIT_INDEX_FILE" => File.join(dir, "index"))
       git("read-tree", parent, env: env)
       files.each do |path, content|
-        blob = git("hash-object", "-w", "--stdin", stdin: content)
-        git("update-index", "--add", "--cacheinfo", "100644,#{blob},#{path}", env: env)
+        next git("update-index", "--force-remove", path, env: env) if content.nil?
+
+        git("update-index", "--add", "--cacheinfo", "100644,#{git("hash-object", "-w", "--stdin", stdin: content)},#{path}", env: env)
       end
       git("commit-tree", git("write-tree", env: env), "-p", parent, "-m", message)
     end

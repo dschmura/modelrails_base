@@ -95,7 +95,7 @@ RSpec.describe Sync do
   def calls = log.read
   def pushed(path) = git("show", "origin/sync/template-v2026.10.31:#{path}")
 
-  it "brings in the template's new releases, keeping the fork's changelog and adding a line for each" do
+  it "brings in the template's new releases, keeping the fork's changelog and linking each in a changelog.d fragment" do
     setup_repos
     template_release("2026.10.30")
     template_release("2026.10.31")
@@ -104,24 +104,15 @@ RSpec.describe Sync do
     git("fetch", "-q", "origin")
 
     expect(pushed("app.rb")).to eq("2026.10.31")
-    expect(pushed("CHANGELOG.md")).to eq(<<~MD.chomp)
-      # Changelog
-
-      ## [Unreleased]
-
+    expect(pushed("CHANGELOG.md")).to eq(fork_changelog.chomp)
+    expect(pushed("changelog.d/template-v2026.10.31.md")).to eq(<<~MD.chomp)
       ### Changed
 
       - Brings in the template's release [v2026.10.30](https://github.com/me/template/releases/tag/v2026.10.30).
       - Brings in the template's release [v2026.10.31](https://github.com/me/template/releases/tag/v2026.10.31).
-
-      ## v2026.10.29
-
-      ### Added
-
-      - Our own feature.
     MD
-    workdir.join("CHANGELOG.md").write(pushed("CHANGELOG.md") + "\n")
-    lint, linted = Open3.capture2e("bundle", "exec", "mdl", workdir.join("CHANGELOG.md").to_s, chdir: Rails.root.to_s)
+    workdir.join("fragment.md").write(pushed("changelog.d/template-v2026.10.31.md") + "\n")
+    lint, linted = Open3.capture2e("bundle", "exec", "mdl", workdir.join("fragment.md").to_s, chdir: Rails.root.to_s)
     expect(linted).to be_success, lint
     expect(git("rev-list", "--parents", "-1", "origin/sync/template-v2026.10.31").split.size).to eq(3)
     expect(calls).to include("CALL pr create --base next --head sync/template-v2026.10.31")
@@ -141,7 +132,7 @@ RSpec.describe Sync do
     run_sync
     git("fetch", "-q", "origin")
 
-    added = git("diff", "origin/next", "origin/sync/template-v2026.10.31", "--", "CHANGELOG.md").lines.grep(/^\+-/)
+    added = pushed("changelog.d/template-v2026.10.31.md").lines.grep(/^-/)
     expect(added).to contain_exactly(a_string_including("release [v2026.10.31]"))
   end
 
@@ -171,8 +162,8 @@ RSpec.describe Sync do
     it "stops with the fork's changelog already fixed, and names the files to resolve" do
       expect { run_sync }.to raise_error(Sync::Error, /app\.rb.*bin\/sync again/m)
 
-      expect(clone.join("CHANGELOG.md").read).to include("- Brings in the template's release [v2026.10.31]")
-      expect(clone.join("CHANGELOG.md").read).not_to include("Template change")
+      expect(clone.join("changelog.d/template-v2026.10.31.md").read).to include("- Brings in the template's release [v2026.10.31]")
+      expect(clone.join("CHANGELOG.md").read).to eq(fork_changelog)
       expect(git("diff", "--name-only", "--diff-filter=U")).to eq("app.rb")
       expect(calls).to be_empty
     end
@@ -186,7 +177,7 @@ RSpec.describe Sync do
       git("fetch", "-q", "origin")
 
       expect(pushed("app.rb")).to eq("resolved")
-      expect(pushed("CHANGELOG.md")).to include("- Brings in the template's release [v2026.10.31]")
+      expect(pushed("changelog.d/template-v2026.10.31.md")).to include("- Brings in the template's release [v2026.10.31]")
       expect(calls).to include("CALL pr create --base next --head sync/template-v2026.10.31")
     end
 
