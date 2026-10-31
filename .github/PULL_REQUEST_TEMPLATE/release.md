@@ -15,8 +15,8 @@
 
 ## Ship it
 
-The merge button doesn't check what was reviewed. This does, refusing if the branch moved since, then publishes the release and merges `main` back into `next`:
+The merge button doesn't check what was reviewed. This does: it finds this PR and the commit staging last deployed, asks before shipping, refuses if the branch moved since, then publishes the release and merges `main` back into `next`:
 
 ```bash
-bin/release ship <this PR> <commit reviewed on staging>
+bin/release ship
 ```
