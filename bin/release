@@ -15,6 +15,7 @@ require_relative "../lib/clean_git_env"
 require_relative "../lib/github_origin"
 require_relative "../lib/release_candidate"
 require_relative "../lib/release_changelog"
+require_relative "../lib/release_flow"
 
 class Release
   class Error < StandardError; end
@@ -29,6 +30,7 @@ class Release
   def initialize(options, root: Dir.pwd)
     @opts = options
     @root = File.expand_path(root)
+    @config = ReleaseFlow::Config.load(@root)
   end
 
   def run(command, *args)
@@ -46,25 +48,25 @@ class Release
   def prepare
     fetch
     changelog = next_changelog
-    fragments = fragments_at("origin/next")
+    fragments = fragments_at("origin/#{integration}")
     if (under_way = release_under_way(changelog))
       return say("#{under_way}, so the next release waits for it.") if @opts[:if_needed]
 
       raise Error, "#{under_way}: finish that release before starting another"
     end
-    return say("No changelog entries are waiting on next, so no release to start.") if @opts[:if_needed] && ReleaseChangelog.unreleased(changelog, fragments.values).empty?
+    return say("No changelog entries are waiting on #{integration}, so no release to start.") if @opts[:if_needed] && ReleaseChangelog.unreleased(changelog, fragments.values).empty?
 
     name = ReleaseChangelog.names(@opts.fetch(:today) { Date.today })
                            .find { |n| !tagged?(n) && !template_tags.key?(n) && !branch?("release/#{n}") }
     say("== Prepare v#{name} in #{@repo} ==")
-    return dry("push changelog/#{name} (CHANGELOG.md naming v#{name}) and queue its PR into next") if dry_run?
+    return dry("push changelog/#{name} (CHANGELOG.md naming v#{name}) and queue its PR into #{integration}") if dry_run?
 
     named = ReleaseChangelog.name_release(changelog + "\n", name, fragments.values)
-    commit = commit_on("origin/next", { "CHANGELOG.md" => named, **fragments.transform_values { nil } },
+    commit = commit_on("origin/#{integration}", { "CHANGELOG.md" => named, **fragments.transform_values { nil } },
                        message: "The changelog names release #{name}")
-    url = propose("changelog/#{name}", at: commit, base: "next", title: "Changelog for release #{name}",
+    url = propose("changelog/#{name}", at: commit, base: integration, title: "Changelog for release #{name}",
                   body: "Gathers `changelog.d/` and `[Unreleased]` into v#{name} so `bin/release cut` can cut it.\n", auto_merge: true)
-    say("  → #{url}, merging into next #{ONCE_READY}")
+    say("  → #{url}, merging into #{integration} #{ONCE_READY}")
     say("Then: bin/release cut, once it has merged.")
   end
 
@@ -72,22 +74,22 @@ class Release
     fetch
     changelog = next_changelog
     name = ReleaseChangelog.named_release(changelog)
-    return say("Nothing to cut: next names no release waiting to be cut.") if @opts[:if_needed] && !waiting_to_cut?(name)
-    raise Error, "next's CHANGELOG.md names no release yet: run bin/release prepare and let its PR merge" unless name
+    return say("Nothing to cut: #{integration} names no release waiting to be cut.") if @opts[:if_needed] && !waiting_to_cut?(name)
+    raise Error, "#{integration}'s CHANGELOG.md names no release yet: run bin/release prepare and let its PR merge" unless name
     raise Error, "v#{name} already shipped: run bin/release prepare for the next one" if shipped?(name)
 
     branch = "release/#{name}"
     open = remote_refs.find { |ref| ref.start_with?("refs/heads/release/") && ref != "refs/heads/#{branch}" }
     raise Error, "#{open.delete_prefix('refs/heads/')} is still open: ship it or delete it before cutting another" if open
     commit, waiting = cut_point(name)
-    raise Error, "main isn't in next yet: merge the open merge-back PR first" unless ancestor?("origin/main", commit)
+    raise Error, "#{production} isn't in #{integration} yet: merge the open merge-back PR first" unless ancestor?("origin/#{production}", commit)
     require_passing_ci(commit, name)
 
     say("== Cut #{branch} in #{@repo} ==")
     say("  at #{commit[0, 7]}; #{waiting} later commit#{'s' unless waiting == 1} on next wait#{'s' if waiting == 1} for the next release") if waiting.positive?
-    return dry("push #{branch} at #{commit[0, 7]} and open its PR into main") if dry_run?
+    return dry("push #{branch} at #{commit[0, 7]} and open its PR into #{production}") if dry_run?
 
-    url = propose(branch, at: commit, base: "main", title: "Release #{name}",
+    url = propose(branch, at: commit, base: production, title: "Release #{name}",
                   body: release_body(branch, ReleaseChangelog.section(git("show", "#{commit}:CHANGELOG.md"), name)))
     say("  → #{url}")
     say("Then: review it on staging, and run bin/release ship.")
@@ -101,8 +103,8 @@ class Release
     name = release_name(info)
     head = info["headRefOid"]
     say("== Ship v#{name} in #{@repo} ==")
-    say("  PR ##{pr}, #{info['headRefName']} into main, at #{head[0, 7]}: #{found}") if found
-    return dry("merge PR #{pr} at #{head[0, 7]}, publish release v#{name}, and queue the merge-back into next") if dry_run?
+    say("  PR ##{pr}, #{info['headRefName']} into #{production}, at #{head[0, 7]}: #{found}") if found
+    return dry("merge PR #{pr} at #{head[0, 7]}, publish release v#{name}, and queue the merge-back into #{integration}") if dry_run?
     return say("Not shipped.") if found && !ReleaseCandidate.confirmed?(pr, head)
     raise Error, "PR #{pr} #{info['state'] == 'MERGED' ? 'was merged' : 'is'} at #{head[0, 7]}, not #{sha}, the commit reviewed on staging" unless head.start_with?(sha)
 
@@ -118,21 +120,21 @@ class Release
 
   def merge_back_after_hotfix
     fetch
-    merge_back("main-#{git('rev-parse', '--short=7', 'origin/main')}", after: "a hotfix")
+    merge_back("#{production}-#{git('rev-parse', '--short=7', "origin/#{production}")}", after: "a hotfix")
   end
 
   def merge_back(label, after:)
     fetch
     branch = "merge-back/#{label}"
-    say("== Merge main back into next in #{@repo} ==")
-    return dry("push #{branch} at main and queue its PR into next") if dry_run?
+    say("== Merge #{production} back into #{integration} in #{@repo} ==")
+    return dry("push #{branch} at #{production} and queue its PR into #{integration}") if dry_run?
 
-    url = propose(branch, at: git("rev-parse", "origin/main"), base: "next", title: "Merge main back into next after #{after}",
-                  body: "Brings `main` back into `next` after #{after}. Merge with a merge commit.\n", auto_merge: true)
+    url = propose(branch, at: git("rev-parse", "origin/#{production}"), base: integration, title: "Merge #{production} back into #{integration} after #{after}",
+                  body: "Brings `#{production}` back into `#{integration}` after #{after}. Merge with a merge commit.\n", auto_merge: true)
     out, updated = gh("api", "-X", "PUT", "repos/{owner}/{repo}/pulls/#{url.split('/').last}/update-branch", status: true)
     already_current = out.include?("no new commits on the base branch")
     say("  ! GitHub couldn't bring #{url} up to date; press Update branch on it") unless updated || already_current
-    say("  → #{url}, merging into next #{ONCE_READY}")
+    say("  → #{url}, merging into #{integration} #{ONCE_READY}")
   end
 
   private
@@ -148,7 +150,9 @@ class Release
   def dry_run? = @opts[:dry_run]
   def say(msg) = puts(msg)
   def dry(msg) = say("  [dry-run] would #{msg}")
-  def next_changelog = git("show", "origin/next:CHANGELOG.md")
+  def next_changelog = git("show", "origin/#{integration}:CHANGELOG.md")
+  def integration = @config.integration_branch
+  def production = @config.production_branch
 
   def fragments_at(commit)
     git("ls-tree", "--name-only", commit, "#{ReleaseChangelog::FRAGMENTS}/").lines(chomp: true)
@@ -159,12 +163,12 @@ class Release
   def remote_refs = @remote_refs ||= git("ls-remote", "--heads", "--tags", "origin").lines.map { |l| l.split.last }
 
   # A fork's changelog carries the template's releases, which only the template tagged.
-  def shipped?(name) = tagged?(name) || template_tags[name]&.then { |commit| ancestor?(commit, "origin/next") }
+  def shipped?(name) = tagged?(name) || template_tags[name]&.then { |commit| ancestor?(commit, "origin/#{integration}") }
 
   def template_tags
     @template_tags ||= if (template = template_repo)
       out, err, status = Open3.capture3(CLEAN_GIT_ENV, "git", "-C", @root, "ls-remote", "--tags", "https://github.com/#{template}.git")
-      raise Error, "can't read the tags of #{template}, the template in .fork.yml: #{err.strip}" unless status.success?
+      raise Error, "can't read the tags of #{template}, the template this repository forks: #{err.strip}" unless status.success?
 
       out.lines.to_h { |line| line.split.reverse }.transform_keys { |ref| ref[%r{\Arefs/tags/v(.+?)(?:\^\{\})?\z}, 1] }
     else
@@ -173,9 +177,10 @@ class Release
   end
 
   def template_repo
-    return if git("ls-tree", "--name-only", "origin/next", ".fork.yml").empty?
+    return @config.template if @config.template
+    return if git("ls-tree", "--name-only", "origin/#{integration}", ".fork.yml").empty?
 
-    YAML.safe_load(git("show", "origin/next:.fork.yml")).to_h["template_url"].to_s[GithubOrigin::URL, :repo]
+    YAML.safe_load(git("show", "origin/#{integration}:.fork.yml")).to_h["template_url"].to_s[GithubOrigin::URL, :repo]
   end
   def pr_info(pr) = JSON.parse(gh("pr", "view", pr, "--json", "state,headRefName,headRefOid,baseRefName,mergeCommit"))
 
@@ -190,14 +195,14 @@ class Release
   def waiting_to_cut?(name) = name && !shipped?(name) && !branch?("release/#{name}")
 
   def require_passing_ci(commit, name)
-    runs = JSON.parse(gh("run", "list", "--workflow", "ci.yml", "--commit", commit, "--event", "push", "--json", "status,conclusion"))
+    runs = JSON.parse(gh("run", "list", "--workflow", @config.ci_workflow, "--commit", commit, "--event", "push", "--json", "status,conclusion"))
     unless runs.any? && runs.all? { |run| run["status"] == "completed" }
       raise Error, "CI hasn't passed on #{commit[0, 7]} yet: run cut again once it has"
     end
     return if runs.all? { |run| run["conclusion"] == "success" }
 
     raise Error, "CI failed on #{commit[0, 7]}, where v#{name} would be cut. If it was a flake, re-run its failed jobs; otherwise " \
-                 "fix it by a PR into next, its changelog line under ## v#{name}. Then cut again (AUTO_RELEASE does once CI passes)"
+                 "fix it by a PR into #{integration}, its changelog line under ## v#{name}. Then cut again (AUTO_RELEASE does once CI passes)"
   end
 
   def fetch
@@ -207,7 +212,7 @@ class Release
 
   def cut_point(name)
     since_named = []
-    git("rev-list", "--first-parent", "origin/next").each_line(chomp: true) do |commit|
+    git("rev-list", "--first-parent", "origin/#{integration}").each_line(chomp: true) do |commit|
       changelog = git("show", "#{commit}:CHANGELOG.md")
       break unless ReleaseChangelog.named_release(changelog) == name
 
@@ -217,19 +222,19 @@ class Release
     return [ since_named[later].first, later ] if later
 
     raise Error, "these changelog entries landed before v#{name} was named, so they'd ship without a line in " \
-                 "What ships:\n#{since_named.first.last.join("\n")}\nMove them under ## v#{name} by a PR into next, then run cut again"
+                 "What ships:\n#{since_named.first.last.join("\n")}\nMove them under ## v#{name} by a PR into #{integration}, then run cut again"
   end
 
   def waiting_release
-    pr = ReleaseCandidate.waiting(JSON.parse(gh("pr", "list", "--base", "main", "--state", "all", "--limit", "30", "--json", "number,headRefName,state,headRefOid")), usage: SHIP_USAGE) { |name| tagged?(name) }
-    runs, listed = gh("run", "list", "--workflow", "deploy.yml", "--branch", pr["headRefName"], "--event", "push",
+    pr = ReleaseCandidate.waiting(JSON.parse(gh("pr", "list", "--base", production, "--state", "all", "--limit", "30", "--json", "number,headRefName,state,headRefOid")), usage: SHIP_USAGE) { |name| tagged?(name) }
+    runs, listed = gh("run", "list", "--workflow", @config.staging_workflow, "--branch", pr["headRefName"], "--event", "push",
                       "--json", "headSha,conclusion", status: true)
     [ pr["number"].to_s, pr["headRefOid"], ReleaseCandidate.found(pr, listed ? JSON.parse(runs) : []) ]
   end
 
   def release_name(info)
     name = info["headRefName"].to_s[ReleaseCandidate::BRANCH, 1]
-    raise Error, "that PR is not a release/* branch into main" unless name && info["baseRefName"] == "main"
+    raise Error, "that PR is not a release/* branch into #{production}" unless name && info["baseRefName"] == production
 
     name
   end
@@ -327,16 +332,18 @@ class Release
 end
 
 if $PROGRAM_NAME == __FILE__
-  options = {}
-  OptionParser.new do |o|
-    o.banner = "#{Release::USAGE}   (see /docs/developer/releasing)"
-    o.on("--dry-run", "Print the plan without changing anything") { options[:dry_run] = true }
-    o.on("--if-needed", "prepare, cut: when there's nothing to do yet, say so and stop without failing") { options[:if_needed] = true }
-  end.parse!
-
+  root = File.expand_path("..", __dir__)
   begin
-    Release.new(options, root: File.expand_path("..", __dir__)).run(*ARGV)
-  rescue Release::Error, ReleaseCandidate::Error, ReleaseChangelog::Error => e
+    guide = ReleaseFlow::Config.load(root).guide
+    options = {}
+    OptionParser.new do |o|
+      o.banner = "#{Release::USAGE}   (see #{guide})"
+      o.on("--dry-run", "Print the plan without changing anything") { options[:dry_run] = true }
+      o.on("--if-needed", "prepare, cut: when there's nothing to do yet, say so and stop without failing") { options[:if_needed] = true }
+    end.parse!
+
+    Release.new(options, root: root).run(*ARGV)
+  rescue Release::Error, ReleaseCandidate::Error, ReleaseChangelog::Error, ReleaseFlow::Error => e
     abort("bin/release: #{e.message}")
   end
 end
