@@ -4,6 +4,16 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+## v2026.10.31-2
+
+### Changed
+
+- Each PR's changelog entry is a file of its own in `changelog.d/`, so entries no longer conflict; `bin/release prepare` gathers them into the release's notes, and `bin/sync` writes its links there too.
+
+### Security
+
+- rack 3.2.8 fixes GHSA-5v64-555j-wjxm (multipart memory exhaustion), GHSA-2j8w-xcrc-x985 (an invalid `Host` returned verbatim) and GHSA-p8x9-v4hv-2w4g (a multipart boundary parser differential), so bundler-audit passes again.
+
 ## v2026.10.31
 
 ### Changed
