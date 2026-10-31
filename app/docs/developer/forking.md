@@ -452,9 +452,9 @@ bin/sync
 
 1. It finds the template's releases that your `next` doesn't have yet.
 2. It merges the latest one on a `sync/template-v<name>` branch.
-3. It keeps your `CHANGELOG.md`, and adds one line under `[Unreleased]` for
-   each release it brings in, linking that release's notes on the template's
-   GitHub releases page.
+3. It keeps your `CHANGELOG.md`, and writes `changelog.d/template-v<name>.md`
+   with one line for each release it brings in, linking that release's notes
+   on the template's GitHub releases page.
 4. It pushes the branch and opens a PR into `next` that merges itself, with a
    merge commit, once its checks pass. Merging it starts your next release
    like any other PR.

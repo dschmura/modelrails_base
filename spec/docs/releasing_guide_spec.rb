@@ -15,7 +15,7 @@ RSpec.describe "The releasing guide" do
   end
 
   it "asks for the PR's changelog line before it merges, not only at release time" do
-    expect(before_it_merges).to include("[Unreleased]")
+    expect(before_it_merges).to include("changelog.d/")
   end
 
   it "shows how to hold back a squash-merged PR as well as a merged one" do
