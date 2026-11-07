@@ -28,3 +28,7 @@ CVE-2026-97031
 # only awaits a release; the gem's prebuilt binary cannot be rebuilt from here.
 # Revisit: on the thruster release that carries #161 (> 0.1.27), or 2026-11-15.
 CVE-2026-111943
+
+# Same binary: x/net 0.59.0's html parser DoS, fixed in 0.62.0; thrust never links x/net/html (only idna and std's vendored copies).
+# Revisit: on the thruster release that carries basecamp/thruster#162 (x/net 0.62.0), or 2026-11-15.
+CVE-2026-78661
