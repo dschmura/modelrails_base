@@ -70,7 +70,7 @@ env:
   secret:
     - RAILS_MASTER_KEY
   clear:
-    # RAILS_HOST: app.yourdomain.com   # required; production refuses to boot without it
+    RAILS_HOST: chmurafamily.com   # required; production refuses to boot without it
 
     # Daily backups of the database and uploads, to a folder or a bucket: /docs/developer/deployment
     # BACKUP_PATH: /backups               # the folder mounted under volumes: below
