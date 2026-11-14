@@ -13,7 +13,7 @@ module RequiredProductionConfig
 
   # The words a typed stand-in is made of, as in REPLACE_ME, paste-here or your_api_key; a real login has others.
   STAND_IN_WORD = /me|here|this|it|with|your|my|the|value|key|secret|token|password|api|id|client|name|user|email|host|domain|app/i
-  PLACEHOLDER_VALUE = /\A(<.*>|\[.*\]|(replace|paste|change|your)([_\- ](#{STAND_IN_WORD}))*|changeme|todo([_\-: ].*)?|x{3,}|example)\z/i
+  PLACEHOLDER_VALUE = /\A(<.*>|\[.*\]|(replace|paste|change|your)([_\- ](#{STAND_IN_WORD}))*|changeme|todo([: ].*)?|x{3,}|example)\z/i
   OAUTH_PROVIDERS = { google: "Google", github: "GitHub" }.freeze
 
   # The three values `bin/rails db:encryption:init` generates. Credentials are
