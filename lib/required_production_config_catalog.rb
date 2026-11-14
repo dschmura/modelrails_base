@@ -6,7 +6,49 @@ class RequiredProductionConfigCatalog
   class Invalid < StandardError; end
 
   Entry = Data.define(:key, :home, :required, :secret, :purpose, :where, :set_with,
-                      :regenerable, :step, :example, :owner_rule, :source)
+                      :regenerable, :step, :example, :owner_rule, :source) do
+    def required_in?(env:, preset:)
+      return required == "always" unless required.is_a?(Hash)
+
+      condition, target = required.first
+      case condition
+      when "when_env_set" then !blank_value?(env[target])
+      when "when_env_unset" then blank_value?(env[target])
+      when "when_preset" then preset.to_s == target
+      end
+    end
+
+    def status(env:, credentials:, preset:, key_resolves:)
+      case home
+      when "dns", "dashboard" then :uncheckable
+      when "kamal_secret" then key_resolves ? :set : absent_status(env, preset)
+      when "credentials" then credentials.nil? ? :unknown : status_of(credential_value(credentials), env, preset)
+      else status_of(env[key], env, preset)
+      end
+    end
+
+    private
+
+    def status_of(value, env, preset)
+      return absent_status(env, preset) if blank_value?(value)
+
+      placeholder_value?(value) ? :placeholder : :set
+    end
+
+    def absent_status(env, preset) = required_in?(env: env, preset: preset) ? :missing : :optional_unset
+
+    def placeholder_value?(value) = RequiredProductionConfig.placeholder?(value) || (!example.nil? && value == example)
+
+    def blank_value?(value) = value.nil? || (value.is_a?(String) && value.strip.empty?)
+
+    def credential_value(credentials)
+      key.split(".").map(&:to_sym).reduce(credentials) do |node, name|
+        return nil unless node.respond_to?(:dig) && !node.is_a?(String)
+
+        node.dig(name)
+      end
+    end
+  end
 
   TEMPLATE_PATH = "config/required_production_config.yml".freeze
   LOCAL_PATH = "config/required_production_config.local.yml".freeze

@@ -116,4 +116,92 @@ RSpec.describe RequiredProductionConfigCatalog do
   it "starts the template file with the header line" do
     expect(File.foreach(Rails.root.join("config/required_production_config.yml")).first.chomp).to eq(header)
   end
+
+  describe "Entry#status" do
+    def entry(home: "env", key: "HOST", required: "always", example: nil)
+      described_class::Entry.new(key: key, home: home, required: required, secret: false, purpose: "p", where: "w",
+                                 set_with: "s", regenerable: nil, step: 4, example: example, owner_rule: nil,
+                                 source: :template)
+    end
+
+    def status(entry, env: {}, credentials: {}, preset: nil, key_resolves: false)
+      entry.status(env: env, credentials: credentials, preset: preset, key_resolves: key_resolves)
+    end
+
+    let(:smtp_password) { entry(home: "credentials", key: "smtp.password", example: "<from Postmark>") }
+
+    it "is set when a required env value is present" do
+      expect(status(entry, env: { "HOST" => "example.com" })).to eq(:set)
+    end
+
+    it "is missing when a required env value is blank" do
+      expect(status(entry, env: { "HOST" => " " })).to eq(:missing)
+    end
+
+    it "is optional_unset when an optional env value is blank" do
+      expect(status(entry(required: "optional"))).to eq(:optional_unset)
+    end
+
+    it "follows when_env_set on the other variable" do
+      conditional = entry(key: "BUCKET_REGION", required: { "when_env_set" => "OBJECT_STORAGE_BUCKET" })
+
+      expect(status(conditional)).to eq(:optional_unset)
+      expect(status(conditional, env: { "OBJECT_STORAGE_BUCKET" => "b" })).to eq(:missing)
+    end
+
+    it "follows when_env_unset on the other variable" do
+      conditional = entry(key: "BACKUP_PATH", required: { "when_env_unset" => "OBJECT_STORAGE_BUCKET" })
+
+      expect(status(conditional)).to eq(:missing)
+      expect(status(conditional, env: { "OBJECT_STORAGE_BUCKET" => "b" })).to eq(:optional_unset)
+    end
+
+    it "follows the preset for when_preset" do
+      shared = entry(required: { "when_preset" => "shared" })
+
+      expect(status(shared, preset: "shared")).to eq(:missing)
+      expect(status(shared, preset: nil)).to eq(:optional_unset)
+    end
+
+    it "calls a credential equal to its example, or REPLACE_ME, a placeholder" do
+      expect(status(smtp_password, credentials: { smtp: { password: "<from Postmark>" } })).to eq(:placeholder)
+      expect(status(smtp_password, credentials: { smtp: { password: "REPLACE_ME" } })).to eq(:placeholder)
+    end
+
+    it "calls an optional credential that is present and a placeholder a placeholder" do
+      optional = entry(home: "credentials", key: "smtp.password", required: "optional", example: "<from Postmark>")
+
+      expect(status(optional, credentials: { smtp: { password: "REPLACE_ME" } })).to eq(:placeholder)
+    end
+
+    it "is set for a real credential" do
+      expect(status(smtp_password, credentials: { smtp: { password: "s3cret" } })).to eq(:set)
+    end
+
+    it "is unknown for credentials that could not be opened" do
+      expect(status(smtp_password, credentials: nil)).to eq(:unknown)
+    end
+
+    it "is uncheckable for dns and dashboard entries" do
+      expect(status(entry(home: "dns", key: "MX"))).to eq(:uncheckable)
+      expect(status(entry(home: "dashboard", key: "ZONE"))).to eq(:uncheckable)
+    end
+
+    it "follows key_resolves for a kamal_secret" do
+      secret = entry(home: "kamal_secret", key: "KAMAL_REGISTRY_PASSWORD")
+
+      expect(status(secret, key_resolves: true)).to eq(:set)
+      expect(status(secret, key_resolves: false)).to eq(:missing)
+    end
+
+    it "is missing, without raising, when an intermediate credential is not a mapping" do
+      expect(status(smtp_password, credentials: { smtp: "x" })).to eq(:missing)
+    end
+
+    it "is set for a numeric credential" do
+      port = entry(home: "credentials", key: "smtp.port", example: "<port>")
+
+      expect(status(port, credentials: { smtp: { port: 587 } })).to eq(:set)
+    end
+  end
 end
