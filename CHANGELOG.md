@@ -4,6 +4,21 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+## v2026.11.14-2
+
+### Changed
+
+- The deploy guides now list `bin/fork`'s questions, show the first pull request's commands, explain every production credential, and cover Postmark approval and keeping deploy secrets in fnox, which `.kamal/secrets` now reads when it's installed.
+- `bin/fork` starts a new product from the template's latest release instead of unreleased `next`; `--from-next` keeps the old behaviour.
+- Pushing a commit straight to `next` or `main` now stops within a second, before the pre-push checks run, and prints the commands that open a pull request instead.
+
+### Fixed
+
+- In development, mail sent from background jobs links to the web server's port instead of 3200.
+- `bin/fork` renames the image and container in the Dockerfile's usage comment, and a fork's first `bin/rails credentials:edit` no longer appends a duplicate key-file block to `.gitignore`.
+- `bin/mail-setup` now ends by naming every file it wrote, or saying nothing was written, and says why a credentials save failed without showing the login.
+- Seeding a shared workspace no longer emails the new owner a "your role has changed" message alongside their sign-in link.
+
 ## v2026.11.14
 
 ### Changed
