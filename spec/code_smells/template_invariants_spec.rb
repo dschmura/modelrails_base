@@ -582,7 +582,7 @@ RSpec.describe "Template invariants" do
     it "the `test` job is the merge itself, and fails unless every shard succeeded (ruleset context)" do
       test_job = ci_workflow.dig("jobs", "test") || {}
       steps = Array(test_job["steps"])
-      guard_index = steps.index { |s| s["run"].to_s.include?("needs.test_shard.result") }
+      guard_index = steps.index { |s| s.slice("run", "env").to_s.include?("needs.test_shard.result") }
       merge_index = steps.index { |s| s["run"].to_s.include?("bin/ci-coverage-merge") }
 
       expect(ci_workflow["jobs"].keys).not_to include("coverage_merge"),
