@@ -115,8 +115,7 @@ RSpec.describe "the deployment guide" do
   end
 
   it "names every credential the code reads" do
-    read = Dir[Rails.root.join("{app,config,lib}/**/*.{rb,yml,erb}")].flat_map { |file| File.read(file).scan(/credentials\.dig\(([^)]*)\)/).flatten }
-    keys = read.map { |args| args.split(/,\s*/).take_while { |arg| arg.start_with?(":") }.map { |arg| arg.delete_prefix(":") }.join(".") }.uniq
+    keys = CodeReads.credential_keys
 
     expect(keys).to include("smtp", "active_record_encryption", "oauth.google.client_id")
     expect(keys.reject { |key| guide.include?("`#{key}") }).to be_empty

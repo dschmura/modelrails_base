@@ -16,7 +16,7 @@ RSpec.describe DeployCheck do
 
   let(:ready_env) { { "RAILS_HOST" => "app.acme.test", "SMTP_ADDRESS" => "smtp.postmarkapp.com", "BACKUP_PATH" => "/backups" } }
   let(:ready_credentials) do
-    { "smtp" => { "user_name" => "token", "password" => "token" },
+    { "secret_key_base" => "base", "smtp" => { "user_name" => "token", "password" => "token" },
       "active_record_encryption" => { "primary_key" => "p", "deterministic_key" => "d", "key_derivation_salt" => "s" } }
   end
   let(:template) { Rails.root }
@@ -43,13 +43,14 @@ RSpec.describe DeployCheck do
 
   def force_ssl(on) = write("config/environments/production.rb", "Rails.application.configure do\n  config.force_ssl = #{on}\nend\n")
 
-  def check(destination = nil) = described_class.new(root: @root, destination:)
+  def check(destination = nil, compact: false) = described_class.new(root: @root, destination:, compact:)
 
   def headlines(list) = list.map { |item| item.lines.first }
 
   before do
     force_ssl(true)
     secrets
+    write("config/required_production_config.yml", template.join("config/required_production_config.yml").read)
   end
 
   it "passes a configuration production boots on" do
@@ -60,12 +61,14 @@ RSpec.describe DeployCheck do
     expect(check.warnings).to be_empty
   end
 
-  it "lists every boot-guard refusal at once" do
+  it "lists every refusal at once: the boot guard's, and each input the guard hasn't reached yet" do
     deploy(env: { "OBJECT_STORAGE_BUCKET" => "app-backups" })
     credentials({})
 
     expect(headlines(check.refusals))
-      .to contain_exactly(/RAILS_HOST is unset/, /SMTP_ADDRESS is unset/, /encryption keys are missing/, /OBJECT_STORAGE_REGION is unset/)
+      .to contain_exactly(/RAILS_HOST is unset/, /SMTP_ADDRESS is unset/, /encryption keys are missing/, /OBJECT_STORAGE_REGION is unset/, /secret_key_base is missing/,
+                          /smtp.user_name is missing/, /smtp.password is missing/,
+                          /object_storage.access_key_id is missing/, /object_storage.secret_access_key is missing/)
   end
 
   describe "reading the deploy as Kamal does" do
@@ -300,7 +303,7 @@ RSpec.describe DeployCheck do
       deploy(env: ready_env.except("RAILS_HOST"))
       credentials
 
-      expect(check.run(printed)).to eq(1)
+      expect(check(compact: true).run(printed)).to eq(1)
       expect(printed.string).to include("RAILS_HOST is unset")
       expect(printed.string.lines.last.chomp).to eq("1 problem stops a deploy.")
     end
@@ -309,9 +312,186 @@ RSpec.describe DeployCheck do
       deploy(hosts: [ "192.168.0.1" ])
       credentials
 
-      expect(check.run(printed)).to eq(0)
+      expect(check(compact: true).run(printed)).to eq(0)
       expect(printed.string).to include("Warning: servers: still lists the template's 192.168.0.1")
       expect(printed.string.lines.last.chomp).to eq("Nothing here stops a deploy.")
+    end
+  end
+
+  describe "the production inputs" do
+    let(:printed) { StringIO.new }
+    let(:stripe_entry) do
+      { "inputs" => { "stripe.secret_key" => { "home" => "credentials", "required" => "always", "secret" => true, "step" => 6,
+                                                "purpose" => "Charges cards", "where" => "Stripe dashboard → API keys",
+                                                "set_with" => "bin/rails credentials:edit --environment production",
+                                                "example" => "<from Stripe>" } } }
+    end
+
+    def local_catalog(content = stripe_entry) = write("config/required_production_config.local.yml", content.to_yaml)
+
+    before { deploy }
+
+    it "prints the inputs table after the verdict when run by hand" do
+      credentials
+      local_catalog
+
+      expect(check.run(printed)).to eq(1)
+      expect(printed.string).to include("Production inputs", "✓ RAILS_HOST", "app.acme.test", "✗ stripe.secret_key",
+                                        "(from required_production_config.local.yml)", "1 problem stops a deploy.",
+                                        "Where to get each one: /docs/developer/required-production-config")
+      expect(printed.string.index("1 problem stops")).to be > printed.string.index("Production inputs")
+      expect(printed.string.lines.last.chomp).to eq("Where to get each one: /docs/developer/required-production-config")
+    end
+
+    it "stops a deploy on a placeholder in a local input" do
+      credentials(ready_credentials.merge("stripe" => { "secret_key" => "<from Stripe>" }))
+      local_catalog
+
+      expect(check.refusals.join).to match(/stripe.secret_key looks like a placeholder.*\nGet it: .*\nSet it: /)
+    end
+
+    it "refuses a missing local input with where to get it and how to set it" do
+      credentials
+      local_catalog
+
+      expect(check.refusals).to contain_exactly(
+        "stripe.secret_key is missing (credentials). Charges cards\nGet it: Stripe dashboard → API keys\nSet it: bin/rails credentials:edit --environment production"
+      )
+    end
+
+    it "omits the table in compact form but keeps the refusals" do
+      credentials
+      local_catalog
+
+      expect(check(compact: true).run(printed)).to eq(1)
+      expect(printed.string).not_to include("Production inputs")
+      expect(printed.string).to include("stripe.secret_key is missing")
+    end
+
+    it "never prints a secret value" do
+      secrets = ready_credentials.merge("stripe" => { "secret_key" => "secret-sentinel-0" })
+      secrets["secret_key_base"] = "secret-sentinel-1"
+      secrets["smtp"] = { "user_name" => "secret-sentinel-2", "password" => "secret-sentinel-3" }
+      credentials(secrets)
+      local_catalog
+
+      check.run(printed)
+
+      expect(printed.string).not_to include("secret-sentinel")
+      expect(printed.string).to include("✓ stripe.secret_key")
+    end
+
+    it "marks credential rows unknown when the key is missing" do
+      credentials
+      @root.join("config/credentials/production.key").delete
+
+      check.run(printed)
+
+      expect(check.refusals.grep(/No key opens/).size).to eq(1)
+      expect(printed.string).to match(/smtp.user_name\s+credentials\s+unknown/)
+      expect(printed.string).not_to include("✗ smtp")
+      expect(check.refusals.size).to eq(1)
+    end
+
+    it "reports a broken local catalog as one refusal" do
+      credentials
+      local_catalog("inputs" => { "stripe.secret_key" => { "bogus" => 1 } })
+
+      expect(check.refusals.grep(/required_production_config.local.yml/).size).to eq(1)
+    end
+
+    it "refuses once when the catalog file is missing" do
+      credentials
+      @root.join("config/required_production_config.yml").delete
+
+      expect(check.refusals.grep(/required_production_config.yml/).size).to eq(1)
+    end
+
+    it "judges a staging destination by staging's env and credentials" do
+      credentials({}, name: "production")
+      write("config/deploy.staging.yml", { "env" => { "clear" => { "RAILS_CREDENTIALS_ENV" => "staging" } } }.to_yaml)
+      secrets(template.join(".kamal/secrets.staging").read, name: "secrets.staging")
+      credentials(ready_credentials.merge("stripe" => { "secret_key" => "sk_live_real" }), name: "staging")
+      local_catalog
+
+      expect(check("staging").refusals).to be_empty
+      expect(check.refusals).not_to be_empty
+    end
+
+    it "doesn't double-report inputs a RequiredProductionConfig rule owns" do
+      deploy(env: ready_env.except("RAILS_HOST"))
+      credentials
+
+      expect(check.refusals.grep(/RAILS_HOST/).size).to eq(1)
+    end
+
+    describe "rows that agree with the refusals" do
+      def problem_rows = printed.string.lines.grep(/\A  [✗⚠] /).map { |row| row.split[1] }
+
+      def run_with(env: ready_env, oauth: nil)
+        deploy(env:)
+        credentials(oauth ? ready_credentials.merge("oauth" => { "google" => oauth }) : ready_credentials)
+        check.run(printed)
+      end
+
+      it "marks the hosts the boot guard refuses, one row per refusal" do
+        run_with(env: ready_env.merge("RAILS_HOST" => "app.acme.example", "SMTP_ADDRESS" => "localhost"))
+
+        expect(problem_rows).to contain_exactly("RAILS_HOST", "SMTP_ADDRESS")
+        expect(printed.string).to include("⚠ RAILS_HOST", "⚠ SMTP_ADDRESS", "2 problems stop a deploy.")
+      end
+
+      it "marks a missing OAuth secret once its client id is set" do
+        run_with(oauth: { "client_id" => "real-id" })
+
+        expect(problem_rows).to eq([ "oauth.google.client_secret" ])
+        expect(printed.string).to include("✗ oauth.google.client_secret", "1 problem stops a deploy.")
+      end
+
+      it "reads a placeholder OAuth secret without its client id as optional, and passes" do
+        expect(run_with(oauth: { "client_secret" => "REPLACE_ME" })).to eq(0)
+
+        expect(problem_rows).to be_empty
+        expect(printed.string).to include("○ oauth.google.client_secret", "Nothing here stops a deploy.")
+      end
+
+      it "marks both backup destinations when the guard refuses the pair" do
+        run_with(env: ready_env.merge("OBJECT_STORAGE_BUCKET" => "b", "OBJECT_STORAGE_REGION" => "auto"))
+
+        expect(problem_rows).to include("BACKUP_PATH", "OBJECT_STORAGE_BUCKET")
+        expect(check.refusals.grep(/both set/).size).to eq(1)
+      end
+
+      it "refuses a placeholder the boot guard lets through, such as an encryption key" do
+        keys = ready_credentials["active_record_encryption"].merge("primary_key" => "<from bin/rails db:encryption:init>")
+        deploy
+        credentials(ready_credentials.merge("active_record_encryption" => keys))
+
+        expect(check.run(printed)).to eq(1)
+        expect(problem_rows).to eq([ "active_record_encryption.primary_key" ])
+        expect(printed.string).to include("active_record_encryption.primary_key looks like a placeholder", "1 problem stops a deploy.")
+      end
+    end
+
+    it "counts SECRET_KEY_BASE from the container env as secret_key_base, as Rails does" do
+      deploy(secret: %w[RAILS_MASTER_KEY SECRET_KEY_BASE])
+      secrets("#{template.join('.kamal/secrets').read}\nSECRET_KEY_BASE=env-sentinel\n")
+      credentials(ready_credentials.except("secret_key_base"))
+
+      expect(check.run(printed)).to eq(0)
+      expect(printed.string).to match(/✓ secret_key_base\s+credentials\s+set$/)
+      expect(printed.string).not_to include("env-sentinel")
+    end
+
+    it "prints set, not the value, for an input the deploy hands over under env.secret" do
+      deploy(env: ready_env.except("RAILS_HOST"), secret: %w[RAILS_MASTER_KEY RAILS_HOST])
+      secrets("#{template.join('.kamal/secrets').read}\nRAILS_HOST=secret-host.acme.test\n")
+      credentials
+
+      check.run(printed)
+
+      expect(printed.string).to match(/✓ RAILS_HOST\s+deploy.yml env\s+set$/)
+      expect(printed.string).not_to include("secret-host.acme.test")
     end
   end
 
@@ -321,14 +501,16 @@ RSpec.describe DeployCheck do
     around do |example|
       inherited = ENV["DESTINATION"]
       ENV["DESTINATION"] = "staging"
+      ENV["DEPLOY_CHECK_COMPACT"] = "1"
       example.run
     ensure
       ENV["DESTINATION"] = inherited
+      ENV.delete("DEPLOY_CHECK_COMPACT")
     end
 
     it "checks the destination DESTINATION names, after booting the app, and exits with the check's status" do
       check = instance_double(described_class, run: 1)
-      allow(described_class).to receive(:new).with(root: Rails.root, destination: "staging").and_return(check)
+      allow(described_class).to receive(:new).with(root: Rails.root, destination: "staging", compact: true).and_return(check)
 
       expect(Rake::Task["deploy:check"].prerequisites).to include("environment")
       expect { Rake::Task["deploy:check"].execute }.to raise_error(SystemExit) { |exit| expect(exit.status).to eq(1) }

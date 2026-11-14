@@ -18,7 +18,7 @@ RSpec.describe ".kamal/hooks/pre-build" do
     @app.join("bin").mkpath
     FileUtils.cp(hook, @app.join(".kamal/hooks/pre-build"))
     @app.join(".kamal/hooks/pre-build").chmod(0o755)
-    @app.join("bin/rails").write("#!/bin/sh\necho \"rails $* DESTINATION=$DESTINATION RAILS_ENV=$RAILS_ENV\"\nexit #{code}\n")
+    @app.join("bin/rails").write("#!/bin/sh\necho \"rails $* DESTINATION=$DESTINATION RAILS_ENV=$RAILS_ENV COMPACT=$DEPLOY_CHECK_COMPACT\"\nexit #{code}\n")
     @app.join("bin/rails").chmod(0o755)
   end
 
@@ -56,6 +56,14 @@ RSpec.describe ".kamal/hooks/pre-build" do
     output, = run_hook("RAILS_ENV" => "production")
 
     expect(output).to include("RAILS_ENV=development")
+  end
+
+  it "asks for the compact form, which prints problems only" do
+    app_whose_check_exits(0)
+
+    output, = run_hook
+
+    expect(output).to include("COMPACT=1")
   end
 
   it "shows the check's warnings on every deploy, not only when it fails" do
