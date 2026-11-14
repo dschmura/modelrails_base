@@ -9,6 +9,8 @@ RSpec.describe "Documentation cited paths" do
     {
       "config/initializers/session_store.rb" => "optional; a fork adds it only to share a cookie domain",
       "config/markdowndocs_categories.local.yml" => "fork-owned; the template ships none",
+      "config/required_production_config.local.yml" => "fork-owned; the template ships none",
+      "config/credentials/production.local.example.yml" => "fork-owned; the template ships none",
       "app/docs/my-feature.md" => "a placeholder name in the forking guide's example",
       "app/models/concerns/noticed/deliverable.rb" => "inside the noticed 3.0.0 gem, named beside it",
       "app/models/ssrf_protection.rb" => "Fizzy's file, cited as the port source for #658",
