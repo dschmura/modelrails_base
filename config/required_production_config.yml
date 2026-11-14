@@ -93,6 +93,15 @@ inputs:
     set_with: "config/deploy.yml → env.clear"
     regenerable: "Yes, any time"
     step: 6
+  APP_HOST:
+    home: env
+    required: optional
+    secret: false
+    purpose: "The host in links printed by tenancy:owner_setup_link and in the seed log"
+    where: "Usually the same value as RAILS_HOST; defaults to localhost, so set it or the printed link points at localhost"
+    set_with: "config/deploy.yml → env.clear"
+    regenerable: "Yes, any time; redeploy"
+    step: 6
   AUTH_PASSWORDS:
     home: env
     required: optional
@@ -365,7 +374,6 @@ inputs:
     step: 4
 
 exclusions:
-  APP_HOST: "Only the host in a seed log line that points at tenancy:owner_setup_link; RAILS_HOST is the real host"
   BUNDLE_GEMFILE: "Set by Bundler and tooling, never by an operator"
   CI: "Set by the CI runner; it only changes the test environment"
   DEV_SERVER_PORT: "Development server port only"
