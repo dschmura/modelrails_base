@@ -5,12 +5,22 @@ if ! gem list foreman -i --silent; then
   gem install foreman
 fi
 
-# Default to port 3000 if not specified
-export PORT="${PORT:-3000}"
+# Foreman gives every process its own PORT (bin/jobs gets 3200), so mail links read DEV_SERVER_PORT.
+# Same precedence as foreman's base port: -p/--port, then PORT in .env, then the shell's PORT.
+port="${PORT:-3000}"
+env_port=$(sed -n -E "s/^PORT=[\"']?([0-9]+)[\"']?\$/\1/p" .env 2>/dev/null | tail -n 1)
+[ -n "$env_port" ] && port="$env_port"
+previous=""
+for argument in "$@"; do
+  case "$previous" in -p|--port) port="$argument" ;; esac
+  case "$argument" in --port=*) port="${argument#--port=}" ;; -p?*) port="${argument#-p}" ;; esac
+  previous="$argument"
+done
+export DEV_SERVER_PORT="$port"
 
 # Let the debug gem allow remote connections,
 # but avoid loading until `debugger` is called
 export RUBY_DEBUG_OPEN="true"
 export RUBY_DEBUG_LAZY="true"
 
-exec foreman start -f Procfile.dev "$@"
+exec foreman start -f Procfile.dev --port "$DEV_SERVER_PORT" "$@"
