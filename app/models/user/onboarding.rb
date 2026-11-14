@@ -8,6 +8,8 @@ class User < ApplicationRecord
       after_create :onboard_workspace
     end
 
+    attr_accessor :shared_workspace_role
+
     def onboarded?
       onboarded_at.present?
     end
@@ -62,16 +64,16 @@ class User < ApplicationRecord
     def skip_workspace_creation
     end
 
-    # :member is the safe self-onboarding role; owners and admins are seeded separately (db/seeds.rb).
+    # :member is the safe self-onboarding role; only the bootstrap seed names another (db/seeds.rb).
     def join_shared_workspace
       workspace = TenancyConfig.shared_workspace
       raise "Shared workspace #{TenancyConfig.shared_workspace_slug.inspect} not found — has the tenancy seed run?" unless workspace
       # Return, never raise: this runs inside the after_create transaction and a raise would roll back registration.
       return unless workspace.admittable?
 
-      member_role = Role.system_default!("member")
+      role = shared_workspace_role || Role.system_default!("member")
       # self_join: :onboarding — see Membership#self_join and /docs/developer/notifications (The actor rule).
-      workspace.memberships.create!(user: self, role: member_role, self_join: :onboarding)
+      workspace.memberships.create!(user: self, role: role, self_join: :onboarding)
     end
   end
 end

@@ -88,6 +88,22 @@ RSpec.describe "db/seeds.rb :shared bootstrap", type: :request do
       ActionMailer::Base.deliveries.clear
     end
 
+    context "when sign-up onboards into the shared workspace" do
+      before do
+        allow(Rails.configuration.x.tenancy).to receive(:onboarding).and_return(:shared)
+        allow(Rails.configuration.x.tenancy).to receive(:shared_workspace_slug).and_return("acme")
+      end
+
+      it "seats the bootstrap owner as Owner without announcing a role change", :aggregate_failures do
+        perform_enqueued_jobs { Rails.application.load_seed }
+
+        membership = Workspace.find_by!(slug: "acme").memberships.sole
+        expect(membership.role.slug).to eq("owner")
+        expect(Noticed::Event.where(type: "WorkspaceRoleChangedNotifier")).to be_none
+        expect(ActionMailer::Base.deliveries.map(&:subject)).to eq([ I18n.t("magic_link_mailer.sign_in_link.subject") ])
+      end
+    end
+
     it "emails the bootstrap owner a set-password sign-in link" do
       Rails.application.load_seed
 
