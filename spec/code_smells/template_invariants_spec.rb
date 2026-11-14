@@ -430,6 +430,7 @@ RSpec.describe "Template invariants" do
     excluded_env_vars = {
       "BUNDLE_GEMFILE"          => "set by Bundler, not an operator",
       "CI"                      => "set by the CI runner",
+      "DEV_SERVER_PORT"         => "exported by bin/dev from PORT, the knob .env.example documents",
       "PIDFILE"                 => "set by bin/dev / Foreman",
       "SECRET_KEY_BASE_DUMMY"   => "set by the Dockerfile's assets:precompile RUN (build-time boot marker), never by a human editing .env",
       "SOLID_QUEUE_IN_PUMA"     => "set in config/deploy.yml env.clear, not .env (documented in deployment.md)",
