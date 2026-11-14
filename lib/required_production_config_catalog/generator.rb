@@ -101,6 +101,7 @@ class RequiredProductionConfigCatalog
       when "when_env_set" then "When `#{target}` is set"
       when "when_env_unset" then "When `#{target}` is not set"
       when "when_preset" then "On the #{target} preset"
+      when "when_credential_set" then "When `#{target}` is set"
       end
     end
 
@@ -119,6 +120,7 @@ class RequiredProductionConfigCatalog
       when "when_env_set" then "required when #{target} is set"
       when "when_env_unset" then "required when #{target} is not set"
       when "when_preset" then "required on the #{target} preset"
+      when "when_credential_set" then "required when #{target} is set"
       end
     end
 

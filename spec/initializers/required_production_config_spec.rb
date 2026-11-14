@@ -196,7 +196,8 @@ RSpec.describe RequiredProductionConfig do
       end
     end
 
-    [ "sk_live_51Habc", "pm-token-1234", "a1b2c3", "postmark", "yourself_token", "changelog", "", nil, 42, { "a" => 1 } ].each do |value|
+    [ "sk_live_51Habc", "pm-token-1234", "a1b2c3", "postmark", "yourself_token", "changelog", "", nil, 42, { "a" => 1 },
+      "Todo4Ever!", "todolist-app", "your-app@acme.io", "change-alerts@acme.io", "paste-bin-svc", "your abcd efgh ijkl" ].each do |value|
       it "is false for #{value.inspect}" do
         expect(described_class.placeholder?(value)).to be(false)
       end
@@ -236,6 +237,36 @@ RSpec.describe RequiredProductionConfig do
 
     it "accepts a real OAuth pair" do
       expect(refusals_for(smtp:, oauth: { google: { client_id: "real-id", client_secret: "real-secret" } })).to be_empty
+    end
+  end
+
+  describe ".refused_inputs" do
+    let(:env) { { "RAILS_HOST" => "app.humbledaisy.com", "SMTP_ADDRESS" => "smtp.postmarkapp.com" } }
+    let(:credentials) { { smtp: { user_name: "token", password: "token" } } }
+    let(:keys) { { primary_key: "p", deterministic_key: "d", key_derivation_salt: "s" } }
+
+    def refused(env: self.env, credentials: self.credentials, keys: self.keys) = described_class.refused_inputs(env, credentials, keys)
+
+    it "names nothing for a configuration production boots on" do
+      expect(refused).to eq({})
+    end
+
+    it "names each input a refusal names, as missing or a placeholder" do
+      expect(refused(env: { "RAILS_HOST" => "app.acme.example", "SMTP_ADDRESS" => "localhost" }))
+        .to eq("RAILS_HOST" => :placeholder, "SMTP_ADDRESS" => :placeholder)
+      expect(refused(credentials: { smtp: { user_name: "", password: "REPLACE_ME" } }, keys: {}))
+        .to eq("smtp.user_name" => :missing, "active_record_encryption.primary_key" => :missing,
+               "active_record_encryption.deterministic_key" => :missing, "active_record_encryption.key_derivation_salt" => :missing)
+    end
+
+    it "names the OAuth input its refusal names, and nothing for a secret without an id" do
+      expect(refused(credentials: credentials.merge(oauth: { google: { client_id: "real-id" } }))).to eq("oauth.google.client_secret" => :missing)
+      expect(refused(credentials: credentials.merge(oauth: { google: { client_secret: "REPLACE_ME" } }))).to eq({})
+    end
+
+    it "names both backup destinations when both are set" do
+      expect(refused(env: env.merge("BACKUP_PATH" => "/backups", "OBJECT_STORAGE_BUCKET" => "b")))
+        .to eq("BACKUP_PATH" => :conflict, "OBJECT_STORAGE_BUCKET" => :conflict)
     end
   end
 

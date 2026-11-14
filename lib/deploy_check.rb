@@ -5,7 +5,7 @@
 class DeployCheck
   PLACEHOLDER_SERVERS = %w[192.168.0.1 192.168.0.2].freeze
 
-  STATUS_MARKS = { set: "✓", missing: "✗", placeholder: "⚠", optional_unset: "○", uncheckable: "–", unknown: "?" }.freeze
+  STATUS_MARKS = { set: "✓", missing: "✗", conflict: "✗", placeholder: "⚠", optional_unset: "○", uncheckable: "–", unknown: "?" }.freeze
   HOME_LABELS = { "env" => "deploy.yml env", "credentials" => "credentials", "kamal_secret" => "Kamal secret", "dns" => "DNS", "dashboard" => "dashboard" }.freeze
   INPUTS_PAGE = "/docs/developer/required-production-config"
 
@@ -81,9 +81,10 @@ class DeployCheck
     require "kamal"
     envs = Dir.chdir(@root) do
       @kamal = Kamal::Configuration.create_from(config_file: Pathname("config/deploy.yml"), destination: @destination)
-      @kamal.roles.flat_map { |role| role.hosts.map { |host| role.env(host).to_h } }.uniq
+      @kamal.roles.flat_map { |role| role.hosts.map { |host| role.env(host) } }
+            .map { |env| [ env.to_h, env.secret_keys.map { |name| name.split(":").first } ] }.uniq
     end
-    @containers = envs.map { |env| Container.new(@root, env, catalog) }
+    @containers = envs.map { |env, secret_names| Container.new(@root, env, catalog, secret_names:) }
   rescue StandardError => e
     @containers = []
     @unreadable_deploy = "Deploy check failed: Kamal can't read this deploy: #{e.message.strip}\n\n" \
@@ -144,10 +145,11 @@ class DeployCheck
       def key = @deploy_key.presence || handle_missing_key
     end
 
-    def initialize(root, env, catalog = nil)
+    def initialize(root, env, catalog = nil, secret_names: [])
       @root = root
       @env = env
       @catalog = catalog
+      @secret_names = secret_names
     end
 
     def refusals
@@ -167,6 +169,7 @@ class DeployCheck
       when :set then set_detail(entry)
       when :missing then "missing"
       when :placeholder then "looks like a placeholder"
+      when :conflict then "#{set_detail(entry)}, which conflicts with another input above"
       when :optional_unset then "optional: #{entry.purpose}"
       when :uncheckable then "can't check from here: #{entry.where}"
       else "unknown"
@@ -222,20 +225,26 @@ class DeployCheck
     def set_detail(entry)
       return "resolves" if entry.home == "kamal_secret"
 
-      entry.home == "env" && !entry.secret ? @env[entry.key].to_s : "set"
+      entry.home == "env" && !entry.secret && !@secret_names.include?(entry.key) ? @env[entry.key].to_s : "set"
     end
 
     def status_of(entry)
       return :unknown if credentials.nil? && entry.home == "kamal_secret"
 
-      entry.status(env: @env, credentials: credentials, preset: preset, key_resolves: !credentials.nil?)
+      refused_inputs.fetch(entry.key) { entry.status(env: @env, credentials: credentials, preset: preset, key_resolves: !credentials.nil?) }
+    end
+
+    # The inputs a refusal above already names, so their rows say what it says and aren't refused twice.
+    def refused_inputs
+      @refused_inputs ||= RequiredProductionConfig.refused_inputs(@env, credentials || AssumedCredentials, {})
+                                                  .merge(owner_refusal ? { "TENANCY_OWNER_EMAIL" => :missing } : {})
     end
 
     def preset = ForkConfig.tenancy_env(@root, env: @env, test: false)["WORKSPACE_ON_SIGNUP"]
 
     def input_refusals
       inputs.filter_map do |entry, status|
-        next if entry.owner_rule || !%i[missing placeholder].include?(status)
+        next if refused_inputs.key?(entry.key) || !%i[missing placeholder].include?(status)
 
         headline = status == :missing ? "#{entry.key} is missing (#{entry.home}). #{entry.purpose}" : "#{entry.key} looks like a placeholder (#{entry.home})."
         "#{headline}\nGet it: #{entry.where}\nSet it: #{entry.set_with}"

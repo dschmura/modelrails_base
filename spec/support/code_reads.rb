@@ -3,9 +3,9 @@
 # What the code reads from credentials and ENV, scanned from source text.
 # Shared by the deployment guide spec and the production config parity spec.
 module CodeReads
-  GLOB = "{app,config,db,lib}/**/*.{rb,yml,erb}"
+  GLOB = "{app,config,db,lib}/**/*.{rb,yml,erb,rake}"
   CREDENTIAL_DIG = /credentials\.dig\(([^)]*)\)/
-  ENV_READ = /ENV(?:\.fetch)?[\[(]"([A-Z_]+)"/
+  ENV_READ = /ENV(?:\.fetch)?[\[(]"([A-Z][A-Z0-9_]*)"/
 
   # Dotted paths; credentials.dig(:smtp, key) scans as "smtp".
   def self.credential_keys = credential_files.keys

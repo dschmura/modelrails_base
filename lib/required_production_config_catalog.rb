@@ -7,7 +7,7 @@ class RequiredProductionConfigCatalog
 
   Entry = Data.define(:key, :home, :required, :secret, :purpose, :where, :set_with,
                       :regenerable, :step, :example, :owner_rule, :source) do
-    def required_in?(env:, preset:)
+    def required_in?(env:, preset:, credentials: nil)
       return required == "always" unless required.is_a?(Hash)
 
       condition, target = required.first
@@ -15,35 +15,47 @@ class RequiredProductionConfigCatalog
       when "when_env_set" then !blank_value?(env[target])
       when "when_env_unset" then blank_value?(env[target])
       when "when_preset" then preset.to_s == target
+      when "when_credential_set" then !blank_value?(credential_value(credentials, target))
       end
     end
 
     def status(env:, credentials:, preset:, key_resolves:)
       case home
       when "dns", "dashboard" then :uncheckable
-      when "kamal_secret" then key_resolves ? :set : absent_status(env, preset)
-      when "credentials" then credentials.nil? ? :unknown : status_of(credential_value(credentials), env, preset)
-      else status_of(env[key], env, preset)
+      when "kamal_secret" then key_resolves ? :set : absent_status(env, preset, credentials)
+      when "credentials" then credential_status(env, credentials, preset)
+      else status_of(env[key], env, preset, credentials)
       end
     end
 
     private
 
-    def status_of(value, env, preset)
-      return absent_status(env, preset) if blank_value?(value)
+    # Rails reads SECRET_KEY_BASE from the environment before credentials.
+    def credential_status(env, credentials, preset)
+      return :set if key == "secret_key_base" && !blank_value?(env["SECRET_KEY_BASE"])
 
-      placeholder_value?(value) ? :placeholder : :set
+      credentials.nil? ? :unknown : status_of(credential_value(credentials, key), env, preset, credentials)
     end
 
-    def absent_status(env, preset) = required_in?(env: env, preset: preset) ? :missing : :optional_unset
+    # A placeholder in an input whose condition is off switches nothing on.
+    def status_of(value, env, preset, credentials)
+      return absent_status(env, preset, credentials) if blank_value?(value)
+      return :set unless placeholder_value?(value)
+
+      required.is_a?(Hash) && !required_in?(env: env, preset: preset, credentials: credentials) ? :optional_unset : :placeholder
+    end
+
+    def absent_status(env, preset, credentials)
+      required_in?(env: env, preset: preset, credentials: credentials) ? :missing : :optional_unset
+    end
 
     def placeholder_value?(value) = RequiredProductionConfig.placeholder?(value) || (!example.nil? && value == example)
 
     def blank_value?(value) = value.nil? || (value.is_a?(String) && value.strip.empty?)
 
-    def credential_value(credentials)
-      key.split(".").map(&:to_sym).reduce(credentials) do |node, name|
-        return nil unless node.respond_to?(:dig) && !node.is_a?(String)
+    def credential_value(credentials, path)
+      path.split(".").map(&:to_sym).reduce(credentials) do |node, name|
+        return nil unless node.is_a?(Hash) || node.is_a?(ActiveSupport::EncryptedConfiguration)
 
         node.dig(name)
       end
@@ -54,7 +66,7 @@ class RequiredProductionConfigCatalog
   LOCAL_PATH = "config/required_production_config.local.yml".freeze
   HOMES = %w[env credentials kamal_secret dns dashboard].freeze
   REQUIRED_WORDS = %w[always optional].freeze
-  REQUIRED_CONDITIONS = %w[when_env_set when_env_unset when_preset].freeze
+  REQUIRED_CONDITIONS = %w[when_env_set when_env_unset when_preset when_credential_set].freeze
   PRESETS = %w[shared].freeze
   OWNER_RULES = %w[host mail encryption backups owner oauth].freeze
   TEXT_FIELDS = %w[purpose where set_with].freeze
@@ -132,6 +144,8 @@ class RequiredProductionConfigCatalog
   private_class_method :validate_fields
 
   def self.validate_key(key, home, fail_with)
+    fail_with.call("a key is text, such as RAILS_HOST or smtp.password") unless key.is_a?(String)
+
     case home
     when "env", "kamal_secret" then fail_with.call("an #{home} key is an upper-case name") unless ENV_KEY.match?(key)
     when "credentials" then fail_with.call("a credentials key is a dotted path such as smtp.password") unless CREDENTIAL_KEY.match?(key)
@@ -152,7 +166,11 @@ class RequiredProductionConfigCatalog
     condition, target = value.first
     return false unless value.one? && REQUIRED_CONDITIONS.include?(condition)
 
-    condition == "when_preset" ? PRESETS.include?(target) : target.is_a?(String) && ENV_KEY.match?(target)
+    case condition
+    when "when_preset" then PRESETS.include?(target)
+    when "when_credential_set" then target.is_a?(String) && CREDENTIAL_KEY.match?(target)
+    else target.is_a?(String) && ENV_KEY.match?(target)
+    end
   end
   private_class_method :valid_required?
 

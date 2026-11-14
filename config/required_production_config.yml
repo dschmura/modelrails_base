@@ -283,7 +283,7 @@ inputs:
     owner_rule: oauth
   oauth.google.client_secret:
     home: credentials
-    required: optional
+    required: { when_credential_set: oauth.google.client_id }
     secret: true
     purpose: "Offers Google sign-in once its client_id is present"
     where: "A google oauth client (OAuth Setup in getting-started)"
@@ -305,7 +305,7 @@ inputs:
     owner_rule: oauth
   oauth.github.client_secret:
     home: credentials
-    required: optional
+    required: { when_credential_set: oauth.github.client_id }
     secret: true
     purpose: "Offers GitHub sign-in once its client_id is present"
     where: "A github oauth app (OAuth Setup in getting-started)"
@@ -376,7 +376,10 @@ inputs:
 exclusions:
   BUNDLE_GEMFILE: "Set by Bundler and tooling, never by an operator"
   CI: "Set by the CI runner; it only changes the test environment"
+  DEPLOY_CHECK_COMPACT: "Set by the Kamal pre-build hook to shorten bin/rails deploy:check's output"
+  DESTINATION: "Names the Kamal destination bin/rails deploy:check reads; set by tooling, not by an operator"
   DEV_SERVER_PORT: "Development server port only"
+  DRY_RUN: "Previews a one-off maintenance rake task without writing; never a deploy input"
   HOTCELL_GROUP: "Tuning for the hotcell sandbox, which has a working default"
   HOTCELL_ROOT: "Tuning for the hotcell sandbox, which has a working default"
   JOB_CONCURRENCY: "Solid Queue worker count; has a working default and only tunes performance"

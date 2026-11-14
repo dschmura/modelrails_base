@@ -84,6 +84,23 @@ RSpec.describe RequiredProductionConfigCatalog do
     end
   end
 
+  it "accepts a credential as the condition, and rejects one that isn't a dotted path" do
+    gated = local_entry.merge("required" => { "when_credential_set" => "stripe.account_id" })
+
+    with_fork_root(local: { "stripe.secret_key" => gated }) do |root|
+      expect(described_class.load(root: root).entries.last.required).to eq({ "when_credential_set" => "stripe.account_id" })
+    end
+    with_fork_root(local: { "stripe.secret_key" => gated.merge("required" => { "when_credential_set" => "STRIPE" }) }) do |root|
+      expect { described_class.load(root: root) }.to raise_error(described_class::Invalid, /stripe\.secret_key.*required/)
+    end
+  end
+
+  it "rejects a key that isn't text, naming the file" do
+    with_fork_root(raw_local: { "inputs" => { 42 => local_entry.merge("home" => "dns") } }.to_yaml) do |root|
+      expect { described_class.load(root: root) }.to raise_error(described_class::Invalid, /required_production_config\.local\.yml: 42/)
+    end
+  end
+
   it "reports a YAML syntax error as Invalid" do
     with_fork_root(raw_local: "inputs: [unclosed") do |root|
       expect { described_class.load(root: root) }
@@ -198,6 +215,26 @@ RSpec.describe RequiredProductionConfigCatalog do
 
     it "is missing, without raising, when an intermediate credential is not a mapping" do
       expect(status(smtp_password, credentials: { smtp: "x" })).to eq(:missing)
+      expect(status(smtp_password, credentials: { smtp: [ 1, 2 ] })).to eq(:missing)
+    end
+
+    describe "a secret its client id switches on" do
+      let(:secret) { entry(home: "credentials", key: "oauth.google.client_secret", example: "<from Google>",
+                           required: { "when_credential_set" => "oauth.google.client_id" }) }
+
+      it "is missing once the id is set, and optional without it" do
+        expect(status(secret, credentials: { oauth: { google: { client_id: "real-id" } } })).to eq(:missing)
+        expect(status(secret, credentials: {})).to eq(:optional_unset)
+      end
+
+      it "reads optional, not a placeholder, while the id is absent" do
+        expect(status(secret, credentials: { oauth: { google: { client_secret: "REPLACE_ME" } } })).to eq(:optional_unset)
+        expect(status(secret, credentials: { oauth: { google: { client_id: "real-id", client_secret: "REPLACE_ME" } } })).to eq(:placeholder)
+      end
+
+      it "doesn't raise when oauth is not a mapping" do
+        expect(status(secret, credentials: { oauth: "x" })).to eq(:optional_unset)
+      end
     end
 
     it "is set for a numeric credential" do

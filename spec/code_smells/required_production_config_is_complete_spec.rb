@@ -40,6 +40,10 @@ RSpec.describe "The production config catalog" do
     expect(missing).to be_empty, message("ENV variables", missing)
   end
 
+  it "scans rake tasks too" do
+    expect(CodeReads.env_files).to include("DEPLOY_CHECK_COMPACT" => [ "lib/tasks/deploy.rake" ])
+  end
+
   it "has no entry for a credential or env input nothing reads" do
     reads = CodeReads.credential_keys + CodeReads.env_names
     checked = catalog.entries.reject { |entry| %w[kamal_secret dns dashboard].include?(entry.home) || unscannable.key?(entry.key) }
