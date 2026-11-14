@@ -1,0 +1,1 @@
+- The deploy guides now list `bin/fork`'s questions, show the first pull request's commands, explain every production credential, and cover Postmark approval and keeping deploy secrets in fnox, which `.kamal/secrets` now reads when it's installed.
