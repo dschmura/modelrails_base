@@ -130,6 +130,8 @@ class ForkFlow
   BLOCK_COMMENT_CLOSE = %r{\*/|%>|-->}
   # The shapes the fork_only placeholder check in template_invariants_spec.rb fails on.
   PLACEHOLDER_EMAIL = /[\w.+-]+@[\w.-]+\.example\b|[\w.+-]+@example\.com\b/
+  # ReleaseFlow::Changelog::NAME with its parts named; this script runs before bundle install.
+  RELEASE_TAG = /\Av(?<date>\d{4}\.\d{2}\.\d{2})(?:-(?<n>\d+))?\z/
 
   class Shell
     def initialize(root:, dry_run:, output:)
@@ -418,6 +420,7 @@ class ForkFlow
     end
 
     collect_answers!
+    step_release!
     step_remotes!
     step_rename!
     step_preset!(@preset)
@@ -625,6 +628,61 @@ class ForkFlow
 
   def support_email = @support_email || "support@#{snake}.example"
 
+  def step_release!
+    say("\n== Starting point ==")
+    reason = release_skip_reason
+    return say("  · #{reason}, so the fork starts from #{current_branch} as it is") if reason
+
+    remote = release_remote
+    @release = latest_release(remote)
+    return say("  ! no release tag on #{remote}/main, so the fork starts from next as cloned") unless @release
+
+    target, = capture("git", "-C", @root, "rev-parse", "#{@release}^{commit}")
+    head, = capture("git", "-C", @root, "rev-parse", "HEAD")
+    return say("  ✓ next is already at the template's release #{@release}") if head == target
+
+    refuse_unpushed_commits!(remote)
+    act("move next to the template's latest release #{@release} (bin/fork --from-next keeps unreleased work)")
+    sh("git", "-C", @root, "reset", "-q", "--keep", target)
+  end
+
+  def release_skip_reason
+    return "--from-next" if @opts[:from_next]
+    return "this checkout is on #{current_branch}" unless current_branch == "next"
+    return "the identity rename is already committed" if identity_renamed?
+    return "an interrupted run already chose the starting point" unless capture("git", "-C", @root, "status", "--porcelain").first.empty?
+
+    "origin is your own repository" unless release_remote
+  end
+
+  # Only while nothing of the fork's is on a remote: moving next back would make its push a non-fast-forward.
+  def release_remote
+    origin_url, origin_status = capture("git", "-C", @root, "remote", "get-url", "origin")
+    return "origin" if origin_status.zero? && template_remote?(origin_url)
+
+    "upstream" if !origin_status.zero? && upstream_configured?
+  end
+
+  def latest_release(remote)
+    unless dry_run?
+      _, status = capture("git", "-C", @root, "fetch", "-q", "--tags", remote)
+      say("  ! couldn't reach #{remote}, so this uses the releases the clone already knows") unless status.zero?
+    end
+    tags, = capture("git", "-C", @root, "tag", "--list", "v*", "--merged", "refs/remotes/#{remote}/main")
+    tags.split.filter_map { |tag| tag.match(RELEASE_TAG) }.max_by { |m| [ m[:date], m[:n].to_i ] }&.string
+  end
+
+  def refuse_unpushed_commits!(remote)
+    unpushed, = capture("git", "-C", @root, "rev-list", "HEAD", "--not", "--remotes")
+    return if unpushed.empty?
+
+    abort(<<~MSG)
+      bin/fork: next has commits that #{remote} doesn't, and moving next to #{@release}
+      would drop them. Put them on a branch of their own (git branch my-work), then
+      git reset --keep #{remote}/next and rerun; or fork from them with bin/fork --from-next.
+    MSG
+  end
+
   def step_remotes!
     say("\n== Remotes ==")
     origin_url, origin_status = capture("git", "-C", @root, "remote", "get-url", "origin")
@@ -730,6 +788,7 @@ class ForkFlow
       "preset"              => @preset,
       "template_url"        => @template_url,
       "template_baseline"   => @baseline_sha,
+      "template_release"    => @release,
       "forked_at"           => Time.now.strftime("%Y-%m-%d"),
       "fork_script_version" => VERSION
     )
@@ -1048,6 +1107,7 @@ if $PROGRAM_NAME == __FILE__
     o.on("--private", "New GitHub repo is private") { options[:visibility] = "private" }
     o.on("--team", "Branch rules require one approval (default: solo)") { options[:team] = true }
     o.on("--preset PRESET", "Tenancy preset: #{ForkFlow::PRESETS.join('/')}") { |v| options[:preset] = v }
+    o.on("--from-next", "Start from next as cloned, unreleased template work included (default: the latest release)") { options[:from_next] = true }
     o.on("--yes", "Non-interactive: accept defaults, never prompt") { options[:yes] = true }
     o.on("--dry-run", "Print the plan without changing anything") { options[:dry_run] = true }
   end.parse!

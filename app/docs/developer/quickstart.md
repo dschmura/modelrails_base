@@ -45,9 +45,10 @@ brackets.
 7. **Set up outbound mail now?** [N], asked once `bin/setup` succeeds. N is
    right: mail is step 4, once you have a mail provider's login.
 
-It renames the app in one commit, creates your GitHub repo, pushes `next` and
-protects the branches. It ends with a list of things only you can do, such as
-your product's description and brand mark.
+It moves `next` to the template's latest release, renames the app in one
+commit, creates your GitHub repo, pushes `next` and protects the branches. It
+ends with a list of things only you can do, such as your product's description
+and brand mark.
 
 A clone starts on `next`, and `bin/fork` commits the rename there and leaves
 you on it. Your own changes go on a branch of their own (step 3).
