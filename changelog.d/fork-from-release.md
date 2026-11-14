@@ -1,1 +1,0 @@
-- `bin/fork` starts a new product from the template's latest release instead of unreleased `next`; `--from-next` keeps the old behaviour.
