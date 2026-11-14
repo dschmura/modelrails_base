@@ -35,6 +35,8 @@ class ForkFlow
   TEMPLATE_BRAND  = "ModelRails"
   FORK_FILE       = ForkConfig::FILE
   CHANGELOG       = "CHANGELOG.md"
+  # origin's next may already exist, unprotected until bin/branch-rules runs: the Fork button.
+  PUSH_NEXT       = "git -c branch-rules.off=next push -u origin next"
 
   # Anchored on a path separator so a fork of your own named e.g.
   # "my_modelrails_base" is never mistaken for the template and silently
@@ -268,7 +270,7 @@ class ForkFlow
 
     def manual_github_todos!
       @todos << if @origin_present
-        "Push when ready: git push -u origin #{@branch}"
+        "Push when ready: #{(@branch == "next") ? PUSH_NEXT : "git push -u origin #{@branch}"}"
       else
         "Add your repository (create it EMPTY on GitHub first — no README/license):\n" \
           "     git remote add origin git@github.com:YOU/#{snake}.git && git push -u origin #{@branch}"
@@ -281,7 +283,7 @@ class ForkFlow
       target = @opts[:github].is_a?(String) ? @opts[:github] : "YOU/#{snake}"
       target = "#{target}/#{snake}" unless target.include?("/")
       act("create the GitHub repo #{target} (#{@opts[:visibility] || 'public'})") unless @origin_present
-      act("git push -u origin next")
+      act(PUSH_NEXT)
       act("bin/branch-rules#{' --solo' unless @opts[:team]}")
       false
     end
@@ -386,11 +388,11 @@ class ForkFlow
     end
 
     def push_next
-      say("  $ git push -u origin next")
-      return true if @shell.run("git", "-C", @root, "push", "-u", "origin", "next")
+      say("  $ #{PUSH_NEXT}")
+      return true if @shell.run("git", "-C", @root, *PUSH_NEXT.split.drop(1))
 
       say("  ! The push failed, so the branches are not protected yet.")
-      @todos << "Push the rename: git push -u origin next"
+      @todos << "Push the rename: #{PUSH_NEXT}"
       @todos << "Then protect the branches: bin/branch-rules --solo"
       false
     end

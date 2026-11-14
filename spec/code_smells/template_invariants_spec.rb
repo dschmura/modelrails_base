@@ -1349,6 +1349,24 @@ RSpec.describe "Template invariants" do
     end
   end
 
+  describe "Lefthook's pre-push and the protected branches" do
+    let(:commands) { YAML.safe_load(File.read(root.join("lefthook.yml")), aliases: true).dig("pre-push", "commands") }
+    let(:check) { commands.fetch("protected_branch", {}) }
+
+    it "refuses a push to an existing next or main before any other check runs" do
+      others = commands.except("protected_branch", "docker_build").values.map { |command| command["priority"] }
+
+      expect(check["run"].to_s).to include("bin/protected-branch-check {1}")
+      expect(check["use_stdin"]).to be(true), "expected use_stdin: the check reads git's pre-push ref lines"
+      expect(check["priority"]).to be_a(Integer).and(be < others.min)
+    end
+
+    it "runs on every push, filtered by nothing" do
+      expect(check).not_to be_empty
+      expect(check.keys & %w[skip glob files only exclude tags]).to be_empty
+    end
+  end
+
   describe "bin/mail-setup can edit the shipped deploy.yml" do
     it "finds SMTP_ADDRESS under env.clear", :template_only do
       load root.join("bin/mail-setup") unless defined?(MailSetup)
