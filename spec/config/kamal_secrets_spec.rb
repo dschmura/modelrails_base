@@ -38,6 +38,53 @@ RSpec.describe ".kamal/secrets" do
     expect(master_key).to eq("key-from-file")
   end
 
+  context "with fnox" do
+    around do |example|
+      path = ENV.fetch("PATH")
+      FileUtils.mkdir_p("stub-bin")
+      ENV["PATH"] = "#{File.expand_path('stub-bin')}:#{path}"
+      example.run
+    ensure
+      ENV["PATH"] = path
+    end
+
+    def install_fnox(script)
+      File.write("stub-bin/fnox", "#!/bin/sh\n#{script}\n")
+      File.chmod(0o755, "stub-bin/fnox")
+    end
+
+    it "takes RAILS_MASTER_KEY from fnox when the environment has none" do
+      ENV.delete("RAILS_MASTER_KEY")
+      install_fnox('[ "$*" = "get RAILS_MASTER_KEY" ] && echo key-from-fnox')
+
+      expect(master_key).to eq("key-from-fnox")
+    end
+
+    it "still prefers the deploy's environment over fnox" do
+      ENV["RAILS_MASTER_KEY"] = "key-from-env"
+      install_fnox("echo key-from-fnox")
+
+      expect(master_key).to eq("key-from-env")
+    end
+
+    it "falls back to the key file when fnox has no value for it" do
+      ENV.delete("RAILS_MASTER_KEY")
+      install_fnox("echo 'Error: secret not found' >&2; exit 1")
+
+      expect(master_key).to eq("key-from-file")
+    end
+  end
+
+  it "falls back to the key file when fnox isn't installed" do
+    ENV.delete("RAILS_MASTER_KEY")
+    path = ENV.fetch("PATH")
+    ENV["PATH"] = path.split(File::PATH_SEPARATOR).reject { |dir| File.executable?(File.join(dir, "fnox")) }.join(File::PATH_SEPARATOR)
+
+    expect(master_key).to eq("key-from-file")
+  ensure
+    ENV["PATH"] = path
+  end
+
   context "for the staging destination" do
     def master_key = Kamal::Secrets.new(destination: "staging")["RAILS_MASTER_KEY"]
 
