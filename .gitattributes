@@ -53,3 +53,6 @@ config/initializers/project_tools.rb merge=ours
 # forks shouldn't edit it, and freezing it would pin them to the version they
 # forked at, bugs included.
 .fork.yml merge=ours
+# A fork's own production inputs and their example credentials file. Empty upstream, so freezing them is safe.
+config/required_production_config.local.yml merge=ours
+config/credentials/production.local.example.yml merge=ours
