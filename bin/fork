@@ -69,6 +69,7 @@ class ForkFlow
     "config/application.rb"            => [ [ "module #{TEMPLATE_MODULE}", :module_decl ] ],
     "config/deploy.yml"                => [ [ TEMPLATE_TOKEN, :snake ] ],
     "config/deploy.staging.yml"        => [ [ TEMPLATE_TOKEN, :snake ] ],
+    "Dockerfile"                       => [ [ TEMPLATE_TOKEN, :snake ] ],
     "config/locales/en/brand.en.yml"   => [ [ %("#{TEMPLATE_BRAND}), :open_quoted_title ] ],
     "config/locales/en/pages.en.yml"   => [
       [ TEMPLATE_BRAND, :title ],

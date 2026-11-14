@@ -37,8 +37,11 @@
 # Test coverage reports
 /coverage/
 
+# Both blocks stay verbatim: credentials:edit appends its own copy of any it can't find.
 # Ignore key files for decrypting credentials and more.
 /config/*.key
+
+# Ignore key files for decrypting credentials and more.
 /config/credentials/*.key
 
 # SQLite databases belong in /storage (ignored above); never commit one from anywhere else.
