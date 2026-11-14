@@ -1544,11 +1544,60 @@ RSpec.describe ForkFlow do
 
   describe "answering the questions" do
     it "takes the preset from the input it is given" do
-      run_fork({ name: "my_app", github: false }, terminal("2\n")) do |flow|
+      run_fork({ name: "my_app", github: false }, terminal("\n2\n")) do |flow|
         allow(flow).to receive(:offer_setup!).and_return(false)
       end
 
       expect(repo.join(".env").read).to include("WORKSPACE_ON_SIGNUP=shared")
+    end
+
+    def fork_config = YAML.safe_load(repo.join(".fork.yml").read)
+
+    def answer_interactively(typed)
+      run_fork({ github: false }, terminal(typed)) do |flow|
+        allow(flow).to receive(:offer_setup!).and_return(false)
+      end
+    end
+
+    it "writes the confirmed display name to the brand, the manifest and .fork.yml" do
+      run_fork(name: "chmurafamily", display_name: "Chmura Family", yes: true)
+
+      expect(repo.join("config/locales/en/brand.en.yml").read).to include(%(name: "Chmura Family"))
+      expect(repo.join("public/manifest.webmanifest").read).to include(%("Chmura Family"))
+      expect(fork_config["product_name"]).to eq("Chmura Family")
+    end
+
+    it "asks for the display name after the project name, defaulting to the derived title" do
+      answer_interactively("chmurafamily\n\n\n\n")
+
+      expect(printed.string).to include("Display name? [Chmurafamily]")
+      expect(fork_config["product_name"]).to eq("Chmurafamily")
+    end
+
+    it "asks for the display name at a terminal even when --name is given" do
+      run_fork({ name: "chmurafamily", github: false }, terminal("Chmura Family\n\n\n")) do |flow|
+        allow(flow).to receive(:offer_setup!).and_return(false)
+      end
+
+      expect(fork_config["product_name"]).to eq("Chmura Family")
+    end
+
+    it "strips whitespace from the display name" do
+      answer_interactively("chmurafamily\n  Chmura Family  \n\n\n")
+
+      expect(fork_config["product_name"]).to eq("Chmura Family")
+    end
+
+    it "asks again when the display name contains a double quote or backslash" do
+      answer_interactively(%(chmurafamily\nBob "Shop"\nBob Shop\n\n\n))
+
+      expect(printed.string).to include(%(Display name can't contain " or \\))
+      expect(fork_config["product_name"]).to eq("Bob Shop")
+    end
+
+    it "refuses a --display-name containing a double quote or backslash" do
+      expect { run_fork(name: "chmurafamily", display_name: %(Bob "Shop"), yes: true) }
+        .to raise_error(SystemExit, /Display name can't contain " or \\/)
     end
   end
 
