@@ -5,18 +5,18 @@ inputs:
     required: always
     secret: false
     purpose: "The public hostname every mailer link and redirect points at"
-    where: "env.clear in config/deploy.yml"
-    set_with: "RAILS_HOST under env.clear in config/deploy.yml"
+    where: "Your app's public domain, such as app.example.org"
+    set_with: "config/deploy.yml → env.clear"
     regenerable: "Yes, any time; redeploy"
-    step: 5
+    step: 6
     owner_rule: host
   SMTP_ADDRESS:
     home: env
     required: always
     secret: false
     purpose: "The mail provider's SMTP server"
-    where: "env.clear in config/deploy.yml"
-    set_with: "SMTP_ADDRESS under env.clear in config/deploy.yml"
+    where: "Your mail provider's SMTP server; bin/mail-setup writes it for Postmark"
+    set_with: "config/deploy.yml → env.clear"
     regenerable: "Yes, any time"
     step: 4
     owner_rule: mail
@@ -25,8 +25,8 @@ inputs:
     required: optional
     secret: false
     purpose: "The mail provider's SMTP port"
-    where: "env.clear in config/deploy.yml"
-    set_with: "SMTP_PORT under env.clear in config/deploy.yml"
+    where: "Your mail provider's SMTP port, usually 587; bin/mail-setup writes it"
+    set_with: "config/deploy.yml → env.clear"
     regenerable: "Yes, any time"
     step: 4
   MAIL_FROM:
@@ -34,8 +34,8 @@ inputs:
     required: optional
     secret: false
     purpose: "The sender address; overrides mailer.from, and with neither set the sender is noreply@ your RAILS_HOST"
-    where: "env.clear in config/deploy.yml"
-    set_with: "MAIL_FROM under env.clear in config/deploy.yml"
+    where: "The sender address, such as hello@app.example.org; default noreply@ your RAILS_HOST"
+    set_with: "config/deploy.yml → env.clear"
     regenerable: "Yes, any time"
     step: 4
   TENANCY_SHARED_WORKSPACE_NAME:
@@ -43,131 +43,131 @@ inputs:
     required: optional
     secret: false
     purpose: "Overrides the workspace name, which otherwise comes from the product name in brand.en.yml"
-    where: "env.clear in config/deploy.yml"
-    set_with: "TENANCY_SHARED_WORKSPACE_NAME under env.clear in config/deploy.yml"
+    where: "A display name for the one shared workspace; default is the product name in brand.en.yml"
+    set_with: "config/deploy.yml → env.clear"
     regenerable: "Yes, any time"
-    step: 2
+    step: 6
   TENANCY_OWNER_FIRST_NAME:
     home: env
     required: optional
     secret: false
     purpose: "First name of the owner the first deploy seeds"
-    where: "env.clear in config/deploy.yml"
-    set_with: "TENANCY_OWNER_FIRST_NAME under env.clear in config/deploy.yml"
+    where: "The first name of the person who owns the shared workspace"
+    set_with: "config/deploy.yml → env.clear"
     regenerable: "Yes, any time"
-    step: 2
+    step: 6
   TENANCY_OWNER_LAST_NAME:
     home: env
     required: optional
     secret: false
     purpose: "Last name of the owner the first deploy seeds"
-    where: "env.clear in config/deploy.yml"
-    set_with: "TENANCY_OWNER_LAST_NAME under env.clear in config/deploy.yml"
+    where: "The last name of the person who owns the shared workspace"
+    set_with: "config/deploy.yml → env.clear"
     regenerable: "Yes, any time"
-    step: 2
+    step: 6
   TENANCY_WORKSPACE_CREATION:
     home: env
     required: optional
     secret: false
     purpose: "Whether users can create workspaces beyond the shared one; disabled is usual on shared"
-    where: "env.clear in config/deploy.yml"
-    set_with: "TENANCY_WORKSPACE_CREATION under env.clear in config/deploy.yml"
+    where: "disabled keeps the one shared workspace; see config/deploy.yml's comment"
+    set_with: "config/deploy.yml → env.clear"
     regenerable: "Yes, any time"
-    step: 2
+    step: 6
   TENANCY_OWNER_EMAIL:
     home: env
     required: { when_preset: shared }
     secret: false
     purpose: "The email of the owner the first deploy seeds on the shared preset"
-    where: "env.clear in config/deploy.yml"
-    set_with: "TENANCY_OWNER_EMAIL under env.clear in config/deploy.yml"
+    where: "The email of the person who owns the shared workspace: yours"
+    set_with: "config/deploy.yml → env.clear"
     regenerable: "Yes, any time"
-    step: 2
+    step: 6
     owner_rule: owner
   SIGNUP_MODE:
     home: env
     required: optional
     secret: false
     purpose: "Who can sign up; the default is invite_only, so open is a deliberate choice"
-    where: "env.clear in config/deploy.yml"
-    set_with: "SIGNUP_MODE under env.clear in config/deploy.yml"
+    where: "open or invite_only (default invite_only); see Open sign-up in /docs/developer/deployment"
+    set_with: "config/deploy.yml → env.clear"
     regenerable: "Yes, any time"
-    step: 2
+    step: 6
   BACKUP_PATH:
     home: env
     required: optional
     secret: false
     purpose: "The folder daily backups of the database and uploads go to, mounted under volumes"
-    where: "env.clear in config/deploy.yml"
-    set_with: "BACKUP_PATH under env.clear in config/deploy.yml"
+    where: "A folder on the server mounted under volumes:, such as /backups; see Back up the database in /docs/developer/deployment"
+    set_with: "config/deploy.yml → env.clear"
     regenerable: "Yes, any time"
-    step: 2
+    step: 6
     owner_rule: backups
   OBJECT_STORAGE_BUCKET:
     home: env
     required: optional
     secret: false
     purpose: "The bucket daily backups go to instead of a folder"
-    where: "env.clear in config/deploy.yml"
-    set_with: "OBJECT_STORAGE_BUCKET under env.clear in config/deploy.yml"
+    where: "The name of your bucket at your storage provider; see Move to a bucket in /docs/developer/deployment"
+    set_with: "config/deploy.yml → env.clear"
     regenerable: "Yes, any time"
-    step: 2
+    step: 6
     owner_rule: backups
   BACKUP_SCHEDULE:
     home: env
     required: optional
     secret: false
     purpose: "When backups run, as any Solid Queue schedule"
-    where: "env.clear in config/deploy.yml"
-    set_with: "BACKUP_SCHEDULE under env.clear in config/deploy.yml"
+    where: "Any Solid Queue schedule, such as every day at 2am; default daily"
+    set_with: "config/deploy.yml → env.clear"
     regenerable: "Yes, any time"
-    step: 2
+    step: 6
   OBJECT_STORAGE_ENDPOINT:
     home: env
     required: optional
     secret: false
     purpose: "The bucket provider's endpoint, for anything but AWS"
-    where: "env.clear in config/deploy.yml"
-    set_with: "OBJECT_STORAGE_ENDPOINT under env.clear in config/deploy.yml"
+    where: "Your bucket provider's S3 endpoint URL; needed for anything but AWS"
+    set_with: "config/deploy.yml → env.clear"
     regenerable: "Yes, any time"
-    step: 2
+    step: 6
   OBJECT_STORAGE_FORCE_PATH_STYLE:
     home: env
     required: optional
     secret: false
     purpose: "Addresses the bucket by path rather than subdomain, for providers that need it"
-    where: "env.clear in config/deploy.yml"
-    set_with: "OBJECT_STORAGE_FORCE_PATH_STYLE under env.clear in config/deploy.yml"
+    where: "true if your provider needs path-style bucket URLs; see its S3 docs"
+    set_with: "config/deploy.yml → env.clear"
     regenerable: "Yes, any time"
-    step: 2
+    step: 6
   OBJECT_STORAGE_REGION:
     home: env
     required: { when_env_set: OBJECT_STORAGE_BUCKET }
     secret: false
     purpose: "The bucket's region; required once a bucket is set"
-    where: "env.clear in config/deploy.yml"
-    set_with: "OBJECT_STORAGE_REGION under env.clear in config/deploy.yml"
+    where: "Your bucket's region, as your storage provider names it"
+    set_with: "config/deploy.yml → env.clear"
     regenerable: "Yes, any time"
-    step: 2
+    step: 6
     owner_rule: backups
   WEBAUTHN_ORIGIN:
     home: env
     required: optional
     secret: false
     purpose: "The origin passkeys are bound to, when it differs from https://RAILS_HOST"
-    where: "env.clear in config/deploy.yml"
-    set_with: "WEBAUTHN_ORIGIN under env.clear in config/deploy.yml"
+    where: "The https origin of your app, only when it differs from https://RAILS_HOST"
+    set_with: "config/deploy.yml → env.clear"
     regenerable: "Yes, any time"
-    step: 2
+    step: 6
   WEBAUTHN_RP_ID:
     home: env
     required: optional
     secret: false
     purpose: "The relying-party id passkeys are bound to, when it differs from RAILS_HOST"
-    where: "env.clear in config/deploy.yml"
-    set_with: "WEBAUTHN_RP_ID under env.clear in config/deploy.yml"
+    where: "The domain passkeys are bound to, only when it differs from RAILS_HOST"
+    set_with: "config/deploy.yml → env.clear"
     regenerable: "Yes, any time"
-    step: 2
+    step: 6
   secret_key_base:
     home: credentials
     required: always
@@ -176,7 +176,7 @@ inputs:
     where: "Written by credentials:edit when it creates the file"
     set_with: "bin/rails credentials:edit --environment production"
     regenerable: "Yes, but a new value signs everyone out"
-    step: 3
+    step: 4
     example: "<written by credentials:edit>"
   smtp.user_name:
     home: credentials
@@ -208,7 +208,7 @@ inputs:
     where: "bin/rails db:encryption:init, which prints them once and stores them nowhere else"
     set_with: "bin/rails credentials:edit --environment production"
     regenerable: "No, once production has encrypted data: new keys can't read what the old ones wrote"
-    step: 3
+    step: 4
     example: "<from bin/rails db:encryption:init>"
     owner_rule: encryption
   active_record_encryption.deterministic_key:
@@ -219,7 +219,7 @@ inputs:
     where: "bin/rails db:encryption:init, which prints them once and stores them nowhere else"
     set_with: "bin/rails credentials:edit --environment production"
     regenerable: "No, once production has encrypted data: new keys can't read what the old ones wrote"
-    step: 3
+    step: 4
     example: "<from bin/rails db:encryption:init>"
     owner_rule: encryption
   active_record_encryption.key_derivation_salt:
@@ -230,7 +230,7 @@ inputs:
     where: "bin/rails db:encryption:init, which prints them once and stores them nowhere else"
     set_with: "bin/rails credentials:edit --environment production"
     regenerable: "No, once production has encrypted data: new keys can't read what the old ones wrote"
-    step: 3
+    step: 4
     example: "<from bin/rails db:encryption:init>"
     owner_rule: encryption
   mailer.from:
@@ -251,7 +251,7 @@ inputs:
     where: "A google oauth client (OAuth Setup in getting-started)"
     set_with: "bin/rails credentials:edit --environment production"
     regenerable: "Yes, at Google; replace both"
-    step: 3
+    step: 4
     example: "<from Google → OAuth client id>"
     owner_rule: oauth
   oauth.google.client_secret:
@@ -262,7 +262,7 @@ inputs:
     where: "A google oauth client (OAuth Setup in getting-started)"
     set_with: "bin/rails credentials:edit --environment production"
     regenerable: "Yes, at Google; replace both"
-    step: 3
+    step: 4
     example: "<from Google → OAuth client secret>"
     owner_rule: oauth
   oauth.github.client_id:
@@ -273,7 +273,7 @@ inputs:
     where: "A github oauth app (OAuth Setup in getting-started)"
     set_with: "bin/rails credentials:edit --environment production"
     regenerable: "Yes, at GitHub; replace both"
-    step: 3
+    step: 4
     example: "<from GitHub → OAuth client id>"
     owner_rule: oauth
   oauth.github.client_secret:
@@ -284,7 +284,7 @@ inputs:
     where: "A github oauth app (OAuth Setup in getting-started)"
     set_with: "bin/rails credentials:edit --environment production"
     regenerable: "Yes, at GitHub; replace both"
-    step: 3
+    step: 4
     example: "<from GitHub → OAuth client secret>"
     owner_rule: oauth
   object_storage.access_key_id:
@@ -295,7 +295,7 @@ inputs:
     where: "Your backup bucket's provider"
     set_with: "bin/rails credentials:edit --environment production"
     regenerable: "Yes, at the provider"
-    step: 2
+    step: 4
     example: "<from your bucket provider → access key id>"
     owner_rule: backups
   object_storage.secret_access_key:
@@ -306,7 +306,7 @@ inputs:
     where: "Your backup bucket's provider"
     set_with: "bin/rails credentials:edit --environment production"
     regenerable: "Yes, at the provider"
-    step: 2
+    step: 4
     example: "<from your bucket provider → secret access key>"
     owner_rule: backups
   RAILS_MASTER_KEY:
@@ -317,7 +317,7 @@ inputs:
     where: "config/credentials/production.key, backed up in your password manager, never in git"
     set_with: "Read by .kamal/secrets from the environment, fnox, or production.key"
     regenerable: "No: a new key can't open the old file, so every credentials value would have to be made again"
-    step: 3
+    step: 4
   "A record for RAILS_HOST":
     home: dns
     required: optional
@@ -326,7 +326,7 @@ inputs:
     where: "Your DNS provider"
     set_with: "Your DNS provider"
     regenerable: "Yes, any time"
-    step: 5
+    step: 6
   "DKIM record":
     home: dns
     required: optional

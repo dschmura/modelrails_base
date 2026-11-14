@@ -97,6 +97,22 @@ RSpec.describe RequiredProductionConfigCatalog do
     end
   end
 
+  it "puts each input in the quickstart step that handles it" do
+    steps = described_class.load(root: Rails.root).entries.group_by { |entry| entry.home }
+                           .transform_values { |entries| entries.map(&:step).uniq.sort }
+
+    expect(steps.fetch("credentials")).to eq([ 4 ])
+    expect(steps.fetch("kamal_secret")).to eq([ 4 ])
+    expect(steps.fetch("env")).to eq([ 4, 6 ])
+  end
+
+  it "names where each env input is set, and says something specific about its value" do
+    env = described_class.load(root: Rails.root).entries.select { |entry| entry.home == "env" }
+
+    expect(env.map(&:set_with).uniq).to eq([ "config/deploy.yml → env.clear" ])
+    expect(env.map(&:where).uniq.size).to eq(env.size)
+  end
+
   it "starts the template file with the header line" do
     expect(File.foreach(Rails.root.join("config/required_production_config.yml")).first.chomp).to eq(header)
   end
