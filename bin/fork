@@ -622,7 +622,7 @@ class ForkFlow
       abort("bin/fork: #{DISPLAY_NAME_REFUSAL}") if given.match?(/["\\]/)
       return given.empty? ? nil : given
     end
-    return nil if @opts[:name] || !@console.prompts?
+    return nil unless @console.prompts?
 
     loop do
       answer = ask("Display name?", derived_title)

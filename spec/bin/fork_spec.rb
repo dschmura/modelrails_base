@@ -1544,7 +1544,7 @@ RSpec.describe ForkFlow do
 
   describe "answering the questions" do
     it "takes the preset from the input it is given" do
-      run_fork({ name: "my_app", github: false }, terminal("2\n")) do |flow|
+      run_fork({ name: "my_app", github: false }, terminal("\n2\n")) do |flow|
         allow(flow).to receive(:offer_setup!).and_return(false)
       end
 
@@ -1572,6 +1572,14 @@ RSpec.describe ForkFlow do
 
       expect(printed.string).to include("Display name? [Chmurafamily]")
       expect(fork_config["product_name"]).to eq("Chmurafamily")
+    end
+
+    it "asks for the display name at a terminal even when --name is given" do
+      run_fork({ name: "chmurafamily", github: false }, terminal("Chmura Family\n\n\n")) do |flow|
+        allow(flow).to receive(:offer_setup!).and_return(false)
+      end
+
+      expect(fork_config["product_name"]).to eq("Chmura Family")
     end
 
     it "strips whitespace from the display name" do

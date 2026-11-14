@@ -65,7 +65,7 @@ bin/fork --name my_app --display-name "My App" --preset personal --support-email
 bin/fork --dry-run    # print the plan, change nothing
 ```
 
-With `--name`, `bin/fork` doesn't ask for the display name: it takes
+Under `--yes`, `bin/fork` doesn't ask for the display name: it takes
 `--display-name`, or capitalizes the project name. It can't contain `"` or `\`.
 
 Under `--yes` nothing is created or pushed on GitHub unless you pass `--github` (`--github ORG`
