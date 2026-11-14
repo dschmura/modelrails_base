@@ -16,6 +16,7 @@
 #
 #   bin/fork                                   # interactive Q&A
 #   bin/fork --name my_app --preset none --origin git@github.com:me/my_app.git --yes
+#   bin/fork --name my_app --display-name "My App" --yes
 #   bin/fork --preset shared                   # on a forked repo: change the preset
 #   bin/fork --dry-run                         # print the plan, mutate nothing
 #
@@ -438,7 +439,8 @@ class ForkFlow
 
   def snake = @snake
   def camel = snake.split(/_+/).map(&:capitalize).join
-  def title = snake.split(/_+/).map(&:capitalize).join(" ")
+  def title = @display_name || derived_title
+  def derived_title = snake.split(/_+/).map(&:capitalize).join(" ")
 
   def replacement_for(key)
     {
@@ -556,6 +558,7 @@ class ForkFlow
 
   def collect_answers!
     @snake = normalize_name(@opts[:name] || ask("Project name?", File.basename(@root)))
+    @display_name = collect_display_name
     @preset = @opts[:preset] || (ask_preset if @console.prompts?)
     validate_preset!(@preset) if @preset
     @support_email = collect_support_email
@@ -610,6 +613,23 @@ class ForkFlow
     PRESETS.each_with_index { |p, i| say("    #{i + 1}) #{p} — #{PRESET_DESCRIPTIONS[p]}") }
     answer = ask("  Choose 1-#{PRESETS.size}, or blank to defer", "")
     PRESETS[Integer(answer) - 1] if answer.match?(/\A[1-#{PRESETS.size}]\z/)
+  end
+
+  DISPLAY_NAME_REFUSAL = %(Display name can't contain " or \\, because it lands inside quotes in brand.en.yml and the web manifest.)
+
+  def collect_display_name
+    if (given = @opts[:display_name]&.strip)
+      abort("bin/fork: #{DISPLAY_NAME_REFUSAL}") if given.match?(/["\\]/)
+      return given.empty? ? nil : given
+    end
+    return nil if @opts[:name] || !@console.prompts?
+
+    loop do
+      answer = ask("Display name?", derived_title)
+      return answer unless answer.match?(/["\\]/)
+
+      say("  ! #{DISPLAY_NAME_REFUSAL}")
+    end
   end
 
   # nil means "use the placeholder": the fork_only spec then keeps CI red until it's set.
@@ -1101,6 +1121,7 @@ if $PROGRAM_NAME == __FILE__
   OptionParser.new do |o|
     o.banner = "Usage: bin/fork [options]   (fork once, setup often)"
     o.on("--name NAME", "Project name (default: directory name; snake_cased)") { |v| options[:name] = v }
+    o.on("--display-name NAME", "Product name people see (default: from the project name)") { |v| options[:display_name] = v }
     o.on("--origin URL", "Your repository's git URL (becomes the origin remote)") { |v| options[:origin] = v }
     o.on("--template URL", "The template's git URL when it is a mirror under another name (recorded in .fork.yml; an origin or upstream equal to it counts as the template)") { |v| options[:template] = v }
     o.on("--support-email ADDRESS", "Where users write for help (default: a placeholder CI refuses)") { |v| options[:support_email] = v }
