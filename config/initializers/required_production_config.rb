@@ -11,6 +11,9 @@ module RequiredProductionConfig
   # Where Rails mails by default; nothing listens there on a deployed host.
   LOOPBACK = /\A(localhost|127\.0\.0\.1)\z/
 
+  PLACEHOLDER_VALUE = /\A(<.*>|\[.*\]|(replace|paste|change|your)([_\- ].*)?|changeme|todo.*|x{3,}|example)\z/i
+  OAUTH_PROVIDERS = { google: "Google", github: "GitHub" }.freeze
+
   # The three values `bin/rails db:encryption:init` generates. Credentials are
   # the template's home for them; the config path is the environment-variable
   # alternative the Rails guide documents.
@@ -29,9 +32,11 @@ module RequiredProductionConfig
   # Every refusal, in the order a boot meets them, so a check before deploying can list them all.
   def self.refusals(env = ENV, credentials = Rails.application.credentials,
                     encryption = Rails.application.config.active_record.encryption)
-    [ host_refusal(env), mail_refusal(env, credentials), encryption_refusal(credentials, encryption),
-      backups_refusal(env, credentials) ].compact
+    [ host_refusal(env), mail_refusal(env, credentials), oauth_refusal(credentials),
+      encryption_refusal(credentials, encryption), backups_refusal(env, credentials) ].compact
   end
+
+  def self.placeholder?(value) = value.is_a?(String) && PLACEHOLDER_VALUE.match?(value.strip)
 
   def self.backups_off?(env) = env.values_at("BACKUP_PATH", "OBJECT_STORAGE_BUCKET").all? { |value| value.to_s.strip.empty? }
 
@@ -94,9 +99,42 @@ module RequiredProductionConfig
     return "SMTP_ADDRESS is #{address.inspect}" if LOOPBACK.match?(address) || PLACEHOLDER_HOST.match?(address)
 
     blank = %i[user_name password].select { |key| credentials.dig(:smtp, key).to_s.strip.empty? }.map { |key| "smtp.#{key}" }
-    "#{blank.to_sentence} #{blank.one? ? "is" : "are"} unset in credentials" if blank.any?
+    return "#{blank.to_sentence} #{blank.one? ? "is" : "are"} unset in credentials" if blank.any?
+
+    fake = %i[user_name password].select { |key| placeholder?(credentials.dig(:smtp, key)) }.map { |key| "smtp.#{key}" }
+    "#{fake.to_sentence} #{fake.one? ? "looks" : "look"} like #{fake.one? ? "a placeholder" : "placeholders"}" if fake.any?
   end
   private_class_method :mail_problem, :mail_refusal
+
+  def self.oauth_refusal(credentials)
+    OAUTH_PROVIDERS.each do |provider, name|
+      problem = oauth_problem(credentials, provider) or next
+
+      return <<~MSG
+        Production preflight failed: #{problem}.
+
+        A client id in credentials turns on "Sign in with #{name}". With a placeholder
+        id or no usable secret the app boots, /up reports healthy, and the button fails.
+
+        Fix: put the real pair in bin/rails credentials:edit --environment production,
+        or remove oauth.#{provider} entirely to leave "Sign in with #{name}" off.
+
+        Details: /docs/developer/deployment (Production preflight section).
+        Opting out for good: git rm config/initializers/required_production_config.rb
+      MSG
+    end
+    nil
+  end
+
+  def self.oauth_problem(credentials, provider)
+    id = credentials.dig(:oauth, provider, :client_id)
+    return if id.to_s.strip.empty?
+    return "oauth.#{provider}.client_id looks like a placeholder" if placeholder?(id)
+
+    secret = credentials.dig(:oauth, provider, :client_secret)
+    "oauth.#{provider}.client_secret is #{secret.to_s.strip.empty? ? "unset" : "a placeholder"}, but oauth.#{provider}.client_id is set" if secret.to_s.strip.empty? || placeholder?(secret)
+  end
+  private_class_method :oauth_problem
 
   def self.host_refusal(env)
     host = env["RAILS_HOST"].to_s.strip

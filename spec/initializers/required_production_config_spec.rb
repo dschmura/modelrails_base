@@ -188,6 +188,57 @@ RSpec.describe RequiredProductionConfig do
     end
   end
 
+  describe ".placeholder?" do
+    [ "<from Stripe → Developers → API keys>", "[secret]", "REPLACE_ME", "paste-here", "CHANGEME", "change_me",
+      "your_api_key", "YOUR SECRET", "TODO", "todo: get from stripe", "xxxx", "example" ].each do |value|
+      it "is true for #{value.inspect}" do
+        expect(described_class.placeholder?(value)).to be(true)
+      end
+    end
+
+    [ "sk_live_51Habc", "pm-token-1234", "a1b2c3", "postmark", "yourself_token", "changelog", "", nil, 42, { "a" => 1 } ].each do |value|
+      it "is false for #{value.inspect}" do
+        expect(described_class.placeholder?(value)).to be(false)
+      end
+    end
+  end
+
+  describe "placeholder credentials" do
+    let(:env) { { "RAILS_HOST" => "app.humbledaisy.com", "SMTP_ADDRESS" => "smtp.postmarkapp.com" } }
+    let(:smtp) { { user_name: "token", password: "token" } }
+    let(:keys) { { primary_key: "p", deterministic_key: "d", key_derivation_salt: "s" } }
+
+    def refusals_for(credentials) = described_class.refusals(env, credentials, keys)
+
+    it "refuses a placeholder SMTP login" do
+      refusals = refusals_for(smtp: { user_name: "REPLACE_ME", password: "REPLACE_ME" })
+
+      expect(refusals.join).to include("smtp.user_name and smtp.password look like placeholders")
+    end
+
+    it "refuses a present OAuth client id that is a placeholder" do
+      refusals = refusals_for(smtp:, oauth: { google: { client_id: "<from Google>", client_secret: "x1" } })
+
+      expect(refusals.join).to include("oauth.google.client_id").and include('"Sign in with Google"')
+    end
+
+    it "refuses an OAuth client id without a usable secret" do
+      [ {}, { client_secret: "REPLACE_ME" } ].each do |secret|
+        refusals = refusals_for(smtp:, oauth: { github: { client_id: "real-id", **secret } })
+
+        expect(refusals.join).to include("oauth.github.client_secret")
+      end
+    end
+
+    it "accepts absent OAuth credentials" do
+      expect(refusals_for(smtp:)).to be_empty
+    end
+
+    it "accepts a real OAuth pair" do
+      expect(refusals_for(smtp:, oauth: { google: { client_id: "real-id", client_secret: "real-secret" } })).to be_empty
+    end
+  end
+
   describe ".refusals" do
     it "lists every refusal at once, in the order a boot meets them" do
       refusals = described_class.refusals({ "OBJECT_STORAGE_BUCKET" => "app-backups" }, {}, {})
