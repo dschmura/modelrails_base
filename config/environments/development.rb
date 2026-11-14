@@ -36,21 +36,16 @@ Rails.application.configure do
   config.action_mailer.perform_caching = false
   config.action_mailer.delivery_method = :letter_opener_web
 
-  # Set localhost to be used by links generated in mailer templates.
-  # Port follows the PORT env var so letter_opener links match the running server
-  # (e.g. PORT=3001 bin/dev → links use 3001). bin/dev exports PORT before foreman starts;
-  # puma.rb reads the same env var, so both are always in sync.
-  config.action_mailer.default_url_options = { host: "localhost", port: ENV.fetch("PORT", 3000).to_i }
+  # Mail links need the web server's port, not PORT: foreman gives bin/jobs its own. See /docs/developer/background-jobs.
+  web_port = ENV.fetch("DEV_SERVER_PORT") { ENV.fetch("PORT", 3000) }.to_i
+  config.action_mailer.default_url_options = { host: "localhost", port: web_port }
 
-  # GitHub Codespaces: the browser reaches the app through a forwarded HTTPS
-  # proxy at <codespace>-<port>.app.github.dev, not localhost. Allow that host
-  # past DNS-rebinding protection and point mailer links (magic-link sign-in) at
-  # the forwarded URL so they resolve in the browser. No-op outside Codespaces.
+  # GitHub Codespaces: allow the forwarded HTTPS host and point mail links at it. See /docs/developer/codespaces.
   if Codespaces.active?
     config.hosts << ".#{Codespaces.forwarding_domain}"
 
     config.action_mailer.default_url_options = {
-      host: Codespaces.forwarded_host(port: ENV.fetch("PORT", 3000)),
+      host: Codespaces.forwarded_host(port: web_port),
       protocol: "https"
     }
 

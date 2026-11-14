@@ -551,9 +551,13 @@ switches the blocking ruleset off, pushes, and switches it back on:
 ```bash
 gh api 'repos/{owner}/{repo}/rulesets' --jq '.[] | "\(.id) \(.name)"'
 gh api -X PUT 'repos/{owner}/{repo}/rulesets/<id>' -f enforcement=disabled
-git push origin hotfix/sign-in-loop:main
+git -c branch-rules.off=main push origin hotfix/sign-in-loop:main
 bin/branch-rules   # add --solo if the repo runs solo; turns every ruleset back on
 ```
+
+`branch-rules.off=main` tells the pre-push hook that `main`'s ruleset is off
+for this one push; without it the hook refuses a push to `main` before
+running anything else. The rest of the hook still runs.
 
 Rerunning `bin/branch-rules` puts back every ruleset exactly as
 `config/github/rulesets/` describes it. Then merge `main` back into `next` as

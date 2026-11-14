@@ -114,6 +114,30 @@ RSpec.describe "the deployment guide" do
     expect(named.reject { |task| Rake::Task.task_defined?(task) }).to be_empty
   end
 
+  it "names every credential the code reads" do
+    read = Dir[Rails.root.join("{app,config,lib}/**/*.{rb,yml,erb}")].flat_map { |file| File.read(file).scan(/credentials\.dig\(([^)]*)\)/).flatten }
+    keys = read.map { |args| args.split(/,\s*/).take_while { |arg| arg.start_with?(":") }.map { |arg| arg.delete_prefix(":") }.join(".") }.uniq
+
+    expect(keys).to include("smtp", "active_record_encryption", "oauth.google.client_id")
+    expect(keys.reject { |key| guide.include?("`#{key}") }).to be_empty
+  end
+
+  it "shows a finished production credentials file holding what the preflight requires" do
+    sample = YAML.safe_load(fenced.("yaml", "secret_key_base").to_s).to_h
+
+    expect(sample["secret_key_base"]).to be_present
+    expect(sample.fetch("smtp").keys).to contain_exactly("user_name", "password")
+    expect(sample.fetch("active_record_encryption").keys.map(&:to_sym)).to match_array(RequiredProductionConfig::ENCRYPTION_KEYS)
+  end
+
+  it "quotes the sentence db:encryption:init really prints" do
+    rake = File.read(File.join(Gem.loaded_specs["activerecord"].full_gem_path, "lib/active_record/railties/databases.rake"))
+    printed = rake[/task :init do\s*puts <<~MSG\n(.*?)MSG/m, 1].to_s
+
+    expect(printed).to include("active_record_encryption:")
+    expect(guide).to include(printed.lines.first[/[^#]+/].strip)
+  end
+
   it "has every section the production preflight points to" do
     sections = Rails.root.join("config/initializers/required_production_config.rb").read.scan(%r{/docs/developer/deployment \((.+?) section\)}).flatten
     headings = guide.scan(/^#+ (?:\d+\. )?(.+)$/).flatten
