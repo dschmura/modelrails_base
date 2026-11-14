@@ -39,6 +39,22 @@ RSpec.describe "bin/test-plan" do
       expect(out.lines(chomp: true)).to eq([ "lanes: locale", "spec/i18n_spec.rb" ])
     end
 
+    it "counts an uncommitted edit, since it runs before the commit" do
+      repo.join("app/models/x.rb").write("class X\n  def y = 1\nend\n")
+
+      out, _status = test_plan
+
+      expect(out).to start_with("lanes: full\n")
+    end
+
+    it "counts an untracked file" do
+      repo.join("app/models/y.rb").write("class Y\nend\n")
+
+      out, _status = test_plan
+
+      expect(out).to start_with("lanes: full\n")
+    end
+
     it "honours --base" do
       out, _status = test_plan("--base", "origin/main")
 

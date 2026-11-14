@@ -28,14 +28,16 @@ RSpec.describe "the CI workflow" do
       jobs.dig(job, "steps").find { |step| step["run"].to_s.include?(command) }
     end
 
-    it "classifies the change once, and treats every push as full" do
+    it "classifies only a pull request into next; a push, a release fix or a hotfix into main is full" do
       plan = step_running("changes", "bin/test-plan --github-output")
-      push = step_running("changes", "full=true")
+      everything_else = step_running("changes", "full=true")
+      into_next = "github.event_name == 'pull_request' && github.base_ref == 'next'"
 
       expect(plan["run"]).to include('--base "origin/${BASE_REF}"')
-      expect(plan["if"]).to eq("github.event_name == 'pull_request'")
-      expect(push["if"]).to eq("github.event_name != 'pull_request'")
-      expect(jobs.dig("changes", "outputs", "full")).to include("steps.#{plan["id"]}.outputs.full", "steps.#{push["id"]}.outputs.full")
+      expect(plan["if"]).to eq(into_next)
+      expect(everything_else["if"]).to eq("!(#{into_next})")
+      expect(jobs.dig("changes", "outputs", "full"))
+        .to include("steps.#{plan["id"]}.outputs.full", "steps.#{everything_else["id"]}.outputs.full")
     end
 
     it "classifies before bundle install, with the history the diff needs" do

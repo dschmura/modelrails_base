@@ -93,7 +93,7 @@ jobs:
         if: ${{ !cancelled() }}
         run: bundle exec rake erb:check
 
-  # A pull request's change lanes pick lane_specs or the full shards; every push runs the shards.
+  # A pull request into next picks lane_specs or the full shards by its change lanes; all else runs the shards.
   # bin/test-plan is stdlib-only, so this runs before bundle install. /docs/developer/testing
   changes:
     runs-on: ubuntu-latest
@@ -112,16 +112,17 @@ jobs:
         with:
           bundler-cache: false
 
-      - name: Classify the pull request's changes
+      - name: Classify a pull request into next
         id: plan
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.base_ref == 'next'
         env:
           BASE_REF: ${{ github.base_ref }}
         run: bin/test-plan --github-output --base "origin/${BASE_REF}"
 
-      - name: Every push runs the full suite
+      # deploy.yml ships main and release/** on push without waiting for CI, so their PRs run everything.
+      - name: Every push, and every pull request into main or a release, runs the full suite
         id: push
-        if: github.event_name != 'pull_request'
+        if: "!(github.event_name == 'pull_request' && github.base_ref == 'next')"
         run: echo "full=true" >> "$GITHUB_OUTPUT"
 
   # Sharded test matrix (#495, PR #615), shaped by the CI_SHARDS and CI_WORKERS repository
