@@ -24,11 +24,33 @@ cd my_app
 bin/fork
 ```
 
-`bin/fork` asks for the name, the tenancy preset, the support address, the
-GitHub owner, and whether a second person approves PRs. It renames the app in
-one commit, creates your GitHub repo, pushes `next` and protects the branches.
-It ends with a list of things only you can do, such as your product's
-description and brand mark.
+`bin/fork` asks these questions, in this order. Enter accepts the answer in
+brackets.
+
+1. **Project name?** It defaults to the folder's name.
+2. **The preset**, by number: how workspaces work at sign-up
+   ([Presets](presets)). Leave it blank to decide later.
+3. **Support address?** Where users write for help. Leave it blank to set it
+   later.
+4. **Create the GitHub repo and push next to it?** [Y], asked when the GitHub
+   CLI is signed in. Yes brings two more: **GitHub owner** (you, or one of your
+   organizations) and **Public or private?** [public]. On GitHub's free plan,
+   private also asks **Make it public instead?**, because a free private repo
+   can't have branch rules. A checkout that already has an `origin` of your
+   own, such as a clone of a GitHub fork, gets **Push next to origin and
+   protect it?** [Y] instead.
+5. **Does a second person approve PRs?** [N]. Yes makes every PR wait for one
+   approval.
+6. **Run bin/setup now?** [Y]. That's step 2.
+7. **Set up outbound mail now?** [N], asked once `bin/setup` succeeds. N is
+   right: mail is step 4, once you have a mail provider's login.
+
+It renames the app in one commit, creates your GitHub repo, pushes `next` and
+protects the branches. It ends with a list of things only you can do, such as
+your product's description and brand mark.
+
+A clone starts on `next`, and `bin/fork` commits the rename there and leaves
+you on it. Your own changes go on a branch of their own (step 3).
 
 **Check:** your repo on GitHub doesn't say "forked from", and has `main` and
 `next` branches. Details: [Forking](forking).
@@ -47,11 +69,34 @@ Details: [Getting Started](getting-started).
 
 ## 3. Work by pull request
 
-Every change reaches `next` by a pull request. A PR merges once `static` and
-`test` pass on a branch that's up to date with `next`. Image Scan runs on
-PRs that change what goes into the production image; it's advisory and
-doesn't block a merge. Each PR adds a one-line changelog file in
-`changelog.d/`.
+`next` and `main` are protected, so GitHub refuses a push straight to either.
+Every change reaches `next` by a pull request, from a branch of its own:
+
+```bash
+git switch -c <branch>        # a new branch, starting from next
+# make your change, and write changelog.d/<branch>.md (below)
+git add <the files you changed> changelog.d/<branch>.md
+git commit -m "Say what changed"
+git push -u origin <branch>
+gh pr create --base next --title "Say what changed"
+```
+
+Each PR adds a changelog file in `changelog.d/`, holding one line that says
+what changed for someone using the app:
+
+```markdown
+- The help page gives the support address.
+```
+
+Give the PR its title with `--title`. `gh pr create --fill` takes the title
+from your commit when there's only one, but from the branch name when there
+are several. If you committed on `next` by mistake, `git switch -c <branch>`
+takes the commit to a new branch, and `git branch -f next origin/next` then
+puts `next` back.
+
+A PR merges once `static` and `test` pass on a branch that's up to date with
+`next`. Image Scan runs on PRs that change what goes into the production
+image; it's advisory and doesn't block a merge.
 
 **Check:** your first PR, such as the support address or the product
 description from step 1's list, merges with both checks green. Details:
@@ -61,6 +106,7 @@ description from step 1's list, merges with both checks green. Details:
 ## 4. Production secrets and mail
 
 Sign-in is an email, so production refuses to boot without a mail login.
+This is the step `bin/fork`'s mail question was waiting for.
 Run `bin/mail-setup`: it creates the production credentials if they don't
 exist, adds your mail provider's login and updates `config/deploy.yml`.
 Verify your sending domain with the provider, as its DNS instructions say.
@@ -68,15 +114,24 @@ Verify your sending domain with the provider, as its DNS instructions say.
 Production also refuses to boot without encryption keys for personal data:
 
 ```bash
-bin/rails db:encryption:init                          # prints a block
-bin/rails credentials:edit --environment production   # paste it in
+bin/rails db:encryption:init                          # prints three keys, once
+bin/rails credentials:edit --environment production   # paste them in
 ```
+
+Paste from the `active_record_encryption:` line down, not the sentence above
+it, with `active_record_encryption:` at the left edge. If your editor opens a
+window of its own, give it a wait flag, or Rails saves before you type:
+`EDITOR="code --wait" bin/rails credentials:edit --environment production`.
+[Deployment: What production credentials hold](deployment#what-production-credentials-hold)
+shows what to copy, the finished file, and where each value comes from.
 
 Commit `config/credentials/production.yml.enc`. The key,
 `config/credentials/production.key`, stays out of git: save it in a password
 manager now, because nobody can decrypt the credentials without it.
 
-**Check:** `bin/rails deploy:check` no longer lists the credentials, the mail
+**Check:** before that commit, `git status -u` lists
+`config/credentials/production.yml.enc` and not the key, which git ignores.
+`bin/rails deploy:check` no longer lists the credentials, the mail
 login or the encryption keys. What it still lists is step 6's work. Details:
 [Deployment: Configure outbound mail](deployment#4-configure-outbound-mail),
 [Forking: Bootstrap secrets](forking#bootstrap-secrets-and-configuration) and
