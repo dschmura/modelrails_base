@@ -55,4 +55,4 @@ config/initializers/project_tools.rb merge=ours
 .fork.yml merge=ours
 # A fork's own production inputs and their example credentials file. Empty upstream, so freezing them is safe.
 config/required_production_config.local.yml merge=ours
-config/credentials/production.local.example.yml merge=ours
+config/credentials/production.local.yml.example merge=ours

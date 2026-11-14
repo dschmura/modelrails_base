@@ -382,7 +382,7 @@ on every sync.
 | `config/vocabulary.local.yml` | Your product's nouns — any subset; `config/vocabulary.yml` fills the rest ([i18n](i18n#vocabulary)) |
 | `app/helpers/operations/fork_nav_helper.rb` | Your own operations pages for the operations nav, as `[label, path]` pairs |
 | `config/initializers/project_tools.rb` | Register your own project tools (`ProjectTools::Registry.register`) — see [Extending: Project Tools](/docs/developer/extending#project-tools-registry) |
-| `config/required_production_config.local.yml`, `config/credentials/production.local.example.yml` | Your own production inputs, described in the catalog's format (never their values), and the credentials example file generated from them |
+| `config/required_production_config.local.yml`, `config/credentials/production.local.yml.example` | Your own production inputs, described in the catalog's format (never their values), and the credentials example file generated from them |
 | `README.md` | Your product's README |
 
 **Clientside (external client area).** Clientside is available in every preset and is enabled per-project, not per-deployment — a fork enables it on a project-by-project basis via the project's Clientside settings toggle. No fork-owned file change is required to activate it; the toggle is in the project settings UI. See [Clientside](/docs/user/clientside) for details.

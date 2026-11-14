@@ -205,6 +205,10 @@ itself lives, in order of preference:
 
 #### What production credentials hold
 
+Every input production needs, credentials and otherwise, is listed on
+[What production needs](required-production-config); `bin/rails deploy:check`
+reports which of them your deploy is still missing.
+
 `bin/rails db:encryption:init` prints a sentence, then the keys:
 
 ```text

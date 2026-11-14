@@ -125,6 +125,7 @@ window of its own, give it a wait flag, or Rails saves before you type:
 `EDITOR="code --wait" bin/rails credentials:edit --environment production`.
 [Deployment: What production credentials hold](deployment#what-production-credentials-hold)
 shows what to copy, the finished file, and where each value comes from.
+[What production needs](required-production-config) lists every input and where to get it.
 
 Commit `config/credentials/production.yml.enc`. The key,
 `config/credentials/production.key`, stays out of git: save it in a password
