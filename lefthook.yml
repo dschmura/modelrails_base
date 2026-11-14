@@ -11,6 +11,9 @@ pre-commit:
     comment_blocks:
       glob: "*.{rb,rake,erb,js,css,yml,yaml}"
       run: mise exec -- bin/comment-block-check {staged_files}
+    yaml_syntax:
+      glob: "*.{yml,yaml}"
+      run: mise exec -- bin/yaml-check {staged_files}
     schema_parity:
       glob: "db/schema.rb"
       run: mise exec -- bin/rails runner spec/migrations/support/fresh_migrate_probe.rb
@@ -39,6 +42,8 @@ pre-push:
       # The importmap audit is deliberately not mirrored: it POSTs to the npm registry (#984).
       tags: security
       priority: 3
+      files: bin/branch-changes
+      glob: "{Gemfile.lock,hotcell/Gemfile.lock}"
       run: mise exec -- bin/bundler-audit check --update && mise exec -- bin/bundler-audit check hotcell
       skip:
         - merge
@@ -54,6 +59,8 @@ pre-push:
       # Matches CI's static job (rake erb:check). erb_lint is a Ruby gem: the npm linter it replaced needed Node.
       tags: style
       priority: 5
+      files: bin/branch-changes
+      glob: "*.erb"
       run: mise exec -- bundle exec rake erb:check
       skip:
         - merge
@@ -62,6 +69,8 @@ pre-push:
       # Mirrors CI's static job (rake markdown:check); missing here until #193 caught CI-only drift.
       tags: style
       priority: 6
+      files: bin/branch-changes
+      glob: "*.md"
       run: mise exec -- bundle exec rake markdown:check
       skip:
         - merge
@@ -79,12 +88,11 @@ pre-push:
     rspec:
       tags: test
       priority: 7
+      # CI=true keeps Capybara's 10s wait under a loaded hook (spec/support/capybara.rb). The full suite runs
+      # in CI on every merge; bin/parallel-rspec runs it here by hand — see /docs/developer/testing.
       env:
         CI: "true"
-      # bin/parallel-rspec = full suite across all cores + integrity gates
-      # (example-count parity, merged coverage floor). Same gates as CI's test
-      # job. Worker count: PARALLEL_TEST_PROCESSORS env or core count.
-      run: mise exec -- bin/parallel-rspec
+      run: mise exec -- bin/test-plan --run
       skip:
         - merge
         - rebase

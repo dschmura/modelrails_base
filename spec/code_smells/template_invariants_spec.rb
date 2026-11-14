@@ -582,7 +582,7 @@ RSpec.describe "Template invariants" do
     it "the `test` job is the merge itself, and fails unless every shard succeeded (ruleset context)" do
       test_job = ci_workflow.dig("jobs", "test") || {}
       steps = Array(test_job["steps"])
-      guard_index = steps.index { |s| s["run"].to_s.include?("needs.test_shard.result") }
+      guard_index = steps.index { |s| s.slice("run", "env").to_s.include?("needs.test_shard.result") }
       merge_index = steps.index { |s| s["run"].to_s.include?("bin/ci-coverage-merge") }
 
       expect(ci_workflow["jobs"].keys).not_to include("coverage_merge"),
@@ -627,11 +627,31 @@ RSpec.describe "Template invariants" do
         "the cell's Gemfile.lock is a second dependency graph; auditing only the app's lock leaves it unchecked"
     end
 
-    it "Lefthook's pre-push rspec command runs bin/parallel-rspec" do
+    it "Lefthook's pre-push rspec command runs bin/test-plan --run, and CI's shards still run bin/parallel-rspec" do
       run = lefthook_config.dig("pre-push", "commands", "rspec", "run").to_s
-      expect(run).to include("bin/parallel-rspec"),
-        "expected the pre-push rspec gate to run bin/parallel-rspec so local pushes " \
-        "get the same gates as CI (drift bit us before — see lefthook.yml's bundler_audit note)"
+      shard_runs = Array(ci_workflow.dig("jobs", "test_shard", "steps")).map { |s| s["run"].to_s }
+
+      expect(run).to include("bin/test-plan --run"),
+        "expected the pre-push rspec gate to run the specs the branch can break (bin/test-plan), " \
+        "the same selection CI's lane job makes"
+      expect(shard_runs).to include(match(%r{bin/parallel-rspec}))
+    end
+
+    it "keeps CI=true on the pre-push specs, for Capybara's longer wait under a loaded hook" do
+      expect(lefthook_config.dig("pre-push", "commands", "rspec", "env", "CI")).to eq("true")
+    end
+
+    {
+      "bundler_audit" => "{Gemfile.lock,hotcell/Gemfile.lock}",
+      "erb_lint" => "*.erb",
+      "markdown_lint" => "*.md"
+    }.each do |command_name, glob|
+      it "runs Lefthook's #{command_name} only when the branch changes #{glob}" do
+        command = lefthook_config.dig("pre-push", "commands", command_name) || {}
+
+        expect(command.slice("files", "glob")).to eq("files" => "bin/branch-changes", "glob" => glob),
+          "CI's static job runs #{command_name} on every pull request; pre-push checks only a branch that changed its inputs"
+      end
     end
 
     it "the comment-block gate runs in Lefthook pre-commit AND in CI's static job over the PR's diff" do

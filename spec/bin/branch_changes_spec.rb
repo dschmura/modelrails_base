@@ -8,15 +8,10 @@ RSpec.describe "bin/branch-changes" do
 
   after { FileUtils.rm_rf(repo) }
 
-  def git(*args)
-    system(CleanGitEnv::HASH, "git", "-C", repo.to_s, "-c", "user.email=t@example.com", "-c", "user.name=T", *args,
-           out: File::NULL, err: File::NULL, exception: true)
-  end
-
   def commit_file(name)
     repo.join(name).write("x\n")
-    git("add", name)
-    git("commit", "-qm", name)
+    scratch_git(repo, "add", name)
+    scratch_git(repo, "commit", "-qm", name)
   end
 
   def changes
@@ -27,22 +22,22 @@ RSpec.describe "bin/branch-changes" do
   end
 
   before do
-    git("init", "-q", "-b", "work")
+    scratch_git(repo, "init", "-q", "-b", "work")
     commit_file("old.txt")
   end
 
   it "compares with origin/main when it exists, as on a fork with both branches" do
-    git("update-ref", "refs/remotes/origin/main", "HEAD")
-    git("update-ref", "refs/remotes/origin/next", "HEAD")
+    scratch_git(repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+    scratch_git(repo, "update-ref", "refs/remotes/origin/next", "HEAD")
     commit_file("on_next.txt")
-    git("update-ref", "refs/remotes/origin/next", "HEAD")
+    scratch_git(repo, "update-ref", "refs/remotes/origin/next", "HEAD")
     commit_file("new.txt")
 
     expect(changes).to contain_exactly("on_next.txt", "new.txt")
   end
 
   it "compares with origin/next on a Fork-button fork, which has no main yet" do
-    git("update-ref", "refs/remotes/origin/next", "HEAD")
+    scratch_git(repo, "update-ref", "refs/remotes/origin/next", "HEAD")
     commit_file("new.txt")
 
     expect(changes).to eq([ "new.txt" ])
