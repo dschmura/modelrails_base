@@ -26,7 +26,8 @@ The template ships these defaults safely; you only need to think about them when
 
 These steps go from a fresh fork to a deployed app you can trust, in order,
 and each one ends with a check. They assume one cloud server and one person
-deploying from a laptop. Three sections after them add to the path:
+deploying from a laptop. Four sections after them add to the path:
+[Keep deploy secrets in fnox](#keep-deploy-secrets-in-fnox), which is optional,
 [More than one person deploys](#more-than-one-person-deploys),
 [Hardware you run yourself](#hardware-you-run-yourself), and
 [Changing the registry](#changing-the-registry), for the one default you may
@@ -141,17 +142,35 @@ not the single `config/master.key` a default `rails new` would use. If you
 haven't made the production credentials yet, do it now
 ([Forking](forking#bootstrap-secrets-and-configuration)):
 
-1. `bin/rails credentials:edit --environment production` creates the key and
-   the encrypted file.
-2. Paste in the block `bin/rails db:encryption:init` prints. Production
-   refuses to boot without it.
-3. Commit `config/credentials/production.yml.enc`. Kamal builds the image from
+1. Run `bin/rails db:encryption:init` and keep its output on screen. It
+   prints three keys once and stores them nowhere.
+2. Run `bin/rails credentials:edit --environment production`. The first time,
+   it creates the key and the encrypted file, then opens the file in your
+   editor. An editor that opens its own window, such as VS Code, needs a wait
+   flag, or Rails saves the file before you've typed anything:
+
+   ```bash
+   EDITOR="code --wait" bin/rails credentials:edit --environment production
+   ```
+
+3. Paste in the keys from step 1, from the `active_record_encryption:` line
+   down, and save. Production refuses to boot without them.
+   [What production credentials hold](#what-production-credentials-hold) shows
+   the output, the finished file, and where every other value comes from.
+4. Commit `config/credentials/production.yml.enc`. Kamal builds the image from
    a clone of the commit, so anything uncommitted never reaches the server; the
    key stays out of git.
 
+Check: before that commit, `git status -u` lists
+`config/credentials/production.yml.enc` and not `production.key`, and
+`git check-ignore config/credentials/production.key` prints the key's path,
+which means git ignores it.
+
 `.kamal/secrets` takes `RAILS_MASTER_KEY` from the deploying environment when it
-is set and not blank, which is how CI passes it, and otherwise reads the key
-file, so your laptop deploys with nothing to set.
+is set and not blank, which is how CI passes it. Otherwise it asks fnox, if you
+[keep deploy secrets in fnox](#keep-deploy-secrets-in-fnox), and then reads the
+key file, so your laptop deploys with nothing to set. Without fnox installed,
+that middle step finds nothing and the key file is used.
 
 **Back the key up in a password manager now.** Without it nobody can decrypt
 the credentials, and the encrypted file in git is useless. When a second person
@@ -183,6 +202,70 @@ itself lives, in order of preference:
 3. **An exported shell variable**, if you must — but keep it out of your shell
    profile. Anything exported there is inherited by *every* process you launch
    and shows up in process-environment dumps.
+
+#### What production credentials hold
+
+`bin/rails db:encryption:init` prints a sentence, then the keys:
+
+```text
+Add this entry to the credentials of the target environment:
+
+active_record_encryption:
+  primary_key: EXAMPLEprimaryKey000000000000000
+  deterministic_key: EXAMPLEdeterministicKey000000000
+  key_derivation_salt: EXAMPLEkeyDerivationSalt00000000
+```
+
+Copy the last four lines, from `active_record_encryption:` down, and leave the
+sentence out. The values are random and new on every run, so copy them from
+your own terminal, never from this page.
+
+With the mail login from [Configure outbound mail](#4-configure-outbound-mail)
+added too, the finished file looks like this, with your own values in it.
+`smtp:` and `active_record_encryption:` start at the left edge, and the names
+under them are indented two spaces. Without that indent, they become separate
+top-level names that the app never reads.
+
+```yaml
+# A new file starts with Rails' commented-out examples; they can stay.
+secret_key_base: 3c5e…the 128 characters Rails wrote, left as they are
+
+smtp:
+  user_name: EXAMPLE-postmark-server-api-token
+  password: EXAMPLE-postmark-server-api-token
+
+active_record_encryption:
+  primary_key: EXAMPLEprimaryKey000000000000000
+  deterministic_key: EXAMPLEdeterministicKey000000000
+  key_derivation_salt: EXAMPLEkeyDerivationSalt00000000
+```
+
+Every production deploy needs these:
+
+| Key | Where it comes from | Can it be regenerated? | Where it's backed up |
+| --- | --- | --- | --- |
+| `secret_key_base` | Written by `credentials:edit` when it creates the file | Yes, but a new value signs everyone out, because it signs the session cookie | Inside `production.yml.enc`, in git |
+| `smtp.user_name`, `smtp.password` | Your mail provider. For Postmark, the server's Server API token, the same value in both, under Servers → your server → API Tokens | Yes: make a new token at the provider, put it in both, and deploy | Inside `production.yml.enc`; the provider can show the token again |
+| `active_record_encryption.primary_key`, `deterministic_key` and `key_derivation_salt` | `bin/rails db:encryption:init`, which prints them once and stores them nowhere else | No, once production has encrypted data: new keys can't read what the old ones wrote | Only inside `production.yml.enc` |
+| `production.key`, the file that opens all of the above | Created by `credentials:edit` along with the encrypted file | No: a new key can't open the old file, so every value above would have to be made again | In your password manager, never in git |
+
+Everything inside `production.yml.enc` is only as safe as `production.key`:
+lose the key, and the copy in git can't be opened.
+
+These are optional. The app reads each one only when it's there:
+
+| Key | Where it comes from | Can it be regenerated? | Where it's backed up |
+| --- | --- | --- | --- |
+| `mailer.from` | Your choice of sender address. `MAIL_FROM` in `config/deploy.yml` overrides it, and with neither set the sender is `noreply@` your `RAILS_HOST` | Yes, any time | Inside `production.yml.enc` |
+| `oauth.google.client_id`, `oauth.google.client_secret` | A Google OAuth client ([OAuth Setup](getting-started#oauth-setup-optional)) | Yes, at Google; replace both | Inside `production.yml.enc` |
+| `oauth.github.client_id`, `oauth.github.client_secret` | A GitHub OAuth app ([OAuth Setup](getting-started#oauth-setup-optional)) | Yes, at GitHub; replace both | Inside `production.yml.enc` |
+| `object_storage.access_key_id`, `object_storage.secret_access_key` | Your backup bucket's provider ([Move to a bucket](#move-to-a-bucket-when-the-data-matters)) | Yes, at the provider | Inside `production.yml.enc` |
+| `aws.access_key_id`, `aws.secret_access_key` | AWS. Only the commented-out `amazon:` service in `config/storage.yml` reads them | Yes, at AWS | Inside `production.yml.enc` |
+
+**Never leave a placeholder under `oauth:`.** The sign-in page offers a
+provider's button as soon as its `client_id` is present, whatever the value
+(`app/helpers/oauth_helper.rb:11`), so a placeholder ships a button that fails.
+Leave the whole section out until you have real values.
 
 #### Credentials per deploy
 
@@ -257,7 +340,8 @@ Transactional only, and free to validate on: the developer tier sends a
 small number of messages a month at no cost, and the first paid tier covers
 thousands. Check the current limits on their pricing page.
 
-1. Create a server for this app and keep its **Server API token**.
+1. Create a server for this app and keep its **Server API token**, under
+   Servers → your server → API Tokens.
 2. Add your domain under Sender Signatures and publish the two DNS records it
    gives you (DKIM and Return-Path). Wait for both to verify.
 3. Put the token in the production credentials twice, as both halves of the
@@ -272,6 +356,15 @@ thousands. Check the current limits on their pricing page.
 
 `SMTP_ADDRESS` is already `smtp.postmarkapp.com` and the port `587`. Messages go
 to the server's default transactional stream.
+
+**A new Postmark account is reviewed before it can mail anyone outside your own
+domain.** Until then, a banner on the dashboard reads "To help speed up the
+approval process … set up email authentication for" a domain. That banner means
+the account isn't approved yet. The domain it names is the one in the address
+you signed up with, which may not be your app's domain. While you wait, test
+only with an address at the domain you verified in step 2, with an inbox you
+can actually read. That includes the first account you sign in with: use an
+address there, or wait for approval before expecting its sign-in mail.
 
 #### Amazon SES over SMTP, the second recipe
 
@@ -599,29 +692,31 @@ into its folder under the same name, and restore it by that name.
 throwaway server, and write down the date. A backup nobody has restored is
 a hope, not a backup.
 
-## More than one person deploys
+## Keep deploy secrets in fnox
 
-Once a second person deploys, the production key has to reach them, and it
-has to stop working for them when they leave. Sending the key file in chat
-does the first and can never do the second. The template's pattern for this
-is [fnox](https://fnox.jdx.dev): the deploy secrets live in the repository,
-encrypted, and each person and each CI runner decrypts them with a key of its
-own.
+This is optional. Without it, the production key lives in one file on your
+laptop, `config/credentials/production.key`, with its copy in your password
+manager. [fnox](https://fnox.jdx.dev) keeps deploy secrets in the repository
+instead, encrypted, so any machine holding your identity can deploy. It also
+keeps a public repository from showing where you deploy, and it's how the
+template shares deploy secrets when
+[more than one person deploys](#more-than-one-person-deploys).
 
 Rails credentials don't change; they stay the source of truth for everything
 the app reads at runtime. fnox holds only what a deploy needs from outside
-them: the production key, staging's key, and a registry token if you have one.
-Three words carry the rest of this section:
+them: the production key, staging's key, the deploy host if you hide it, and a
+registry token if you have one. Two words carry the rest of this section:
 
 - **Identity**: your private key, `~/.config/fnox/age.txt`. It never leaves
   your machine; back it up in a password manager.
 - **Recipient**: the public half of an identity, listed in `fnox.toml`. Every
   value is encrypted to every recipient.
-- **Runner**: a CI job that deploys. It gets an identity of its own.
 
 The template ships no `fnox.toml`, because one would carry another app's
 recipients and ciphertext into every fork. Git and Docker already ignore
-`fnox.local.toml` and `age.txt`.
+`fnox.local.toml` and `age.txt`. It does ship the step that reads fnox:
+`.kamal/secrets` asks fnox for the production key after the environment and
+before the key file, and that step finds nothing until you set fnox up.
 
 ### Set it up
 
@@ -645,16 +740,18 @@ A template invariant reads only the `tool = "X.Y.Z"` form, and checks that
 installs exactly `mise.toml`'s tools, so add `fnox age` to `install_args` in
 `.github/workflows/workflow_audit.yml`.
 
-Replace the new `fnox.toml` with two recipient lists, one per environment.
-Everyone who can decrypt a value under one provider can decrypt all of them,
-so production gets a provider of its own: then a staging runner, or someone who
-deploys only staging, can never open production's key.
+Replace the new `fnox.toml` with one recipient list per environment, each
+holding the `age1…` line `age-keygen` printed. Everyone who can decrypt a value
+under one provider can decrypt all of them, so production gets a provider of
+its own: then a staging runner, or someone who deploys only staging, can never
+open production's key. Without a staging destination, leave out
+`age-staging`.
 
 ```toml
 [providers.age-production]
 type = "age"
 recipients = [
-  "age1…", # you
+  "age1…", # you: your public key
 ]
 
 [providers.age-staging]
@@ -664,23 +761,23 @@ recipients = [
 ]
 ```
 
-Store each key with its provider, pasting the key at the hidden prompt.
-`fnox set` writes the ciphertext; a value typed into `fnox.toml` by hand isn't
-encrypted.
+Store each key with its provider. `fnox set` reads the value from the file
+and writes the ciphertext into `fnox.toml`; a value typed into `fnox.toml` by
+hand isn't encrypted.
 
 ```bash
-fnox set RAILS_MASTER_KEY --provider age-production                  # production.key
-fnox set RAILS_MASTER_KEY --provider age-staging --profile staging   # staging.key
+fnox set RAILS_MASTER_KEY --provider age-production < config/credentials/production.key
+fnox set RAILS_MASTER_KEY --provider age-staging --profile staging < config/credentials/staging.key
 ```
 
-Then read the key through fnox in `.kamal/secrets`, between the environment
-and the key file in its `RAILS_MASTER_KEY` line:
+The template's `.kamal/secrets` already reads the key through fnox, between
+the environment and the key file:
 
 ```bash
 RAILS_MASTER_KEY=$(printenv RAILS_MASTER_KEY | grep . || fnox get RAILS_MASTER_KEY 2>/dev/null || cat config/credentials/production.key)
 ```
 
-and in `.kamal/secrets.staging`:
+With a staging destination, give `.kamal/secrets.staging` the same step:
 
 ```bash
 RAILS_MASTER_KEY=$(printenv RAILS_MASTER_KEY | grep . || fnox --profile staging get RAILS_MASTER_KEY 2>/dev/null || cat config/credentials/staging.key)
@@ -688,12 +785,49 @@ RAILS_MASTER_KEY=$(printenv RAILS_MASTER_KEY | grep . || fnox --profile staging 
 
 The order is the contract `spec/config/kamal_secrets_spec.rb` holds: the
 environment first, then fnox, then the key file. A bare
-`$(fnox get RAILS_MASTER_KEY)` fails three of its examples. Keep `printenv`,
+`$(fnox get RAILS_MASTER_KEY)` fails it. Keep `printenv`,
 not `$RAILS_MASTER_KEY`: Kamal substitutes `$VAR` inside `$(...)` itself, so
 never put a secret's variable in a command substitution.
 
-Commit `fnox.toml`, `mise.toml`, `mise.lock` and the secrets files. Check:
-`fnox check --all` passes, and `bin/kamal deploy` works as before.
+Commit `fnox.toml`, `mise.toml`, `mise.lock` and any secrets file you changed.
+Check: `fnox check --all` passes, and `bin/kamal deploy` works as before.
+
+### Keep the deploy host out of a public repository
+
+`config/deploy.yml` names your server, and anyone can read a public
+repository. Store the server's address with fnox instead, typing it at the
+hidden prompt:
+
+```bash
+fnox set KAMAL_HOST --provider age-production
+```
+
+Then read it in `config/deploy.yml` from a comment line. Kamal runs the whole
+file through ERB before it reads the YAML, comment lines included, so this line
+sets `deploy_host` and adds nothing to the YAML:
+
+```yaml
+# <% deploy_host = ENV.fetch("KAMAL_HOST") { `fnox get KAMAL_HOST 2>/dev/null`[/\S+/] || "deploy-host.invalid" } %>
+servers:
+  web:
+    hosts:
+      - <%= deploy_host %>
+```
+
+`KAMAL_HOST` in the environment wins over fnox, so a CI job can pass it as a
+secret instead. With neither, the name is `deploy-host.invalid`, which never
+resolves: the specs still load the file, and a deploy fails at SSH.
+
+## More than one person deploys
+
+Once a second person deploys, the production key has to reach them, and it
+has to stop working for them when they leave. Sending the key file in chat
+does the first and can never do the second. The template's pattern is fnox:
+[set it up](#keep-deploy-secrets-in-fnox) first, and then each person and each
+CI runner decrypts the deploy secrets with an identity of its own. One more
+word for this section:
+
+- **Runner**: a CI job that deploys. It gets an identity of its own.
 
 ### Add someone
 
@@ -844,21 +978,9 @@ cloud server. This recipe uses Tailscale; WireGuard works too, with more setup.
    Keep any rules you already rely on.
 3. Point `servers.web.hosts` at the server's Tailscale name, and check the
    host key over it as in step 1. That `ssh-keyscan` line is
-   `SSH_KNOWN_HOSTS` now. In a public repository the name is private, so
-   store it with fnox, `fnox set KAMAL_HOST --provider age-production`, and
-   read it in `config/deploy.yml` from a comment line, which Kamal's ERB still
-   runs:
-
-   ```yaml
-   # <% deploy_host = ENV.fetch("KAMAL_HOST") { `fnox get KAMAL_HOST 2>/dev/null`[/\S+/] || "deploy-host.invalid" } %>
-   servers:
-     web:
-       hosts:
-         - <%= deploy_host %>
-   ```
-
-   Without fnox the name is `deploy-host.invalid`, which never resolves: the
-   specs still load the file, and a deploy fails at SSH.
+   `SSH_KNOWN_HOSTS` now. In a public repository the name is private, so keep
+   it out of `config/deploy.yml` with
+   [Keep the deploy host out of a public repository](#keep-the-deploy-host-out-of-a-public-repository).
 4. Have CI join on every run. In Tailscale's admin console, create an OAuth
    client with the `auth_keys` scope and the tag `tag:ci`, store its ID and
    secret in each GitHub environment as `TS_OAUTH_CLIENT_ID` and
