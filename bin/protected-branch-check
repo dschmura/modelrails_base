@@ -7,4 +7,7 @@ require_relative "../lib/protected_branch_check"
 
 off, = Open3.capture2(CleanGitEnv::HASH, "git", "config", "--get-all", "branch-rules.off")
 refusal = ProtectedBranchCheck.refusal($stdin.each_line.to_a, remote: ARGV.first || "origin", off: off.split)
-abort(refusal) if refusal
+return unless refusal
+
+puts refusal
+exit 1

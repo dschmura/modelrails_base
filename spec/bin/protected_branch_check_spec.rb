@@ -34,6 +34,17 @@ RSpec.describe "bin/protected-branch-check" do
     commit("first")
   end
 
+  # Lefthook shows a use_stdin command's stdout and drops its stderr.
+  it "prints the refusal on stdout" do
+    line = "refs/heads/next #{"b" * 40} refs/heads/next #{"a" * 40}\n"
+
+    out, err, status = Open3.capture3(CleanGitEnv::HASH, script, "origin", stdin_data: line, chdir: repo.to_s)
+
+    expect(status.exitstatus).to eq(1)
+    expect(out).to include("gh pr create --base next")
+    expect(err).to be_empty
+  end
+
   it "lets bin/fork's first push create next on a brand-new repository" do
     _, status = push("push", "-u", "origin", "next")
 
