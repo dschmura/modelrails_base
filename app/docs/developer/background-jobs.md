@@ -161,6 +161,8 @@ Development runs jobs the way production does: `config.active_job.queue_adapter 
 
 **If you start only `bin/rails server`, jobs queue up and nothing works them.** That includes mail sent with `deliver_later`. Use `bin/dev`, or run `bin/jobs` alongside the server.
 
+Mail sent from a job links to the web server's port, not the job process's. Foreman gives each `Procfile.dev` process its own `PORT` (3000 for the server, 3200 for `bin/jobs`), so `bin/dev` also exports the server's port as `DEV_SERVER_PORT`, and development mail links read that first. `bin/dev` takes the port from `-p`, then `PORT` in `.env`, then `PORT` in your shell. If you run `bin/jobs` yourself beside a server on another port, give both the same `PORT`. `bin/rails server -p` changes only the server, so prefer `PORT=3001 bin/rails server`.
+
 Action Cable uses Solid Cable in development too, on its own `cable` database. A job runs in `bin/jobs`, a separate process, and Rails' default `async` cable adapter only reaches browsers connected to the process that broadcast. With Solid Cable, a job's Turbo broadcasts reach the page. An existing checkout needs `bin/rails db:prepare` once to create `storage/development_cable.sqlite3`.
 
 If you want to test job processing in isolation:
