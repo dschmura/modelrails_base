@@ -231,7 +231,8 @@ Runs automatically when you `git push`. `bin/setup` installs the hooks; in a clo
 
 | Check | Tool |
 |-------|------|
-| Stylesheet | `tailwindcss:build`, first, so system specs never read a half-written stylesheet |
+| Protected branch | `bin/protected-branch-check`, first. A push to an existing `next` or `main` stops here within a second and prints the commands that move your commits to a branch and open a pull request; GitHub would refuse it anyway, but only after every check below had run. A push that creates the branch passes, and so does `git -c branch-rules.off=next push …` for a branch with no ruleset yet, which is how `bin/fork` pushes a Fork-button fork's `next` |
+| Stylesheet | `tailwindcss:build`, before the specs, so system specs never read a half-written stylesheet |
 | Security scan | Brakeman |
 | Gem CVEs | bundler-audit, only when the branch changes `Gemfile.lock` or `hotcell/Gemfile.lock`, after updating the advisory database to the latest, as CI's fresh clone does; it needs the network. It audits the Hot Cell image's lockfile too |
 | Code style | RuboCop |

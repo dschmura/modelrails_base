@@ -893,6 +893,21 @@ RSpec.describe ForkFlow do
       expect(gh_calls.grep(/repo create/)).to be_empty
     end
 
+    it "pushes the rename over a Fork-button fork's next past the pre-push protected-branch check" do
+      install_fake_gh("*repos/me/my_app*" => %(echo "git@github.com:org/modelrails_base_wads.git"))
+      git("push", "-q", github_remote_bare.to_s, "HEAD:refs/heads/next")
+      git("remote", "set-url", "origin", "git@github.com:me/my_app.git")
+      hook = repo.join(".git/hooks/pre-push")
+      hook.write("#!/bin/sh\nexec #{Rails.root.join("bin/protected-branch-check")} \"$1\"\n")
+      hook.chmod(0o755)
+
+      flow = with_fake_gh { run_fork(name: "my_app", github: true, yes: true) }
+
+      expect(remote_next).to eq(capture_git("rev-parse", "HEAD"))
+      expect(rules_calls).to eq([ "--solo" ])
+      expect(flow.todos.join).not_to include("git push")
+    end
+
     it "leaves an existing origin alone under --yes without --github" do
       install_fake_gh
       git("remote", "set-url", "origin", "git@github.com:me/my_app.git")
@@ -901,7 +916,7 @@ RSpec.describe ForkFlow do
 
       expect(remote_next).to be_empty
       expect(rules_calls).to be_empty
-      push = flow.todos.index { |t| t.include?("git push -u origin next") }
+      push = flow.todos.index { |t| t.include?(ForkFlow::PUSH_NEXT) }
       expect(flow.todos.index { |t| t.include?("bin/branch-rules") }).to be > push
     end
 
@@ -956,7 +971,7 @@ RSpec.describe ForkFlow do
       flow = with_fake_gh { run_fork(name: "my_app", github: true, yes: true) }
 
       expect(rules_calls).to be_empty
-      push = flow.todos.index { |t| t.include?("git push -u origin next") }
+      push = flow.todos.index { |t| t.include?(ForkFlow::PUSH_NEXT) }
       expect(flow.todos.index { |t| t.include?("bin/branch-rules") }).to be > push
     end
   end
