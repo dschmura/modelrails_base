@@ -50,8 +50,11 @@ bin/fork
   organizations), and whether it's public (the default) or private,
 - whether a second person approves PRs (default: no, you merge your own).
 
+A clone checks out `next`, the template's integration branch, which can be ahead
+of its last release. So `bin/fork` first moves `next` to the newest release
+tagged on the template's `main`, and your product starts from released code.
 Then it does the remote surgery and the identity rename in one commit, records
-the name, preset and template in `.fork.yml`, creates the GitHub repo with `gh`, pushes `next`,
+the name, preset, template and release in `.fork.yml`, creates the GitHub repo with `gh`, pushes `next`,
 and protects the branches with `bin/branch-rules` — in that order, so the rules
 never land before your rename does. It prints each step as it runs, so you
 can read what it did, and finish by hand if you ever need to. Without the `gh`
@@ -68,6 +71,21 @@ private repo; GitHub's free plan can't apply branch rules to one, so `bin/fork`
 warns and, when it can ask, offers to make it public instead. `--team` requires one approval
 on every PR. A blank support address keeps a `support@my_app.example`
 placeholder, and the fork's CI fails until you set a real one.
+
+Moving `next` to the release:
+
+- fetches the template's tags first; offline, it uses the releases the clone
+  already knows;
+- says so and keeps `next` as cloned when `main` has no release tag;
+- says so and moves nothing when `next` is already at the release;
+- refuses when `next` has commits the template doesn't, since moving would
+  drop them;
+- never runs on a checkout that is already renamed, or whose `origin` is your
+  own repository (the Fork-button path below), because moving `next` back there
+  would make its push fail.
+
+`--from-next` skips the move and forks `next` as cloned, unreleased template
+work included. It's for template contributors trying unreleased changes.
 
 It refuses to run on a dirty working tree: the identity rename wants to be one
 clean commit you can always find again. Re-running is safe — it detects what is
@@ -115,7 +133,8 @@ it did: *template … (origin's GitHub parent)*.
 
 The Fork button copies only the template's default branch, `next`, so your fork
 starts with no `main`; `bin/branch-rules` creates it from `next` once the rename
-is pushed.
+is pushed. Your fork also starts from that `next` rather than the latest
+release, since `next` is already on your `origin`.
 
 Without `gh`, or when GitHub reports no parent, name the template yourself with
 `--template URL`; an explicit flag always wins over the lookup:
@@ -170,7 +189,9 @@ Two things you'll notice afterwards, both intentional:
   ([Pull upstream updates](#pull-upstream-updates)).
 
 `.fork.yml`'s `template_baseline` records the template commit you started from,
-which answers "which template version is my_app based on?" forever.
+and `template_release` names its release, which answers "which template version
+is my_app based on?" forever. A fork made with `--from-next`, or from the Fork
+button, has no `template_release`.
 
 > **Why not GitHub's "Use this template" button, or a GitHub fork?** "Use this
 > template" squashes the entire history into one unrelated commit — every later
@@ -226,7 +247,7 @@ find again.
 | PWA app name | `public/manifest.webmanifest` (`name` / `short_name`) | Shown on the home screen if users install the PWA |
 | CI image tags | `.github/workflows/docker_build.yml`, `image_scan.yml` + `hotcell_image_scan.yml` (`tags:`) | Local-only build tags; cosmetic but confusing if stale |
 | Devcontainer bundle-cache volume | `.devcontainer/devcontainer.json` | Optional; the invariant spec only checks the `bundle-cache` suffix |
-| Fork provenance | `.fork.yml` | Written by `bin/fork`: your name, tenancy preset, the template's URL, and the template commit you forked from. Committed so every clone inherits the decisions — `bin/setup` reads the preset and the template's URL, the app reads the preset at boot outside tests, and `bin/sync` and `bin/release` read the template's URL. The suite reads its presence as "this is a fork": it then runs the specs tagged `:fork_only` (today, the placeholder-support-address check) and leaves out those tagged `:template_only`, among them the check that `bin/fork`'s rename targets still exist upstream. Everything else is derived from the repository |
+| Fork provenance | `.fork.yml` | Written by `bin/fork`: your name, tenancy preset, the template's URL, and the template commit and release you forked from. Committed so every clone inherits the decisions — `bin/setup` reads the preset and the template's URL, the app reads the preset at boot outside tests, and `bin/sync` and `bin/release` read the template's URL. The suite reads its presence as "this is a fork": it then runs the specs tagged `:fork_only` (today, the placeholder-support-address check) and leaves out those tagged `:template_only`, among them the check that `bin/fork`'s rename targets still exist upstream. Everything else is derived from the repository |
 | Session cookie key | optional `config/initializers/session_store.rb` | Only if multiple forks will share a cookie domain |
 
 Then verify nothing was missed:

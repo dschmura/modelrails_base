@@ -25,8 +25,9 @@ bin/fork
 ```
 
 `bin/fork` asks for the name, the tenancy preset, the support address, the
-GitHub owner, and whether a second person approves PRs. It renames the app in
-one commit, creates your GitHub repo, pushes `next` and protects the branches.
+GitHub owner, and whether a second person approves PRs. It moves `next` to the
+template's latest release, renames the app in one commit, creates your GitHub
+repo, pushes `next` and protects the branches.
 It ends with a list of things only you can do, such as your product's
 description and brand mark.
 

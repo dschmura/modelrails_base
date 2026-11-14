@@ -539,6 +539,131 @@ RSpec.describe ForkFlow do
     end
   end
 
+  describe "starting from the template's latest release" do
+    def commit_file(path, content, message)
+      repo.join(path).write(content)
+      git("add", path)
+      git("commit", "-qm", message)
+    end
+
+    def release_on_main(tag)
+      commit_file("release.txt", "#{tag}\n", "Release #{tag}")
+      git("tag", tag)
+    end
+
+    def clone_next(unreleased: true)
+      git("push", "-q", "origin", "main", "--tags")
+      git("switch", "-q", "-c", "next")
+      commit_file("unreleased.txt", "next only\n", "Unreleased work") if unreleased
+      git("push", "-q", "-u", "origin", "next")
+    end
+
+    def commit_of(ref) = capture_git("rev-parse", "#{ref}^{commit}")
+    def fork_file = YAML.safe_load_file(repo.join(".fork.yml"))
+
+    it "moves next to the newest release on main, then renames on top of it" do
+      %w[v2026.11.11 v2026.11.13-2 v2026.11.13-10].each { |tag| release_on_main(tag) }
+      clone_next
+
+      run_fork(name: "my_app", yes: true)
+
+      expect(capture_git("rev-parse", "HEAD~1")).to eq(commit_of("v2026.11.13-10"))
+      expect(repo.join("unreleased.txt")).not_to exist
+    end
+
+    it "records the release and its commit in .fork.yml" do
+      release_on_main("v2026.11.13")
+      clone_next
+
+      run_fork(name: "my_app", yes: true)
+
+      expect(fork_file).to include("template_release" => "v2026.11.13", "template_baseline" => commit_of("v2026.11.13"))
+    end
+
+    it "ignores a v tag that main can't reach" do
+      release_on_main("v2026.11.13")
+      clone_next
+      git("tag", "v2026.11.20")
+      git("push", "-q", "origin", "--tags")
+
+      run_fork(name: "my_app", yes: true)
+
+      expect(fork_file["template_release"]).to eq("v2026.11.13")
+    end
+
+    it "says so when next is already at the release" do
+      release_on_main("v2026.11.13")
+      clone_next(unreleased: false)
+
+      run_fork(name: "my_app", yes: true)
+
+      expect(printed.string).to include("next is already at the template's release v2026.11.13")
+      expect(capture_git("rev-parse", "HEAD~1")).to eq(commit_of("v2026.11.13"))
+    end
+
+    it "keeps next as cloned under --from-next" do
+      release_on_main("v2026.11.13")
+      clone_next
+
+      run_fork(name: "my_app", from_next: true, yes: true)
+
+      expect(repo.join("unreleased.txt")).to exist
+      expect(fork_file).not_to have_key("template_release")
+    end
+
+    it "refuses, before the remote surgery, when next has commits the template doesn't" do
+      release_on_main("v2026.11.13")
+      clone_next
+      commit_file("mine.txt", "local\n", "My own work")
+      before_head = capture_git("rev-parse", "HEAD")
+
+      expect { run_fork(name: "my_app", yes: true) }.to raise_error(SystemExit)
+      expect(capture_git("rev-parse", "HEAD")).to eq(before_head)
+      expect(capture_git("remote")).to eq("origin")
+    end
+
+    it "starts from next as cloned, and says so, when main has no release" do
+      clone_next
+
+      run_fork(name: "my_app", yes: true)
+
+      expect(repo.join("unreleased.txt")).to exist
+      expect(printed.string).to include("no release tag on origin/main")
+    end
+
+    it "uses the releases the clone already knows when the template can't be reached" do
+      release_on_main("v2026.11.13")
+      clone_next
+      git("remote", "set-url", "origin", workdir.join("gone/modelrails_base.git").to_s)
+
+      run_fork(name: "my_app", yes: true)
+
+      expect(fork_file["template_release"]).to eq("v2026.11.13")
+      expect(printed.string).to include("couldn't reach origin")
+    end
+
+    it "leaves next alone when origin is the fork's own repository" do
+      release_on_main("v2026.11.13")
+      clone_next
+      git("remote", "set-url", "origin", workdir.join("my_own_app.git").to_s)
+
+      run_fork(name: "my_app", yes: true)
+
+      expect(repo.join("unreleased.txt")).to exist
+    end
+
+    it "plans the move without making it under --dry-run" do
+      release_on_main("v2026.11.13")
+      clone_next
+      before_head = capture_git("rev-parse", "HEAD")
+
+      run_fork(name: "my_app", dry_run: true, yes: true)
+
+      expect(capture_git("rev-parse", "HEAD")).to eq(before_head)
+      expect(printed.string).to include("would: move next to the template's latest release v2026.11.13")
+    end
+  end
+
   # A synced mirror of the template (lsa-mis/modelrails_base_wads) is the
   # template under another name, so TEMPLATE_REMOTE cannot know it. --template
   # names it explicitly; the match is URL equality, never a looser pattern, so
