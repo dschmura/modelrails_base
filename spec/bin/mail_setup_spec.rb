@@ -225,6 +225,16 @@ RSpec.describe MailSetup do
       expect(credentials.login_matches?(**login)).to be(true)
     end
 
+    it "explains a failed save by its error's name, never the login it was given" do
+      failing = described_class.new(root: app.to_s)
+      allow(failing).to receive(:stand_in_command).and_return(%(#{RbConfig.ruby} -e "warn STDIN.read; raise ArgumentError"))
+
+      expect(failing.write_login(**login)).to be(false)
+      expect(failing.failure).to include("ArgumentError")
+      expect(failing.failure).not_to include(login[:user_name])
+      expect(failing.failure).not_to include(login[:password])
+    end
+
     it "isn't redirected to staging by RAILS_CREDENTIALS_ENV" do
       ENV["RAILS_CREDENTIALS_ENV"] = "staging"
 
@@ -365,6 +375,36 @@ RSpec.describe MailSetup do
       expect(file.read).to eq("a: 1\n")
       expect(status.exitstatus).to eq(1)
       expect(out + err).not_to include("FAKESECRET")
+    end
+
+    it "names the error it stopped on, so the caller can say why" do
+      file.write("a: 1\n")
+      _out, err, _status = stand_in("FAKESECRET not json")
+
+      expect(err).to include("JSON::ParserError")
+    end
+  end
+
+  describe MailSetup::EditorFailure do
+    def status(code) = instance_double(Process::Status, success?: code.zero?, exitstatus: code)
+
+    it "gives the exit status and the errors named in the output" do
+      reason = described_class.reason(status(1), "x.rb:1: bad thing (Psych::SyntaxError)\nfrom y.rb\n", secrets: [ "tok" ])
+
+      expect(reason).to eq("bin/rails credentials:edit exited with status 1, reporting Psych::SyntaxError.")
+    end
+
+    it "says the login was missing afterwards when Rails exited 0" do
+      expect(described_class.reason(status(0), "Editing...\n", secrets: [ "tok" ]))
+        .to eq("bin/rails credentials:edit finished, but the login wasn't in the file afterwards.")
+    end
+
+    it "keeps everything but error names out, and drops a name that is the login" do
+      output = "Errno::ENOENT for SENTINEL-LOGIN\nSentinelLoginError\n"
+      reason = described_class.reason(status(1), output, secrets: [ "SENTINEL-LOGIN", "SentinelLoginError" ])
+
+      expect(reason).to include("Errno::ENOENT")
+      expect(reason).not_to include("SENTINEL-LOGIN", "SentinelLoginError")
     end
   end
 
@@ -639,7 +679,7 @@ RSpec.describe MailSetup do
     let(:env) { {} }
     let(:deploy) { root.join("config/deploy.yml") }
     let(:credentials) do
-      instance_double(MailSetup::ProductionCredentials, readability: :readable, login?: false, mailer_from: nil, write_login: true)
+      instance_double(MailSetup::ProductionCredentials, readability: :readable, login?: false, mailer_from: nil, write_login: true, failure: nil)
     end
 
     before do
@@ -968,6 +1008,78 @@ RSpec.describe MailSetup do
     it "does say nothing was written when stopped while asking" do
       expect(flow("1").run).to eq(1)
       expect(output.string).to include("Nothing was written")
+    end
+
+    describe "the last line" do
+      let(:enc) { root.join("config/credentials/production.yml.enc") }
+      let(:key) { root.join("config/credentials/production.key") }
+
+      def last_lines(count) = output.string.lines.last(count).map(&:chomp)
+
+      def rails_writes(*files, saved: true)
+        allow(credentials).to receive(:write_login) do
+          files.each { |file| file.write("written") }
+          saved
+        end
+      end
+
+      it "names each file a first run wrote, marking the new ones" do
+        rails_writes(enc, key)
+
+        expect(flow("1", "tok", "hi@acme.example").run).to eq(0)
+        expect(last_lines(1)).to eq([ "Wrote config/credentials/production.yml.enc (new), config/credentials/production.key (new), config/deploy.yml." ])
+      end
+
+      it "says deploy.yml already has the answers, then what was written" do
+        rails_writes(enc, key)
+
+        expect(flow("1", "tok", "").run).to eq(0)
+        expect(last_lines(2)).to eq([
+          "config/deploy.yml already has these values, so it wasn't changed.",
+          "Wrote config/credentials/production.yml.enc (new), config/credentials/production.key (new)."
+        ])
+      end
+
+      it "marks a rewritten file without (new)" do
+        enc.write("before")
+        key.write("key")
+        git("add", ".")
+        git("-c", "user.email=t@example.com", "-c", "user.name=T", "commit", "-qm", "creds")
+        rails_writes(enc)
+
+        expect(flow("1", "tok", "").run).to eq(0)
+        expect(last_lines(1)).to eq([ "Wrote config/credentials/production.yml.enc." ])
+      end
+
+      it "says why a save failed, and names the key it left behind" do
+        rails_writes(key, saved: false)
+        allow(credentials).to receive(:failure).and_return("bin/rails credentials:edit exited with status 1.")
+
+        expect(flow("1", "tok", "").run).to eq(1)
+        expect(output.string).to include("wasn't touched. bin/rails credentials:edit exited with status 1. Run bin/rails")
+        expect(last_lines(1)).to eq([ "Wrote config/credentials/production.key (new)." ])
+      end
+
+      it "ends on Nothing was written when a failed save left no file behind" do
+        rails_writes(saved: false)
+
+        expect(flow("1", "tok", "").run).to eq(1)
+        expect(last_lines(1)).to eq([ "Nothing was written." ])
+      end
+
+      it "ends on Nothing was written, once, when stopped before asking" do
+        allow($stdin).to receive(:tty?).and_return(false)
+
+        expect(flow.run).to eq(1)
+        expect(last_lines(1)).to eq([ "Nothing was written." ])
+        expect(output.string.scan("Nothing was written").size).to eq(1)
+      end
+
+      it "ends on Nothing was written, once, when stopped while asking" do
+        expect(flow("1").run).to eq(1)
+        expect(last_lines(1)).to eq([ "Nothing was written." ])
+        expect(output.string.scan("Nothing was written").size).to eq(1)
+      end
     end
 
     it "prints a fixed sentence for an unexpected error, without its message" do

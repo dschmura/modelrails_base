@@ -3,6 +3,7 @@
 
 # bin/mail-setup: configures this fork's production mail. See /docs/developer/deployment.
 
+require "digest"
 require "io/console"
 require "json"
 require "open3"
@@ -13,7 +14,7 @@ require_relative "../lib/clean_git_env"
 require_relative "../lib/fork_config"
 
 class MailSetup
-  # Its message is always a fixed sentence, safe to print.
+  # Its message is fixed sentences plus error names only, so it's safe to print.
   class Stop < StandardError; end
   class Declined < StandardError; end
 
@@ -107,7 +108,7 @@ class MailSetup
     private_class_method :scalar
   end
 
-  # Runs as Rails' editor: stdin carries the login, and its output is discarded.
+  # Runs as Rails' editor: stdin carries the login, and it prints only an error's class.
   module StandIn
     def self.run(path, input = $stdin)
       answers = JSON.parse(input.read)
@@ -118,8 +119,20 @@ class MailSetup
 
       File.write(path, after)
       0
-    rescue StandardError
+    rescue StandardError => e
+      warn e.class.name
       1
+    end
+  end
+
+  # Only error names leave the output: Rails' messages can quote credentials beyond the login.
+  module EditorFailure
+    ERROR_NAME = /\b[A-Z][A-Za-z]*(?:::[A-Z][A-Za-z]*)*(?:Error|Exception|InvalidMessage)\b|\bErrno::[A-Z]+\b/
+
+    def self.reason(status, output, secrets:)
+      ended = status.success? ? "finished, but the login wasn't in the file afterwards" : "exited with status #{status.exitstatus}"
+      names = output.scan(ERROR_NAME).uniq.reject { |name| secrets.any? { |secret| secret.include?(name) || name.include?(secret) } }
+      "bin/rails credentials:edit #{ended}#{", reporting #{names.join(", ")}" if names.any?}."
     end
   end
 
@@ -129,6 +142,8 @@ class MailSetup
       /ActiveSupport::MessageEncryptor::InvalidMessage/ => :wrong_key,
       /InvalidContentError|Psych::/ => :invalid_yaml
     }.freeze
+
+    attr_reader :failure
 
     def initialize(root:, env: {})
       @root = root
@@ -158,13 +173,12 @@ class MailSetup
 
     def write_login(user_name:, password:)
       env = child_env.merge("VISUAL" => stand_in_command)
-      command = %w[bin/rails credentials:edit --environment production]
-      IO.popen(env, command, "w", out: File::NULL, err: File::NULL, chdir: @root) do |editor|
-        editor.write(JSON.generate(user_name:, password:))
-      end
+      output, status = Open3.capture2e(env, *%w[bin/rails credentials:edit --environment production],
+                                       stdin_data: JSON.generate(user_name:, password:), chdir: @root)
       @stored = nil
-      $?.success? && login_matches?(user_name:, password:)
-    rescue Errno::EPIPE
+      return true if status.success? && login_matches?(user_name:, password:)
+
+      @failure = EditorFailure.reason(status, output, secrets: [ user_name, password ])
       false
     end
 
@@ -426,6 +440,7 @@ class MailSetup
   PROVIDERS = [ "Postmark", "Amazon SES", "Other SMTP server" ].freeze
   DEPLOY_FILE = "config/deploy.yml"
   STAGING_FILE = "config/credentials/staging.yml.enc"
+  WATCHED_FILES = [ ProductionCredentials::FILE, KeyDecision::KEY_FILE, DEPLOY_FILE, ".gitignore" ].freeze
   TEMPLATE_MODULE = "ModelrailsBase"
 
   def initialize(root:, prompts: Prompts.new, credentials: nil, env: ENV, output: $stdout)
@@ -437,6 +452,16 @@ class MailSetup
   end
 
   def run
+    before = fingerprints
+    status = configure
+    outcome = written_since(before)
+    say outcome if outcome
+    status
+  end
+
+  private
+
+  def configure
     check_can_run!
     changes = KeyDecision.decide(root: @root, env: @env)
     @credentials ||= ProductionCredentials.new(root: @root, env: changes)
@@ -444,28 +469,39 @@ class MailSetup
     confirm_replacing_root!
     announce
     answers = ask
-    writing = true
+    @writing = true
     write_credentials(answers[:login]) or
-      raise Stop, "The login couldn't be saved, so #{DEPLOY_FILE} wasn't touched. Run bin/rails credentials:edit --environment production to see why."
+      raise Stop, [ "The login couldn't be saved, so #{DEPLOY_FILE} wasn't touched.", @credentials.failure,
+                    "Run bin/rails credentials:edit --environment production to see why." ].compact.join(" ")
     finish(answers)
   rescue Stop => e
     say e.message
     1
   rescue Declined, Interrupt
-    say(writing ? "\nStopped while saving. Run bin/mail-setup again to finish, then check git status." : "\nStopped. Nothing was written.")
+    say(@writing ? "\nStopped while saving. Run bin/mail-setup again to finish, then check git status." : "\nStopped.")
+    @stopped_while_saving = @writing
     1
   rescue StandardError
     say "bin/mail-setup stopped on an unexpected error. The details stay hidden because they can contain a login."
     1
   end
 
-  private
+  def fingerprints = WATCHED_FILES.to_h { |file| [ file, File.file?(path(file)) && Digest::SHA256.file(path(file)).hexdigest ] }
+
+  # Read from disk, not from what this run meant to do: Rails can create the key and file and then fail.
+  def written_since(before)
+    after = fingerprints
+    written = WATCHED_FILES.reject { |file| after[file] == before[file] }
+    return "Wrote #{written.map { |file| before[file] ? file : "#{file} (new)" }.join(", ")}." if written.any?
+
+    "Nothing was written." unless @stopped_while_saving
+  end
 
   def say(message) = @output.puts(message)
   def path(relative) = File.join(@root, relative)
 
   def check_can_run!
-    raise Stop, "bin/mail-setup asks for logins, so it needs a terminal. Nothing was written." unless $stdin.tty?
+    raise Stop, "bin/mail-setup asks for logins, so it needs a terminal." unless $stdin.tty?
     raise Stop, "This repo hasn't been forked yet. Run bin/fork first." unless renamed?
     raise Stop, "The gems aren't installed. Run bin/setup first." unless bundle_available?
   end
@@ -542,7 +578,8 @@ class MailSetup
     warnings = swap_warnings(answers)
     outcome = write_deploy(values)
     say "The edit to #{DEPLOY_FILE} didn't check out, so it's as it was.#{" The new login is saved." if answers[:login]}" if outcome == :failed
-    say closing_message(answers, deploy_written: outcome == :written, warnings:)
+    say closing_message(answers, deploy_written: %i[written unchanged].include?(outcome), warnings:)
+    say "#{DEPLOY_FILE} already has these values, so it wasn't changed." if outcome == :unchanged
     outcome == :failed ? 1 : 0
   end
 
@@ -599,6 +636,7 @@ class MailSetup
 
     after = DeployFile.with_values(before, values)
     return :failed unless DeployFile.safe_edit?(before, after, values)
+    return :unchanged if after == before
 
     File.write(path(DEPLOY_FILE), after)
     @deploy_text = after
