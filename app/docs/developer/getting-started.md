@@ -97,7 +97,8 @@ later is a migration, not a config flip, so it is worth deciding up front.
 ## Running Tests
 
 ```bash
-bin/parallel-rspec                       # Full suite across all cores (what CI and pre-push run)
+bin/parallel-rspec                       # Full suite across all cores (what CI runs)
+bin/test-plan --run                      # The specs your branch can break (what pre-push runs)
 bundle exec rspec spec/path/to_spec.rb   # Focused single-process run
 bundle exec rspec --format documentation # Verbose output
 ```
@@ -211,6 +212,7 @@ Biscuit's gem normally renders a floating "Manage cookies" button in the bottom-
 |---------|---------|
 | `bin/dev` | Start development server |
 | `bin/parallel-rspec` | Run full test suite in parallel (CI parity) |
+| `bin/test-plan --run` | Run the specs your branch's changes can break |
 | `bundle exec rspec` | Run focused specs single-process |
 | `bundle exec brakeman` | Security scan |
 | `rails 'users:unlock[email]'` | Unlock a locked account |
@@ -231,18 +233,18 @@ Runs automatically when you `git push`. `bin/setup` installs the hooks; in a clo
 |-------|------|
 | Stylesheet | `tailwindcss:build`, first, so system specs never read a half-written stylesheet |
 | Security scan | Brakeman |
-| Gem CVEs | bundler-audit, after updating the advisory database to the latest, as CI's fresh clone does; it needs the network. It audits the Hot Cell image's lockfile (`hotcell/Gemfile.lock`) too |
+| Gem CVEs | bundler-audit, only when the branch changes `Gemfile.lock` or `hotcell/Gemfile.lock`, after updating the advisory database to the latest, as CI's fresh clone does; it needs the network. It audits the Hot Cell image's lockfile too |
 | Code style | RuboCop |
-| ERB templates | erb_lint |
-| Markdown | `mdl` |
+| ERB templates | erb_lint, only when the branch changes an `.erb` file |
+| Markdown | `mdl`, only when the branch changes a `.md` file |
 | Workflows | `jactionlint`, only when the branch changes something under `.github/` or `mise.toml`/`mise.lock` |
-| Full test suite | `bin/parallel-rspec`, including the axe-core WCAG 2.2 AAA audit on every system spec |
+| Specs the change can break | `bin/test-plan --run` (see [Change lanes](/docs/developer/testing#change-lanes)), including the axe-core WCAG 2.2 AAA audit on every system spec it selects; the full suite runs in CI |
 | Hot Cell image | `docker build --pull hotcell`, only when the branch changes something under `hotcell/`; the build installs libheif's HEVC and AV1 decoders by name and fails unless libvips registers its HEIF loader |
 | Production image | `docker build`, last, and only when the branch changes a build input (`Dockerfile`, `.dockerignore`, `Gemfile`, `Gemfile.lock`, `.tool-versions`, `bin/docker-entrypoint`); refuses the push if Docker isn't running |
 
 Pre-commit hooks also auto-fix Ruby style issues on staged files.
 
-Don't skip the hooks. When one fails, run that check on its own to see why — each one's command is in `lefthook.yml`, and the suite is `bin/parallel-rspec` — fix it, and push again. `LEFTHOOK=0` and `--no-verify` do turn the hooks off, but they only move the failure: CI runs the same checks on the pull request, and the image build runs again on every push to `main`.
+Don't skip the hooks. When one fails, run that check on its own to see why — each one's command is in `lefthook.yml`, and the specs are `bin/test-plan --run` — fix it, and push again. `LEFTHOOK=0` and `--no-verify` do turn the hooks off, but they only move the failure: CI runs the same checks on the pull request, and the image build runs again on every push to `main`.
 
 ### Gate 2: GitHub Actions (on push/PR)
 
@@ -251,8 +253,10 @@ Runs the same checks plus additional linting:
 | Job | What it checks |
 |-----|---------------|
 | `static` | One job for every static check: Brakeman, bundler-audit (gem CVEs), the importmap audit (JS dependency CVEs), RuboCop with GitHub annotations, the comment-block gate over the PR's diff, `mdl` (markdown) and `erb_lint` (ERB). Each check runs even after an earlier one fails, so one push reports every failure. They were four jobs; one runner minute bills for what took four. |
-| `test_shard` | The full RSpec suite with Cuprite and the axe accessibility audit, split across parallel shards (eight by default, set by the `CI_SHARDS` repository variable); each uploads screenshots when it fails |
-| `test` | Passes only when every shard passed, then checks the merged results: every example ran, and coverage meets the 90% floor. This is the check the branch ruleset requires by name |
+| `changes` | Sorts a pull request's changed files into [change lanes](/docs/developer/testing#change-lanes) with `bin/test-plan`, for a pull request into `next`. A push, and a pull request into `main` or a `release/` branch, is always `full` |
+| `lane_specs` | On a pull request that touches only lanes (locale, docs, workflows), runs just those lanes' specs on one runner, with the same browser and compiled assets as a shard |
+| `test_shard` | The full RSpec suite with Cuprite and the axe accessibility audit, split across parallel shards (eight by default, set by the `CI_SHARDS` repository variable), on a `full` change and on every push to `next` and `main`; each uploads screenshots when it fails |
+| `test` | Passes only when whichever path ran passed: `lane_specs` on a lane change, every shard on a `full` one. After a full run it checks the merged results: every example ran, and coverage meets the 90% floor. This is the check the branch ruleset requires by name |
 | `docker_build` | Verifies the production `Dockerfile` builds (catches build-time regressions that structural specs cannot). Its own workflow, run on every push to `main`, unfiltered. A pull request that changes a build input (`Dockerfile`, `.dockerignore`, `Gemfile`, `Gemfile.lock`, `.tool-versions`, `bin/docker-entrypoint`) gets the same proof from `image_scan`, which builds the identical image from scratch, so `docker_build` runs on a pull request only when its own workflow changes. The pre-push hook runs the same build locally through `bin/docker-build-check` on the same inputs. Uses GHA layer caching — cold builds ~3-5 min, warm builds ~30-60s. See [Deployment](/docs/developer/deployment). |
 
 ### Gate 3: Scheduled lanes (not on push/PR)
@@ -273,9 +277,9 @@ Six checks answer questions a per-PR run cannot, because what they watch changes
 ### Development Workflow
 
 1. Create a feature branch from `next`: `git switch -c my-feature origin/next`
-2. Write tests, implement, verify locally: `bin/parallel-rspec`
-3. Commit (pre-commit hook auto-fixes Ruby style)
-4. Push (pre-push hook runs full CI locally)
+2. Write tests, implement, verify locally: `bin/test-plan --run` (or `bin/parallel-rspec` for the whole suite)
+3. Commit (pre-commit hook auto-fixes Ruby style and refuses YAML that won't parse)
+4. Push (pre-push runs the checks your change can break)
 5. Open a PR into `next` on GitHub (Actions run second round of checks)
 
 `next` gathers merged work until a release ships it to `main`; see [Releasing](/docs/developer/releasing).
