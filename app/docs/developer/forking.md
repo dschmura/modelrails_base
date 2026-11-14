@@ -61,9 +61,12 @@ can read what it did, and finish by hand if you ever need to. Without the `gh`
 CLI, it lists the GitHub steps instead.
 
 ```bash
-bin/fork --name my_app --preset personal --support-email help@my-app.com --github YOU --yes
+bin/fork --name my_app --display-name "My App" --preset personal --support-email help@my-app.com --github YOU --yes
 bin/fork --dry-run    # print the plan, change nothing
 ```
+
+Under `--yes`, `bin/fork` doesn't ask for the display name: it takes
+`--display-name`, or capitalizes the project name. It can't contain `"` or `\`.
 
 Under `--yes` nothing is created or pushed on GitHub unless you pass `--github` (`--github ORG`
 or `--github ORG/name` picks the owner and the repo's name). `--private` makes a
