@@ -1,6 +1,7 @@
 require "rails_helper"
 require "json"
 require "yaml"
+require "comment_block_check"
 
 # modelrails_base is a template meant to be forked: every default it ships
 # propagates into every downstream fork. This spec asserts the structural
@@ -1255,6 +1256,19 @@ RSpec.describe "Template invariants" do
         "indistinguishable from an already-completed rename, so bin/fork would report success " \
         "while leaving template identity in every fork."
     end
+
+    it "names the template outside the rename targets only where it means the template", :template_only do
+      means_the_template = %w[.rubocop/app.yml app/assets/tailwind/tokens/_brand.css config/initializers/biscuit.rb config/routes/app.rb]
+      named = IO.popen(clean_git_env, [ "git", "-C", root.to_s, "grep", "-l", "-F", ForkFlow::TEMPLATE_TOKEN ], &:read).split("\n")
+      unrenamed = (named - ForkFlow::RENAME_FILES - [ ForkFlow::CHANGELOG ] - means_the_template).reject do |path|
+        (ForkFlow::TEMPLATE_OWNED_PATHS + ForkFlow::YOURS_TO_REWRITE_PATHS.map(&:first)).any? { |owned| path.match?(owned) }
+      end
+
+      expect(unrenamed).to be_empty,
+        "#{unrenamed.join(', ')} name the template as #{ForkFlow::TEMPLATE_TOKEN}, and bin/fork leaves them as they are. " \
+        "If the name means the app (an image, a container, a service), add the file to ForkFlow::SUBSTITUTIONS; " \
+        "if it means the template, list it here. A fork's verify sweep reads a token in a comment as harmless, so it can't tell."
+    end
   end
 
   describe "fork placeholder hygiene (self-activating in forks via .fork.yml)" do
@@ -1318,10 +1332,9 @@ RSpec.describe "Template invariants" do
     # A rename touching a long comment block fails the fork's first PR on a line it didn't write.
     it "renames no token inside a comment block over two lines", :template_only do
       long_blocks = ForkFlow::SUBSTITUTIONS.flat_map do |path, substitutions|
-        File.readlines(root.join(path)).slice_when { |a, b| a.match?(/\A\s*#/) != b.match?(/\A\s*#/) }
-            .select { |block| block.first.match?(/\A\s*#/) && block.size > 2 }
-            .select { |block| substitutions.any? { |from, _| block.join.include?(from) } }
-            .map { |block| "#{path}: #{block.first.strip}" }
+        source = File.read(root.join(path))
+        renamed = source.lines.each_index.select { |i| substitutions.any? { |from, _| source.lines[i].include?(from) } }
+        CommentBlockCheck.new.violations(path:, source:, added_lines: renamed.map(&:succ)).map { |block| "#{path}:#{block.first}" }
       end
 
       expect(ForkFlow::SUBSTITUTIONS).not_to be_empty
@@ -1454,6 +1467,18 @@ RSpec.describe "Template invariants" do
       tracked_if_created = local_secrets.reject { |path| git_ignores?(path) }
       expect(tracked_if_created).to be_empty,
         "expected .gitignore to cover #{tracked_if_created.join(', ')}"
+    end
+
+    it "already holds the lines Rails looks for, so a fork's first credentials:edit leaves .gitignore alone" do
+      require "rails/generators"
+      require "rails/generators/rails/encryption_key_file/encryption_key_file_generator"
+      Dir.mktmpdir do |dir|
+        FileUtils.cp(root.join(".gitignore"), dir)
+        generator = Rails::Generators::EncryptionKeyFileGenerator.new([], { quiet: true }, destination_root: dir)
+        Dir.chdir(dir) { local_secrets.grep(/\.key\z/).each { |key| generator.add_key_file(key) } }
+
+        expect(File.read(File.join(dir, ".gitignore"))).to eq(root.join(".gitignore").read)
+      end
     end
 
     it "still lets an app commit the encrypted files it deploys from" do

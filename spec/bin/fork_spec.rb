@@ -64,7 +64,8 @@ RSpec.describe ForkFlow do
       "public/manifest.webmanifest" => %({"name": "ModelRails"}\n),
       ".github/workflows/docker_build.yml" => "jobs:\n  build:\n    image: modelrails_base:latest\n",
       ".github/workflows/image_scan.yml" => "jobs:\n  scan:\n    image: modelrails_base:latest\n",
-      ".github/workflows/hotcell_image_scan.yml" => "jobs:\n  scan:\n    image: modelrails_base-hotcell:scan\n"
+      ".github/workflows/hotcell_image_scan.yml" => "jobs:\n  scan:\n    image: modelrails_base-hotcell:scan\n",
+      "Dockerfile" => "# docker build -t modelrails_base .\n# docker run -d --name modelrails_base modelrails_base\nFROM ruby\n"
     }.each do |path, content|
       full = repo.join(path)
       FileUtils.mkdir_p(full.dirname)
@@ -391,6 +392,7 @@ RSpec.describe ForkFlow do
       expect(repo.join("public/manifest.webmanifest").read).to include("My App")
       expect(repo.join(".github/workflows/docker_build.yml").read).to include("my_app:")
       expect(repo.join(".github/workflows/hotcell_image_scan.yml").read).to include("my_app-hotcell:")
+      expect(repo.join("Dockerfile").read).to include("docker build -t my_app .").and include("--name my_app my_app")
     end
 
     it "replaces the template support address with an unmistakable placeholder" do
@@ -1084,6 +1086,12 @@ RSpec.describe ForkFlow do
       flow = run_fork(name: "my_app", yes: true)
 
       expect(flow.step_verify![:live]).to be_blank
+    end
+
+    it "leaves nothing of the template in the Dockerfile's usage comment" do
+      flow = run_fork(name: "my_app", yes: true)
+
+      expect(flow.step_verify!.values.flatten).not_to include("Dockerfile")
     end
 
     it "flags a live template token left in a fork-owned file" do
