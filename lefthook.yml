@@ -23,16 +23,20 @@ pre-push:
   # must be built before rspec's system specs read it, and the slow image build goes last.
   piped: true
   commands:
+    protected_branch:
+      priority: 1
+      use_stdin: true
+      run: mise exec -- bin/protected-branch-check {1}
     tailwind_build:
       tags: assets
-      priority: 1
+      priority: 2
       run: mise exec -- bin/rails tailwindcss:build
       skip:
         - merge
         - rebase
     brakeman:
       tags: security
-      priority: 2
+      priority: 3
       run: mise exec -- bundle exec brakeman --no-pager -q
       skip:
         - merge
@@ -41,7 +45,7 @@ pre-push:
       # Updates the advisory DB first, as CI's fresh clone does, so the verdicts match (#371, #1424); offline it fails.
       # The importmap audit is deliberately not mirrored: it POSTs to the npm registry (#984).
       tags: security
-      priority: 3
+      priority: 4
       files: bin/branch-changes
       glob: "{Gemfile.lock,hotcell/Gemfile.lock}"
       run: mise exec -- bin/bundler-audit check --update && mise exec -- bin/bundler-audit check hotcell
@@ -50,7 +54,7 @@ pre-push:
         - rebase
     rubocop:
       tags: style
-      priority: 4
+      priority: 5
       run: mise exec -- bundle exec rubocop -f simple
       skip:
         - merge
@@ -58,7 +62,7 @@ pre-push:
     erb_lint:
       # Matches CI's static job (rake erb:check). erb_lint is a Ruby gem: the npm linter it replaced needed Node.
       tags: style
-      priority: 5
+      priority: 6
       files: bin/branch-changes
       glob: "*.erb"
       run: mise exec -- bundle exec rake erb:check
@@ -68,7 +72,7 @@ pre-push:
     markdown_lint:
       # Mirrors CI's static job (rake markdown:check); missing here until #193 caught CI-only drift.
       tags: style
-      priority: 6
+      priority: 7
       files: bin/branch-changes
       glob: "*.md"
       run: mise exec -- bundle exec rake markdown:check
@@ -78,7 +82,7 @@ pre-push:
     jactionlint:
       # The workflow audit's linter, offline here; CI adds the online checks. Same inputs as its paths.
       tags: style
-      priority: 6
+      priority: 7
       files: bin/branch-changes
       glob: "{.github/**,mise.toml,mise.lock}"
       run: mise exec -- jactionlint
@@ -87,7 +91,7 @@ pre-push:
         - rebase
     rspec:
       tags: test
-      priority: 7
+      priority: 8
       # CI=true keeps Capybara's 10s wait under a loaded hook (spec/support/capybara.rb). The full suite runs
       # in CI on every merge; bin/parallel-rspec runs it here by hand — see /docs/developer/testing.
       env:
@@ -108,7 +112,7 @@ pre-push:
         - rebase
     hotcell_build:
       tags: build
-      priority: 8
+      priority: 9
       # The Hot Cell image, built only when hotcell/ changed; diffed like docker_build.
       files: bin/branch-changes
       glob: "hotcell/**"

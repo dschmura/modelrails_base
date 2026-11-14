@@ -19,10 +19,10 @@ if TenancyConfig.shared?
     w.personal = false
   end
 
-  # Creating the User triggers User#onboard_workspace, which (under :shared)
-  # adds a Member-role Membership to `workspace`. The seed then upgrades that
-  # membership to Owner below — idempotent on re-runs.
+  owner_role = Role.find_by!(slug: "owner", workspace_id: nil)
+  # Onboarding seats a new owner as Owner, so no promotion follows to mail them a role change.
   owner = User.find_or_create_by!(email_address: owner_email) do |u|
+    u.shared_workspace_role = owner_role
     u.first_name = ENV.fetch("TENANCY_OWNER_FIRST_NAME", "Workspace")
     u.last_name  = ENV.fetch("TENANCY_OWNER_LAST_NAME",  "Owner")
     placeholder  = SecureRandom.urlsafe_base64(32)
@@ -37,7 +37,6 @@ if TenancyConfig.shared?
     auth.verified_at = Time.current
   end
 
-  owner_role = Role.find_by!(slug: "owner", workspace_id: nil)
   membership = workspace.memberships.find_or_create_by!(user: owner) { |m| m.role = owner_role }
   membership.update!(role: owner_role) unless membership.role_id == owner_role.id
 
