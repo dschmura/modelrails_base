@@ -27,7 +27,7 @@ RSpec.describe RequiredProductionConfigCatalog do
 
     expect(catalog.entries.map(&:key)).to include("RAILS_HOST", "smtp.password", "RAILS_MASTER_KEY")
     expect(catalog.entries.map(&:source).uniq).to eq([ :template ])
-    expect(catalog.exclusions).to eq({})
+    expect(catalog.exclusions.keys).to include("WEB_CONCURRENCY", "aws")
   end
 
   it "appends a fork's local entries" do
@@ -93,7 +93,9 @@ RSpec.describe RequiredProductionConfigCatalog do
 
   it "merges exclusions from both files" do
     with_fork_root(raw_local: { "exclusions" => { "STRIPE_DEBUG" => "Dev only" } }.to_yaml) do |root|
-      expect(described_class.load(root: root).exclusions).to eq({ "STRIPE_DEBUG" => "Dev only" })
+      exclusions = described_class.load(root: root).exclusions
+
+      expect(exclusions).to include("STRIPE_DEBUG" => "Dev only", "WEB_CONCURRENCY" => a_kind_of(String))
     end
   end
 

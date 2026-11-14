@@ -93,6 +93,24 @@ inputs:
     set_with: "config/deploy.yml → env.clear"
     regenerable: "Yes, any time"
     step: 6
+  AUTH_PASSWORDS:
+    home: env
+    required: optional
+    secret: false
+    purpose: "Turns on password sign-in; the default is disabled, so sign-in is by magic link or passkey"
+    where: "enabled or disabled (default disabled); see Password sign-in in /docs/developer/security"
+    set_with: "config/deploy.yml → env.clear"
+    regenerable: "Yes, any time; redeploy"
+    step: 6
+  SIGNUP_PERMITTED_JOIN_STRATEGIES:
+    home: env
+    required: optional
+    secret: false
+    purpose: "Which join links a workspace may offer; the default is invite, so open_link is a deliberate choice"
+    where: "A comma-separated list such as invite,open_link (default invite); see app/docs/developer/presets.md"
+    set_with: "config/deploy.yml → env.clear"
+    regenerable: "Yes, any time; redeploy"
+    step: 6
   BACKUP_PATH:
     home: env
     required: optional
@@ -346,4 +364,20 @@ inputs:
     regenerable: "Yes, at the provider"
     step: 4
 
-exclusions: {}
+exclusions:
+  APP_HOST: "Only the host in a seed log line that points at tenancy:owner_setup_link; RAILS_HOST is the real host"
+  BUNDLE_GEMFILE: "Set by Bundler and tooling, never by an operator"
+  CI: "Set by the CI runner; it only changes the test environment"
+  DEV_SERVER_PORT: "Development server port only"
+  HOTCELL_GROUP: "Tuning for the hotcell sandbox, which has a working default"
+  HOTCELL_ROOT: "Tuning for the hotcell sandbox, which has a working default"
+  JOB_CONCURRENCY: "Solid Queue worker count; has a working default and only tunes performance"
+  PIDFILE: "Puma pidfile path, set by tooling"
+  PORT: "Puma listen port; has a working default and Kamal sets it"
+  RAILS_LOG_LEVEL: "Log verbosity; has a working default"
+  RAILS_MAX_THREADS: "Thread count; has a working default and only tunes performance"
+  SECRET_KEY_BASE_DUMMY: "Set by the Docker asset build so assets precompile without credentials"
+  SOLID_QUEUE_IN_PUMA: "Runs jobs inside Puma; deploy.yml already sets it for the single-host default"
+  TEST_ENV_NUMBER: "Set by parallel_tests to name each test database"
+  WEB_CONCURRENCY: "Puma worker count; has a working default and only tunes performance"
+  aws: "Read only by the commented-out amazon service in config/storage.yml"
