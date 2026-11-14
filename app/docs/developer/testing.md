@@ -10,10 +10,11 @@ How the test suite is put together: the parallel runner and CI sharding, the con
 
 ## Suite architecture
 
-### Two ways to run the suite
+### Three ways to run the suite
 
 - `bundle exec rspec` is the single-process reference path — always correct, just slow.
-- `bin/parallel-rspec` is the full-suite path: it runs the suite across all cores via `parallel_tests`, with two integrity gates layered on top of pass/fail. Before the run it reloads the schema into every worker database and seeds it, so the pre-push suite and CI's shards both start from the same four global roles; a bare `rspec` does no seeding of its own.
+- `bin/parallel-rspec` is the full-suite path: it runs the suite across all cores via `parallel_tests`, with two integrity gates layered on top of pass/fail. Before the run it reloads the schema into every worker database and seeds it, so a local full run and CI's shards both start from the same four global roles; a bare `rspec` does no seeding of its own.
+- `bin/test-plan --run` runs the specs your branch's changes can break, and is what the pre-push hook runs. See [Change lanes](#change-lanes) below.
 
 The two gates exist because a parallel splitter can silently drop work:
 
@@ -23,6 +24,30 @@ The two gates exist because a parallel splitter can silently drop work:
 The floor is a whole-suite number everywhere. A bare `bundle exec rspec` is held to it; a focused run (`bundle exec rspec spec/models/user_spec.rb`) is measured but not held to it, because `spec/rails_helper.rb` asks `CoverageConfig.floor_for` whether the files RSpec was given are the whole suite. `SKIP_COVERAGE=1` turns instrumentation off altogether, which is faster for a tight loop but is not needed to make a focused run pass.
 
 Worker count comes from `PARALLEL_TEST_PROCESSORS` or the machine's core count.
+
+### Change lanes
+
+Most changes can only break a known handful of specs. A locale string can't break a model spec, and a docs page can't break a controller. `lib/change_lanes.rb` sorts a branch's changed paths into lanes, and `bin/test-plan` turns the lanes into a list of specs:
+
+| Lane | Paths | Specs it runs |
+|------|-------|---------------|
+| `locale` | `config/locales/**/*.yml` | The i18n gates, the locale and vocabulary config specs, and the code smells that read locale files |
+| `docs` | `app/docs/**/*.md`, a Markdown file at the repository root, `changelog.d/*.md` | `spec/docs/`, the docs request and system specs, and the specs that cite `app/docs` pages |
+| `workflows` | `.github/**` except `ci.yml` and `.github/actions/`, plus `lefthook.yml` | `spec/ci/`, the template invariants, and the specs that read workflow files |
+
+Everything else is `full`. The lanes fail closed: one path outside every lane makes the whole change `full`, and so do an empty diff and any push to `next` or `main` in CI. `config/vocabulary.local.yml` is YAML but renames nouns across the whole suite, so it is `full`; so is a change to `ci.yml` or `.github/actions/`, so the changed workflow proves itself on the full suite.
+
+`bin/test-plan` diffs the branch against `origin/next` (else `origin/main`, else every tracked file) with renames off, so a code file moved into a lane path still shows its old path:
+
+```bash
+bin/test-plan                  # Prints the lanes and the selected specs
+bin/test-plan --run            # Seeds the test database, then runs them
+bin/test-plan --base origin/main
+```
+
+On a lane change `--run` runs that lane's specs. On a `full` change it runs the specs named after each changed file (`app/models/user.rb` → `spec/models/user_spec.rb`, a controller → its request specs, `bin/branch-changes` → `spec/bin/branch_changes_spec.rb`) plus every code smell. That's a fast local check, not the whole suite. CI runs the whole suite on every `full` pull request and on every merge to `next` and `main`, so whatever the plan misses is caught before a release. When your change reaches past what its file names say (a shared helper, a concern, a base class, configuration), run `bin/parallel-rspec` yourself.
+
+`spec/code_smells/change_lane_specs_are_complete_spec.rb` keeps the lanes honest. It fails when a spec's source names a lane's files (`config/locales`, `.github/`, `lefthook.yml`, `app/docs`) and that lane doesn't run it. When it names your new spec, add the spec to that lane's list in `lib/change_lanes.rb`.
 
 ### CI sharding
 

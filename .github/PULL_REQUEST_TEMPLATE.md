@@ -10,7 +10,7 @@ Depends on: <!-- unreleased PRs this one needs, e.g. #123, so they leave a relea
 
 <!-- The commands you ran and their result. The full RSpec suite must be green before merge. -->
 
-- [ ] Full test suite green (Lefthook pre-push ran the suite locally)
+- [ ] Pre-push green (`bin/test-plan` ran the specs this change can break; CI runs the full suite)
 - [ ] New behavior is covered by specs, written failing-first (TDD)
 
 ## What the specs can't show
