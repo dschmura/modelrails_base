@@ -6,7 +6,7 @@ Role::SYSTEM_DEFAULTS.each_key { |slug| Role.system_default!(slug) }
 # Idempotent. The slug is the one the app resolved, which a fork's .fork.yml supplies by default.
 if TenancyConfig.shared?
   slug = TenancyConfig.shared_workspace_slug
-  name = ENV.fetch("TENANCY_SHARED_WORKSPACE_NAME", slug.titleize)
+  name = ENV.fetch("TENANCY_SHARED_WORKSPACE_NAME") { I18n.t("application.name", default: slug.titleize) }
   # bin/setup's db:prepare never sees .env (only foreman loads it), so a fresh fork's owner is a placeholder.
   owner_email = ENV.fetch("TENANCY_OWNER_EMAIL") {
     raise "TENANCY_OWNER_EMAIL is required when WORKSPACE_ON_SIGNUP=shared" if Rails.env.production?

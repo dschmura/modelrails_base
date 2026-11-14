@@ -28,21 +28,24 @@ bin/fork
 brackets.
 
 1. **Project name?** It defaults to the folder's name.
-2. **The preset**, by number: how workspaces work at sign-up
+2. **Display name?** The name people see, in the header, in mail and on the
+   shared workspace. It defaults to the project name, capitalized: type
+   "Chmura Family" when the default reads "Chmurafamily".
+3. **The preset**, by number: how workspaces work at sign-up
    ([Presets](presets)). Leave it blank to decide later.
-3. **Support address?** Where users write for help. Leave it blank to set it
+4. **Support address?** Where users write for help. Leave it blank to set it
    later.
-4. **Create the GitHub repo and push next to it?** [Y], asked when the GitHub
+5. **Create the GitHub repo and push next to it?** [Y], asked when the GitHub
    CLI is signed in. Yes brings two more: **GitHub owner** (you, or one of your
    organizations) and **Public or private?** [public]. On GitHub's free plan,
    private also asks **Make it public instead?**, because a free private repo
    can't have branch rules. A checkout that already has an `origin` of your
    own, such as a clone of a GitHub fork, gets **Push next to origin and
    protect it?** [Y] instead.
-5. **Does a second person approve PRs?** [N]. Yes makes every PR wait for one
+6. **Does a second person approve PRs?** [N]. Yes makes every PR wait for one
    approval.
-6. **Run bin/setup now?** [Y]. That's step 2.
-7. **Set up outbound mail now?** [N], asked once `bin/setup` succeeds. N is
+7. **Run bin/setup now?** [Y]. That's step 2.
+8. **Set up outbound mail now?** [N], asked once `bin/setup` succeeds. N is
    right: mail is step 4, once you have a mail provider's login.
 
 It moves `next` to the template's latest release, renames the app in one
