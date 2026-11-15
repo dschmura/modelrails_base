@@ -63,6 +63,43 @@ RSpec.describe "db/seeds.rb :shared bootstrap", type: :request do
     expect(owner.reload).not_to be_operator
   end
 
+  context "naming the shared workspace" do
+    before { allow(Rails.logger).to receive(:info) }
+
+    def stub_brand_name(&answer)
+      allow(I18n).to receive(:t).and_call_original
+      allow(I18n).to receive(:t).with("application.name", any_args, &answer)
+    end
+
+    context "without TENANCY_SHARED_WORKSPACE_NAME" do
+      let(:env_vars) { super().merge("TENANCY_SHARED_WORKSPACE_NAME" => nil) }
+
+      it "names the shared workspace after the brand" do
+        stub_brand_name { "Chmura Family" }
+
+        Rails.application.load_seed
+
+        expect(Workspace.find_by!(slug: "acme").name).to eq("Chmura Family")
+      end
+
+      it "falls back to the slug when the brand has no name" do
+        stub_brand_name { |_key, **options| options[:default] }
+
+        Rails.application.load_seed
+
+        expect(Workspace.find_by!(slug: "acme").name).to eq("Acme")
+      end
+    end
+
+    it "lets TENANCY_SHARED_WORKSPACE_NAME override the brand" do
+      stub_brand_name { "Chmura Family" }
+
+      Rails.application.load_seed
+
+      expect(Workspace.find_by!(slug: "acme").name).to eq("Acme Inc")
+    end
+  end
+
   context "without TENANCY_OWNER_EMAIL" do
     let(:env_vars) { super().merge("TENANCY_OWNER_EMAIL" => nil) }
 

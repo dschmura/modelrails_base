@@ -4,6 +4,22 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+## v2026.11.14-3
+
+### Changed
+
+- A new shared workspace is named after your product's brand name in `brand.en.yml`, so production needs no extra variable.
+- `bin/fork` asks for the display name people see, or takes `--display-name`, rather than only capitalizing the project name.
+
+### Fixed
+
+- Production refuses to boot when the mail login or a sign-in provider's client id is still a placeholder.
+
+### Added
+
+- `bin/rails deploy:check` lists every input production needs, with where to get each one.
+- A generated page, /docs/developer/required-production-config, and config/credentials/production.yml.example show every production input and where to get it.
+
 ## v2026.11.14-2
 
 ### Changed

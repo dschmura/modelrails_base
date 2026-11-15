@@ -61,9 +61,12 @@ can read what it did, and finish by hand if you ever need to. Without the `gh`
 CLI, it lists the GitHub steps instead.
 
 ```bash
-bin/fork --name my_app --preset personal --support-email help@my-app.com --github YOU --yes
+bin/fork --name my_app --display-name "My App" --preset personal --support-email help@my-app.com --github YOU --yes
 bin/fork --dry-run    # print the plan, change nothing
 ```
+
+Under `--yes`, `bin/fork` doesn't ask for the display name: it takes
+`--display-name`, or capitalizes the project name. It can't contain `"` or `\`.
 
 Under `--yes` nothing is created or pushed on GitHub unless you pass `--github` (`--github ORG`
 or `--github ORG/name` picks the owner and the repo's name). `--private` makes a
@@ -382,6 +385,7 @@ on every sync.
 | `config/vocabulary.local.yml` | Your product's nouns — any subset; `config/vocabulary.yml` fills the rest ([i18n](i18n#vocabulary)) |
 | `app/helpers/operations/fork_nav_helper.rb` | Your own operations pages for the operations nav, as `[label, path]` pairs |
 | `config/initializers/project_tools.rb` | Register your own project tools (`ProjectTools::Registry.register`) — see [Extending: Project Tools](/docs/developer/extending#project-tools-registry) |
+| `config/required_production_config.local.yml`, `config/credentials/production.local.yml.example` | Your own production inputs, described in the catalog's format (never their values), and the credentials example file generated from them |
 | `README.md` | Your product's README |
 
 **Clientside (external client area).** Clientside is available in every preset and is enabled per-project, not per-deployment — a fork enables it on a project-by-project basis via the project's Clientside settings toggle. No fork-owned file change is required to activate it; the toggle is in the project settings UI. See [Clientside](/docs/user/clientside) for details.

@@ -5,13 +5,18 @@
 class DeployCheck
   PLACEHOLDER_SERVERS = %w[192.168.0.1 192.168.0.2].freeze
 
-  def initialize(root:, destination: nil)
+  STATUS_MARKS = { set: "✓", missing: "✗", conflict: "✗", placeholder: "⚠", optional_unset: "○", uncheckable: "–", unknown: "?" }.freeze
+  HOME_LABELS = { "env" => "deploy.yml env", "credentials" => "credentials", "kamal_secret" => "Kamal secret", "dns" => "DNS", "dashboard" => "dashboard" }.freeze
+  INPUTS_PAGE = "/docs/developer/required-production-config"
+
+  def initialize(root:, destination: nil, compact: false)
     @root = Pathname(root)
     @destination = destination.presence
+    @compact = compact
   end
 
   def refusals
-    @refusals ||= unreadable_deploy ? [ unreadable_deploy ] : [ *containers.flat_map(&:refusals), proxy_refusal ].compact.uniq
+    @refusals ||= unreadable_deploy ? [ unreadable_deploy ] : [ *containers.flat_map(&:refusals), proxy_refusal, catalog_refusal ].compact.uniq
   end
 
   def warnings
@@ -22,11 +27,42 @@ class DeployCheck
     output.puts "Checking #{[ deploy_files.join(' with '), *containers.map(&:credentials_file).uniq ].join(' and ')}"
     refusals.each { |refusal| output.puts "", refusal }
     warnings.each { |warning| output.puts "", "Warning: #{warning}" }
-    output.puts "", refusals.empty? ? "Nothing here stops a deploy." : "#{refusals.size} #{refusals.one? ? 'problem stops' : 'problems stop'} a deploy."
+    print_inputs(output) unless @compact || unreadable_deploy
+    output.puts "", verdict
+    output.puts "Where to get each one: #{INPUTS_PAGE}" unless @compact
     refusals.empty? ? 0 : 1
   end
 
   private
+
+  def verdict = refusals.empty? ? "Nothing here stops a deploy." : "#{refusals.size} #{refusals.one? ? 'problem stops' : 'problems stop'} a deploy."
+
+  def print_inputs(output)
+    rows = containers.first.inputs.map { |entry, status| [ STATUS_MARKS.fetch(status), entry.key, HOME_LABELS.fetch(entry.home), containers.first.detail(entry, status) ] }
+    return if rows.empty?
+
+    key_width = rows.map { |row| row[1].size }.max
+    home_width = rows.map { |row| row[2].size }.max
+    output.puts "", "Production inputs (#{@root.basename})"
+    rows.each { |mark, key, home, detail| output.puts "  #{mark} #{key.ljust(key_width)}  #{home.ljust(home_width)}  #{detail}" }
+  end
+
+  def catalog
+    return @catalog if defined?(@catalog)
+
+    @catalog = RequiredProductionConfigCatalog.load(root: @root)
+  rescue RequiredProductionConfigCatalog::Invalid => e
+    @catalog_refusal = "Deploy check failed: #{e.message}"
+    @catalog = nil
+  rescue Errno::ENOENT
+    @catalog_refusal = "Deploy check failed: #{RequiredProductionConfigCatalog::TEMPLATE_PATH} doesn't exist, so the production inputs can't be listed."
+    @catalog = nil
+  end
+
+  def catalog_refusal
+    catalog
+    @catalog_refusal
+  end
 
   def deploy_files = [ "config/deploy.yml", (@destination && "config/deploy.#{@destination}.yml") ].compact
 
@@ -45,9 +81,10 @@ class DeployCheck
     require "kamal"
     envs = Dir.chdir(@root) do
       @kamal = Kamal::Configuration.create_from(config_file: Pathname("config/deploy.yml"), destination: @destination)
-      @kamal.roles.flat_map { |role| role.hosts.map { |host| role.env(host).to_h } }.uniq
+      @kamal.roles.flat_map { |role| role.hosts.map { |host| role.env(host) } }
+            .map { |env| [ env.to_h, env.secret_keys.map { |name| name.split(":").first } ] }.uniq
     end
-    @containers = envs.map { |env| Container.new(@root, env) }
+    @containers = envs.map { |env, secret_names| Container.new(@root, env, catalog, secret_names:) }
   rescue StandardError => e
     @containers = []
     @unreadable_deploy = "Deploy check failed: Kamal can't read this deploy: #{e.message.strip}\n\n" \
@@ -108,14 +145,35 @@ class DeployCheck
       def key = @deploy_key.presence || handle_missing_key
     end
 
-    def initialize(root, env)
+    def initialize(root, env, catalog = nil, secret_names: [])
       @root = root
       @env = env
+      @catalog = catalog
+      @secret_names = secret_names
     end
 
     def refusals
       [ (unreadable_credentials unless credentials),
-        *RequiredProductionConfig.refusals(@env, credentials || AssumedCredentials, {}), owner_refusal ].compact
+        *RequiredProductionConfig.refusals(@env, credentials || AssumedCredentials, {}), owner_refusal,
+        *input_refusals ].compact
+    end
+
+    def inputs
+      return [] unless @catalog
+
+      @catalog.entries.map { |entry| [ entry, status_of(entry) ] }
+    end
+
+    def detail(entry, status)
+      case status
+      when :set then set_detail(entry)
+      when :missing then "missing"
+      when :placeholder then "looks like a placeholder"
+      when :conflict then "#{set_detail(entry)}, which conflicts with another input above"
+      when :optional_unset then "optional: #{entry.purpose}"
+      when :uncheckable then "can't check from here: #{entry.where}"
+      else "unknown"
+      end + (entry.source == :local ? "  (from required_production_config.local.yml)" : "")
     end
 
     def warnings = [ backups_warning, workspace_creation_warning ].compact
@@ -162,6 +220,35 @@ class DeployCheck
             "run `unset RAILS_MASTER_KEY`; otherwise get #{relative(paths[:key_path])} from whoever set this fork up."
         end
       "Deploy check failed: #{reason}\n\nThe settings stored in credentials can't be checked until it opens."
+    end
+
+    def set_detail(entry)
+      return "resolves" if entry.home == "kamal_secret"
+
+      entry.home == "env" && !entry.secret && !@secret_names.include?(entry.key) ? @env[entry.key].to_s : "set"
+    end
+
+    def status_of(entry)
+      return :unknown if credentials.nil? && entry.home == "kamal_secret"
+
+      refused_inputs.fetch(entry.key) { entry.status(env: @env, credentials: credentials, preset: preset, key_resolves: !credentials.nil?) }
+    end
+
+    # The inputs a refusal above already names, so their rows say what it says and aren't refused twice.
+    def refused_inputs
+      @refused_inputs ||= RequiredProductionConfig.refused_inputs(@env, credentials || AssumedCredentials, {})
+                                                  .merge(owner_refusal ? { "TENANCY_OWNER_EMAIL" => :missing } : {})
+    end
+
+    def preset = ForkConfig.tenancy_env(@root, env: @env, test: false)["WORKSPACE_ON_SIGNUP"]
+
+    def input_refusals
+      inputs.filter_map do |entry, status|
+        next if refused_inputs.key?(entry.key) || !%i[missing placeholder].include?(status)
+
+        headline = status == :missing ? "#{entry.key} is missing (#{entry.home}). #{entry.purpose}" : "#{entry.key} looks like a placeholder (#{entry.home})."
+        "#{headline}\nGet it: #{entry.where}\nSet it: #{entry.set_with}"
+      end
     end
 
     def shared? = ForkConfig.tenancy_env(@root, env: @env, test: false)["WORKSPACE_ON_SIGNUP"] == "shared"
