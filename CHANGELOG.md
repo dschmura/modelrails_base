@@ -4,6 +4,12 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+## v2026.11.15
+
+### Changed
+
+- `bin/fork` warns when `origin` was made with GitHub's Fork button, and the forking guide recommends cloning instead, listing what the Fork button costs.
+
 ## v2026.11.14-3
 
 ### Changed
