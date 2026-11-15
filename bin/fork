@@ -741,6 +741,8 @@ class ForkFlow
       how = @opts[:template] ? "--template" : "origin's GitHub parent"
       say("  ✓ template #{@template_url} (#{how}) — bin/setup adds it as the push-disabled upstream remote")
       unless @opts[:template]
+        say("  ! origin is a GitHub fork, so it starts from next, not the latest release, and Dependabot")
+        say("    starts off. Built nothing yet? Clone instead: /docs/developer/forking#start-a-new-app")
         @todos << "On GitHub: Settings → General → Leave fork network, so PRs default to your repo, " \
                   "not the template (bin/sync keeps working: it reads .fork.yml)."
       end

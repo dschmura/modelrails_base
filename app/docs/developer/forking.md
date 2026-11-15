@@ -84,7 +84,7 @@ Moving `next` to the release:
 - refuses when `next` has commits the template doesn't, since moving would
   drop them;
 - never runs on a checkout that is already renamed, or whose `origin` is your
-  own repository (the Fork-button path below), because moving `next` back there
+  own repository ([the Fork-button path](#not-githubs-fork-button)), because moving `next` back there
   would make its push fail.
 
 `--from-next` skips the move and forks `next` as cloned, unreleased template
@@ -103,51 +103,18 @@ When that `bin/setup` succeeds, it offers `bin/mail-setup` next (default: no).
 Production refuses to boot until outbound mail is set up, so the next steps it
 prints name `bin/mail-setup` either way.
 
-### From a GitHub fork, or a fork of a fork
+### From an organization's copy
 
 The template is meant to be forked, and forks get forked: an organization keeps
 its own synced copy under its own name, and products start from that copy. Clone
-the copy the way you'd clone the template, and name it with `--template` (below).
-
-If you already pressed GitHub's **Fork** button, that works too, with one extra
-step. A GitHub fork's parent is the template, so GitHub's pull-request page and
-editors aim every new PR at the template. Clone your fork and run `bin/fork`:
+the copy the way you'd clone the template, and name it with `--template`:
 
 ```bash
-git clone git@github.com:YOU/my_app.git
+git clone git@github.com:ORG/modelrails_base_wads.git my_app
 cd my_app
-bin/fork
+bin/fork --template git@github.com:ORG/modelrails_base_wads.git
 ```
 
-Answer yes to *Push next to origin and protect it?* (or pass `--github` with
-`--yes`). Then, on GitHub, open **Settings → General → Leave fork network**, so
-PRs default to your own repository. Leaving after `bin/fork` matters: `bin/fork`
-asks GitHub for the parent to record the template, and `bin/sync` reads that
-record, not the fork network.
-
-Your clone's `origin` is already your product and there is no `upstream` yet.
-Git has no record of what a fork was forked from, but GitHub does, so when
-nothing else names the template and the `gh` CLI is installed, `bin/fork` asks
-GitHub for `origin`'s parent and records that URL in `.fork.yml`. That is the
-repository you pressed Fork on — the organization's copy if you forked the
-copy, the template if you forked the template. `bin/setup` reads the URL and
-adds it as the push-disabled `upstream` in every clone. The script says which
-it did: *template … (origin's GitHub parent)*.
-
-The Fork button copies only the template's default branch, `next`, so your fork
-starts with no `main`; `bin/branch-rules` creates it from `next` once the rename
-is pushed. Your fork also starts from that `next` rather than the latest
-release, since `next` is already on your `origin`.
-
-Without `gh`, or when GitHub reports no parent, name the template yourself with
-`--template URL`; an explicit flag always wins over the lookup:
-
-```bash
-bin/fork --name my_app --preset personal --template git@github.com:ORG/modelrails_base_wads.git --yes
-```
-
-`--template` is also how a copy under another name works on the **clone path**
-(`git clone <the copy> my_app`, then `bin/fork --template <the copy>`).
 There `origin` *is* the template, so its GitHub parent would be one hop too far
 and the script deliberately does not ask; `bin/fork` knows the template by
 name — a remote ending in `/modelrails_base` — and `--template` extends that to
@@ -156,6 +123,48 @@ configured, and an `origin` equal to it gets the same remote surgery as the
 template itself. The match is URL equality, with or without `.git`, never a
 looser name pattern: a repository of your own that merely *starts* with
 `modelrails_base` is never mistaken for the template.
+
+### Not GitHub's Fork button
+
+Clone instead. A repository made with GitHub's **Fork** button:
+
+- starts from the template's `next`, not its latest release, since `next` is
+  already on your `origin` and `bin/fork` won't move a branch you've pushed;
+- arrives with no `main` (the button copies only the default branch);
+- says "forked from" on GitHub, and aims every new PR at the template;
+- can't be made private while it's a fork of a public repository;
+- starts with Dependabot alerts and security updates turned off.
+
+**If you haven't built anything on it yet**, delete it and follow
+[Start a new app](#start-a-new-app). `bin/fork` warns when it finds this case:
+*origin is a GitHub fork*.
+
+**If you're keeping it**, clone it and run `bin/fork`:
+
+```bash
+git clone git@github.com:YOU/my_app.git
+cd my_app
+bin/fork
+```
+
+Answer yes to *Push next to origin and protect it?* (or pass `--github` with
+`--yes`). `bin/branch-rules` creates `main` from `next` once the rename is
+pushed. Then, on GitHub:
+
+- **Settings → General → Leave fork network.** PRs then default to your own
+  repository, and you can make it private. Leave *after* `bin/fork`: it asks
+  GitHub for the parent to record the template, and `bin/sync` reads that record,
+  not the fork network.
+- **Turn on Dependabot alerts and security updates** in the security settings.
+
+How the template gets recorded: your clone's `origin` is already your product
+and there is no `upstream` yet. Git has no record of what a fork was forked
+from, but GitHub does. So when nothing else names the template and the `gh` CLI
+is installed, `bin/fork` asks GitHub for `origin`'s parent and records that URL
+in `.fork.yml`: the repository you pressed Fork on. `bin/setup` reads the URL
+and adds it as the push-disabled `upstream` in every clone. Without `gh`, or
+when GitHub reports no parent, name the template yourself with
+`--template URL`; an explicit flag always wins over the lookup.
 
 ### By hand (what bin/fork does)
 
