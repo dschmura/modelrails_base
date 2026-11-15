@@ -4,6 +4,12 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+## v2026.11.15-2
+
+### Security
+
+- Puma 8.0.3 fixes six advisories, including slow clients holding worker threads or other connections open.
+
 ## v2026.11.15
 
 ### Changed
