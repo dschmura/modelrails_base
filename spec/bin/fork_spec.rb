@@ -757,6 +757,25 @@ RSpec.describe ForkFlow do
       expect(flow.todos.join).to include("Leave fork network")
     end
 
+    it "warns that a Fork-button repository starts from next and points to the clone path" do
+      install_parent_gh
+
+      with_path(bin_dir.to_s, ENV["PATH"]) { run_fork(name: "my_app", yes: true) }
+
+      expect(printed.string).to include("origin is a GitHub fork")
+      expect(printed.string).to include("starts from next, not the latest release")
+      expect(printed.string).to include("/docs/developer/forking#start-a-new-app")
+    end
+
+    it "does not call origin a GitHub fork when GitHub reports no parent" do
+      install_parent_gh
+      git("remote", "set-url", "origin", "git@github.com:me/plain_repo.git")
+
+      with_path(bin_dir.to_s, ENV["PATH"]) { run_fork(name: "my_app", yes: true) }
+
+      expect(printed.string).not_to include("origin is a GitHub fork")
+    end
+
     it "prefers an explicit --template over GitHub's answer" do
       install_parent_gh
 

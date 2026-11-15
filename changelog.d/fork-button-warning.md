@@ -1,0 +1,1 @@
+- `bin/fork` warns when `origin` was made with GitHub's Fork button, and the forking guide recommends cloning instead, listing what the Fork button costs.
