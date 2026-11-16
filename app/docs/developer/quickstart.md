@@ -52,9 +52,10 @@ brackets.
    succeeds. Yes starts `bin/dev` and opens this page in your browser.
 
 It moves `next` to the template's latest release, renames the app in one
-commit, creates your GitHub repo, pushes `next` and protects the branches. It
-ends with its next steps: this page's address, the things only you can do, such
-as your product's description and brand mark, and the command for step 4.
+commit, creates your GitHub repo, pushes `next` and protects the branches.
+Before its last question it prints its next steps: this page's address, the
+things only you can do, such as your product's description and brand mark, and
+the command for step 4.
 
 A clone starts on `next`, and `bin/fork` commits the rename there and leaves
 you on it. Your own changes go on a branch of their own (step 3).
@@ -68,7 +69,8 @@ Say yes when `bin/fork` offers `bin/setup`, or run it yourself. It installs
 the dependencies and prepares the database. Then `bin/dev` starts the server.
 
 **Check:** the public [home page](/) loads, and
-`bin/parallel-rspec` ends with 0 failures. If you left the support address
+`bin/parallel-rspec` ends with 0 failures. `bin/dev` keeps its terminal, so run
+the tests in a second one. If you left the support address
 blank, one spec fails until you set it in `config/locales/en/pages.en.yml`.
 On the shared preset, the seed made an owner, `owner@<your_app>.test`: its
 sign-in link is waiting at [/letter_opener](/letter_opener).
