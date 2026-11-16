@@ -12,7 +12,8 @@ RSpec.describe "bin/dev" do
       @dir = Pathname.new(dir)
       stubs = @dir.join("stubs")
       stubs.mkpath
-      { "gem" => "exit 0", "foreman" => 'echo "DEV_SERVER_PORT=$DEV_SERVER_PORT"; echo "$@"' }.each do |name, body|
+      { "gem" => "exit 0", "foreman" => %[echo "DEV_SERVER_PORT=$DEV_SERVER_PORT"; echo "$@"; exec "#{RbConfig.ruby}" -e 'begin; Process.wait(-1); puts "FOREMAN_CHILD_EXITED"; rescue Errno::ECHILD; end'],
+        "ruby" => %[case "$1" in *dev_open.rb) echo "$@" > "#{@dir.join('opened')}" ;; *) exec "#{RbConfig.ruby}" "$@" ;; esac] }.each do |name, body|
         stubs.join(name).write("#!/bin/sh\n#{body}\n")
         stubs.join(name).chmod(0o755)
       end
@@ -22,7 +23,7 @@ RSpec.describe "bin/dev" do
 
   def capture_dev(*args, env: {})
     path = "#{@dir.join('stubs')}:#{ENV.fetch('PATH')}"
-    Open3.capture2e({ "PATH" => path, "PORT" => nil, "DEV_SERVER_PORT" => nil, "CODESPACES" => nil }.merge(env),
+    Open3.capture2e({ "PATH" => path, "PORT" => nil, "DEV_SERVER_PORT" => nil, "CODESPACES" => nil, "DEV_OPEN_PATH" => nil }.merge(env),
                     Rails.root.join("bin/dev").to_s, *args, chdir: @dir.to_s)
   end
 
@@ -76,5 +77,24 @@ RSpec.describe "bin/dev" do
   it "takes the port from foreman's own -p and --port flags" do
     expect(run_dev("-p", "4000").first).to eq("4000")
     expect(run_dev("--port=4100").first).to eq("4100")
+  end
+
+  it "opens DEV_OPEN_PATH in the background on the chosen port, without passing it to foreman" do
+    port, foreman_args = run_dev(env: { "DEV_OPEN_PATH" => "/docs/developer/quickstart" })
+
+    expect(@dir.join("opened").read).to match(%r{dev_open\.rb #{port} /docs/developer/quickstart$})
+    expect(foreman_args).not_to include("/docs")
+  end
+
+  it "keeps the page opener out of foreman's children, so its exit can't stop the app" do
+    output, = capture_dev(env: { "DEV_OPEN_PATH" => "/docs/developer/quickstart" })
+
+    expect(output).not_to include("FOREMAN_CHILD_EXITED")
+  end
+
+  it "opens nothing without DEV_OPEN_PATH" do
+    run_dev
+
+    expect(@dir.join("opened")).not_to exist
   end
 end
