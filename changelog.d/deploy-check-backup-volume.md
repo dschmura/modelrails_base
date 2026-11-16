@@ -1,0 +1,1 @@
+- `bin/rails deploy:check` warns when `BACKUP_PATH` is set but no volume in `config/deploy.yml` mounts it, since those backups would go with the container.
