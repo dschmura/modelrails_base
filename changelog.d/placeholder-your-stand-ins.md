@@ -1,0 +1,1 @@
+- Production refuses stand-in credentials such as `your_google_client_id`, as `deploy:check` does, instead of booting with a broken sign-in button.

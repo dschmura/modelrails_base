@@ -6,6 +6,8 @@ keywords: setup install mise ruby bundle rspec tests oauth credentials developme
 
 # Getting Started
 
+Starting a product? Follow [Fork to Served](quickstart) first. This page is the reference for working in the code.
+
 ## Prerequisites
 
 - [mise](https://mise.jdx.dev/) for runtime version management (see `.tool-versions`)
