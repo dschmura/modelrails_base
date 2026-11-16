@@ -23,9 +23,10 @@ RSpec.describe DeployCheck do
 
   def write(path, content) = @root.join(path).tap { |file| file.dirname.mkpath }.write(content)
 
-  def deploy(env: ready_env, proxy: { "ssl" => true, "host" => "app.acme.test" }, hosts: [ "203.0.113.10" ], secret: [ "RAILS_MASTER_KEY" ])
+  def deploy(env: ready_env, proxy: { "ssl" => true, "host" => "app.acme.test" }, hosts: [ "203.0.113.10" ], secret: [ "RAILS_MASTER_KEY" ],
+             volumes: [ "/srv/backups:/backups" ])
     config = { "service" => "acme", "image" => "acme", "registry" => { "server" => "localhost:5555" }, "builder" => { "arch" => "amd64" },
-               "servers" => { "web" => { "hosts" => hosts } }, "env" => { "clear" => env, "secret" => secret } }
+               "servers" => { "web" => { "hosts" => hosts } }, "env" => { "clear" => env, "secret" => secret }, "volumes" => volumes }
     config["proxy"] = proxy if proxy
     write("config/deploy.yml", config.to_yaml)
   end
@@ -280,6 +281,27 @@ RSpec.describe DeployCheck do
 
       expect(check.warnings).to be_empty
     end
+  end
+
+  it "warns when no volume mounts BACKUP_PATH, so backups would vanish with the container" do
+    deploy(volumes: [])
+    credentials
+
+    expect(check.warnings.join).to include("BACKUP_PATH is /backups", "/srv/backups:/backups")
+  end
+
+  it "accepts a volume that mounts a folder holding BACKUP_PATH" do
+    deploy(env: ready_env.merge("BACKUP_PATH" => "/data/backups"), volumes: [ "/srv/data:/data" ])
+    credentials
+
+    expect(check.warnings).to be_empty
+  end
+
+  it "doesn't count a volume whose path only starts with the same letters" do
+    deploy(env: ready_env.merge("BACKUP_PATH" => "/backups"), volumes: [ "/srv/b:/back" ])
+    credentials
+
+    expect(check.warnings.join).to include("BACKUP_PATH is /backups")
   end
 
   it "warns about the template's placeholder server and backups being off" do

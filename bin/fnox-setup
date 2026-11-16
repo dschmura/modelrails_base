@@ -28,7 +28,7 @@ class FnoxSetup
     recipient = identity!
     configure!(recipient)
     PROVIDERS.each { |provider, details| store!(provider, **details) }
-    finish
+    finish unless @env["PRODUCTION_SETUP"]
     0
   rescue Stop => e
     say e.message
