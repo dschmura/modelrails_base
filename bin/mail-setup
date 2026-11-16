@@ -267,7 +267,7 @@ class MailSetup
         @output.print "#{label} (typing is hidden; Enter alone stops here): "
         line = read { @input.noecho(&:gets) }
         @output.puts
-        return nil if line.nil? || line.chomp.empty?
+        return stop_reading if line.nil? || line.chomp.empty?
 
         value = valid_text(line)
         return value if value && !value.empty? && !value.match?(/\s/)
@@ -336,6 +336,12 @@ class MailSetup
     end
 
     def read_echoed = read { @input.gets } || raise(Declined)
+
+    # A paste that starts with a newline reads as Enter here; the rest would land in the parent shell (#1689).
+    def stop_reading
+      @input.iflush if @input.respond_to?(:iflush)
+      nil
+    end
 
     def read
       yield

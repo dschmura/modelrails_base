@@ -496,6 +496,28 @@ RSpec.describe MailSetup do
     end
 
     describe "#secret" do
+      def flushing_prompts(*answers)
+        flushes = []
+        input = StringIO.new(answers.join)
+        def input.noecho = yield(self)
+        input.define_singleton_method(:iflush) { flushes << :flushed }
+        [ described_class.new(input:, output:), flushes ]
+      end
+
+      it "flushes pending input when the token prompt reads a blank line" do
+        prompts, flushes = flushing_prompts("\n", "the-rest-of-a-paste\n")
+
+        expect(prompts.secret("Token")).to be_nil
+        expect(flushes).to eq([ :flushed ])
+      end
+
+      it "doesn't flush after a real token" do
+        prompts, flushes = flushing_prompts("tok-123\n")
+
+        expect(prompts.secret("Token")).to eq("tok-123")
+        expect(flushes).to be_empty
+      end
+
       it "says typing is hidden" do
         prompts("tok\n").secret("Server API token")
 
