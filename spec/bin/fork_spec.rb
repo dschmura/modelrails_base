@@ -110,6 +110,8 @@ RSpec.describe ForkFlow do
     flow
   end
 
+  def next_steps = printed.string[/== Next steps ==.*/m] || raise("bin/fork printed no Next steps")
+
   let(:bin_dir) { workdir.join("bin") }
   let(:gh_log) { workdir.join("gh.log") }
 
@@ -157,7 +159,10 @@ RSpec.describe ForkFlow do
 
   before { allow(Kernel).to receive(:exec).and_raise("bin/fork tried to exec, which would replace the rspec worker") }
 
-  before { allow(DevPort).to receive(:busy?).and_return(false) }
+  before do
+    allow(DevPort).to receive_messages(busy?: false, container?: false)
+    allow(Codespaces).to receive(:active?).and_return(false)
+  end
 
   # Read back inside the example, before the after-hook rm_rf deletes workdir,
   # so the #789 guard below can tell "the decoy was written" apart from "the
@@ -409,12 +414,12 @@ RSpec.describe ForkFlow do
     end
 
     it "writes the given support address into the rename commit" do
-      flow = run_fork(name: "my_app", support_email: "help@my-app.com", yes: true)
+      run_fork(name: "my_app", support_email: "help@my-app.com", yes: true)
 
       pages = capture_git("show", "HEAD:config/locales/en/pages.en.yml")
       expect(pages).to include("help@my-app.com")
       expect(pages).not_to include(".example")
-      expect(flow.todos.join).not_to include("support address")
+      expect(next_steps).not_to include("support address")
     end
 
     it "refuses a placeholder-shaped support address before changing anything" do
@@ -448,15 +453,15 @@ RSpec.describe ForkFlow do
     end
 
     it "doesn't ask a fork developer to tag the template" do
-      flow = run_fork(name: "my_app", preset: "none", yes: true)
+      run_fork(name: "my_app", preset: "none", yes: true)
 
-      expect(flow.todos.join).not_to include("forks/")
+      expect(next_steps).not_to include("forks/")
     end
 
     it "doesn't assume main is the branch that reaches GitHub" do
-      flow = run_fork(name: "my_app", preset: "none", yes: true)
+      run_fork(name: "my_app", preset: "none", yes: true)
 
-      expect(flow.instance_variable_get(:@todos).join).not_to include("Once main is on GitHub")
+      expect(next_steps).not_to include("Once main is on GitHub")
     end
 
     it "starts the fork's changelog clean, in the rename commit: the template's releases aren't the fork's" do
@@ -1052,11 +1057,11 @@ RSpec.describe ForkFlow do
       hook.write("#!/bin/sh\nexec #{Rails.root.join("bin/protected-branch-check")} \"$1\"\n")
       hook.chmod(0o755)
 
-      flow = with_fake_gh { run_fork(name: "my_app", github: true, yes: true) }
+      with_fake_gh { run_fork(name: "my_app", github: true, yes: true) }
 
       expect(remote_next).to eq(capture_git("rev-parse", "HEAD"))
       expect(rules_calls).to eq([ "--solo" ])
-      expect(flow.todos.join).not_to include("git push")
+      expect(next_steps).not_to include("git push")
     end
 
     it "leaves an existing origin alone under --yes without --github" do
