@@ -27,6 +27,7 @@ require "yaml"
 require_relative "../lib/clean_git_env"
 require_relative "../lib/github_origin"
 require_relative "../lib/fork_config"
+require_relative "../lib/dev_port"
 
 class ForkFlow
   VERSION = "1.0.0"
@@ -152,6 +153,7 @@ class ForkFlow
     end
 
     def run(*cmd) = system(CLEAN_GIT_ENV, *cmd, chdir: @root)
+    def exec(env, *cmd) = Kernel.exec(CLEAN_GIT_ENV.merge(env), *cmd, chdir: @root)
 
     def capture(*cmd, err: File::NULL)
       out = IO.popen(CLEAN_GIT_ENV, cmd, err:, &:read)
@@ -402,7 +404,7 @@ class ForkFlow
     end
   end
 
-  attr_reader :todos
+  attr_reader :todos, :make_it_yours
 
   def self.placeholder_email?(address) = !address.include?("@") || address.match?(PLACEHOLDER_EMAIL)
 
@@ -410,6 +412,7 @@ class ForkFlow
     @opts = options
     @root = File.expand_path(root)
     @todos = []
+    @make_it_yours = []
     @console = Console.new(input:, output:, dry_run: options[:dry_run], yes: options[:yes])
     @shell = shell || Shell.new(root: @root, dry_run: options[:dry_run], output:)
   end
@@ -430,9 +433,9 @@ class ForkFlow
     step_preset!(@preset)
     step_verify!
     @github.protect if @github.publish
-    @todos << "Set up outbound mail, which production requires: bin/mail-setup"
-    print_summary!
-    offer_mail_setup! if offer_setup!
+    setup_ok = offer_setup!
+    print_summary!(setup_ok:)
+    offer_start! if setup_ok
   end
 
   # ------------------------------------------------------------------ naming
@@ -818,16 +821,16 @@ class ForkFlow
       "fork_script_version" => VERSION
     )
 
-    @todos << "Rewrite the product description in config/locales/en/brand.en.yml " \
+    @make_it_yours << "Rewrite the product description in config/locales/en/brand.en.yml " \
               "(still the template's sentence — bin/fork renames, it doesn't write your copy)."
     unless @support_email
       @todos << "Set a real support address in config/locales/en/pages.en.yml " \
                 "(now #{support_email}; CI fails until it is set): edit, then commit."
     end
-    @todos << "Rewrite marketing copy: config/locales/en/pages.en.yml + app/views/pages/ (fork-owned)."
-    @todos << "Replace the brand mark: app/views/shared/_site_mark.html.erb (one <svg>) and the icon set in public/ " \
+    @make_it_yours << "Rewrite marketing copy: config/locales/en/pages.en.yml + app/views/pages/ (fork-owned)."
+    @make_it_yours << "Replace the brand mark: app/views/shared/_site_mark.html.erb (one <svg>) and the icon set in public/ " \
               "(fork-owned — bin/fork renames strings, never artwork)."
-    @todos << "Name your nouns, if the product's aren't workspace/project: config/vocabulary.local.yml " \
+    @make_it_yours << "Name your nouns, if the product's aren't workspace/project: config/vocabulary.local.yml " \
               "(fork-owned — every template string follows, and so do yours when they say %{project}, not the word)."
 
     act("start #{CHANGELOG} clean (the template's releases stay on its releases page; bin/sync links each one it brings in)")
@@ -840,9 +843,8 @@ class ForkFlow
     say("\n== Tenancy preset ==")
 
     if preset.nil?
-      say("  ! no preset chosen — skipped. This is a set-up-time decision (switching")
-      say("    later is a migration, not a config flip).")
-      @todos << "Choose the tenancy preset: bin/fork --preset #{PRESETS.join('|')} (docs: /docs/developer/presets)"
+      say("  ! no preset chosen — skipped. Choose one before you have users: #{app_url}/docs/developer/presets")
+      @todos << "Choose the tenancy preset: bin/fork --preset #{PRESETS.join('|')} (#{app_url}/docs/developer/presets)"
       return
     end
 
@@ -885,7 +887,7 @@ class ForkFlow
     write_fork_file(fork_config.to_h.merge("preset" => preset))
     commit!("Record tenancy preset: #{preset}", FORK_FILE)
     step_preset!(preset)
-    print_summary!
+    print_todos!
   end
 
   # A forked repo can still lack a real support address, an origin, or branch rules.
@@ -901,7 +903,7 @@ class ForkFlow
     return if @github.origin_present? && @github.rules_present?
 
     @github.protect if @github.publish
-    print_summary!
+    print_todos!
   end
 
   def set_support_address_on_fork!
@@ -945,9 +947,7 @@ class ForkFlow
       return {}
     end
 
-    # git grep, not grep: it searches TRACKED files only. A plain working-tree
-    # grep reports thousands of hits from worktrees, graphify-out/, and other
-    # untracked artifacts, burying the handful that matter.
+    # git grep searches tracked files only, so untracked output can't bury the real misses.
     out, status = capture("git", "-C", @root, "grep", "-Ili", "modelrails")
     # git grep: 0 = matches, 1 = clean, anything else = the check did not run.
     abort("bin/fork: verify sweep failed to run (git grep exit #{status})") if status > 1
@@ -962,9 +962,8 @@ class ForkFlow
       say("  ✗ probable rename misses — live template tokens remain:")
       triage[:live].each { |f| say("      #{f}   (git grep -n modelrails #{f})") }
     end
-    say("  · comment-only mentions (harmless seam docs): #{triage[:comment].join(', ')}") if triage[:comment].any?
     triage[:rewrite].each do |file|
-      @todos << "#{file} — #{YOURS_TO_REWRITE_PATHS.find { |p, _| file.match?(p) }.last}"
+      @make_it_yours << "#{file} — #{YOURS_TO_REWRITE_PATHS.find { |p, _| file.match?(p) }.last}"
     end
 
     triage
@@ -1018,28 +1017,40 @@ class ForkFlow
     false
   end
 
-  def offer_mail_setup!
+  def offer_start!
     return unless interactive?
+    return unless ask("\nStart the app and open the quickstart?", "Y").match?(/\A[Yy]/)
 
-    if ask("\nSet up outbound mail now?", "N").match?(/\A[Yy]/)
-      say("\n== Running bin/mail-setup ==")
-      return if @shell.run("bin/mail-setup")
-    end
-
-    say("\n  ! Mail isn't set up, so production will refuse to boot until it is.")
-    say("    Run bin/mail-setup when ready; development mail keeps working locally.")
+    say("Step 1 is done and step 2's setup ran; opening the quickstart.")
+    @shell.exec({ "DEV_OPEN_PATH" => DevPort::QUICKSTART }, "bin/dev")
   end
 
   def interactive? = @console.interactive?
 
-  def print_summary!
+  def app_url
+    @app_url ||= DevPort.url(DevPort.choose(3000, explicit: false, container: DevPort.container?))
+  rescue DevPort::Busy
+    @app_url = DevPort.url(3000)
+  end
+
+  def print_summary!(setup_ok:)
+    say("\n== Next steps ==")
+    say("  Follow the quickstart: #{app_url}#{DevPort::QUICKSTART}")
+    numbered_todos
+    say("\n  Make it yours:")
+    @make_it_yours.each { |item| say("  - #{item}") }
+    say("\n  Before you deploy: bin/production-setup sets up production's secrets: mail, encryption keys and fnox (quickstart step 4)")
+    say("  Run bin/setup, then bin/dev") unless setup_ok
+  end
+
+  def print_todos!
     return if @todos.empty?
 
     say("\n== Next steps ==")
-    @todos.each_with_index { |todo, i| say("  #{i + 1}. #{todo}") }
-    say("  #{@todos.size + 1}. Set up and prove green:  bin/setup --skip-server && bin/parallel-rspec")
-    say("  #{@todos.size + 2}. Deploy later: Fork to Served, /docs/developer/quickstart, from step 4.")
+    numbered_todos
   end
+
+  def numbered_todos = @todos.each_with_index { |todo, i| say("  #{i + 1}. #{todo}") }
 
   private
 

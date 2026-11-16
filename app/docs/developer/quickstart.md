@@ -1,10 +1,10 @@
 ---
-title: Fork to Served
+title: Quickstart
 description: Every step from cloning the template to a deployed product you can sign in to, each with its check
 keywords: quickstart start new app fork clone serve deploy first deploy production mail checklist order steps
 ---
 
-# Fork to served
+# Quickstart
 
 This page puts the whole path in order, from cloning the template to a deployed
 app you can sign in to. Each step names what to run and how to tell it worked,
@@ -12,15 +12,20 @@ and links the guide with the details. Follow it top to bottom the first time.
 To do something differently from a default, see
 [Changing the defaults](changing-the-defaults).
 
+> **Opened by bin/fork?** Step 1 is done, and step 2's setup ran; start with step 2's check.
+
 You need [mise](https://mise.jdx.dev/), the [GitHub CLI](https://cli.github.com/)
-signed in (`gh auth login`), and, from step 6, a server and Docker on the
-machine you deploy from.
+signed in (`gh auth login`), Chrome or Chromium for the tests, and, from step 5,
+a server and Docker on the machine you deploy from. Activate mise first, so
+`bin/fork` runs mise's Ruby and not your system's: add `eval "$(mise activate zsh)"` to `~/.zshrc` (or
+`bash` and `~/.bashrc`), then open a new terminal.
 
 ## 1. Make the product
 
 ```bash
-git clone git@github.com:dschmura/modelrails_base.git my_app
+gh repo clone dschmura/modelrails_base my_app
 cd my_app
+mise install   # Ruby 4.0.9 and the deploy tools
 bin/fork
 ```
 
@@ -45,13 +50,14 @@ brackets.
 6. **Does a second person approve PRs?** [N]. Yes makes every PR wait for one
    approval.
 7. **Run bin/setup now?** [Y]. That's step 2.
-8. **Set up outbound mail now?** [N], asked once `bin/setup` succeeds. N is
-   right: mail is step 4, once you have a mail provider's login.
+8. **Start the app and open the quickstart?** [Y], asked once `bin/setup`
+   succeeds. Yes starts `bin/dev` and opens this page in your browser.
 
 It moves `next` to the template's latest release, renames the app in one
-commit, creates your GitHub repo, pushes `next` and protects the branches. It
-ends with a list of things only you can do, such as your product's description
-and brand mark.
+commit, creates your GitHub repo, pushes `next` and protects the branches.
+Before its last question it prints its next steps: this page's address, the
+things only you can do, such as your product's description and brand mark, and
+the command for step 4.
 
 A clone starts on `next`, and `bin/fork` commits the rename there and leaves
 you on it. Your own changes go on a branch of their own (step 3).
@@ -64,11 +70,12 @@ you on it. Your own changes go on a branch of their own (step 3).
 Say yes when `bin/fork` offers `bin/setup`, or run it yourself. It installs
 the dependencies and prepares the database. Then `bin/dev` starts the server.
 
-**Check:** <http://localhost:3000> shows the public home page, and
-`bin/parallel-rspec` ends with 0 failures. If you left the support address
+**Check:** the public [home page](/) loads, and
+`bin/parallel-rspec` ends with 0 failures. `bin/dev` keeps its terminal, so run
+the tests in a second one. If you left the support address
 blank, one spec fails until you set it in `config/locales/en/pages.en.yml`.
 On the shared preset, the seed made an owner, `owner@<your_app>.test`: its
-sign-in link is waiting at <http://localhost:3000/letter_opener>.
+sign-in link is waiting at [/letter_opener](/letter_opener).
 Details: [Getting Started](getting-started).
 
 ## 3. Work by pull request
@@ -109,59 +116,75 @@ description from step 1's list, merges with both checks green. Details:
 
 ## 4. Production secrets and mail
 
-Sign-in is an email, so production refuses to boot without a mail login.
-This is the step `bin/fork`'s mail question was waiting for.
-Run `bin/mail-setup`: it creates the production credentials if they don't
-exist, adds your mail provider's login and updates `config/deploy.yml`.
-Verify your sending domain with the provider, as its DNS instructions say.
-
-Production also refuses to boot without encryption keys for personal data:
+Production refuses to boot without a mail login, because sign-in is an email,
+and without encryption keys for personal data. One command sets up both, and
+keeps `RAILS_MASTER_KEY`, the key that decrypts the production credentials, in
+fnox:
 
 ```bash
-bin/rails db:encryption:init                          # prints three keys, once
-bin/rails credentials:edit --environment production   # paste them in
+bin/production-setup
 ```
 
-Paste from the `active_record_encryption:` line down, not the sentence above
-it, with `active_record_encryption:` at the left edge. If your editor opens a
-window of its own, give it a wait flag, or Rails saves before you type:
-`EDITOR="code --wait" bin/rails credentials:edit --environment production`.
-[Deployment: What production credentials hold](deployment#what-production-credentials-hold)
-shows what to copy, the finished file, and where each value comes from.
-[What production needs](required-production-config) lists every input and where to get it.
+It runs three scripts in order and stops at the first that fails. Fix what it
+says and run it again: it skips what's already done.
 
-Commit `config/credentials/production.yml.enc`. The key,
-`config/credentials/production.key`, stays out of git: save it in a password
-manager now, because nobody can decrypt the credentials without it.
+- **Mail:** `bin/mail-setup` asks for your mail provider and its login,
+  creates the production credentials if they don't exist yet, and updates
+  `config/deploy.yml`. It's skipped once production has a mail login.
+- **Encryption keys:** `bin/encryption-setup` adds them to the production
+  credentials without printing them.
+- **fnox:** `bin/fnox-setup` makes your fnox identity if you don't have one,
+  writes `fnox.toml`, and stores `RAILS_MASTER_KEY` there, and staging's key
+  when it exists. Deploys read the key from fnox. It needs `age` and `fnox`, which
+  `mise install` puts in place.
+  [Keep deploy secrets in fnox](deployment#keep-deploy-secrets-in-fnox) says
+  why.
+
+Then verify your sending domain with the provider, as its DNS instructions say.
+
+Commit `config/credentials/production.yml.enc` and `fnox.toml`. Save
+`config/credentials/production.key` and `~/.config/fnox/age.txt` in a password
+manager now. Neither goes in git. Without `production.key` nobody can decrypt
+the credentials, and without `age.txt` nobody can read what fnox stores.
 
 **Check:** before that commit, `git status -u` lists
-`config/credentials/production.yml.enc` and not the key, which git ignores.
-`bin/rails deploy:check` no longer lists the credentials, the mail
-login or the encryption keys. What it still lists is step 6's work. Details:
-[Deployment: Configure outbound mail](deployment#4-configure-outbound-mail),
-[Forking: Bootstrap secrets](forking#bootstrap-secrets-and-configuration) and
-[Deployment: Production preflight](deployment#production-preflight).
+`config/credentials/production.yml.enc` and `fnox.toml`, and neither key. This
+prints `fnox has the key`, without printing the key:
+
+```bash
+test "$(fnox get RAILS_MASTER_KEY)" = "$(cat config/credentials/production.key)" && echo "fnox has the key"
+```
+
+`bin/rails deploy:check` no longer lists the credentials, the mail login or the
+encryption keys. What it still lists is step 6's work. To do any of this by
+hand, see [Deployment: Set secrets](deployment#3-set-secrets).
+[What production needs](required-production-config) lists every input and
+where to get it.
 
 ## 5. A server
 
 Rent one Linux server. Lock it down before the first deploy: SSH keys only,
 a firewall open on ports 22, 80 and 443, automatic security updates, Docker
 from Docker's own repository, a host key checked once, and a folder for
-backups.
+backups owned by uid 1000. Running a machine of your own instead? Also do
+[Hardware you run yourself](deployment#hardware-you-run-yourself).
 
 **Check:** `ssh root@<server-ip> docker version` prints Docker's version, and
-a password login is refused. Details:
+`ssh -o PubkeyAuthentication=no root@<server-ip>` is refused with
+`Permission denied (publickey)`. Details:
 [Deployment: Prepare the server](deployment#1-prepare-the-server).
 
 ## 6. Configure the deploy and go live
 
 In `config/deploy.yml`, set the server's address (exactly one), uncomment
-`proxy:` with your domain, match `builder.arch` to the server, and set
-`RAILS_HOST` and `BACKUP_PATH`. On the shared preset, also uncomment
-`TENANCY_OWNER_EMAIL` (you) and `TENANCY_WORKSPACE_CREATION: disabled`.
-`bin/rails deploy:check` then says "Nothing here
-stops a deploy." Kamal runs the same check before every build, and stops a
-deploy that would fail. Point your domain at the server, then:
+`proxy:` with your domain, match `builder.arch` to the server, set
+`RAILS_HOST` and `BACKUP_PATH`, and uncomment the `/srv/backups:/backups` line
+under `volumes:` so the backup folder reaches the app. On the shared preset,
+also uncomment `TENANCY_OWNER_EMAIL` (you) and
+`TENANCY_WORKSPACE_CREATION: disabled`. `bin/rails deploy:check` then says
+"Nothing here stops a deploy." Kamal runs the same check before every build,
+and stops a deploy that would fail. Point your domain at the server, wait
+until `dig +short <your-domain>` prints its IP, then:
 
 ```bash
 bin/kamal setup     # the first time
@@ -194,7 +217,7 @@ production:
 ```bash
 bin/release prepare   # names the release in a changelog PR that merges itself
 bin/release cut       # once that PR merges: opens the release PR into main
-bin/release ship      # merges it, tags the version, merges main back into next
+bin/release ship      # merges it, tags the version, opens main's merge back into next
 ```
 
 Until you switch on deploys from CI, deploy `main` from your machine with

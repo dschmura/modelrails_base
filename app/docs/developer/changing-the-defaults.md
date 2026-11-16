@@ -7,7 +7,7 @@ keywords: defaults change switch setting configure preset signup open password m
 # Changing the defaults
 
 A fork starts with defaults chosen to get it live with the fewest decisions:
-[Fork to Served](quickstart) walks through them in order. This page lists each
+the [quickstart](quickstart) walks through them in order. This page lists each
 one, where it's set, and what to change when you want something else. The
 linked section has the details.
 

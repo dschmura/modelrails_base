@@ -21,7 +21,7 @@ RSpec.describe "Changing the defaults docs page", type: :request do
     end
   end
 
-  it "is linked from Fork to Served" do
+  it "is linked from the quickstart" do
     get "/docs/developer/quickstart"
 
     expect(links_on(response.body)).to include("changing-the-defaults")

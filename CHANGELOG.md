@@ -4,6 +4,41 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+## v2026.11.16-2
+
+### Changed
+
+- The production inputs page and `production.yml.example` say to run `bin/encryption-setup` for the encryption keys, with `db:encryption:init` as the by-hand route.
+- `bin/rails deploy:check` warns when `BACKUP_PATH` is set but no volume in `config/deploy.yml` mounts it, since those backups would go with the container.
+- `DEV_OPEN_PATH=/docs/developer/quickstart bin/dev` opens that page in your browser once the app answers, or prints its address where no browser can open.
+- In development, `/docs` opens on the Developer Guide with the quickstart first, and Getting Started and Forking point to it.
+- The README and quickstart say to activate mise, clone with `gh repo clone`, and need Chrome for the tests; the forking guide describes `bin/fork`'s offer to start the app.
+- `bin/encryption-setup` adds production's personal-data encryption keys to its credentials, so there's nothing to paste; it never replaces keys that are already there.
+- `bin/fnox-setup` keeps this app's production and staging master keys in fnox, reusing your age identity if you have one; run it again any time, it only does what's missing.
+- `bin/fork`'s ending uses the quickstart's words: step 1 is done and step 2's setup ran, and "Before you deploy" names production's secrets.
+- `bin/fork`'s next steps give the quickstart on the port `bin/dev` will use, and the quickstart says to run the tests in a second terminal while the app runs.
+- `bin/fork` offers to start the app once `bin/setup` succeeds, and opens the quickstart in your browser.
+- `bin/fork` prints its next steps last, after `bin/setup`'s output: the quickstart's address, your to-dos, what to make your own, and `bin/production-setup` for deploying. It no longer asks about mail.
+- Inside `bin/production-setup`, `bin/mail-setup` ends with just what it set up and what to verify with the provider; `bin/production-setup` gives the rest once.
+- When `bin/mail-setup`'s hidden token prompt reads a blank line, it drops whatever else was pasted, so the rest of a token can't land in your shell.
+- Every checkout gets `age` and `fnox` from `mise install`, ready to keep deploy keys in fnox.
+- Production refuses stand-in credentials such as `your_google_client_id`, as `deploy:check` does, instead of booting with a broken sign-in button.
+- `bin/production-setup` does quickstart step 4 in one command: mail, then the personal-data encryption keys, then fnox, skipping what's already done and stopping at the first step that fails.
+- The quickstart's deploy steps now name the backup volume, the backup folder's owner, the password-login check, the wait for DNS, and the guide for a machine you run yourself.
+- The Fork to Served page is now called Quickstart, the name `bin/fork`, `bin/dev` and the setup scripts already use for it. Its address is unchanged.
+- `bin/production-setup` ends with one summary: `bin/fnox-setup` no longer repeats what to commit and back up when it runs inside it.
+- The README opens with how to start a product: clone, `mise install`, `bin/fork`, then the quickstart the app serves. The quickstart and the forking guide add the `mise install` step.
+- Staging deploys read their master key from fnox too, before falling back to `staging.key`.
+- The quickstart's step 4 is one command, `bin/production-setup`, and a deploy that's missing its encryption keys now says to run `bin/encryption-setup`.
+- The home and about pages describe sign-in as passwordless first, with optional passwords, and no longer name Rails 8.1; the developer guide says system tests need Chrome or Chromium installed.
+
+### Fixed
+
+- `bin/rails deploy:check` checks `BACKUP_PATH` in every role, and accepts a volume written with a trailing slash.
+- The `bin/dev` specs pass beside an app already running on port 3001, and inside the devcontainer.
+- The `bin/fork` and page-opener specs pass inside the devcontainer or a Codespace, and `bin/fork`'s checks of what Next steps leaves out now read the whole list.
+- `bin/production-setup --help` prints its usage instead of starting the setup, and its ending names the quickstart's step 5 without assuming port 3000.
+
 ## v2026.11.16
 
 ### Changed

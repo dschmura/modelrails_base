@@ -135,13 +135,13 @@ RSpec.describe RequiredProductionConfig do
           .not_to raise_error
       end
 
-      it "names the fix in the message" do
+      it "tells a missing-keys deploy to run bin/encryption-setup and points at the credentials section" do
         described_class.check!(host, smtp, {})
         raise "expected check! to raise"
       rescue RuntimeError => e
-        expect(e.message).to include("db:encryption:init")
-        expect(e.message).to include("credentials:edit --environment production")
-        expect(e.message).to include("/docs/developer/forking")
+        expect(e.message).to include("bin/encryption-setup", "deployment#what-production-credentials-hold")
+        expect(e.message).not_to include("db:encryption:init")
+        expect(e.message).not_to include("/docs/developer/forking")
       end
     end
 
@@ -190,7 +190,8 @@ RSpec.describe RequiredProductionConfig do
 
   describe ".placeholder?" do
     [ "<from Stripe → Developers → API keys>", "[secret]", "REPLACE_ME", "paste-here", "CHANGEME", "change_me",
-      "your_api_key", "YOUR SECRET", "TODO", "todo: get from stripe", "xxxx", "example" ].each do |value|
+      "your_api_key", "YOUR SECRET", "TODO", "todo: get from stripe", "xxxx", "example",
+      "your_google_client_id", "YOUR_GOOGLE_CLIENT_ID", "your_github_client_secret" ].each do |value|
       it "is true for #{value.inspect}" do
         expect(described_class.placeholder?(value)).to be(true)
       end
@@ -198,7 +199,8 @@ RSpec.describe RequiredProductionConfig do
 
     [ "sk_live_51Habc", "pm-token-1234", "a1b2c3", "postmark", "yourself_token", "changelog", "", nil, 42, { "a" => 1 },
       "Todo4Ever!", "todolist-app", "your-app@acme.io", "change-alerts@acme.io", "paste-bin-svc", "your abcd efgh ijkl",
-      "todo-app.io", "todo-backups", "todo-app@mg.acme.io" ].each do |value|
+      "todo-app.io", "todo-backups", "todo-app@mg.acme.io", "yourcompany-oauth-8f3a2c", "Ov23liYourAbc123",
+      "your_token_8f3a2c" ].each do |value|
       it "is false for #{value.inspect}" do
         expect(described_class.placeholder?(value)).to be(false)
       end

@@ -3,7 +3,7 @@ en:
     home:
       hero:
         title: "Build your SaaS faster"
-        subtitle: "A production-ready Rails 8.1 starter kit with authentication, workspaces, projects, and real-time collaboration built in."
+        subtitle: "A production-ready Rails starter kit with passwordless sign-in, workspaces, projects, and real-time collaboration built in."
         cta_primary: "Get started"
         cta_signed_in: "Go to your workspaces"
         cta_secondary: "View documentation"
@@ -12,7 +12,7 @@ en:
         subtitle: "Stop rebuilding the same infrastructure. Start with a solid foundation."
         auth:
           title: "Authentication"
-          description: "Email/password, Google and GitHub OAuth, email verification, password reset, and account locking — all built in."
+          description: "Magic links, passkeys, Google and GitHub OAuth, email verification, and optional passwords — all built in."
         workspaces:
           title: "Workspaces"
           description: "Multi-tenant workspaces with roles, permissions, invitations, and branding. Your workspace on sign-up."
@@ -46,7 +46,7 @@ en:
       features:
         title: "What's included"
         items:
-          - "Email/password and OAuth authentication"
+          - "Passwordless, passkey, and OAuth sign-in"
           - "Workspace-based multi-tenancy with roles"
           - "Project collaboration spaces"
           - "Polymorphic resource system"

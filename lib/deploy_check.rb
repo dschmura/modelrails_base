@@ -20,7 +20,7 @@ class DeployCheck
   end
 
   def warnings
-    @warnings ||= unreadable_deploy ? [] : [ *containers.flat_map(&:warnings), servers_warning ].compact.uniq
+    @warnings ||= unreadable_deploy ? [] : [ *containers.flat_map(&:warnings), servers_warning, backup_volume_warning ].compact.uniq
   end
 
   def run(output = $stdout)
@@ -126,6 +126,18 @@ class DeployCheck
     "servers: still lists the template's #{placeholders.join(' and ')}. Put your server's address there."
   end
 
+  def backup_volume_warning
+    paths = containers.filter_map { |container| container.env["BACKUP_PATH"].presence }.uniq.reject { |path| mounted?(path) }
+    return if paths.empty?
+
+    "BACKUP_PATH is #{paths.join(' and ')}, but no volume in config/deploy.yml mounts it, so backups stay inside the container " \
+      "and go with it on the next deploy. Uncomment the \"/srv/backups:/backups\" line under volumes:, " \
+      "or mount your own folder there: /docs/developer/deployment (Back up the database section)."
+  end
+
+  def mounted?(path) = mounted_paths.any? { |mount| path.chomp("/") == mount || path.start_with?("#{mount}/") }
+  def mounted_paths = Array(@kamal.raw_config.volumes).filter_map { |volume| volume.to_s.split(":")[1]&.chomp("/") }
+
   # One container's environment as Kamal starts it, and the credentials production opens with it.
   class Container
     UNOPENABLE = [ ActiveSupport::EncryptedFile::MissingKeyError, ActiveSupport::MessageEncryptor::InvalidMessage, ArgumentError ].freeze
@@ -144,6 +156,8 @@ class DeployCheck
 
       def key = @deploy_key.presence || handle_missing_key
     end
+
+    attr_reader :env
 
     def initialize(root, env, catalog = nil, secret_names: [])
       @root = root

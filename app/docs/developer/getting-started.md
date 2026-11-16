@@ -6,10 +6,12 @@ keywords: setup install mise ruby bundle rspec tests oauth credentials developme
 
 # Getting Started
 
+Starting a product? Follow the [quickstart](quickstart) first. This page is the reference for working in the code.
+
 ## Prerequisites
 
 - [mise](https://mise.jdx.dev/) for runtime version management (see `.tool-versions`)
-- Chromium (managed automatically by Cuprite/Ferrum for system tests)
+- Chrome or Chromium, for the system tests: Cuprite finds an installed browser and doesn't download one
 
 ## The stack
 
@@ -345,5 +347,5 @@ oauth:
 ## Next steps
 
 1. **[Choose your app shape →](/docs/developer/presets)** — Solo-default, Single-tenant, Open SaaS, or Workspace-optional. This is the most important decision; it sets signup, onboarding, and workspace behavior.
-2. **[Fork to Served →](/docs/developer/quickstart)** — every step from a clone to a deployed product you can sign in to.
+2. **[Quickstart →](/docs/developer/quickstart)** — every step from a clone to a deployed product you can sign in to.
 3. **[Extend the framework →](/docs/developer/extending)** — add your own workspace-scoped models, authorization, and features.

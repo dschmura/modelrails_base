@@ -232,8 +232,8 @@ inputs:
     required: always
     secret: true
     purpose: "Encrypts sensitive columns at rest"
-    where: "bin/rails db:encryption:init, which prints them once and stores them nowhere else"
-    set_with: "bin/rails credentials:edit --environment production"
+    where: "bin/encryption-setup makes all three and stores them only in the production credentials; by hand, bin/rails db:encryption:init prints them once"
+    set_with: "bin/encryption-setup, or by hand bin/rails credentials:edit --environment production"
     regenerable: "No, once production has encrypted data: new keys can't read what the old ones wrote"
     step: 4
     example: "<from bin/rails db:encryption:init>"
@@ -243,8 +243,8 @@ inputs:
     required: always
     secret: true
     purpose: "Encrypts sensitive columns at rest"
-    where: "bin/rails db:encryption:init, which prints them once and stores them nowhere else"
-    set_with: "bin/rails credentials:edit --environment production"
+    where: "bin/encryption-setup makes all three and stores them only in the production credentials; by hand, bin/rails db:encryption:init prints them once"
+    set_with: "bin/encryption-setup, or by hand bin/rails credentials:edit --environment production"
     regenerable: "No, once production has encrypted data: new keys can't read what the old ones wrote"
     step: 4
     example: "<from bin/rails db:encryption:init>"
@@ -254,8 +254,8 @@ inputs:
     required: always
     secret: true
     purpose: "Encrypts sensitive columns at rest"
-    where: "bin/rails db:encryption:init, which prints them once and stores them nowhere else"
-    set_with: "bin/rails credentials:edit --environment production"
+    where: "bin/encryption-setup makes all three and stores them only in the production credentials; by hand, bin/rails db:encryption:init prints them once"
+    set_with: "bin/encryption-setup, or by hand bin/rails credentials:edit --environment production"
     regenerable: "No, once production has encrypted data: new keys can't read what the old ones wrote"
     step: 4
     example: "<from bin/rails db:encryption:init>"
