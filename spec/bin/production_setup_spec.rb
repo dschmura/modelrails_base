@@ -18,11 +18,12 @@ RSpec.describe ProductionSetup do
     end
   end
 
-  def calls = @root.join("calls.log").exist? ? @root.join("calls.log").read.split : []
+  def call_lines = @root.join("calls.log").exist? ? @root.join("calls.log").read.lines(chomp: true) : []
+  def calls = call_lines.map { |line| line.split.first }
 
   def stub_step(step, exit_code: 0)
     script = @root.join(step)
-    script.write("#!/bin/sh\necho #{step} >> #{@root.join('calls.log')}\nexit #{exit_code}\n")
+    script.write("#!/bin/sh\necho \"#{step} PRODUCTION_SETUP=$PRODUCTION_SETUP\" >> #{@root.join('calls.log')}\nexit #{exit_code}\n")
     script.chmod(0o755)
   end
 
@@ -65,6 +66,18 @@ RSpec.describe ProductionSetup do
     expect(calls).to eq(%w[bin/mail-setup bin/encryption-setup])
     expect(output.string).to include("bin/encryption-setup")
     expect(output.string).not_to include("Commit")
+  end
+
+  it "tells each script it runs inside bin/production-setup, so their own endings stay short" do
+    run_setup
+
+    expect(call_lines).to all(end_with("PRODUCTION_SETUP=1"))
+  end
+
+  it "warns that git shows the credentials decrypted" do
+    run_setup
+
+    expect(output.string).to include("git diff, git show and git log -p show the credentials decrypted")
   end
 
   it "ends with what to commit and what to back up, once" do
