@@ -49,7 +49,7 @@ RSpec.describe RequiredProductionConfigCatalog::Generator do
   end
 
   it "gives generated inputs an instruction, never a value" do
-    expect(example).to include("# active_record_encryption: run bin/rails db:encryption:init and paste the block it prints")
+    expect(example).to include("# active_record_encryption: run bin/encryption-setup, which adds this block")
     expect(example).not_to match(/^#\s+primary_key:/)
   end
 

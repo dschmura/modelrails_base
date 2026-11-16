@@ -360,13 +360,14 @@ class MailSetup
 
   module ClosingMessage
     def self.text(provider:, address:, port:, sender:, changed_files:, first_run:, deploy_written:, signup_mode:,
-                  preset:, rails_host:, master_key_set:, app_name:, warnings:)
+                  preset:, rails_host:, master_key_set:, app_name:, warnings:, brief: false)
       step = 0
       numbered = ->(line) { "  #{step += 1}. #{line}" }
       lines = [ "", "Mail is configured for production, but nothing has been sent yet." ]
       lines << "  #{provider}: #{address}, sending as #{sender || "noreply@ your RAILS_HOST"}"
       lines << "  config/deploy.yml wasn't updated, so set the values at the end by hand." unless deploy_written
       lines.concat(status_warnings(sender:, rails_host:, master_key_set:, warnings:))
+      return lines.push("", "Before you deploy", *verification(numbered, provider)).join("\n") if brief
 
       lines.push("", "Do this now")
       if changed_files.any?
@@ -385,11 +386,7 @@ class MailSetup
       lines << numbered.("Run bin/rails deploy:check. It lists what production still refuses, such as")
       lines << "     RAILS_HOST and the encryption keys, each with its fix. Kamal runs it before"
       lines << "     every build too, and stops a deploy that would fail."
-      lines << numbered.("Check that your provider shows the domain and DNS records as verified.")
-      if provider == "Amazon SES"
-        lines << "     Request production access too. A new account starts in a sandbox, where a"
-        lines << "     test to your own address passes and invitations later fail."
-      end
+      lines.concat(verification(numbered, provider))
       lines << numbered.("For the deployment itself, follow Fork to Served, /docs/developer/quickstart")
 
       lines.push("", "After you deploy, prove it")
@@ -405,6 +402,15 @@ class MailSetup
       lines << "  MAIL_FROM=#{sender}" if sender
       lines.join("\n")
     end
+
+    def self.verification(numbered, provider)
+      lines = [ numbered.("Check that your provider shows the domain and DNS records as verified.") ]
+      return lines unless provider == "Amazon SES"
+
+      lines << "     Request production access too. A new account starts in a sandbox, where a"
+      lines << "     test to your own address passes and invitations later fail."
+    end
+    private_class_method :verification
 
     def self.status_warnings(sender:, rails_host:, master_key_set:, warnings:)
       found = warnings.map { |warning| "  #{warning}" }
@@ -597,7 +603,8 @@ class MailSetup
       deploy_written:, signup_mode: values["SIGNUP_MODE"], preset: fork_config.preset,
       rails_host: values["RAILS_HOST"],
       master_key_set: !@env["RAILS_MASTER_KEY"].to_s.strip.empty?,
-      app_name: fork_config.name || File.basename(@root), warnings:
+      app_name: fork_config.name || File.basename(@root), warnings:,
+      brief: @env["PRODUCTION_SETUP"].to_s != ""
     )
   end
 
