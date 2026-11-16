@@ -496,6 +496,28 @@ RSpec.describe MailSetup do
     end
 
     describe "#secret" do
+      def flushing_prompts(*answers)
+        flushes = []
+        input = StringIO.new(answers.join)
+        def input.noecho = yield(self)
+        input.define_singleton_method(:iflush) { flushes << :flushed }
+        [ described_class.new(input:, output:), flushes ]
+      end
+
+      it "flushes pending input when the token prompt reads a blank line" do
+        prompts, flushes = flushing_prompts("\n", "the-rest-of-a-paste\n")
+
+        expect(prompts.secret("Token")).to be_nil
+        expect(flushes).to eq([ :flushed ])
+      end
+
+      it "doesn't flush after a real token" do
+        prompts, flushes = flushing_prompts("tok-123\n")
+
+        expect(prompts.secret("Token")).to eq("tok-123")
+        expect(flushes).to be_empty
+      end
+
       it "says typing is hidden" do
         prompts("tok\n").secret("Server API token")
 
@@ -734,6 +756,17 @@ RSpec.describe MailSetup do
 
       it "proceeds on a renamed repo with no .fork.yml" do
         expect(flow("1", "tok", "").run).to eq(0)
+      end
+
+      context "when bin/production-setup runs it" do
+        let(:env) { { "PRODUCTION_SETUP" => "1" } }
+
+        it "leaves the commit, back-up and deploy steps to bin/production-setup" do
+          expect(flow("1", "tok", "").run).to eq(0)
+
+          expect(output.string).to include("nothing has been sent yet")
+          expect(output.string).not_to include("Do this now")
+        end
       end
 
       it "gives a wrong key its own sentence" do
@@ -1113,7 +1146,7 @@ RSpec.describe MailSetup do
         "git diff, git show, git log -p and git commit -v",
         "Before you deploy",
         "bin/rails deploy:check", "RAILS_HOST", "encryption keys",
-        "verified", "Fork to Served, /docs/developer/quickstart",
+        "verified", "follow the quickstart, /docs/developer/quickstart",
         "After you deploy",
         "bin/kamal console", "User.create!", "an address with no account gets no email",
         "bin/kamal logs", "5 links", "suppressed",
@@ -1123,6 +1156,20 @@ RSpec.describe MailSetup do
 
       expect(positions).to all(be_an(Integer))
       expect(positions).to eq(positions.sort)
+    end
+
+    it "keeps only this run's details when bin/production-setup will print the rest" do
+      message = text(brief: true)
+
+      expect(message).to include("nothing has been sent yet", "Postmark: smtp.postmarkapp.com, sending as hello@example.org", "verified")
+      expect(message).not_to include("Do this now", "git add", "password manager", "bin/rails deploy:check",
+                                     "After you deploy", "SMTP_ADDRESS")
+    end
+
+    it "keeps warnings and the SES sandbox step when brief" do
+      message = text(brief: true, provider: "Amazon SES", warnings: [ "A warning to keep." ])
+
+      expect(message).to include("A warning to keep.", "sandbox")
     end
 
     it "drops the key backup when it isn't a first run" do

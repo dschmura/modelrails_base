@@ -27,7 +27,7 @@ The template ships these defaults safely; you only need to think about them when
 These steps go from a fresh fork to a deployed app you can trust, in order,
 and each one ends with a check. They assume one cloud server and one person
 deploying from a laptop. Four sections after them add to the path:
-[Keep deploy secrets in fnox](#keep-deploy-secrets-in-fnox), which is optional,
+[Keep deploy secrets in fnox](#keep-deploy-secrets-in-fnox),
 [More than one person deploys](#more-than-one-person-deploys),
 [Hardware you run yourself](#hardware-you-run-yourself), and
 [Changing the registry](#changing-the-registry), for the one default you may
@@ -138,9 +138,13 @@ env:
 With the shipped local registry, a deploy needs one secret: `RAILS_MASTER_KEY`,
 the key that decrypts the production credentials. The template uses
 per-environment credentials, so the key is `config/credentials/production.key`,
-not the single `config/master.key` a default `rails new` would use. If you
-haven't made the production credentials yet, do it now
-([Forking](forking#bootstrap-secrets-and-configuration)):
+not the single `config/master.key` a default `rails new` would use.
+
+`bin/production-setup` does this step for you: it runs `bin/mail-setup`, which
+creates the production credentials, then `bin/encryption-setup`, which adds
+the encryption keys, then `bin/fnox-setup`, which keeps the key in
+[fnox](#keep-deploy-secrets-in-fnox). That's step 4 of
+the [quickstart](quickstart). To make the credentials by hand instead:
 
 1. Run `bin/rails db:encryption:init` and keep its output on screen. It
    prints three keys once and stores them nowhere.
@@ -698,10 +702,11 @@ a hope, not a backup.
 
 ## Keep deploy secrets in fnox
 
-This is optional. Without it, the production key lives in one file on your
-laptop, `config/credentials/production.key`, with its copy in your password
-manager. [fnox](https://fnox.jdx.dev) keeps deploy secrets in the repository
-instead, encrypted, so any machine holding your identity can deploy. It also
+[fnox](https://fnox.jdx.dev) keeps deploy secrets in the repository,
+encrypted, so any machine holding your identity can deploy. Without it, the
+production key lives in one file on your laptop,
+`config/credentials/production.key`, and a deploy from anywhere else needs
+that file copied there. It also
 keeps a public repository from showing where you deploy, and it's how the
 template shares deploy secrets when
 [more than one person deploys](#more-than-one-person-deploys).
@@ -724,25 +729,25 @@ before the key file, and that step finds nothing until you set fnox up.
 
 ### Set it up
 
-The first person installs the tools and makes an identity:
-
-```toml
-# mise.toml: exact versions, in this form, beside the template's two tools
-age = "1.3.2"
-fnox = "1.45.0"
-```
+`mise.toml` pins `age` and `fnox`, so `mise install` puts both in place. Then:
 
 ```bash
-mise install && mise lock
+bin/fnox-setup
+```
+
+It reuses your identity, or makes one; writes `fnox.toml` with a production
+and a staging provider, each listing you; and stores production's key, and
+staging's once staging has one. Run it again any time:
+it only does what's missing, and it refuses to change a `fnox.toml` that
+doesn't list you. `bin/production-setup` runs it as its last step.
+
+To do the same by hand, make an identity:
+
+```bash
 mkdir -p ~/.config/fnox
 age-keygen -o ~/.config/fnox/age.txt    # prints your recipient, age1…
 fnox init --skip-wizard
 ```
-
-A template invariant reads only the `tool = "X.Y.Z"` form, and checks that
-`mise.lock` locks each version. It also checks that the workflow audit
-installs exactly `mise.toml`'s tools, so add `fnox age` to `install_args` in
-`.github/workflows/workflow_audit.yml`.
 
 Replace the new `fnox.toml` with one recipient list per environment, each
 holding the `age1…` line `age-keygen` printed. Everyone who can decrypt a value
@@ -781,7 +786,7 @@ the environment and the key file:
 RAILS_MASTER_KEY=$(printenv RAILS_MASTER_KEY | grep . || fnox get RAILS_MASTER_KEY 2>/dev/null || cat config/credentials/production.key)
 ```
 
-With a staging destination, give `.kamal/secrets.staging` the same step:
+`.kamal/secrets.staging` does the same with staging's profile:
 
 ```bash
 RAILS_MASTER_KEY=$(printenv RAILS_MASTER_KEY | grep . || fnox --profile staging get RAILS_MASTER_KEY 2>/dev/null || cat config/credentials/staging.key)
@@ -793,7 +798,7 @@ environment first, then fnox, then the key file. A bare
 not `$RAILS_MASTER_KEY`: Kamal substitutes `$VAR` inside `$(...)` itself, so
 never put a secret's variable in a command substitution.
 
-Commit `fnox.toml`, `mise.toml`, `mise.lock` and any secrets file you changed.
+Commit `fnox.toml` and any secrets file you changed.
 Check: `fnox check --all` passes, and `bin/kamal deploy` works as before.
 
 ### Keep the deploy host out of a public repository

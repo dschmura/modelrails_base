@@ -13,7 +13,7 @@ module RequiredProductionConfig
 
   # The words a typed stand-in is made of, as in REPLACE_ME, paste-here or your_api_key; a real login has others.
   STAND_IN_WORD = /me|here|this|it|with|your|my|the|value|key|secret|token|password|api|id|client|name|user|email|host|domain|app/i
-  PLACEHOLDER_VALUE = /\A(<.*>|\[.*\]|(replace|paste|change|your)([_\- ](#{STAND_IN_WORD}))*|changeme|todo([: ].*)?|x{3,}|example)\z/i
+  PLACEHOLDER_VALUE = /\A(<.*>|\[.*\]|(replace|paste|change|your)([_\- ](#{STAND_IN_WORD}))*|your(_[a-z]+)+|changeme|todo([: ].*)?|x{3,}|example)\z/i
   OAUTH_PROVIDERS = { google: "Google", github: "GitHub" }.freeze
 
   # The three values `bin/rails db:encryption:init` generates. Credentials are
@@ -223,10 +223,10 @@ module RequiredProductionConfig
       rest. Without the keys the app boots and /up reports healthy, and the first
       read or write of a user raises.
 
-      Fix: run `bin/rails db:encryption:init` and paste its block into
-        bin/rails credentials:edit --environment production
+      Fix: run bin/encryption-setup, which adds the keys to the production
+      credentials, then commit config/credentials/production.yml.enc.
 
-      Details: /docs/developer/forking (Bootstrap secrets and configuration).
+      Details: /docs/developer/deployment#what-production-credentials-hold
       Opting out for good: git rm config/initializers/required_production_config.rb
     MSG
   end

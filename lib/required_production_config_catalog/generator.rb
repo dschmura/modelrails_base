@@ -130,7 +130,7 @@ class RequiredProductionConfigCatalog
       if entry.key == "secret_key_base"
         "# secret_key_base: written by bin/rails credentials:edit when it creates the file; leave it as it is"
       else
-        "# #{entry.key.split(".").first}: run bin/rails db:encryption:init and paste the block it prints"
+        "# #{entry.key.split(".").first}: run bin/encryption-setup, which adds this block"
       end
     end
 

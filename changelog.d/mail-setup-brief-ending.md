@@ -1,0 +1,1 @@
+- Inside `bin/production-setup`, `bin/mail-setup` ends with just what it set up and what to verify with the provider; `bin/production-setup` gives the rest once.

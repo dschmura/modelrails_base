@@ -73,6 +73,24 @@ RSpec.describe ".kamal/secrets" do
 
       expect(master_key).to eq("key-from-file")
     end
+
+    context "for the staging destination" do
+      def master_key = Kamal::Secrets.new(destination: "staging")["RAILS_MASTER_KEY"]
+
+      it "takes RAILS_MASTER_KEY from fnox's staging profile when the environment has none" do
+        ENV.delete("RAILS_MASTER_KEY")
+        install_fnox('[ "$*" = "--profile staging get RAILS_MASTER_KEY" ] && echo key-from-fnox-staging')
+
+        expect(master_key).to eq("key-from-fnox-staging")
+      end
+
+      it "never takes production's fnox value for staging" do
+        ENV.delete("RAILS_MASTER_KEY")
+        install_fnox('[ "$*" = "get RAILS_MASTER_KEY" ] && echo key-from-fnox-production')
+
+        expect(master_key).to eq("staging-key-from-file")
+      end
+    end
   end
 
   it "falls back to the key file when fnox isn't installed" do

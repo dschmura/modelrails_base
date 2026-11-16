@@ -6,6 +6,8 @@ keywords: fork template upstream downstream merge sync rename clone brand seams 
 
 # Forking this template
 
+Starting a product? The [quickstart](quickstart) puts every step in order; this page holds the details.
+
 ModelRails is an **upstream template**: you clone it to start a product, build in
 fork-owned files, and periodically merge upstream improvements back in — the same
 workflow commercial Rails templates like Jumpstart Pro use.
@@ -36,8 +38,9 @@ everything else: the application code around the gems.
 Clone the template under your product's name and run `bin/fork`:
 
 ```bash
-git clone git@github.com:dschmura/modelrails_base.git my_app
+gh repo clone dschmura/modelrails_base my_app
 cd my_app
+mise install   # Ruby 4.0.9 and the deploy tools
 bin/fork
 ```
 
@@ -96,12 +99,12 @@ already done, completes a rename that was interrupted partway, and picks up
 whatever is still missing: a real support address, and (when you answer yes, or
 pass `--github`) the GitHub repo, the push, or the branch rules.
 
-When run interactively it finishes by offering to run `bin/setup` for you (the
-dev server is not started — that stays your call). Under `--yes`, or when stdin
-isn't a terminal, it never does: scripted and CI runs stay fast and predictable.
-When that `bin/setup` succeeds, it offers `bin/mail-setup` next (default: no).
-Production refuses to boot until outbound mail is set up, so the next steps it
-prints name `bin/mail-setup` either way.
+When run interactively it offers to run `bin/setup` for you, then prints its
+next steps: the quickstart's address, and `bin/production-setup`, which sets up
+mail, encryption keys and fnox before your first deploy. Last, it offers to
+start the app with `bin/dev` and open the quickstart. Under `--yes`, or when
+stdin isn't a terminal, it offers neither: scripted and CI runs stay fast and
+predictable.
 
 ### From an organization's copy
 

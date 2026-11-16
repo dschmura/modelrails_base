@@ -1,0 +1,1 @@
+- The home and about pages describe sign-in as passwordless first, with optional passwords, and no longer name Rails 8.1; the developer guide says system tests need Chrome or Chromium installed.
