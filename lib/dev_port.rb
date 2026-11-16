@@ -10,8 +10,8 @@ module DevPort
   TRIES = 10
   QUICKSTART = "/docs/developer/quickstart"
 
-  def self.busy?(port, hosts: HOSTS)
-    hosts.any? do |host|
+  def self.busy?(port)
+    HOSTS.any? do |host|
       Socket.tcp(host, port, connect_timeout: 0.2).close
       true
     rescue SystemCallError, SocketError, IOError
