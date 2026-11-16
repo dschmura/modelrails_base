@@ -12,6 +12,8 @@ and links the guide with the details. Follow it top to bottom the first time.
 To do something differently from a default, see
 [Changing the defaults](changing-the-defaults).
 
+> **Opened by bin/fork?** Step 1 is done, and step 2's setup ran; start with step 2's check.
+
 You need [mise](https://mise.jdx.dev/), the [GitHub CLI](https://cli.github.com/)
 signed in (`gh auth login`), and, from step 6, a server and Docker on the
 machine you deploy from.
@@ -45,6 +47,8 @@ brackets.
 6. **Does a second person approve PRs?** [N]. Yes makes every PR wait for one
    approval.
 7. **Run bin/setup now?** [Y]. That's step 2.
+8. **Start the app and open the quickstart?** [Y], asked once `bin/setup`
+   succeeds. Yes starts `bin/dev` and opens this page in your browser.
 
 It moves `next` to the template's latest release, renames the app in one
 commit, creates your GitHub repo, pushes `next` and protects the branches. It
@@ -62,11 +66,11 @@ you on it. Your own changes go on a branch of their own (step 3).
 Say yes when `bin/fork` offers `bin/setup`, or run it yourself. It installs
 the dependencies and prepares the database. Then `bin/dev` starts the server.
 
-**Check:** <http://localhost:3000> shows the public home page, and
+**Check:** the public [home page](/) loads, and
 `bin/parallel-rspec` ends with 0 failures. If you left the support address
 blank, one spec fails until you set it in `config/locales/en/pages.en.yml`.
 On the shared preset, the seed made an owner, `owner@<your_app>.test`: its
-sign-in link is waiting at <http://localhost:3000/letter_opener>.
+sign-in link is waiting at [/letter_opener](/letter_opener).
 Details: [Getting Started](getting-started).
 
 ## 3. Work by pull request
