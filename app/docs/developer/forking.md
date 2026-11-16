@@ -6,6 +6,8 @@ keywords: fork template upstream downstream merge sync rename clone brand seams 
 
 # Forking this template
 
+Starting a product? [Fork to Served](quickstart) puts every step in order; this page holds the details.
+
 ModelRails is an **upstream template**: you clone it to start a product, build in
 fork-owned files, and periodically merge upstream improvements back in — the same
 workflow commercial Rails templates like Jumpstart Pro use.
