@@ -24,6 +24,9 @@ chosen=$(ruby "$dev_port" choose "$port" "$origin") || exit 1
 [ "$chosen" != "$port" ] && echo "Port $port is in use, so the app uses $chosen."
 ruby "$dev_port" announce "$chosen"
 export DEV_SERVER_PORT="$chosen"
+if [ -n "$DEV_OPEN_PATH" ]; then
+  ruby "$(dirname "$0")/../lib/dev_open.rb" "$chosen" "$DEV_OPEN_PATH" &
+fi
 
 export RUBY_DEBUG_OPEN="true"
 export RUBY_DEBUG_LAZY="true"
