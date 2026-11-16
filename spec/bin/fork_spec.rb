@@ -157,6 +157,8 @@ RSpec.describe ForkFlow do
 
   before { allow(Kernel).to receive(:exec).and_raise("bin/fork tried to exec, which would replace the rspec worker") }
 
+  before { allow(DevPort).to receive(:busy?).and_return(false) }
+
   # Read back inside the example, before the after-hook rm_rf deletes workdir,
   # so the #789 guard below can tell "the decoy was written" apart from "the
   # clone helper never got as far as configuring the fixture".
@@ -1665,6 +1667,15 @@ RSpec.describe ForkFlow do
 
       expect(printed.string).to match(%r{Next steps ==\n\s*Follow the quickstart: #{quickstart}})
       expect(printed.string).not_to include("deploy-guide")
+    end
+
+    it "gives the quickstart on the port bin/dev will choose when 3000 is taken" do
+      allow(DevPort).to receive(:busy?).with(3000).and_return(true)
+
+      run_fork(name: "my_app", yes: true)
+
+      expect(printed.string).to include("Follow the quickstart: http://localhost:3001/docs/developer/quickstart")
+      expect(printed.string).to include("http://localhost:3001/docs/developer/presets")
     end
 
     it "names bin/production-setup for step 4, even with --yes" do

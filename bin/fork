@@ -27,6 +27,7 @@ require "yaml"
 require_relative "../lib/clean_git_env"
 require_relative "../lib/github_origin"
 require_relative "../lib/fork_config"
+require_relative "../lib/dev_port"
 
 class ForkFlow
   VERSION = "1.0.0"
@@ -92,8 +93,6 @@ class ForkFlow
   # anything else (pinned by a template invariant). Open SaaS is documented but
   # not implemented — offering it here would write a .env the app won't boot on.
   PRESETS = ForkConfig::PRESETS
-  QUICKSTART_URL = "http://localhost:3000/docs/developer/quickstart"
-  PRESETS_URL = "http://localhost:3000/docs/developer/presets"
 
   # Object.const_defined? catches Ruby core (always loaded), but this script is
   # stdlib-only by design — Rails and friends are NOT defined in its process, so
@@ -844,8 +843,8 @@ class ForkFlow
     say("\n== Tenancy preset ==")
 
     if preset.nil?
-      say("  ! no preset chosen — skipped. Choose one before you have users: #{PRESETS_URL}")
-      @todos << "Choose the tenancy preset: bin/fork --preset #{PRESETS.join('|')} (#{PRESETS_URL})"
+      say("  ! no preset chosen — skipped. Choose one before you have users: #{app_url}/docs/developer/presets")
+      @todos << "Choose the tenancy preset: bin/fork --preset #{PRESETS.join('|')} (#{app_url}/docs/developer/presets)"
       return
     end
 
@@ -1028,9 +1027,15 @@ class ForkFlow
 
   def interactive? = @console.interactive?
 
+  def app_url
+    @app_url ||= DevPort.url(DevPort.choose(3000, explicit: false, container: DevPort.container?))
+  rescue DevPort::Busy
+    @app_url = DevPort.url(3000)
+  end
+
   def print_summary!(setup_ok:)
     say("\n== Next steps ==")
-    say("  Follow the quickstart: #{QUICKSTART_URL}")
+    say("  Follow the quickstart: #{app_url}#{DevPort::QUICKSTART}")
     numbered_todos
     say("\n  Make it yours:")
     @make_it_yours.each { |item| say("  - #{item}") }
