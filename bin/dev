@@ -8,18 +8,23 @@ fi
 # Foreman gives every process its own PORT (bin/jobs gets 3200), so mail links read DEV_SERVER_PORT.
 # Same precedence as foreman's base port: -p/--port, then PORT in .env, then the shell's PORT.
 port="${PORT:-3000}"
+origin="default"
+[ -n "$PORT" ] && origin="explicit"
 env_port=$(sed -n -E "s/^PORT=[\"']?([0-9]+)[\"']?\$/\1/p" .env 2>/dev/null | tail -n 1)
-[ -n "$env_port" ] && port="$env_port"
+[ -n "$env_port" ] && port="$env_port" && origin="explicit"
 previous=""
 for argument in "$@"; do
-  case "$previous" in -p|--port) port="$argument" ;; esac
-  case "$argument" in --port=*) port="${argument#--port=}" ;; -p?*) port="${argument#-p}" ;; esac
+  case "$previous" in -p|--port) port="$argument" origin="explicit" ;; esac
+  case "$argument" in --port=*) port="${argument#--port=}" origin="explicit" ;; -p?*) port="${argument#-p}" origin="explicit" ;; esac
   previous="$argument"
 done
-export DEV_SERVER_PORT="$port"
 
-# Let the debug gem allow remote connections,
-# but avoid loading until `debugger` is called
+dev_port="$(dirname "$0")/../lib/dev_port.rb"
+chosen=$(ruby "$dev_port" choose "$port" "$origin") || exit 1
+[ "$chosen" != "$port" ] && echo "Port $port is in use, so the app uses $chosen."
+ruby "$dev_port" announce "$chosen"
+export DEV_SERVER_PORT="$chosen"
+
 export RUBY_DEBUG_OPEN="true"
 export RUBY_DEBUG_LAZY="true"
 
