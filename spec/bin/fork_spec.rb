@@ -892,7 +892,8 @@ RSpec.describe ForkFlow do
 
       expect(system(ForkFlow::CLEAN_GIT_ENV, "git", "-C", repo.to_s, "remote", "get-url", "origin", err: File::NULL)).to be(false)
       expect(remote_next).to be_empty
-      expect(flow.todos.join).to match(/--origin \S+ --github/).and include("Rewrite marketing copy")
+      expect(flow.todos.join).to match(/--origin \S+ --github/)
+      expect(flow.make_it_yours.join).to include("Rewrite marketing copy")
     end
 
     it "finishes with the rerun it advised after a failed create" do
@@ -1450,59 +1451,6 @@ RSpec.describe ForkFlow do
     end
   end
 
-  describe "#offer_mail_setup!" do
-    let(:shell) { instance_double(ForkFlow::Shell, run: true) }
-
-    def flow_for(opts, input) = described_class.new(opts, root: repo.to_s, input:, output: printed, shell:)
-
-    [ { yes: true }, { dry_run: true } ].each do |opts|
-      it "doesn't ask under #{opts.keys.first}" do
-        input = terminal("y\n")
-
-        flow_for({ name: "my_app", **opts }, input).offer_mail_setup!
-
-        expect(input.pos).to eq(0)
-        expect(shell).not_to have_received(:run)
-      end
-    end
-
-    it "doesn't ask when stdin is not a terminal" do
-      input = StringIO.new("y\n")
-
-      flow_for({ name: "my_app" }, input).offer_mail_setup!
-
-      expect(input.pos).to eq(0)
-      expect(shell).not_to have_received(:run)
-    end
-
-    context "when interactive" do
-      def answering(typed) = flow_for({ name: "my_app" }, terminal(typed))
-
-      it "treats a bare Enter as No, warns, and changes nothing" do
-        answering("\n").offer_mail_setup!
-
-        expect(shell).not_to have_received(:run)
-        expect(printed.string).to include("production will refuse to boot", "bin/mail-setup", "development mail keeps working")
-        expect(capture_git("status", "--porcelain")).to eq("")
-      end
-
-      it "runs bin/mail-setup on a yes, without a warning when it succeeds" do
-        answering("y\n").offer_mail_setup!
-
-        expect(shell).to have_received(:run).with("bin/mail-setup")
-        expect(printed.string).not_to include("production will refuse to boot")
-      end
-
-      it "warns when bin/mail-setup is declined or fails" do
-        allow(shell).to receive(:run).and_return(false)
-
-        answering("y\n").offer_mail_setup!
-
-        expect(printed.string).to include("production will refuse to boot")
-      end
-    end
-  end
-
   describe ForkFlow::GithubRepo do
     it "lists the steps by hand, quietly, when told not to publish" do
       todos = []
@@ -1620,38 +1568,77 @@ RSpec.describe ForkFlow do
     end
   end
 
-  describe "the mail step in a fresh fork" do
-    it "sends the deploy to Fork to Served in Next steps" do
+  describe "the ending of a fresh fork" do
+    let(:quickstart) { "http://localhost:3000/docs/developer/quickstart" }
+
+    def run_with_setup(result = true, &)
+      run_fork({ name: "my_app", github: false }, terminal("\n" * 10)) do |flow|
+        allow(flow).to receive(:offer_setup!) { printed.puts("SETUP OUTPUT") if result; result }
+      end
+    end
+
+    it "prints Next steps after bin/setup's output" do
+      run_with_setup
+
+      expect(printed.string.index("Next steps")).to be > printed.string.index("SETUP OUTPUT")
+    end
+
+    it "opens Next steps with the quickstart's full URL" do
       run_fork(name: "my_app", yes: true)
 
-      expect(printed.string).to match(%r{Next steps.*/docs/developer/quickstart}m)
+      expect(printed.string).to match(%r{Next steps ==\n\s*Follow the quickstart: #{quickstart}})
       expect(printed.string).not_to include("deploy-guide")
     end
 
-    it "lists bin/mail-setup in Next steps, even with --yes" do
+    it "names bin/production-setup for step 4, even with --yes" do
       run_fork(name: "my_app", yes: true)
 
-      expect(printed.string).to match(/Next steps.*bin\/mail-setup/m)
+      expect(printed.string).to include("Before deploying: bin/production-setup sets up mail, encryption keys and fnox (quickstart step 4)")
     end
 
-    it "lists bin/mail-setup under --dry-run" do
-      run_fork(name: "my_app", yes: true, dry_run: true)
+    it "never asks about mail" do
+      run_with_setup
 
-      expect(printed.string).to match(/Next steps.*bin\/mail-setup/m)
+      expect(printed.string).not_to include("Set up outbound mail now?")
     end
 
-    it "doesn't offer mail when bin/setup didn't succeed" do
-      run_fork(name: "my_app", yes: true) do |flow|
-        allow(flow).to receive(:offer_setup!).and_return(false)
-        expect(flow).not_to receive(:offer_mail_setup!)
-      end
+    it "no longer tells you to run bin/setup when it just ran" do
+      run_with_setup
+
+      expect(printed.string).not_to include("bin/setup --skip-server && bin/parallel-rspec")
+      expect(printed.string).not_to include("Run bin/setup, then bin/dev")
     end
 
-    it "offers mail once bin/setup succeeded" do
-      run_fork(name: "my_app", yes: true) do |flow|
-        allow(flow).to receive(:offer_setup!).and_return(true)
-        expect(flow).to receive(:offer_mail_setup!)
-      end
+    it "tells you to run bin/setup, then bin/dev, when setup didn't run" do
+      run_fork(name: "my_app", yes: true)
+
+      expect(printed.string.lines.last).to include("Run bin/setup, then bin/dev")
+    end
+
+    it "lists copywriting under Make it yours, after the fork's own to-dos" do
+      run_fork(name: "my_app", yes: true)
+      output = printed.string
+
+      expect(output.index("Make it yours:")).to be > output.index("  1. ")
+      expect(output.index("Rewrite marketing copy")).to be > output.index("Make it yours:")
+    end
+
+    it "points a skipped preset at the presets page without warning about migrations" do
+      run_fork(name: "my_app", yes: true)
+
+      expect(printed.string).not_to include("migration, not a config flip")
+      expect(printed.string).to include("http://localhost:3000/docs/developer/presets")
+    end
+
+    it "keeps Verify's pass line and drops the comment-only file list" do
+      repo.join("config/notes.yml").write("# forked from modelrails_base\nkey: value\n")
+      git("add", "config/notes.yml")
+      git("commit", "-qm", "add a comment-only mention")
+
+      run_fork(name: "my_app", yes: true)
+
+      expect(printed.string).to include("no live template tokens")
+      expect(printed.string).not_to include("comment-only mentions")
     end
   end
 
