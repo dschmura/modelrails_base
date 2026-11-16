@@ -2,6 +2,7 @@
 
 require "rails_helper"
 require "tmpdir"
+require "open3"
 
 load Rails.root.join("bin/production-setup")
 
@@ -86,6 +87,25 @@ RSpec.describe ProductionSetup do
     expect(output.string.scan("Commit").size).to eq(1)
     expect(output.string).to include("config/credentials/production.yml.enc", "fnox.toml",
                                       "config/credentials/production.key", "~/.config/fnox/age.txt",
-                                      "bin/rails deploy:check", "http://localhost:3000/docs/developer/quickstart")
+                                      "bin/rails deploy:check", "step 5 (/docs/developer/quickstart)")
+  end
+
+  it "names the quickstart's step without guessing the port bin/dev chose" do
+    run_setup
+
+    expect(output.string).not_to include("localhost")
+  end
+
+  it "prints its usage for --help and runs nothing" do
+    @root.join("bin/production-setup").write(Rails.root.join("bin/production-setup").read)
+    @root.join("bin/production-setup").chmod(0o755)
+    @root.join("lib").mkpath
+    @root.join("lib/clean_git_env.rb").write(Rails.root.join("lib/clean_git_env.rb").read)
+
+    printed, = Open3.capture2e({ "BUNDLE_GEMFILE" => Rails.root.join("Gemfile").to_s },
+                               @root.join("bin/production-setup").to_s, "--help", chdir: @root.to_s)
+
+    expect(printed).to include("Usage: bin/production-setup")
+    expect(calls).to be_empty
   end
 end
