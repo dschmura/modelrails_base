@@ -1,0 +1,1 @@
+- `bin/encryption-setup` adds production's personal-data encryption keys to its credentials, so there's nothing to paste; it never replaces keys that are already there.
