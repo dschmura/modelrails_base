@@ -135,13 +135,13 @@ RSpec.describe RequiredProductionConfig do
           .not_to raise_error
       end
 
-      it "names the fix in the message" do
+      it "tells a missing-keys deploy to run bin/encryption-setup and points at the credentials section" do
         described_class.check!(host, smtp, {})
         raise "expected check! to raise"
       rescue RuntimeError => e
-        expect(e.message).to include("db:encryption:init")
-        expect(e.message).to include("credentials:edit --environment production")
-        expect(e.message).to include("/docs/developer/forking")
+        expect(e.message).to include("bin/encryption-setup", "deployment#what-production-credentials-hold")
+        expect(e.message).not_to include("db:encryption:init")
+        expect(e.message).not_to include("/docs/developer/forking")
       end
     end
 
