@@ -13,11 +13,6 @@ RSpec.describe DevPort do
     TCPServer.new(host, port).tap { |server| listeners << server }.addr[1]
   end
 
-  def free_port
-    server = TCPServer.new("127.0.0.1", 0)
-    server.addr[1].tap { server.close }
-  end
-
   def busy_run(length)
     20.times do
       base = free_port

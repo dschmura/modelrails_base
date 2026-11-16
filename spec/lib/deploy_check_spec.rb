@@ -304,6 +304,23 @@ RSpec.describe DeployCheck do
     expect(check.warnings.join).to include("BACKUP_PATH is /backups")
   end
 
+  it "accepts a volume written with a trailing slash" do
+    deploy(volumes: [ "/srv/backups:/backups/" ])
+    credentials
+
+    expect(check.warnings).to be_empty
+  end
+
+  it "checks BACKUP_PATH in every role, not only the first" do
+    deploy(env: ready_env.merge("BACKUP_PATH" => "/elsewhere"))
+    config = YAML.safe_load(@root.join("config/deploy.yml").read)
+    config["servers"]["job"] = { "hosts" => [ "203.0.113.11" ], "cmd" => "bin/jobs", "env" => { "clear" => { "BACKUP_PATH" => "/backups" } } }
+    write("config/deploy.yml", config.to_yaml)
+    credentials
+
+    expect(check.warnings.join).to include("BACKUP_PATH is /elsewhere")
+  end
+
   it "warns about the template's placeholder server and backups being off" do
     deploy(env: ready_env.except("BACKUP_PATH"), hosts: [ "192.168.0.1" ])
     credentials

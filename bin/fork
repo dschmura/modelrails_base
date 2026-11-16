@@ -947,7 +947,7 @@ class ForkFlow
       return {}
     end
 
-    # git grep searches tracked files only; worktrees and graphify-out/ would bury the real misses.
+    # git grep searches tracked files only, so untracked output can't bury the real misses.
     out, status = capture("git", "-C", @root, "grep", "-Ili", "modelrails")
     # git grep: 0 = matches, 1 = clean, anything else = the check did not run.
     abort("bin/fork: verify sweep failed to run (git grep exit #{status})") if status > 1
@@ -1021,8 +1021,8 @@ class ForkFlow
     return unless interactive?
     return unless ask("\nStart the app and open the quickstart?", "Y").match?(/\A[Yy]/)
 
-    say("Steps 1 and 2 of the quickstart are done; opening it.")
-    @shell.exec({ "DEV_OPEN_PATH" => "/docs/developer/quickstart" }, "bin/dev")
+    say("Step 1 is done and step 2's setup ran; opening the quickstart.")
+    @shell.exec({ "DEV_OPEN_PATH" => DevPort::QUICKSTART }, "bin/dev")
   end
 
   def interactive? = @console.interactive?
@@ -1039,7 +1039,7 @@ class ForkFlow
     numbered_todos
     say("\n  Make it yours:")
     @make_it_yours.each { |item| say("  - #{item}") }
-    say("\n  Before deploying: bin/production-setup sets up mail, encryption keys and fnox (quickstart step 4)")
+    say("\n  Before you deploy: bin/production-setup sets up production's secrets: mail, encryption keys and fnox (quickstart step 4)")
     say("  Run bin/setup, then bin/dev") unless setup_ok
   end
 
