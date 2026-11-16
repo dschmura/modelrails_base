@@ -19,6 +19,25 @@ RSpec.describe "Documentation index coverage" do
       "Uncategorized docs (add to config/initializers/markdowndocs.rb): #{orphans.sort.join(', ')}"
   end
 
+  it "lists Fork to Served first among the developer pages under Getting Started" do
+    developer_pages = Markdowndocs.configuration.categories.fetch("Getting Started").grep(%r{\Adeveloper/})
+
+    expect(developer_pages.first).to eq("developer/quickstart")
+  end
+
+  %w[development production].zip(%w[developer user]).each do |environment, mode|
+    it "opens the docs index on the #{mode} guide in #{environment}" do
+      original = Markdowndocs.configuration.default_mode
+      allow(Rails).to receive(:env).and_return(ActiveSupport::EnvironmentInquirer.new(environment))
+
+      load Rails.root.join("config/initializers/markdowndocs.rb")
+
+      expect(Markdowndocs.configuration.default_mode).to eq(mode)
+    ensure
+      Markdowndocs.configuration.default_mode = original
+    end
+  end
+
   it "references no category slug that lacks a backing file (catches renames/typos)" do
     stale = categorized - doc_slugs
     expect(stale).to be_empty,
