@@ -25,7 +25,8 @@ chosen=$(ruby "$dev_port" choose "$port" "$origin") || exit 1
 ruby "$dev_port" announce "$chosen"
 export DEV_SERVER_PORT="$chosen"
 if [ -n "$DEV_OPEN_PATH" ]; then
-  ruby "$(dirname "$0")/../lib/dev_open.rb" "$chosen" "$DEV_OPEN_PATH" &
+  # A subshell, so the opener isn't foreman's child: foreman stops every process when a child exits.
+  (ruby "$(dirname "$0")/../lib/dev_open.rb" "$chosen" "$DEV_OPEN_PATH" &)
 fi
 
 export RUBY_DEBUG_OPEN="true"

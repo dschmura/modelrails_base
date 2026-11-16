@@ -12,7 +12,7 @@ RSpec.describe "bin/dev" do
       @dir = Pathname.new(dir)
       stubs = @dir.join("stubs")
       stubs.mkpath
-      { "gem" => "exit 0", "foreman" => 'echo "DEV_SERVER_PORT=$DEV_SERVER_PORT"; echo "$@"',
+      { "gem" => "exit 0", "foreman" => %[echo "DEV_SERVER_PORT=$DEV_SERVER_PORT"; echo "$@"; exec "#{RbConfig.ruby}" -e 'begin; Process.wait(-1); puts "FOREMAN_CHILD_EXITED"; rescue Errno::ECHILD; end'],
         "ruby" => %[case "$1" in *dev_open.rb) echo "$@" > "#{@dir.join('opened')}" ;; *) exec "#{RbConfig.ruby}" "$@" ;; esac] }.each do |name, body|
         stubs.join(name).write("#!/bin/sh\n#{body}\n")
         stubs.join(name).chmod(0o755)
@@ -84,6 +84,12 @@ RSpec.describe "bin/dev" do
 
     expect(@dir.join("opened").read).to match(%r{dev_open\.rb #{port} /docs/developer/quickstart$})
     expect(foreman_args).not_to include("/docs")
+  end
+
+  it "keeps the page opener out of foreman's children, so its exit can't stop the app" do
+    output, = capture_dev(env: { "DEV_OPEN_PATH" => "/docs/developer/quickstart" })
+
+    expect(output).not_to include("FOREMAN_CHILD_EXITED")
   end
 
   it "opens nothing without DEV_OPEN_PATH" do
