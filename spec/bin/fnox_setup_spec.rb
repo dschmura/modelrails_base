@@ -78,6 +78,15 @@ RSpec.describe FnoxSetup do
     expect(output.string).to include("Commit fnox.toml")
   end
 
+  it "treats an empty PRODUCTION_SETUP as unset, as bin/mail-setup does" do
+    install_tools
+    keys
+    existing_identity
+    run_setup(env: { "PRODUCTION_SETUP" => "" })
+
+    expect(output.string).to include("Commit fnox.toml")
+  end
+
   it "leaves the ending to bin/production-setup when run inside it" do
     install_tools
     keys
