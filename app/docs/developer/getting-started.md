@@ -11,7 +11,7 @@ Starting a product? Follow [Fork to Served](quickstart) first. This page is the 
 ## Prerequisites
 
 - [mise](https://mise.jdx.dev/) for runtime version management (see `.tool-versions`)
-- Chromium (managed automatically by Cuprite/Ferrum for system tests)
+- Chrome or Chromium, for the system tests: Cuprite finds an installed browser and doesn't download one
 
 ## The stack
 
