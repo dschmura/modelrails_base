@@ -1416,17 +1416,17 @@ RSpec.describe ForkFlow do
       expect(shell).to have_received(:exec).with(quickstart_env, "bin/dev")
     end
 
-    it "says steps 1 and 2 are done before opening" do
+    it "says step 1 is done and step 2's setup ran before opening" do
       answering("y\n").offer_start!
 
-      expect(printed.string).to include("Steps 1 and 2 of the quickstart are done; opening it.")
+      expect(printed.string).to include("Step 1 is done and step 2's setup ran; opening the quickstart.")
     end
 
     it "doesn't start anything when declined" do
       answering("n\n").offer_start!
 
       expect(shell).not_to have_received(:exec)
-      expect(printed.string).not_to include("opening it")
+      expect(printed.string).not_to include("opening the quickstart")
     end
 
     it "doesn't offer when setup didn't succeed" do
@@ -1442,7 +1442,7 @@ RSpec.describe ForkFlow do
         expect(flow).to receive(:offer_start!) { printed.puts("START OFFER") }
       end
 
-      expect(printed.string.index("START OFFER")).to be > printed.string.index("Before deploying")
+      expect(printed.string.index("START OFFER")).to be > printed.string.index("Before you deploy")
     end
 
     [ { yes: true }, { dry_run: true } ].each do |opts|
@@ -1686,7 +1686,7 @@ RSpec.describe ForkFlow do
     it "names bin/production-setup for step 4, even with --yes" do
       run_fork(name: "my_app", yes: true)
 
-      expect(printed.string).to include("Before deploying: bin/production-setup sets up mail, encryption keys and fnox (quickstart step 4)")
+      expect(printed.string).to include("Before you deploy: bin/production-setup sets up production's secrets: mail, encryption keys and fnox (quickstart step 4)")
     end
 
     it "never asks about mail" do
