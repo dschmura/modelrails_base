@@ -781,7 +781,7 @@ the environment and the key file:
 RAILS_MASTER_KEY=$(printenv RAILS_MASTER_KEY | grep . || fnox get RAILS_MASTER_KEY 2>/dev/null || cat config/credentials/production.key)
 ```
 
-With a staging destination, give `.kamal/secrets.staging` the same step:
+`.kamal/secrets.staging` does the same with staging's profile:
 
 ```bash
 RAILS_MASTER_KEY=$(printenv RAILS_MASTER_KEY | grep . || fnox --profile staging get RAILS_MASTER_KEY 2>/dev/null || cat config/credentials/staging.key)
