@@ -38,7 +38,7 @@ everything else: the application code around the gems.
 Clone the template under your product's name and run `bin/fork`:
 
 ```bash
-git clone git@github.com:dschmura/modelrails_base.git my_app
+gh repo clone dschmura/modelrails_base my_app
 cd my_app
 mise install   # Ruby 4.0.9 and the deploy tools
 bin/fork
@@ -99,12 +99,12 @@ already done, completes a rename that was interrupted partway, and picks up
 whatever is still missing: a real support address, and (when you answer yes, or
 pass `--github`) the GitHub repo, the push, or the branch rules.
 
-When run interactively it finishes by offering to run `bin/setup` for you (the
-dev server is not started — that stays your call). Under `--yes`, or when stdin
-isn't a terminal, it never does: scripted and CI runs stay fast and predictable.
-Its next steps come last, after `bin/setup`'s output. They open with the
-quickstart's address and name `bin/production-setup`, which sets up mail,
-encryption keys and fnox before your first deploy.
+When run interactively it offers to run `bin/setup` for you, then prints its
+next steps: the quickstart's address, and `bin/production-setup`, which sets up
+mail, encryption keys and fnox before your first deploy. Last, it offers to
+start the app with `bin/dev` and open the quickstart. Under `--yes`, or when
+stdin isn't a terminal, it offers neither: scripted and CI runs stay fast and
+predictable.
 
 ### From an organization's copy
 

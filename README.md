@@ -8,10 +8,12 @@ Rails main (8.2.0.alpha, pinned to one commit) and Ruby 4.0.9.
 
 You need [mise](https://mise.jdx.dev/), the
 [GitHub CLI](https://cli.github.com/) signed in with `gh auth login`, and
-Chrome or Chromium for the browser tests.
+Chrome or Chromium for the browser tests. Activate mise first, so `bin/fork`
+runs mise's Ruby and not your system's: add `eval "$(mise activate zsh)"` to `~/.zshrc` (or
+`bash` and `~/.bashrc`), then open a new terminal.
 
 ```bash
-git clone git@github.com:dschmura/modelrails_base.git my_app
+gh repo clone dschmura/modelrails_base my_app
 cd my_app
 mise install   # Ruby 4.0.9 and the deploy tools
 bin/fork
@@ -20,7 +22,7 @@ bin/fork
 `bin/fork` names your product, creates its GitHub repo, sets the app up, and
 opens the quickstart in it: every step from here to a deployed app you can
 sign in to. If you skip its offer to start the app, run `bin/dev`
-and open <http://localhost:3000/docs/developer/quickstart>.
+and open the "Start here" address it prints.
 
 To read the quickstart before cloning: [Quickstart](app/docs/developer/quickstart.md).
 [Forking](app/docs/developer/forking.md) covers `bin/fork`'s options and

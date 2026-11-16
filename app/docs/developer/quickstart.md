@@ -15,13 +15,15 @@ To do something differently from a default, see
 > **Opened by bin/fork?** Step 1 is done, and step 2's setup ran; start with step 2's check.
 
 You need [mise](https://mise.jdx.dev/), the [GitHub CLI](https://cli.github.com/)
-signed in (`gh auth login`), and, from step 6, a server and Docker on the
-machine you deploy from.
+signed in (`gh auth login`), Chrome or Chromium for the tests, and, from step 5,
+a server and Docker on the machine you deploy from. Activate mise first, so
+`bin/fork` runs mise's Ruby and not your system's: add `eval "$(mise activate zsh)"` to `~/.zshrc` (or
+`bash` and `~/.bashrc`), then open a new terminal.
 
 ## 1. Make the product
 
 ```bash
-git clone git@github.com:dschmura/modelrails_base.git my_app
+gh repo clone dschmura/modelrails_base my_app
 cd my_app
 mise install   # Ruby 4.0.9 and the deploy tools
 bin/fork
@@ -116,7 +118,8 @@ description from step 1's list, merges with both checks green. Details:
 
 Production refuses to boot without a mail login, because sign-in is an email,
 and without encryption keys for personal data. One command sets up both, and
-keeps the key that opens them in fnox:
+keeps `RAILS_MASTER_KEY`, the key that decrypts the production credentials, in
+fnox:
 
 ```bash
 bin/production-setup
@@ -131,8 +134,8 @@ says and run it again: it skips what's already done.
 - **Encryption keys:** `bin/encryption-setup` adds them to the production
   credentials without printing them.
 - **fnox:** `bin/fnox-setup` makes your fnox identity if you don't have one,
-  writes `fnox.toml`, and stores the production key there, and staging's when
-  it exists. Deploys read the key from fnox. It needs `age` and `fnox`, which
+  writes `fnox.toml`, and stores `RAILS_MASTER_KEY` there, and staging's key
+  when it exists. Deploys read the key from fnox. It needs `age` and `fnox`, which
   `mise install` puts in place.
   [Keep deploy secrets in fnox](deployment#keep-deploy-secrets-in-fnox) says
   why.
@@ -141,8 +144,8 @@ Then verify your sending domain with the provider, as its DNS instructions say.
 
 Commit `config/credentials/production.yml.enc` and `fnox.toml`. Save
 `config/credentials/production.key` and `~/.config/fnox/age.txt` in a password
-manager now. Neither goes in git, and without them nobody can decrypt the
-credentials.
+manager now. Neither goes in git. Without `production.key` nobody can decrypt
+the credentials, and without `age.txt` nobody can read what fnox stores.
 
 **Check:** before that commit, `git status -u` lists
 `config/credentials/production.yml.enc` and `fnox.toml`, and neither key. This
