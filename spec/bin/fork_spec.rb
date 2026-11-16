@@ -155,6 +155,8 @@ RSpec.describe ForkFlow do
 
   before { build_template_clone }
 
+  before { allow(Kernel).to receive(:exec).and_raise("bin/fork tried to exec, which would replace the rspec worker") }
+
   # Read back inside the example, before the after-hook rm_rf deletes workdir,
   # so the #789 guard below can tell "the decoy was written" apart from "the
   # clone helper never got as far as configuring the fixture".
@@ -1383,6 +1385,80 @@ RSpec.describe ForkFlow do
   end
 
   # A fake shell: running bundle install and db:prepare inside an example would be absurd.
+  describe "offering to start the app" do
+    it "replaces bin/fork with the command, in the repo, with the clean git env" do
+      allow(Kernel).to receive(:exec)
+
+      ForkFlow::Shell.new(root: repo.to_s, dry_run: false, output: printed).exec({ "DEV_OPEN_PATH" => "/x" }, "bin/dev")
+
+      expect(Kernel).to have_received(:exec).with(ForkFlow::CLEAN_GIT_ENV.merge("DEV_OPEN_PATH" => "/x"), "bin/dev", chdir: repo.to_s)
+    end
+
+    let(:shell) { instance_double(ForkFlow::Shell, run: true, exec: nil) }
+    let(:quickstart_env) { { "DEV_OPEN_PATH" => "/docs/developer/quickstart" } }
+
+    def flow_for(opts, input = terminal)
+      described_class.new(opts, root: repo.to_s, input:, output: printed, shell:)
+    end
+
+    def answering(typed) = flow_for({ name: "my_app" }, terminal(typed))
+
+    it "offers to start the app once setup succeeded, and execs bin/dev opening the quickstart" do
+      answering("\n").offer_start!
+
+      expect(shell).to have_received(:exec).with(quickstart_env, "bin/dev")
+    end
+
+    it "says steps 1 and 2 are done before opening" do
+      answering("y\n").offer_start!
+
+      expect(printed.string).to include("Steps 1 and 2 of the quickstart are done; opening it.")
+    end
+
+    it "doesn't start anything when declined" do
+      answering("n\n").offer_start!
+
+      expect(shell).not_to have_received(:exec)
+      expect(printed.string).not_to include("opening it")
+    end
+
+    it "doesn't offer when setup didn't succeed" do
+      run_fork({ name: "my_app", github: false }, terminal("\n" * 10)) do |flow|
+        allow(flow).to receive(:offer_setup!).and_return(false)
+        expect(flow).not_to receive(:offer_start!)
+      end
+    end
+
+    it "offers once setup succeeded, after the summary" do
+      run_fork({ name: "my_app", github: false }, terminal("\n" * 10)) do |flow|
+        allow(flow).to receive(:offer_setup!).and_return(true)
+        expect(flow).to receive(:offer_start!) { printed.puts("START OFFER") }
+      end
+
+      expect(printed.string.index("START OFFER")).to be > printed.string.index("Before deploying")
+    end
+
+    [ { yes: true }, { dry_run: true } ].each do |opts|
+      it "doesn't offer under #{opts.keys.first}" do
+        input = terminal("y\n")
+
+        flow_for({ name: "my_app", **opts }, input).offer_start!
+
+        expect(input.pos).to eq(0)
+        expect(shell).not_to have_received(:exec)
+      end
+    end
+
+    it "doesn't offer without a terminal" do
+      input = StringIO.new("y\n")
+
+      flow_for({ name: "my_app" }, input).offer_start!
+
+      expect(input.pos).to eq(0)
+      expect(shell).not_to have_received(:exec)
+    end
+  end
+
   describe "offering bin/setup" do
     let(:shell) { instance_double(ForkFlow::Shell, run: true) }
 
@@ -1574,6 +1650,7 @@ RSpec.describe ForkFlow do
     def run_with_setup(result = true, &)
       run_fork({ name: "my_app", github: false }, terminal("\n" * 10)) do |flow|
         allow(flow).to receive(:offer_setup!) { printed.puts("SETUP OUTPUT") if result; result }
+        allow(flow).to receive(:offer_start!)
       end
     end
 

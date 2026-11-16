@@ -154,6 +154,7 @@ class ForkFlow
     end
 
     def run(*cmd) = system(CLEAN_GIT_ENV, *cmd, chdir: @root)
+    def exec(env, *cmd) = Kernel.exec(CLEAN_GIT_ENV.merge(env), *cmd, chdir: @root)
 
     def capture(*cmd, err: File::NULL)
       out = IO.popen(CLEAN_GIT_ENV, cmd, err:, &:read)
@@ -435,6 +436,7 @@ class ForkFlow
     @github.protect if @github.publish
     setup_ok = offer_setup!
     print_summary!(setup_ok:)
+    offer_start! if setup_ok
   end
 
   # ------------------------------------------------------------------ naming
@@ -1014,6 +1016,14 @@ class ForkFlow
     say("\n  ! bin/setup failed — but the fork itself is already committed, so there")
     say("    is nothing here to redo. Fix the setup problem and re-run bin/setup.")
     false
+  end
+
+  def offer_start!
+    return unless interactive?
+    return unless ask("\nStart the app and open the quickstart?", "Y").match?(/\A[Yy]/)
+
+    say("Steps 1 and 2 of the quickstart are done; opening it.")
+    @shell.exec({ "DEV_OPEN_PATH" => "/docs/developer/quickstart" }, "bin/dev")
   end
 
   def interactive? = @console.interactive?
