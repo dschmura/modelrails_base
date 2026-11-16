@@ -1,1 +1,0 @@
-- When `bin/mail-setup`'s hidden token prompt reads a blank line, it drops whatever else was pasted, so the rest of a token can't land in your shell.

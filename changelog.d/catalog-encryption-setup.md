@@ -1,1 +1,0 @@
-- The production inputs page and `production.yml.example` say to run `bin/encryption-setup` for the encryption keys, with `db:encryption:init` as the by-hand route.

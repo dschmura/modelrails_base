@@ -1,1 +1,0 @@
-- `bin/fork`'s next steps give the quickstart on the port `bin/dev` will use, and the quickstart says to run the tests in a second terminal while the app runs.

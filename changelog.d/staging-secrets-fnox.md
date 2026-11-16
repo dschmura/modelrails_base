@@ -1,1 +1,0 @@
-- Staging deploys read their master key from fnox too, before falling back to `staging.key`.

@@ -1,1 +1,0 @@
-- `bin/fnox-setup` keeps this app's production and staging master keys in fnox, reusing your age identity if you have one; run it again any time, it only does what's missing.

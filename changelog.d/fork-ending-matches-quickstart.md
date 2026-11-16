@@ -1,1 +1,0 @@
-- `bin/fork`'s ending uses the quickstart's words: step 1 is done and step 2's setup ran, and "Before you deploy" names production's secrets.
