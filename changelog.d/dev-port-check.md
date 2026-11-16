@@ -1,0 +1,1 @@
+- `bin/dev` moves to the next free port when 3000 is taken, refuses in one line when the port you chose is taken, and prints where the app and its quickstart are.
