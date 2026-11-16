@@ -1,1 +1,1 @@
-- Fork to Served's step 4 is one command, `bin/production-setup`, and a deploy that's missing its encryption keys now says to run `bin/encryption-setup`.
+- The quickstart's step 4 is one command, `bin/production-setup`, and a deploy that's missing its encryption keys now says to run `bin/encryption-setup`.

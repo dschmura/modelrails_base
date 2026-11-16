@@ -18,12 +18,11 @@ bin/fork
 ```
 
 `bin/fork` names your product, creates its GitHub repo, sets the app up, and
-opens the quickstart in it: Fork to Served, every step from here to a deployed
-app you can sign in to. If you skip its offer to start the app, run `bin/dev`
+opens the quickstart in it: every step from here to a deployed app you can
+sign in to. If you skip its offer to start the app, run `bin/dev`
 and open <http://localhost:3000/docs/developer/quickstart>.
 
-To read the quickstart before cloning:
-[Fork to Served](app/docs/developer/quickstart.md).
+To read the quickstart before cloning: [Quickstart](app/docs/developer/quickstart.md).
 [Forking](app/docs/developer/forking.md) covers `bin/fork`'s options and
 taking the template's updates later with `bin/sync`.
 

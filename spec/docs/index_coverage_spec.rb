@@ -19,10 +19,11 @@ RSpec.describe "Documentation index coverage" do
       "Uncategorized docs (add to config/initializers/markdowndocs.rb): #{orphans.sort.join(', ')}"
   end
 
-  it "lists Fork to Served first among the developer pages under Getting Started" do
+  it "lists the Quickstart first among the developer pages under Getting Started" do
     developer_pages = Markdowndocs.configuration.categories.fetch("Getting Started").grep(%r{\Adeveloper/})
 
     expect(developer_pages.first).to eq("developer/quickstart")
+    expect(Rails.root.join("app/docs/developer/quickstart.md").read).to start_with("---\ntitle: Quickstart\n")
   end
 
   %w[development production].zip(%w[developer user]).each do |environment, mode|

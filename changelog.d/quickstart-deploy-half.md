@@ -1,1 +1,1 @@
-- Fork to Served's deploy steps now name the backup volume, the backup folder's owner, the password-login check, the wait for DNS, and the guide for a machine you run yourself.
+- The quickstart's deploy steps now name the backup volume, the backup folder's owner, the password-login check, the wait for DNS, and the guide for a machine you run yourself.
