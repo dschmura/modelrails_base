@@ -23,6 +23,7 @@ machine you deploy from.
 ```bash
 git clone git@github.com:dschmura/modelrails_base.git my_app
 cd my_app
+mise install   # Ruby 4.0.9 and the deploy tools
 bin/fork
 ```
 
