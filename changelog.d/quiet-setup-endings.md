@@ -1,0 +1,1 @@
+- `bin/production-setup` ends with one summary: `bin/fnox-setup` no longer repeats what to commit and back up when it runs inside it.

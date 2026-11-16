@@ -23,7 +23,7 @@ class ProductionSetup
       next say("✓ Mail is already set up. To change it, run bin/mail-setup on its own.") if step == "bin/mail-setup" && mail_login?
 
       say "\n== #{step} =="
-      next if system(CleanGitEnv::HASH, File.join(@root, step), chdir: @root)
+      next if system(CleanGitEnv::HASH.merge("PRODUCTION_SETUP" => "1"), File.join(@root, step), chdir: @root)
 
       say "\nbin/production-setup stopped at #{step}. Fix what it said, then run bin/production-setup again."
       return 1
@@ -54,6 +54,7 @@ class ProductionSetup
       Production's secrets are set up.
         Commit #{CONTENT} and fnox.toml.
         Back up #{KEY} and ~/.config/fnox/age.txt in your password manager. Never commit either.
+        git diff, git show and git log -p show the credentials decrypted, so don't run them on a shared screen.
       Next: bin/rails deploy:check, then step 5 of http://localhost:3000/docs/developer/quickstart
     DONE
   end
