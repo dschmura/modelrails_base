@@ -1,1 +1,0 @@
-- `DEV_OPEN_PATH=/docs/developer/quickstart bin/dev` opens that page in your browser once the app answers, or prints its address where no browser can open.

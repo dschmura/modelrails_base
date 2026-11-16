@@ -1,1 +1,0 @@
-- In development, `/docs` opens on the Developer Guide with the quickstart first, and Getting Started and Forking point to it.

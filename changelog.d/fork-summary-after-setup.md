@@ -1,1 +1,0 @@
-- `bin/fork` prints its next steps last, after `bin/setup`'s output: the quickstart's address, your to-dos, what to make your own, and `bin/production-setup` for deploying. It no longer asks about mail.

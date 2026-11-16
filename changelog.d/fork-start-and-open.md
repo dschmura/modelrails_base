@@ -1,1 +1,0 @@
-- `bin/fork` offers to start the app once `bin/setup` succeeds, and opens the quickstart in your browser.

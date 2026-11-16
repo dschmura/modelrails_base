@@ -1,1 +1,0 @@
-- The README and quickstart say to activate mise, clone with `gh repo clone`, and need Chrome for the tests; the forking guide describes `bin/fork`'s offer to start the app.

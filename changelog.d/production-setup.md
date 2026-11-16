@@ -1,1 +1,0 @@
-- `bin/production-setup` does quickstart step 4 in one command: mail, then the personal-data encryption keys, then fnox, skipping what's already done and stopping at the first step that fails.
