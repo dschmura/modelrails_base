@@ -112,37 +112,49 @@ description from step 1's list, merges with both checks green. Details:
 
 ## 4. Production secrets and mail
 
-Sign-in is an email, so production refuses to boot without a mail login.
-Run `bin/mail-setup`: it creates the production credentials if they don't
-exist, adds your mail provider's login and updates `config/deploy.yml`.
-Verify your sending domain with the provider, as its DNS instructions say.
-
-Production also refuses to boot without encryption keys for personal data:
+Production refuses to boot without a mail login, because sign-in is an email,
+and without encryption keys for personal data. One command sets up both, and
+keeps the key that opens them in fnox:
 
 ```bash
-bin/rails db:encryption:init                          # prints three keys, once
-bin/rails credentials:edit --environment production   # paste them in
+bin/production-setup
 ```
 
-Paste from the `active_record_encryption:` line down, not the sentence above
-it, with `active_record_encryption:` at the left edge. If your editor opens a
-window of its own, give it a wait flag, or Rails saves before you type:
-`EDITOR="code --wait" bin/rails credentials:edit --environment production`.
-[Deployment: What production credentials hold](deployment#what-production-credentials-hold)
-shows what to copy, the finished file, and where each value comes from.
-[What production needs](required-production-config) lists every input and where to get it.
+It runs three scripts in order and stops at the first that fails. Fix what it
+says and run it again: it skips what's already done.
 
-Commit `config/credentials/production.yml.enc`. The key,
-`config/credentials/production.key`, stays out of git: save it in a password
-manager now, because nobody can decrypt the credentials without it.
+- **Mail:** `bin/mail-setup` asks for your mail provider and its login,
+  creates the production credentials if they don't exist yet, and updates
+  `config/deploy.yml`. It's skipped once production has a mail login.
+- **Encryption keys:** `bin/encryption-setup` adds them to the production
+  credentials without printing them.
+- **fnox:** `bin/fnox-setup` makes your fnox identity if you don't have one,
+  writes `fnox.toml`, and stores the production key there, and staging's when
+  it exists. Deploys read the key from fnox. It needs `age` and `fnox`, which
+  `mise install` puts in place.
+  [Keep deploy secrets in fnox](deployment#keep-deploy-secrets-in-fnox) says
+  why.
+
+Then verify your sending domain with the provider, as its DNS instructions say.
+
+Commit `config/credentials/production.yml.enc` and `fnox.toml`. Save
+`config/credentials/production.key` and `~/.config/fnox/age.txt` in a password
+manager now. Neither goes in git, and without them nobody can decrypt the
+credentials.
 
 **Check:** before that commit, `git status -u` lists
-`config/credentials/production.yml.enc` and not the key, which git ignores.
-`bin/rails deploy:check` no longer lists the credentials, the mail
-login or the encryption keys. What it still lists is step 6's work. Details:
-[Deployment: Configure outbound mail](deployment#4-configure-outbound-mail),
-[Forking: Bootstrap secrets](forking#bootstrap-secrets-and-configuration) and
-[Deployment: Production preflight](deployment#production-preflight).
+`config/credentials/production.yml.enc` and `fnox.toml`, and neither key. This
+prints `fnox has the key`, without printing the key:
+
+```bash
+test "$(fnox get RAILS_MASTER_KEY)" = "$(cat config/credentials/production.key)" && echo "fnox has the key"
+```
+
+`bin/rails deploy:check` no longer lists the credentials, the mail login or the
+encryption keys. What it still lists is step 6's work. To do any of this by
+hand, see [Deployment: Set secrets](deployment#3-set-secrets).
+[What production needs](required-production-config) lists every input and
+where to get it.
 
 ## 5. A server
 
