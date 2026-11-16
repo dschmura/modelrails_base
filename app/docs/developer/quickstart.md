@@ -148,21 +148,25 @@ login or the encryption keys. What it still lists is step 6's work. Details:
 Rent one Linux server. Lock it down before the first deploy: SSH keys only,
 a firewall open on ports 22, 80 and 443, automatic security updates, Docker
 from Docker's own repository, a host key checked once, and a folder for
-backups.
+backups owned by uid 1000. Running a machine of your own instead? Also do
+[Hardware you run yourself](deployment#hardware-you-run-yourself).
 
 **Check:** `ssh root@<server-ip> docker version` prints Docker's version, and
-a password login is refused. Details:
+`ssh -o PubkeyAuthentication=no root@<server-ip>` is refused with
+`Permission denied (publickey)`. Details:
 [Deployment: Prepare the server](deployment#1-prepare-the-server).
 
 ## 6. Configure the deploy and go live
 
 In `config/deploy.yml`, set the server's address (exactly one), uncomment
-`proxy:` with your domain, match `builder.arch` to the server, and set
-`RAILS_HOST` and `BACKUP_PATH`. On the shared preset, also uncomment
-`TENANCY_OWNER_EMAIL` (you) and `TENANCY_WORKSPACE_CREATION: disabled`.
-`bin/rails deploy:check` then says "Nothing here
-stops a deploy." Kamal runs the same check before every build, and stops a
-deploy that would fail. Point your domain at the server, then:
+`proxy:` with your domain, match `builder.arch` to the server, set
+`RAILS_HOST` and `BACKUP_PATH`, and uncomment the `/srv/backups:/backups` line
+under `volumes:` so the backup folder reaches the app. On the shared preset,
+also uncomment `TENANCY_OWNER_EMAIL` (you) and
+`TENANCY_WORKSPACE_CREATION: disabled`. `bin/rails deploy:check` then says
+"Nothing here stops a deploy." Kamal runs the same check before every build,
+and stops a deploy that would fail. Point your domain at the server, wait
+until `dig +short <your-domain>` prints its IP, then:
 
 ```bash
 bin/kamal setup     # the first time
@@ -195,7 +199,7 @@ production:
 ```bash
 bin/release prepare   # names the release in a changelog PR that merges itself
 bin/release cut       # once that PR merges: opens the release PR into main
-bin/release ship      # merges it, tags the version, merges main back into next
+bin/release ship      # merges it, tags the version, opens main's merge back into next
 ```
 
 Until you switch on deploys from CI, deploy `main` from your machine with

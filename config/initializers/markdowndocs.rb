@@ -15,7 +15,7 @@ Markdowndocs.configure do |config|
   # it renders only by direct URL and is invisible on the /docs index.
   # spec/docs/index_coverage_spec.rb fails CI if a doc is left orphaned.
   template_categories = {
-    "Getting Started"            => %w[user/welcome developer/getting-started developer/quickstart developer/changing-the-defaults developer/codespaces],
+    "Getting Started"            => %w[user/welcome developer/quickstart developer/getting-started developer/changing-the-defaults developer/codespaces],
     "Accounts & Authentication"  => %w[user/authentication user/accounts],
     "Workspaces & Collaboration" => %w[user/workspaces user/projects user/invitations user/onboarding user/clientside],
     "Features"                   => %w[user/notifications user/emails user/project-tools],
@@ -37,7 +37,7 @@ Markdowndocs.configure do |config|
   )
 
   config.modes = %w[user developer]
-  config.default_mode = "user"
+  config.default_mode = Rails.env.development? ? "developer" : "user"
   config.search_enabled = true
 
   # Resolve the current user's mode preference from the database.
