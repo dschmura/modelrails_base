@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "bundler/setup"
+require "optparse"
 require "yaml"
 require "active_support"
 require "active_support/encrypted_file"
@@ -55,7 +56,7 @@ class ProductionSetup
         Commit #{CONTENT} and fnox.toml.
         Back up #{KEY} and ~/.config/fnox/age.txt in your password manager. Never commit either.
         git diff, git show and git log -p show the credentials decrypted, so don't run them on a shared screen.
-      Next: bin/rails deploy:check, then step 5 of http://localhost:3000/docs/developer/quickstart
+      Next: bin/rails deploy:check, then the quickstart's step 5 (/docs/developer/quickstart)
     DONE
   end
 
@@ -63,4 +64,8 @@ class ProductionSetup
   def say(message) = @output.puts(message)
 end
 
-exit ProductionSetup.new(root: File.expand_path("..", __dir__)).run if $PROGRAM_NAME == __FILE__
+if $PROGRAM_NAME == __FILE__
+  OptionParser.new { |o| o.banner = "Usage: bin/production-setup   (runs #{ProductionSetup::STEPS.join(', ')}, in that order)" }.parse!
+
+  exit ProductionSetup.new(root: File.expand_path("..", __dir__)).run
+end

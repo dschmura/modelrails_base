@@ -28,7 +28,7 @@ class FnoxSetup
     recipient = identity!
     configure!(recipient)
     PROVIDERS.each { |provider, details| store!(provider, **details) }
-    finish unless @env["PRODUCTION_SETUP"]
+    finish if @env["PRODUCTION_SETUP"].to_s.empty?
     0
   rescue Stop => e
     say e.message
@@ -138,7 +138,7 @@ end
 if $PROGRAM_NAME == __FILE__
   options = { dry_run: false }
   OptionParser.new do |o|
-    o.banner = "Usage: bin/fnox-setup [--dry-run]   (keeps this app's deploy keys in fnox)"
+    o.banner = "Usage: bin/fnox-setup [--dry-run]   (keeps production's and staging's RAILS_MASTER_KEY in fnox)"
     o.on("--dry-run", "Say what would change, and change nothing") { options[:dry_run] = true }
   end.parse!
 

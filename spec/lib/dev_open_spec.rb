@@ -15,8 +15,8 @@ RSpec.describe DevOpen do
 
   after { server.close unless server.closed? }
 
-  def open_page(env: {}, host_os: "darwin", port: self.port, wait: 1)
-    described_class.call(port:, path: quickstart, env:, host_os:, opener:, wait:, tick: 0.05, out:)
+  def open_page(env: {}, host_os: "darwin", container: false, port: self.port, wait: 1)
+    described_class.call(port:, path: quickstart, env:, host_os:, container:, opener:, wait:, tick: 0.05, out:)
   end
 
   it "opens the page once the server answers" do
@@ -41,8 +41,16 @@ RSpec.describe DevOpen do
   end
 
   it "never opens inside a container" do
-    expect(open_page(env: { "CODESPACES" => "true", "CODESPACE_NAME" => "demo", "GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN" => "app.github.dev" })).to eq(:printed)
+    expect(open_page(container: true)).to eq(:printed)
     expect(opened).to be_empty
+  end
+
+  it "prints a Codespace's forwarded address" do
+    codespace = { "CODESPACES" => "true", "CODESPACE_NAME" => "demo", "GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN" => "app.github.dev" }
+
+    open_page(env: codespace, container: true)
+
+    expect(out.string).to include("Open: https://demo-#{port}.app.github.dev#{quickstart}")
   end
 
   it "gives up quietly when the server never answers" do
