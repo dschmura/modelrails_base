@@ -1,0 +1,1 @@
+- Every checkout gets `age` and `fnox` from `mise install`, ready to keep deploy keys in fnox.

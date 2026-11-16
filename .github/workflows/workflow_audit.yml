@@ -30,10 +30,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install jactionlint and shellcheck
+      - name: Install mise.toml's tools
         uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
         with:
-          install_args: jactionlint shellcheck
+          install_args: jactionlint shellcheck age fnox
 
       - name: Audit the workflows and dependabot.yml
         run: jactionlint --online --format github
