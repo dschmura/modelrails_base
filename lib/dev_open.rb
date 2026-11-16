@@ -4,19 +4,18 @@ require "rbconfig"
 require_relative "dev_port"
 
 module DevOpen
-  def self.call(port:, path:, env: ENV, host_os: RbConfig::CONFIG["host_os"],
+  def self.call(port:, path:, env: ENV, host_os: RbConfig::CONFIG["host_os"], container: DevPort.container?(env),
                 opener: ->(cmd, url) { system(cmd, url) }, wait: 60, tick: 0.5, out: $stdout)
     url = "#{DevPort.url(port, env)}#{path}"
     return finish(:timed_out, url, out) unless answered?(port, wait, tick)
 
-    command = opener_command(env, host_os)
+    command = opener_command(env, host_os) unless container
     return finish(:printed, url, out) unless command && opener.call(command, url)
 
     :opened
   end
 
   def self.opener_command(env, host_os)
-    return if DevPort.container?(env)
     return "open" if host_os.include?("darwin")
     return unless env["DISPLAY"] || env["WAYLAND_DISPLAY"]
 
