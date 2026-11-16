@@ -65,8 +65,27 @@ RSpec.describe FnoxSetup do
     root.join("config/credentials/staging.key").write("#{staging_key}\n") if staging
   end
 
-  def run_setup(dry_run: false, path: "#{@tmp.join('bin')}:/usr/bin:/bin")
-    described_class.new(root: root.to_s, home: home.to_s, env: { "PATH" => path }, output:, dry_run:).run
+  def run_setup(dry_run: false, path: "#{@tmp.join('bin')}:/usr/bin:/bin", env: {})
+    described_class.new(root: root.to_s, home: home.to_s, env: { "PATH" => path }.merge(env), output:, dry_run:).run
+  end
+
+  it "ends with what to commit and back up when run on its own" do
+    install_tools
+    keys
+    existing_identity
+    run_setup
+
+    expect(output.string).to include("Commit fnox.toml")
+  end
+
+  it "leaves the ending to bin/production-setup when run inside it" do
+    install_tools
+    keys
+    existing_identity
+    expect(run_setup(env: { "PRODUCTION_SETUP" => "1" })).to eq(0)
+
+    expect(output.string).not_to include("Commit fnox.toml")
+    expect(output.string).to include("Stored production's RAILS_MASTER_KEY in fnox")
   end
 
   it "refuses without production.key and points at bin/mail-setup" do
