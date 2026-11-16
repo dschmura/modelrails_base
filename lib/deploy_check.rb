@@ -127,15 +127,16 @@ class DeployCheck
   end
 
   def backup_volume_warning
-    path = containers.filter_map { |container| container.env["BACKUP_PATH"].presence }.first
-    return if path.nil? || mounted_paths.any? { |mount| path == mount || path.start_with?("#{mount.chomp('/')}/") }
+    paths = containers.filter_map { |container| container.env["BACKUP_PATH"].presence }.uniq.reject { |path| mounted?(path) }
+    return if paths.empty?
 
-    "BACKUP_PATH is #{path}, but no volume in config/deploy.yml mounts it, so backups stay inside the container " \
+    "BACKUP_PATH is #{paths.join(' and ')}, but no volume in config/deploy.yml mounts it, so backups stay inside the container " \
       "and go with it on the next deploy. Uncomment the \"/srv/backups:/backups\" line under volumes:, " \
       "or mount your own folder there: /docs/developer/deployment (Back up the database section)."
   end
 
-  def mounted_paths = Array(@kamal.raw_config.volumes).filter_map { |volume| volume.to_s.split(":")[1] }
+  def mounted?(path) = mounted_paths.any? { |mount| path.chomp("/") == mount || path.start_with?("#{mount}/") }
+  def mounted_paths = Array(@kamal.raw_config.volumes).filter_map { |volume| volume.to_s.split(":")[1]&.chomp("/") }
 
   # One container's environment as Kamal starts it, and the credentials production opens with it.
   class Container
