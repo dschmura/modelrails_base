@@ -223,10 +223,10 @@ module RequiredProductionConfig
       rest. Without the keys the app boots and /up reports healthy, and the first
       read or write of a user raises.
 
-      Fix: run `bin/rails db:encryption:init` and paste its block into
-        bin/rails credentials:edit --environment production
+      Fix: run bin/encryption-setup, which adds the keys to the production
+      credentials, then commit config/credentials/production.yml.enc.
 
-      Details: /docs/developer/forking (Bootstrap secrets and configuration).
+      Details: /docs/developer/deployment#what-production-credentials-hold
       Opting out for good: git rm config/initializers/required_production_config.rb
     MSG
   end

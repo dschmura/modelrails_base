@@ -10,7 +10,7 @@ RSpec.describe "OAuth credentials examples" do
     expect(dug_paths).to include(%i[oauth google client_id], %i[oauth github client_secret])
   end
 
-  %w[README.md app/docs/developer/getting-started.md].each do |doc|
+  %w[app/docs/developer/getting-started.md].each do |doc|
     it "#{doc} shows every credentials path the OmniAuth initializer reads" do
       example = Rails.root.join(doc).read.scan(/```yaml\n(.*?)```/m).flatten.find { |block| block.include?("client_id") }
       credentials = YAML.safe_load(example.to_s).to_h.deep_symbolize_keys

@@ -1,0 +1,1 @@
+- The README opens with how to start a product: clone, `mise install`, `bin/fork`, then the quickstart the app serves. The quickstart and the forking guide add the `mise install` step.
