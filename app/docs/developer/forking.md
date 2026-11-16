@@ -99,9 +99,9 @@ pass `--github`) the GitHub repo, the push, or the branch rules.
 When run interactively it finishes by offering to run `bin/setup` for you (the
 dev server is not started — that stays your call). Under `--yes`, or when stdin
 isn't a terminal, it never does: scripted and CI runs stay fast and predictable.
-When that `bin/setup` succeeds, it offers `bin/mail-setup` next (default: no).
-Production refuses to boot until outbound mail is set up, so the next steps it
-prints name `bin/mail-setup` either way.
+Its next steps come last, after `bin/setup`'s output. They open with the
+quickstart's address and name `bin/production-setup`, which sets up mail,
+encryption keys and fnox before your first deploy.
 
 ### From an organization's copy
 

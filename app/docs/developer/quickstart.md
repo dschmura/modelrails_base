@@ -45,13 +45,11 @@ brackets.
 6. **Does a second person approve PRs?** [N]. Yes makes every PR wait for one
    approval.
 7. **Run bin/setup now?** [Y]. That's step 2.
-8. **Set up outbound mail now?** [N], asked once `bin/setup` succeeds. N is
-   right: mail is step 4, once you have a mail provider's login.
 
 It moves `next` to the template's latest release, renames the app in one
 commit, creates your GitHub repo, pushes `next` and protects the branches. It
-ends with a list of things only you can do, such as your product's description
-and brand mark.
+ends with its next steps: this page's address, the things only you can do, such
+as your product's description and brand mark, and the command for step 4.
 
 A clone starts on `next`, and `bin/fork` commits the rename there and leaves
 you on it. Your own changes go on a branch of their own (step 3).
@@ -110,7 +108,6 @@ description from step 1's list, merges with both checks green. Details:
 ## 4. Production secrets and mail
 
 Sign-in is an email, so production refuses to boot without a mail login.
-This is the step `bin/fork`'s mail question was waiting for.
 Run `bin/mail-setup`: it creates the production credentials if they don't
 exist, adds your mail provider's login and updates `config/deploy.yml`.
 Verify your sending domain with the provider, as its DNS instructions say.
