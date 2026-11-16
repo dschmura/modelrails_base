@@ -1,10 +1,10 @@
 ---
-title: Fork to Served
+title: Quickstart
 description: Every step from cloning the template to a deployed product you can sign in to, each with its check
 keywords: quickstart start new app fork clone serve deploy first deploy production mail checklist order steps
 ---
 
-# Fork to served
+# Quickstart
 
 This page puts the whole path in order, from cloning the template to a deployed
 app you can sign in to. Each step names what to run and how to tell it worked,

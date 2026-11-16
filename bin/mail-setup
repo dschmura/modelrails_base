@@ -387,7 +387,7 @@ class MailSetup
       lines << "     RAILS_HOST and the encryption keys, each with its fix. Kamal runs it before"
       lines << "     every build too, and stops a deploy that would fail."
       lines.concat(verification(numbered, provider))
-      lines << numbered.("For the deployment itself, follow Fork to Served, /docs/developer/quickstart")
+      lines << numbered.("For the deployment itself, follow the quickstart, /docs/developer/quickstart")
 
       lines.push("", "After you deploy, prove it")
       lines.concat(proof_steps(numbered, signup_mode:, preset:))

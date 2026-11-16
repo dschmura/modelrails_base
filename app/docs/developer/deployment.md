@@ -144,7 +144,7 @@ not the single `config/master.key` a default `rails new` would use.
 creates the production credentials, then `bin/encryption-setup`, which adds
 the encryption keys, then `bin/fnox-setup`, which keeps the key in
 [fnox](#keep-deploy-secrets-in-fnox). That's step 4 of
-[Fork to Served](quickstart). To make the credentials by hand instead:
+the [quickstart](quickstart). To make the credentials by hand instead:
 
 1. Run `bin/rails db:encryption:init` and keep its output on screen. It
    prints three keys once and stores them nowhere.

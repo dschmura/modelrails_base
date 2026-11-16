@@ -1,0 +1,1 @@
+- The Fork to Served page is now called Quickstart, the name `bin/fork`, `bin/dev` and the setup scripts already use for it. Its address is unchanged.

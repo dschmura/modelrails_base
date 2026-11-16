@@ -1293,7 +1293,7 @@ RSpec.describe "Template invariants" do
   end
 
   describe "where a fork finds its mail and sign-up settings" do
-    it "points the Dev Container's next steps at Fork to Served" do
+    it "points the Dev Container's next steps at the quickstart" do
       expect(File.read(root.join(".devcontainer/setup.sh"))).to include("/docs/developer/quickstart")
     end
 
