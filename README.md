@@ -1,105 +1,48 @@
 # ModelRails
 
-A multi-tenant SaaS starter kit built on Rails 8.1.
+A multi-tenant SaaS starter kit you fork to start a product, with sign-in,
+workspaces, WCAG 2.2 AAA accessibility and deployment already done. It runs on
+Rails main (8.2.0.alpha, pinned to one commit) and Ruby 4.0.9.
 
-## Tech Stack
+## Start a product
 
-- **Framework:** Rails 8.1, Ruby 4.0.9
-- **Database:** SQLite (Solid Queue/Cache/Cable in-process)
-- **Frontend:** TailwindCSS 4, Turbo, Stimulus
-- **Assets:** Propshaft, Importmaps
-- **Auth:** Rails 8 authentication generator; passwordless-first magic links, passkeys (WebAuthn), OmniAuth (Google, GitHub), Pundit
-- **Real-Time:** Turbo Stream broadcasts (morph-based refresh)
-- **Content:** Action Text with [Lexxy](https://github.com/basecamp/lexxy) (Lexical-based rich text editor)
-- **Docs:** Markdowndocs engine at `/docs` (deployment, background jobs, getting started, architecture, security, …)
-- **Testing:** RSpec, FactoryBot, Capybara, Cuprite (pure-Ruby CDP), axe-core (WCAG 2.2 AAA), Bullet (N+1 detection)
-- **Security:** Rate limiting, security headers, CSP, Pwned password check
-- **Deployment:** Kamal → GitHub Container Registry; the production image build is checked on pull requests that change a build input, on every push to `main`, and by the pre-push hook
-- **Version Management:** [mise](https://mise.jdx.dev/) (see `.tool-versions`; `Gemfile` reads from it so Bundler enforces the Ruby version everywhere)
-- **Dev Container:** Optional VS Code Dev Container ships with `ruby:4.0.9-slim` base (matches production), `docker-outside-of-docker` for in-container `kamal deploy`, named bundle cache volume
-
-## Setup
-
-### Prerequisites
-
-- [mise](https://mise.jdx.dev/) (or asdf) for runtime version management
-- Chrome or Chromium installed (Cuprite/Ferrum auto-detects an installed browser for system tests — it does not download one)
-
-### Getting started
+You need [mise](https://mise.jdx.dev/), the
+[GitHub CLI](https://cli.github.com/) signed in with `gh auth login`, and
+Chrome or Chromium for the browser tests.
 
 ```bash
-# Install the Ruby version from .tool-versions
-mise install
-
-# Install dependencies, prepare database, start server
-bin/setup
+git clone git@github.com:dschmura/modelrails_base.git my_app
+cd my_app
+mise install   # Ruby 4.0.9 and the deploy tools
+bin/fork
 ```
 
-Or step by step:
+`bin/fork` names your product, creates its GitHub repo, sets the app up, and
+opens the quickstart in it: Fork to Served, every step from here to a deployed
+app you can sign in to. If you skip its offer to start the app, run `bin/dev`
+and open <http://localhost:3000/docs/developer/quickstart>.
 
-```bash
-bundle install
-bin/rails db:prepare
-bin/dev
-```
+To read the quickstart before cloning:
+[Fork to Served](app/docs/developer/quickstart.md).
+[Forking](app/docs/developer/forking.md) covers `bin/fork`'s options and
+taking the template's updates later with `bin/sync`.
 
-### Running tests
+## Tech stack
 
-```bash
-bin/parallel-rspec   # full suite across all cores + integrity gates (what CI runs)
-bundle exec rspec    # single-process run (focused files, debugging)
-```
-
-With documentation output:
-
-```bash
-bundle exec rspec --format documentation
-```
-
-Coverage report is generated at `coverage/index.html`.
-
-### OAuth configuration
-
-Google and GitHub OAuth require credentials. Add them via per-environment Rails
-credentials (the template ships none; the first run generates the file and key):
-
-```bash
-bin/rails credentials:edit --environment development
-```
-
-Add the following structure:
-
-```yaml
-oauth:
-  google:
-    client_id: your_google_client_id
-    client_secret: your_google_client_secret
-  github:
-    client_id: your_github_client_id
-    client_secret: your_github_client_secret
-```
-
-OAuth is optional — email/password sign-up works without it.
-
-## Forking this template
-
-This repo is an upstream template: clone it with full history, build your product
-in fork-owned files, and merge upstream improvements back in periodically.
-
-```bash
-git clone git@github.com:dschmura/modelrails_base.git myapp
-cd myapp
-bin/fork      # remote surgery + identity rename + tenancy preset, then bin/setup
-```
-
-`bin/fork` runs once per fork, before `bin/setup`, and prints every git command
-it runs. Teammates cloning your app afterwards run only `bin/setup`. The by-hand
-equivalent is in the forking guide.
-
-The complete guide — identity-rename checklist, secrets bootstrap, the fork-owned
-file contract, and the upstream-update workflow — lives in
-[app/docs/developer/forking.md](app/docs/developer/forking.md), rendered at `/docs/developer/forking` in the
-running app. Your fork inherits it.
+- **Framework:** Rails main (8.2.0.alpha) at a pinned commit, Ruby 4.0.9
+- **Database:** SQLite, with Solid Queue, Cache and Cable in-process
+- **Frontend:** TailwindCSS 4, Turbo, Stimulus, Propshaft, importmaps
+- **Auth:** passwordless-first magic links, passkeys (WebAuthn), Google and
+  GitHub OAuth, optional passwords, Pundit
+- **Content:** Action Text with [Lexxy](https://github.com/basecamp/lexxy)
+- **Docs:** served by the app at `/docs`, for users and developers
+- **Testing:** RSpec, FactoryBot, Capybara with Cuprite, axe-core at WCAG 2.2
+  AAA, Bullet
+- **Deployment:** Kamal, with its local registry: the machine that deploys
+  builds the image, and the server pulls it over SSH, so there's no registry
+  account. [fnox](https://fnox.jdx.dev) keeps the deploy secrets
+- **Versions:** [mise](https://mise.jdx.dev/) reads `.tool-versions` and
+  `mise.toml`; the `Gemfile` reads the Ruby version from `.tool-versions`
 
 ## What's included
 
@@ -123,15 +66,14 @@ workspace-visible activity trail — on top of the authentication below.
 - Best-effort activity log with workspace-visible feed and 12-month retention sweep
 
 ### Authentication
-- Smart sign-in: single email field routes users to the right auth method
-  - Existing user with password → password form (with "send magic link instead" option)
-  - Existing passwordless user → magic link sent automatically
-  - Unknown email → registration magic link sent
-- Magic link sign-in with 15-minute token expiry and one-time use
-- Passwordless registration via magic link (name-only form, no password required)
-- Email/password sign-up with 12-character minimum and Pwned password breach detection
-- Account locking after 5 failed attempts (1-hour auto-unlock)
-- Password reset using Rails 8.1 signed tokens (15-minute expiry)
+- Passwordless by default: one email field sends a sign-in link, or a
+  registration link for a new address
+- Magic links expire after 15 minutes and work once; registration asks only for
+  a name
+- Passkey (WebAuthn) sign-in
+- Optional passwords (`AUTH_PASSWORDS=enabled`): a 12-character minimum, a
+  breached-password check, account locking after 5 failed attempts, and reset
+  links that expire after 15 minutes
 - Email verification with 24-hour token expiry
 - Turbo Frame inline transitions (check-email confirmation replaces form in-place)
 
@@ -141,7 +83,7 @@ workspace-visible activity trail — on top of the authentication below.
 - Signed-in users can link additional providers; if the OAuth-returned email matches the user's primary email, the link auto-verifies, otherwise a verification email is sent to the OAuth address and the link stays pending until clicked
 - Pending OAuth authentications cannot sign in. Users can resend the confirmation email (rate-limited per user) or cancel the pending link from connected accounts
 - 24-hour token expiry on verification links; cross-user collision blocked; per-user rate limit on resend
-- OAuth-only users can add email/password sign-in
+- OAuth-only users can add password sign-in when passwords are on
 
 ### Account management
 - Profile editing (name, email)
@@ -161,7 +103,35 @@ workspace-visible activity trail — on top of the authentication below.
 ### Static pages
 - Home, About, Privacy, Contact
 
-## Development
+## Working on the template itself
+
+This part is for changing ModelRails itself. A product forked from it starts
+with [Start a product](#start-a-product).
+
+### Set up
+
+```bash
+mise install
+bin/setup      # dependencies, the database, then bin/dev
+```
+
+Chrome or Chromium must be installed for the system specs: Cuprite finds an
+installed browser and doesn't download one.
+
+### Run the tests
+
+```bash
+bin/parallel-rspec   # the full suite on every core, with CI's integrity gates
+bundle exec rspec    # one process, for focused files and debugging
+```
+
+The coverage report is written to `coverage/index.html`.
+
+### OAuth
+
+Google and GitHub sign-in are optional; magic links work without them.
+[OAuth Setup](app/docs/developer/getting-started.md#oauth-setup-optional) shows
+the credentials they read.
 
 ### Project structure
 
