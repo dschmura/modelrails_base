@@ -4,6 +4,12 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+## v2026.11.16
+
+### Changed
+
+- `bin/dev` moves to the next free port when 3000 is taken, refuses in one line when the port you chose is taken, and prints where the app and its quickstart are.
+
 ## v2026.11.15-2
 
 ### Security
