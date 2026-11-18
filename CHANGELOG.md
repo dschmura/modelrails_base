@@ -4,6 +4,12 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+## v2026.11.18
+
+### Changed
+
+- The README sets up a new machine (mise, the GitHub CLI, Chrome) and checks each tool before you clone.
+
 ## v2026.11.16-2
 
 ### Changed

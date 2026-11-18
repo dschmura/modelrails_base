@@ -323,7 +323,9 @@ steps by hand.
 Mail leaves over SMTP. Where it goes comes from the environment and how it
 signs in comes from the credentials, which keep every app-runtime secret.
 Every provider named below speaks SMTP, so moving between them is a change of
-values, never of code:
+values, never of code. That's also why the Postmark recipe below uses
+Postmark's SMTP option, not the `postmark-rails` gem from Postmark's own Rails
+guide, which sends through Postmark's API. The settings:
 
 | Setting | Where | Meaning | Default |
 | --- | --- | --- | --- |
@@ -811,11 +813,21 @@ hidden prompt:
 fnox set KAMAL_HOST --provider age-production
 ```
 
-Then read it in `config/deploy.yml` from a comment line. Kamal runs the whole
-file through ERB before it reads the YAML, comment lines included, so this line
-sets `deploy_host` and adds nothing to the YAML:
+Then read it in `config/deploy.yml`. The template ships this `servers:` block
+(before):
 
 ```yaml
+# Deploy to these servers.
+servers:
+  web:
+    hosts:
+      - 192.168.0.1
+```
+
+Replace those lines with these (after). The comment line stays a comment:
+
+```yaml
+# Deploy to these servers.
 # <% deploy_host = ENV.fetch("KAMAL_HOST") { `fnox get KAMAL_HOST 2>/dev/null`[/\S+/] || "deploy-host.invalid" } %>
 servers:
   web:
@@ -823,9 +835,18 @@ servers:
       - <%= deploy_host %>
 ```
 
+Kamal runs the whole file through ERB before it reads the YAML, comment lines
+included, so the second line sets `deploy_host` and adds nothing to the YAML.
+
 `KAMAL_HOST` in the environment wins over fnox, so a CI job can pass it as a
 secret instead. With neither, the name is `deploy-host.invalid`, which never
 resolves: the specs still load the file, and a deploy fails at SSH.
+
+Check that Kamal reads your server, not that name:
+
+```bash
+bin/kamal config | grep -A1 :hosts:
+```
 
 ## More than one person deploys
 
@@ -964,6 +985,23 @@ everything but a private network removes both, at a cost: everyone who
 deploys, CI included, joins that network first. It's required for
 [hardware you run yourself](#hardware-you-run-yourself) and an upgrade for a
 cloud server. This recipe uses Tailscale; WireGuard works too, with more setup.
+
+**Tailscale SSH, if you turn it on** (`tailscale set --ssh`), changes who
+answers. Tailscale itself then answers port 22 on the server's tailnet address
+and lets people in by their tailnet identity, not by key, so step 1's check
+(`ssh -o PubkeyAuthentication=no …` refused) logs you in instead. That isn't a
+hole in itself: the `ssh` rules in the tailnet's access controls are what guard
+the server now, so let them admit only the people who deploy. To see which SSH
+server answered:
+
+```bash
+ssh -v <user>@<server> exit 2>&1 | grep "remote software version"
+```
+
+"Tailscale" means Tailscale SSH; "OpenSSH" means the server's own. Before you
+turn it off with `tailscale set --ssh=false`, put your public key in that
+user's `~/.ssh/authorized_keys`, or nothing will let you back in over the
+tailnet.
 
 1. Install Tailscale on the server and on each deployer's machine, and tag the
    server, say `tag:server`.

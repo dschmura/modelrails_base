@@ -1,0 +1,1 @@
+- The deployment guide says why mail uses Postmark's SMTP option, explains Tailscale SSH, and shows the hidden deploy host before and after, with a check.

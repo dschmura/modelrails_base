@@ -163,33 +163,122 @@ where to get it.
 
 ## 5. A server
 
-Rent one Linux server. Lock it down before the first deploy: SSH keys only,
-a firewall open on ports 22, 80 and 443, automatic security updates, Docker
-from Docker's own repository, a host key checked once, and a folder for
-backups owned by uid 1000. Running a machine of your own instead? Also do
-[Hardware you run yourself](deployment#hardware-you-run-yourself).
+The commands on this page run on your own machine, in the app's folder; the
+deployment steps it links to say where theirs run. The ones that reach the
+server do it over SSH, as `<user>`: `root`, unless you name another user under
+`ssh:` in `config/deploy.yml`.
 
-**Check:** `ssh root@<server-ip> docker version` prints Docker's version, and
-`ssh -o PubkeyAuthentication=no root@<server-ip>` is refused with
-`Permission denied (publickey)`. Details:
-[Deployment: Prepare the server](deployment#1-prepare-the-server).
+Which server will this app run on?
+
+**A new cloud server.** Lock it down before the first deploy. Each item's
+commands are in [Deployment: Prepare the server](deployment#1-prepare-the-server);
+do them there, then tick them off here. You log in as `root` unless your
+provider gives you another user.
+
+- [ ] SSH keys only, password login off
+- [ ] A firewall open on ports 22, 80 and 443 only
+- [ ] Security updates that install themselves
+- [ ] Docker from Docker's own repository
+- [ ] The host key, checked once
+- [ ] A folder for backups, `/srv/backups`, owned by uid 1000 (the app's user
+  inside its container)
+
+**Your own hardware.** The same six items, and then every item in
+[Hardware you run yourself](deployment#hardware-you-run-yourself). Those are
+required, not extra: no provider console or firewall stands behind a machine
+on your own network.
+
+**A host that already runs an app deployed this way.** It passed the lockdown
+when that app arrived, so skip it. Log in as that app's `ssh.user`. That app
+owns `/srv/backups`, so give this one a folder of its own (`-t` lets `sudo`
+ask for a password if it needs one):
+
+```bash
+ssh -t <user>@<server> sudo install -d -o 1000 -g 1000 /srv/backups/<your_app>
+```
+
+**Check:** `ssh <user>@<server> docker version` prints Docker's version, and
+`ssh -o PubkeyAuthentication=no <user>@<server>` is refused with
+`Permission denied (publickey)`. If that second command logs you in instead,
+find out which SSH server answered:
+
+```bash
+ssh -v <user>@<server> exit 2>&1 | grep "remote software version"
+```
+
+"Tailscale" there means Tailscale SSH answered, not the server's own SSH;
+[SSH over a private network](deployment#ssh-over-a-private-network) says what
+that means for this check.
 
 ## 6. Configure the deploy and go live
 
-In `config/deploy.yml`, set the server's address (exactly one), uncomment
-`proxy:` with your domain, match `builder.arch` to the server, set
-`RAILS_HOST` and `BACKUP_PATH`, and uncomment the `/srv/backups:/backups` line
-under `volumes:` so the backup folder reaches the app. On the shared preset,
-also uncomment `TENANCY_OWNER_EMAIL` (you) and
-`TENANCY_WORKSPACE_CREATION: disabled`. `bin/rails deploy:check` then says
-"Nothing here stops a deploy." Kamal runs the same check before every build,
-and stops a deploy that would fail. Point your domain at the server, wait
-until `dig +short <your-domain>` prints its IP, then:
+Edit `config/deploy.yml`:
 
-```bash
-bin/kamal setup     # the first time
-bin/kamal deploy    # every time after
+- `servers:` → `web:` → `hosts:`: the server's address, exactly one.
+- `builder.arch`: the server's, `amd64` or `arm64`.
+  `ssh <user>@<server> uname -m` prints `x86_64` for amd64, `aarch64` for arm64.
+- `ssh:`: uncomment it, with `user:`, when `<user>` isn't root.
+- `RAILS_HOST`: your domain.
+- `BACKUP_PATH: /backups`, and the `/srv/backups:/backups` line under
+  `volumes:`, so the backup folder reaches the app.
+- `proxy:`: uncomment it, with `ssl: true` and `host:` your domain.
+- On the shared preset: `TENANCY_OWNER_EMAIL` (you) and
+  `TENANCY_WORKSPACE_CREATION: disabled`.
+
+Then whichever of these fit:
+
+**Something in front handles HTTPS**, such as another web server or a tunnel.
+kamal-proxy runs without SSL, on other ports, so `proxy:` reads:
+
+```yaml
+proxy:
+  ssl: false
+  host: yourdomain.com
+  run:
+    http_port: 8080
+    https_port: 8443
 ```
+
+On a host that already runs an app, use the same two ports as that app: one
+kamal-proxy serves every app there
+([Hardware you run yourself](deployment#hardware-you-run-yourself) says why).
+The front then needs an entry for your domain that passes requests to
+kamal-proxy's `http_port`: `127.0.0.1:8080` when the front runs on the same
+machine, or reaches the server through a forwarded port, and `<server>:8080`
+otherwise. In that last case, open port 8080 on the server to the front's
+address only: step 5's firewall admits 22, 80 and 443. For Caddy, the entry is:
+
+```text
+yourdomain.com {
+    reverse_proxy 127.0.0.1:8080
+}
+```
+
+**A host that already runs an app.** The volume line is
+`/srv/backups/<your_app>:/backups`, the folder step 5 made.
+
+**A public repository.** Anyone can read `config/deploy.yml`, so keep the
+server's address in fnox instead, and replace the `servers:` block as
+[Keep the deploy host out of a public repository](deployment#keep-the-deploy-host-out-of-a-public-repository)
+shows. Then `bin/kamal config | grep -A1 :hosts:` prints your server's address.
+
+Then, in this order:
+
+1. `bin/rails deploy:check` says "Nothing here stops a deploy." Kamal runs the
+   same check before every build, and stops a deploy that would fail.
+2. Point your domain at the public address that receives your visitors'
+   requests: the server's, or the front's when it runs on another machine.
+   Behind a home router, that's the router's. Wait until
+   `dig +short yourdomain.com` prints it. A tunnel is the exception: its own
+   setup tells you which DNS record to add.
+3. With something in front, add its entry for your domain now, so the
+   certificate it requests finds your domain.
+4. Deploy:
+
+   ```bash
+   bin/kamal setup     # the first time
+   bin/kamal deploy    # every time after
+   ```
 
 **Check:** `https://<your-domain>/up` answers `200`, and
 `bin/kamal app exec "bin/rails backup:now"` prints the backup it stored.

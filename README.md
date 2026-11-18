@@ -4,13 +4,35 @@ A multi-tenant SaaS starter kit you fork to start a product, with sign-in,
 workspaces, WCAG 2.2 AAA accessibility and deployment already done. It runs on
 Rails main (8.2.0.alpha, pinned to one commit) and Ruby 4.0.9.
 
-## Start a product
+## Set up your machine
 
-You need [mise](https://mise.jdx.dev/), the
-[GitHub CLI](https://cli.github.com/) signed in with `gh auth login`, and
-Chrome or Chromium for the browser tests. Activate mise first, so `bin/fork`
-runs mise's Ruby and not your system's: add `eval "$(mise activate zsh)"` to `~/.zshrc` (or
-`bash` and `~/.bashrc`), then open a new terminal.
+You need three tools before you clone. On macOS, install them with
+[Homebrew](https://brew.sh):
+
+```bash
+brew install mise gh
+brew install --cask google-chrome   # the browser tests drive it; Chromium works too
+gh auth login                       # sign the GitHub CLI in to your account
+```
+
+Then activate mise, so the clone runs mise's Ruby and not your system's: add
+`eval "$(mise activate zsh)"` to `~/.zshrc` (or `bash` and `~/.bashrc`), and
+open a new terminal. On Linux, follow each tool's own install page:
+[mise](https://mise.jdx.dev/getting-started.html),
+[the GitHub CLI](https://cli.github.com/),
+[Chrome](https://www.google.com/chrome/).
+
+**Check**, in that new terminal:
+
+- `mise doctor` reports `activated: yes`;
+- `gh auth status` says you're logged in to github.com;
+- `open -Ra "Google Chrome" 2>/dev/null || open -Ra Chromium` prints nothing (on Linux,
+  `command -v google-chrome chromium` prints a path).
+
+Ruby, `age` and `fnox` come later, from `mise install` in the clone. Docker is
+needed only when you deploy, from the quickstart's step 5.
+
+## Start a product
 
 ```bash
 gh repo clone dschmura/modelrails_base my_app
