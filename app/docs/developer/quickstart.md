@@ -133,7 +133,7 @@ says and run it again: it skips what's already done.
   `config/deploy.yml`. It's skipped once production has a mail login.
 - **Encryption keys:** `bin/encryption-setup` adds them to the production
   credentials without printing them.
-- **fnox:** `bin/fnox-setup` makes your fnox identity if you don't have one,
+- **fnox:** `bin/fnox-setup` creates `~/.config/fnox/age.txt` if it isn't there yet,
   writes `fnox.toml`, and stores `RAILS_MASTER_KEY` there, and staging's key
   when it exists. Deploys read the key from fnox. It needs `age` and `fnox`, which
   `mise install` puts in place.

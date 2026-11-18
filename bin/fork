@@ -119,7 +119,7 @@ class ForkFlow
   ].freeze
 
   YOURS_TO_REWRITE_PATHS = [
-    [ %r{\AREADME\.md\z},    "your product's README (fork-owned — rewrite wholesale)" ],
+    [ %r{\AREADME\.md\z},    "your product's README (rewrite it wholesale)" ],
     [ %r{\A\.devcontainer/}, "optional: devcontainer bundle-cache volume name (see the forking guide)" ]
   ].freeze
 
@@ -827,11 +827,11 @@ class ForkFlow
       @todos << "Set a real support address in config/locales/en/pages.en.yml " \
                 "(now #{support_email}; CI fails until it is set): edit, then commit."
     end
-    @make_it_yours << "Rewrite marketing copy: config/locales/en/pages.en.yml + app/views/pages/ (fork-owned)."
+    @make_it_yours << "Rewrite marketing copy: config/locales/en/pages.en.yml + app/views/pages/."
     @make_it_yours << "Replace the brand mark: app/views/shared/_site_mark.html.erb (one <svg>) and the icon set in public/ " \
-              "(fork-owned — bin/fork renames strings, never artwork)."
+              "(bin/fork renames strings, never artwork)."
     @make_it_yours << "Name your nouns, if the product's aren't workspace/project: config/vocabulary.local.yml " \
-              "(fork-owned — every template string follows, and so do yours when they say %{project}, not the word)."
+              "(every template string follows, and so do yours when they say %{project}, not the word)."
 
     act("start #{CHANGELOG} clean (the template's releases stay on its releases page; bin/sync links each one it brings in)")
     atomic_write(path_to(CHANGELOG), "# Changelog\n\nAll notable changes to #{title} are documented here.\n\n## [Unreleased]\n") unless dry_run?

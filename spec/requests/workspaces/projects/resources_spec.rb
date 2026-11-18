@@ -197,7 +197,6 @@ RSpec.describe "Project Resources", type: :request do
         expect(page).to have_css("[data-slot='control'] #document_body", visible: :all)
       end
 
-      # Action Text's attachment alt switches on Lexxy's ALT button; the dialog's axe gate is #1339.
       it "renders the editor with alt-text authoring on" do
         get new_workspace_project_resource_path(workspace, project, type: "Document")
         editor = Capybara.string(response.body).find("#document_body", visible: :all)
