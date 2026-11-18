@@ -163,9 +163,10 @@ where to get it.
 
 ## 5. A server
 
-Every command in steps 5 and 6 runs on your own machine, in the app's folder.
-The ones that reach the server do it over SSH, as `<user>`: `root`, unless you
-name another user under `ssh:` in `config/deploy.yml`.
+The commands on this page run on your own machine, in the app's folder; the
+deployment steps it links to say where theirs run. The ones that reach the
+server do it over SSH, as `<user>`: `root`, unless you name another user under
+`ssh:` in `config/deploy.yml`.
 
 Which server will this app run on?
 
@@ -189,10 +190,11 @@ on your own network.
 
 **A host that already runs an app deployed this way.** It passed the lockdown
 when that app arrived, so skip it. Log in as that app's `ssh.user`. That app
-owns `/srv/backups`, so give this one a folder of its own:
+owns `/srv/backups`, so give this one a folder of its own (`-t` lets `sudo`
+ask for a password if it needs one):
 
 ```bash
-ssh <user>@<server> sudo install -d -o 1000 -g 1000 /srv/backups/<your_app>
+ssh -t <user>@<server> sudo install -d -o 1000 -g 1000 /srv/backups/<your_app>
 ```
 
 **Check:** `ssh <user>@<server> docker version` prints Docker's version, and
@@ -242,9 +244,15 @@ kamal-proxy serves every app there
 ([Hardware you run yourself](deployment#hardware-you-run-yourself) says why).
 The front then needs an entry for your domain that passes requests to
 kamal-proxy's `http_port`: `127.0.0.1:8080` when the front runs on the same
-machine, or reaches the server through a forwarded port, and
-`<server>:8080` otherwise. For Caddy that's
-`yourdomain.com { reverse_proxy 127.0.0.1:8080 }`.
+machine, or reaches the server through a forwarded port, and `<server>:8080`
+otherwise. In that last case, open port 8080 on the server to the front's
+address only: step 5's firewall admits 22, 80 and 443. For Caddy, the entry is:
+
+```text
+yourdomain.com {
+    reverse_proxy 127.0.0.1:8080
+}
+```
 
 **A host that already runs an app.** The volume line is
 `/srv/backups/<your_app>:/backups`, the folder step 5 made.
@@ -258,9 +266,11 @@ Then, in this order:
 
 1. `bin/rails deploy:check` says "Nothing here stops a deploy." Kamal runs the
    same check before every build, and stops a deploy that would fail.
-2. Point your domain's DNS A record at the server's public address: behind a
-   home router, that's the router's. Wait until `dig +short yourdomain.com`
-   prints it.
+2. Point your domain at the public address that receives your visitors'
+   requests: the server's, or the front's when it runs on another machine.
+   Behind a home router, that's the router's. Wait until
+   `dig +short yourdomain.com` prints it. A tunnel is the exception: its own
+   setup tells you which DNS record to add.
 3. With something in front, add its entry for your domain now, so the
    certificate it requests finds your domain.
 4. Deploy:
