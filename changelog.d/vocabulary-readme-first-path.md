@@ -1,0 +1,1 @@
+- `bin/fork`, `bin/fnox-setup`, the quickstart and the production config page use one word per idea: no "fork-owned" under Make it yours, the age file named by its path, and "personal data" for what the encryption keys protect.
