@@ -150,10 +150,9 @@ builder:
   # # Build image via remote server (useful for faster amd64 builds on arm64 computers)
   # remote: ssh://docker@docker-builder-server
 
-  # Pass the Ruby version through so the production image always matches the
-  # version Bundler enforces via Gemfile.lock. Keep in sync with .tool-versions.
+  # The production image builds on the Ruby that .tool-versions pins, the one the Gemfile enforces.
   args:
-    RUBY_VERSION: "4.0.9"
+    RUBY_VERSION: '<%= File.read(".tool-versions")[/^ruby (\S+)/, 1] || raise(".tool-versions names no ruby") %>'
 
   # secrets:
   #   - GITHUB_TOKEN

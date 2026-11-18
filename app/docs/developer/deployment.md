@@ -1152,10 +1152,10 @@ An earlier revision spelled this `stop_wait_time` and paired it with a `max-repl
 ```yaml
 builder:
   args:
-    RUBY_VERSION: "4.0.9"   # Keep in sync with .tool-versions
+    RUBY_VERSION: '<%= File.read(".tool-versions")[/^ruby (\S+)/, 1] || raise(".tool-versions names no ruby") %>'
 ```
 
-This ensures `kamal build` always produces an image matching the Ruby version Bundler enforces in `Gemfile.lock`. If `.tool-versions`, `Dockerfile` `ARG RUBY_VERSION`, and `deploy.yml` `builder.args.RUBY_VERSION` ever drift apart, the integration spec at `spec/code_smells/template_invariants_spec.rb` will fail.
+Kamal runs `config/deploy.yml` through ERB, so `kamal build` reads the Ruby version from `.tool-versions`, the same one Bundler enforces through the `Gemfile`, and a Ruby bump never touches this file. The value is single-quoted so the file stays valid YAML before ERB runs, for the scripts that read it raw. The two `Dockerfile`s keep a literal `ARG RUBY_VERSION` default; `spec/code_smells/template_invariants_spec.rb` renders this line and fails if it, either default, or `.tool-versions` drift apart.
 
 ## Solid Queue topology
 

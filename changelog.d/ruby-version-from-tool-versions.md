@@ -1,0 +1,1 @@
+- `config/deploy.yml` reads the Ruby version from `.tool-versions`, so a Ruby bump no longer edits it.

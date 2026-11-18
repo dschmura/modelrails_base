@@ -70,6 +70,7 @@ RSpec.describe ".kamal/hooks/pre-build" do
     require "kamal"
     @app.join("config").mkpath
     FileUtils.cp(Rails.root.join("config/deploy.yml"), @app.join("config/deploy.yml"))
+    FileUtils.cp(Rails.root.join(".tool-versions"), @app)
     config = Dir.chdir(@app) { Kamal::Configuration.create_from(config_file: Pathname("config/deploy.yml")) }
 
     expect(config.hooks_output_for("pre-build")).to eq(:verbose)
