@@ -69,6 +69,23 @@ RSpec.describe ProductionSetup do
     expect(output.string).not_to include("Commit")
   end
 
+  it "reminds to back up production.key when it stops after the key was made" do
+    @root.join("config/credentials/production.key").write("made by bin/mail-setup")
+    stub_step("bin/fnox-setup", exit_code: 1)
+
+    run_setup
+
+    expect(output.string).to include("config/credentials/production.key", "password manager")
+  end
+
+  it "says nothing about production.key when it stops before the key was made" do
+    stub_step("bin/mail-setup", exit_code: 1)
+
+    run_setup
+
+    expect(output.string).not_to include("production.key")
+  end
+
   it "tells each script it runs inside bin/production-setup, so their own endings stay short" do
     run_setup
 

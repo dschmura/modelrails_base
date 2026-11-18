@@ -27,6 +27,7 @@ class ProductionSetup
       next if system(CleanGitEnv::HASH.merge("PRODUCTION_SETUP" => "1"), File.join(@root, step), chdir: @root)
 
       say "\nbin/production-setup stopped at #{step}. Fix what it said, then run bin/production-setup again."
+      say "#{KEY} exists already: back it up in your password manager now. Never commit it." if File.exist?(path(KEY))
       return 1
     end
     finish
