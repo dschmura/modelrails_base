@@ -1,0 +1,1 @@
+- When `bin/production-setup` stops partway after `production.key` exists, it says to back the key up in your password manager.

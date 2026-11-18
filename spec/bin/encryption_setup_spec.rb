@@ -61,6 +61,22 @@ RSpec.describe EncryptionSetup do
     expect(output.string).to include("what-production-credentials-hold")
   end
 
+  it "leaves what to commit to bin/production-setup's summary when it runs inside it" do
+    credentials_with("secret_key_base: abc\n")
+
+    expect(run_setup(env: { "PRODUCTION_SETUP" => "1" })).to eq(0)
+    expect(output.string).to include("Added the personal-data encryption keys")
+    expect(output.string).not_to include("Commit")
+  end
+
+  it "says what to commit when it runs on its own" do
+    credentials_with("secret_key_base: abc\n")
+
+    run_setup
+
+    expect(output.string).to include("Commit it; production.key stays out of git.")
+  end
+
   it "never prints a key" do
     credentials_with("secret_key_base: abc\n")
 
