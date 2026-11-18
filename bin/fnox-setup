@@ -46,7 +46,7 @@ class FnoxSetup
     file = File.join(@home, IDENTITY)
     return create_identity(file) unless File.exist?(file)
 
-    recipient_of(file).tap { say "✓ Using your fnox identity, ~/#{IDENTITY}" }
+    recipient_of(file).tap { say "✓ Using ~/#{IDENTITY}" }
   end
 
   def recipient_of(file)
@@ -57,19 +57,19 @@ class FnoxSetup
   end
 
   def create_identity(file)
-    return say("Would create your fnox identity, ~/#{IDENTITY}") if @dry_run
+    return say("Would create ~/#{IDENTITY}") if @dry_run
 
     FileUtils.mkdir_p(File.dirname(file))
     _, status = tool("age-keygen", "-o", file)
     raise Stop, "age couldn't create ~/#{IDENTITY}. Run age-keygen -o ~/#{IDENTITY} to see why." unless status.success?
 
     File.chmod(0o600, file)
-    say "Created your fnox identity, ~/#{IDENTITY}. Back it up in your password manager now: without it, nobody can read what fnox stores."
+    say "Created ~/#{IDENTITY}. Back it up in your password manager now: without it, nobody can read what fnox stores."
     recipient_of(file)
   end
 
   def configure!(recipient)
-    return say("Would check #{CONFIG} lists your new identity") if recipient.nil? && File.exist?(path(CONFIG))
+    return say("Would check #{CONFIG} can be read with ~/#{IDENTITY}") if recipient.nil? && File.exist?(path(CONFIG))
 
     unless File.exist?(path(CONFIG))
       return say("Would write #{CONFIG} with production and staging providers") if @dry_run
