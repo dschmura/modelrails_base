@@ -1,1 +1,0 @@
-- Comments cite only docs a fork can open: pages in the repo, or modelrails_ui's own. `spec/code_smells/cited_docs_ship_with_the_app_spec.rb` fails on a `docs/*.md` citation that's neither, so a fork citing its own untracked notes gets told.
