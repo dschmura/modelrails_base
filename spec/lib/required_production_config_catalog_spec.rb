@@ -30,6 +30,13 @@ RSpec.describe RequiredProductionConfigCatalog do
     expect(catalog.exclusions.keys).to include("WEB_CONCURRENCY", "aws")
   end
 
+  it "calls what the encryption keys protect personal data, as the quickstart and bin/encryption-setup do" do
+    purposes = described_class.load(root: Rails.root).entries.select { |entry| entry.key.start_with?("active_record_encryption.") }.map(&:purpose)
+
+    expect(purposes.size).to eq(3)
+    expect(purposes).to all(include("personal data"))
+  end
+
   it "appends a fork's local entries" do
     with_fork_root(local: { "stripe.secret_key" => local_entry }) do |root|
       last = described_class.load(root: root).entries.last

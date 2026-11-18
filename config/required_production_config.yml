@@ -231,7 +231,7 @@ inputs:
     home: credentials
     required: always
     secret: true
-    purpose: "Encrypts sensitive columns at rest"
+    purpose: "Encrypts personal data at rest"
     where: "bin/encryption-setup makes all three and stores them only in the production credentials; by hand, bin/rails db:encryption:init prints them once"
     set_with: "bin/encryption-setup, or by hand bin/rails credentials:edit --environment production"
     regenerable: "No, once production has encrypted data: new keys can't read what the old ones wrote"
@@ -242,7 +242,7 @@ inputs:
     home: credentials
     required: always
     secret: true
-    purpose: "Encrypts sensitive columns at rest"
+    purpose: "Encrypts personal data at rest"
     where: "bin/encryption-setup makes all three and stores them only in the production credentials; by hand, bin/rails db:encryption:init prints them once"
     set_with: "bin/encryption-setup, or by hand bin/rails credentials:edit --environment production"
     regenerable: "No, once production has encrypted data: new keys can't read what the old ones wrote"
@@ -253,7 +253,7 @@ inputs:
     home: credentials
     required: always
     secret: true
-    purpose: "Encrypts sensitive columns at rest"
+    purpose: "Encrypts personal data at rest"
     where: "bin/encryption-setup makes all three and stores them only in the production credentials; by hand, bin/rails db:encryption:init prints them once"
     set_with: "bin/encryption-setup, or by hand bin/rails credentials:edit --environment production"
     regenerable: "No, once production has encrypted data: new keys can't read what the old ones wrote"

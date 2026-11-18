@@ -13,9 +13,6 @@
 
    To rebrand, add a :root block below mapping the --primary-* shades (50–950)
    to your chosen Tailwind family — e.g. --primary-700 to the teal-700 token.
-   Override the secondary/neutral palettes the same way if needed. A full
-   copy-paste example lives in docs/theming.md (kept there, not here, so this
-   shipped file adds zero bytes to the compiled CSS until you use it).
 
    AAA CAVEAT: changing a family shifts the contrast ratios the semantic layer
    (tokens/_semantic.css) was tuned against. The local axe audit re-proves AAA
