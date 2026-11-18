@@ -80,6 +80,17 @@ A clean replay therefore rules out an ordering flake, not a data-dependent one
 — before concluding "cannot reproduce", check whether the failing assertion
 involves Faker-generated values (see #856-class collisions).
 
+### Unordered queries come back shuffled
+
+`config/environments/test.rb` sets `config.active_record.shuffle_unordered_selects`,
+so every SELECT Active Record builds without an `ORDER BY` returns its rows
+shuffled. A spec that leans on the order SQLite happens to return fails on every
+run, not once in a while. Two kinds of query are left alone: raw SQL strings, and
+queries ending in `LIMIT 1`, where the database has already picked the row.
+
+When one fails, decide which order the code means. If it means one, add the
+`order`; if it doesn't, compare with `match_array` or `contain_exactly`.
+
 ### The code-smells suite
 
 `spec/code_smells/` holds specs that enforce project conventions structurally rather than by review. Examples: `mutating_actions_are_authorized_spec.rb` fails if a POST/PATCH/PUT/DELETE action neither calls `authorize` nor sits on the reviewed allow-list, and `no_unscoped_tenant_loads_spec.rb` fails on unscoped tenant finders in controllers (see [Extending](/docs/developer/extending)).
