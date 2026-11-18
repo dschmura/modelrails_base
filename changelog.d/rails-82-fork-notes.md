@@ -1,0 +1,1 @@
+- The testing guide explains why unordered queries come back shuffled in specs, and Getting Started gives the Kamal form of `action_text:clear_filename_alts`. v2026.10.27's notes gain a Breaking entry for Rails 8.2's defaults, with a remedy for each failure a fork can hit, and lose three statements that stopped being true within that release.
