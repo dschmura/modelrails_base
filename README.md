@@ -26,7 +26,7 @@ open a new terminal. On Linux, follow each tool's own install page:
 
 - `mise doctor` reports `activated: yes`;
 - `gh auth status` says you're logged in to github.com;
-- `open -Ra "Google Chrome" || open -Ra Chromium` prints nothing (on Linux,
+- `open -Ra "Google Chrome" 2>/dev/null || open -Ra Chromium` prints nothing (on Linux,
   `command -v google-chrome chromium` prints a path).
 
 Ruby, `age` and `fnox` come later, from `mise install` in the clone. Docker is
