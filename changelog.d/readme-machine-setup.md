@@ -1,0 +1,1 @@
+- The README sets up a new machine (mise, the GitHub CLI, Chrome) and checks each tool before you clone.
