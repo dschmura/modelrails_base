@@ -35,7 +35,8 @@ class EncryptionSetup
       say "Would add the personal-data encryption keys to #{CONTENT}"
     else
       write(text)
-      say "Added the personal-data encryption keys to #{CONTENT}. Commit it; production.key stays out of git."
+      say "Added the personal-data encryption keys to #{CONTENT}."
+      say "Commit it; production.key stays out of git." if @env["PRODUCTION_SETUP"].to_s.empty?
     end
     0
   rescue Stop => e

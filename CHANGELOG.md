@@ -4,6 +4,12 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+## v2026.11.18-3
+
+### Changed
+
+- When `bin/production-setup` stops partway after `production.key` exists, it says to back the key up in your password manager.
+
 ## v2026.11.18-2
 
 ### Changed
