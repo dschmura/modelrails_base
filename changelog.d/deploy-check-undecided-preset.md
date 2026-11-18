@@ -1,1 +1,0 @@
-- `bin/rails deploy:check` warns when a fork never chose its tenancy preset, and says what production does without one.
