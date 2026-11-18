@@ -61,9 +61,12 @@ RSpec.describe "Template invariants" do
     end
 
     it "config/deploy.yml builder.args.RUBY_VERSION matches .tool-versions" do
-      deploy = YAML.safe_load(deploy_yml, aliases: true, permitted_classes: [ Symbol ])
+      rendered = Dir.chdir(root) { ERB.new(deploy_yml).result }
+      deploy = YAML.safe_load(rendered, aliases: true, permitted_classes: [ Symbol ])
       ruby_version_arg = deploy.dig("builder", "args", "RUBY_VERSION")
 
+      expect(deploy_yml).to match(/^\s+RUBY_VERSION: .*\.tool-versions/),
+        "expected config/deploy.yml to read builder.args.RUBY_VERSION from .tool-versions, not repeat it"
       expect(ruby_version_arg).to eq(tool_versions_ruby),
         "expected config/deploy.yml builder.args.RUBY_VERSION (#{ruby_version_arg.inspect}) " \
         "to equal .tool-versions Ruby (#{tool_versions_ruby}); uncomment and wire the args block"
