@@ -63,10 +63,8 @@ module ModelrailsBase
     # Off by default: the template avoids storing passwords. See /docs/developer/security (Password sign-in).
     config.x.authentication.passwords = ENV.fetch("AUTH_PASSWORDS", "disabled").to_sym
 
-    # Instance ceiling on per-workspace Workspace#join_policy. Defaults to
-    # [:invite] (preserves Solo-default). Operators opt in to :open_link by
-    # setting SIGNUP_PERMITTED_JOIN_STRATEGIES=invite,open_link.
-    # See app/docs/developer/presets.md and docs/reshape-2-per-workspace-join-policy-spec.md.
+    # The instance's ceiling on Workspace#join_policy: invite only, unless SIGNUP_PERMITTED_JOIN_STRATEGIES
+    # adds open_link. Per preset: app/docs/developer/presets-none.md and presets-open-saas.md.
     config.x.signup.permitted_join_strategies =
       ENV.fetch("SIGNUP_PERMITTED_JOIN_STRATEGIES", "invite").split(",").map { |s| s.strip.to_sym }
 

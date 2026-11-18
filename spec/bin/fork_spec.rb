@@ -1716,6 +1716,18 @@ RSpec.describe ForkFlow do
       expect(output.index("Rewrite marketing copy")).to be > output.index("Make it yours:")
     end
 
+    it "says what to make yours without calling it fork-owned" do
+      run_fork(name: "my_app", yes: true)
+      repo.join("README.md").write("# modelrails_base\n")
+      system(ForkFlow::CLEAN_GIT_ENV, "git", "-C", repo.to_s, "add", "README.md", exception: true)
+      flow = described_class.new({}, root: repo.to_s, output: printed)
+      flow.step_verify!
+
+      expect(printed.string[printed.string.index("Make it yours:")..]).to include("_site_mark", "vocabulary.local.yml")
+      expect(flow.make_it_yours.join).to include("README.md")
+      expect(printed.string + flow.make_it_yours.join).not_to include("fork-owned")
+    end
+
     it "points a skipped preset at the presets page without warning about migrations" do
       run_fork(name: "my_app", yes: true)
 
