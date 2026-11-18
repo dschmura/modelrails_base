@@ -1,0 +1,1 @@
+- The quickstart's server and deploy steps now cover a new cloud server, your own hardware, a host that already runs an app, a front that handles HTTPS, and a public repo.

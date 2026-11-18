@@ -190,7 +190,7 @@ class DeployCheck
       end + (entry.source == :local ? "  (from required_production_config.local.yml)" : "")
     end
 
-    def warnings = [ backups_warning, workspace_creation_warning ].compact
+    def warnings = [ backups_warning, workspace_creation_warning, undecided_preset_warning ].compact
 
     def credentials_file = relative(paths[:content_path])
 
@@ -293,6 +293,14 @@ class DeployCheck
 
       "The shared preset usually turns off creating more workspaces: TENANCY_WORKSPACE_CREATION: disabled " \
         "under env.clear. /docs/developer/presets-single-tenant"
+    end
+
+    def undecided_preset_warning
+      fork = ForkConfig.read(@root)
+      return unless fork.recorded? && fork.preset.nil? && @env["WORKSPACE_ON_SIGNUP"].to_s.strip.empty?
+
+      "No tenancy preset is chosen: .fork.yml records no preset, so production starts on personal, where every new user " \
+        "gets a workspace of their own. Choose one with bin/fork --preset personal|shared|none: /docs/developer/presets"
     end
   end
 end
