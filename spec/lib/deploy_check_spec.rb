@@ -283,6 +283,40 @@ RSpec.describe DeployCheck do
     end
   end
 
+  describe "a fork that hasn't chosen a preset" do
+    before { credentials }
+
+    it "warns when .fork.yml records the fork but no preset" do
+      write(".fork.yml", "name: acme\n")
+      deploy
+
+      expect(check.refusals).to be_empty
+      expect(check.warnings.join).to include("no preset", "personal", "bin/fork --preset")
+    end
+
+    it "warns the same when preset: is there but empty" do
+      write(".fork.yml", "name: acme\npreset:\n")
+      deploy
+
+      expect(check.refusals).to be_empty
+      expect(check.warnings.join).to include("no preset", "personal", "bin/fork --preset")
+    end
+
+    it "doesn't warn when the deploy sets WORKSPACE_ON_SIGNUP" do
+      write(".fork.yml", "name: acme\n")
+      deploy(env: ready_env.merge("WORKSPACE_ON_SIGNUP" => "personal"))
+
+      expect(check.warnings).to be_empty
+    end
+
+    it "doesn't warn on preset: none, which is a choice" do
+      write(".fork.yml", "name: acme\npreset: none\n")
+      deploy
+
+      expect(check.warnings).to be_empty
+    end
+  end
+
   it "warns when no volume mounts BACKUP_PATH, so backups would vanish with the container" do
     deploy(volumes: [])
     credentials
@@ -329,7 +363,7 @@ RSpec.describe DeployCheck do
   end
 
   it "reads the template's own deploy files, as a fork first meets them" do
-    %w[config/deploy.yml config/environments/production.rb .kamal/secrets].each { |path| write(path, template.join(path).read) }
+    %w[config/deploy.yml config/environments/production.rb .kamal/secrets .tool-versions].each { |path| write(path, template.join(path).read) }
 
     expect(headlines(check.refusals)).to contain_exactly(/production.yml.enc doesn't exist/, /RAILS_HOST is unset/, /no proxy with ssl: true/)
     expect(check.warnings.join).to include("192.168.0.1", "Backups are off")

@@ -4,6 +4,15 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+## v2026.11.18-2
+
+### Changed
+
+- `bin/rails deploy:check` warns when a fork never chose its tenancy preset, and says what production does without one.
+- The deployment guide says why mail uses Postmark's SMTP option, explains Tailscale SSH, and shows the hidden deploy host before and after, with a check.
+- The quickstart's server and deploy steps now cover a new cloud server, your own hardware, a host that already runs an app, a front that handles HTTPS, and a public repo.
+- `config/deploy.yml` reads the Ruby version from `.tool-versions`, so a Ruby bump no longer edits it.
+
 ## v2026.11.18
 
 ### Changed
