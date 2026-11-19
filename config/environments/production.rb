@@ -58,7 +58,6 @@ Rails.application.configure do
   config.active_job.queue_adapter = :solid_queue
   config.solid_queue.connects_to = { database: { writing: :queue } }
 
-  # Set host to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = { host: ENV.fetch("RAILS_HOST", "example.com") }
 
   # Mail leaves over SMTP from ENV, and a failed send fails its job (#1318).

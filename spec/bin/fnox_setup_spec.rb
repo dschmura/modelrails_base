@@ -144,6 +144,18 @@ RSpec.describe FnoxSetup do
     expect(output.string).to include("password manager")
   end
 
+  it "names the age file by its path, never as an identity, which is the app's own word" do
+    install_tools
+    keys
+    expect(run_setup(dry_run: true)).to eq(0)
+    expect(run_setup).to eq(0)
+    expect(run_setup).to eq(0)
+
+    expect(output.string).to include("Would create ~/.config/fnox/age.txt", "Created ~/.config/fnox/age.txt",
+                                     "Using ~/.config/fnox/age.txt")
+    expect(output.string).not_to match(/identity/i)
+  end
+
   it "writes fnox.toml with both providers holding the recipient" do
     install_tools
     keys
