@@ -72,7 +72,7 @@ gem "ruby-vips", require: false
 gem "active_storage_validations"
 gem "activestorage-hotcell-client"
 # The object_storage service in config/storage.yml; without it production can't upload its database backups.
-gem "aws-sdk-s3", "~> 1.238", require: false
+gem "aws-sdk-s3", "~> 1.242", require: false
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
@@ -90,7 +90,7 @@ group :development, :test do
   # Detects missing and unused locale keys. Driven from spec/i18n_spec.rb so it
   # runs in the normal suite rather than as a separate CI step that Lefthook
   # would have to mirror.
-  gem "i18n-tasks", "~> 1.0", require: false
+  gem "i18n-tasks", "~> 1.2", require: false
 
   # bin/release: the next → release/<name> → main flow [https://github.com/dschmura/release_flow]
   gem "release_flow", "~> 0.1.1", require: false
