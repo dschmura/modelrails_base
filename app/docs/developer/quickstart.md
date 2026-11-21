@@ -142,10 +142,18 @@ says and run it again: it skips what's already done.
 
 Then verify your sending domain with the provider, as its DNS instructions say.
 
-Commit `config/credentials/production.yml.enc` and `fnox.toml`. Save
-`config/credentials/production.key` and `~/.config/fnox/age.txt` in a password
-manager now. Neither goes in git. Without `production.key` nobody can decrypt
-the credentials, and without `age.txt` nobody can read what fnox stores.
+Commit these two files. They are encrypted, so they are safe in git:
+
+- `config/credentials/production.yml.enc`
+- `fnox.toml`
+
+Save these two key files in a password manager now, and never commit them.
+Each one unlocks one of the files above:
+
+- `config/credentials/production.key` decrypts `production.yml.enc`. Lose it
+  and the credentials are unrecoverable.
+- `~/.config/fnox/age.txt` decrypts what fnox stores in `fnox.toml`. Lose it
+  and you can't read the stored `RAILS_MASTER_KEY`.
 
 **Check:** before that commit, `git status -u` lists
 `config/credentials/production.yml.enc` and `fnox.toml`, and neither key. This

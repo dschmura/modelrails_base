@@ -4,6 +4,12 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+## v2026.11.21
+
+### Changed
+
+- The quickstart now lists the two files to commit and the two key files to back up separately, and says which key unlocks which file.
+
 ## v2026.11.20
 
 ### Fixed
