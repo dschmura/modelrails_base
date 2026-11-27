@@ -69,17 +69,27 @@ RSpec.describe "the CI workflow" do
       test = jobs["test"]
       guard = test["steps"].first
 
-      expect(Array(test["needs"])).to include("changes", "test_shard", "lane_specs")
+      expect(Array(test["needs"])).to include("changes", "test_shard", "lane_specs", "fork_shaped_specs")
       expect(guard["env"]).to include(
         "FULL" => "${{ needs.changes.outputs.full }}",
         "SKIP" => "${{ needs.changes.outputs.skip }}",
         "SHARDS" => "${{ needs.test_shard.result }}",
-        "LANE" => "${{ needs.lane_specs.result }}"
+        "LANE" => "${{ needs.lane_specs.result }}",
+        "FORK" => "${{ needs.fork_shaped_specs.result }}"
       )
       expect(guard["run"]).to include(
         'if [ "$SKIP" = true ]; then want=success; elif [ "$FULL" = true ]; then want="$SHARDS"; else want="$LANE"; fi'
       )
+      expect(guard["run"]).to include('[ "$SKIP" = true ] || [ "$FORK" = success ]')
       expect(guard["run"]).to include("exit 1")
+    end
+
+    it "runs the deploy specs in a fresh fork on every change but a changelog-only one" do
+      job = jobs["fork_shaped_specs"]
+
+      expect(job["needs"]).to eq("changes")
+      expect(job["if"]).to eq("needs.changes.outputs.skip != 'true'")
+      expect(step_running("fork_shaped_specs", "bin/fork-shaped-specs")).to be_present
     end
 
     describe "a commit that differs from a green parent only in the changelog" do
@@ -132,7 +142,7 @@ RSpec.describe "the CI workflow" do
     it "come through the cached action, so an Ubuntu mirror outage doesn't fail every job" do
       expect(steps.map { |step| step["run"].to_s }.grep(/apt-get/)).to be_empty
       expect(package_steps.map { |step| step.dig("with", "packages") }).to contain_exactly(
-        "libvips42t64", "libvips42t64 libheif-plugin-libde265", "libvips42t64 libheif-plugin-libde265"
+        "libvips42t64", "libvips42t64", "libvips42t64 libheif-plugin-libde265", "libvips42t64 libheif-plugin-libde265"
       )
       expect(package_steps.map { |step| step["timeout-minutes"] }).to all(eq(5))
     end
