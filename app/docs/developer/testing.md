@@ -183,6 +183,22 @@ task raises `SystemExit` mid-example on its second pass — and RSpec still
 prints "0 failures" for the run it just cut short. The exit code is the
 verdict, not the summary line.
 
+### Specs that read config/deploy.yml run in a fork too
+
+Every fork edits `config/deploy.yml`: `bin/fork` renames the app and sets
+`RAILS_HOST`, and `bin/deploy-setup` fills in the server. A spec that expects
+the template's untouched file passes here and fails in every fork's CI. So a
+spec checks the script's behaviour against a copy it controls (such as
+`spec/fixtures/files/template_deploy.yml`), and only a check on the template's
+own file is tagged `:template_only`.
+
+`bin/fork-shaped-specs` proves it. It clones the committed tree, runs
+`bin/fork` and `bin/deploy-setup` on the clone the way the quickstart does,
+then runs every spec file that names `deploy.yml` there. CI's
+`fork_shaped_specs` job runs it on every change except a changelog-only one,
+and `test` fails when it fails. Run it locally after changing such a spec;
+commit first, because it clones what is committed. In a fork it does nothing.
+
 ### Reviewed lists behind the guards
 
 Two support files hold reviewed lists that code-smell specs enumerate
