@@ -1,0 +1,104 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "fileutils"
+require "open3"
+require "optparse"
+require "tmpdir"
+require_relative "../lib/clean_git_env"
+
+# Runs the specs that read config/deploy.yml in a fresh fork, so one that only passes on
+# the template's untouched file fails here, not in a fork's CI: /docs/developer/testing.
+class ForkShapedSpecs
+  class Failed < StandardError; end
+
+  FORK_ARGS = %w[--name acme_shop --preset none --domain app.acme-garden.com
+                 --support-email help@acme-garden.com --no-github --from-next --yes].freeze
+  # Server, keep it in fnox, SSH user, HTTPS in front, both ports and the domain at their defaults.
+  DEPLOY_ANSWERS = [ "203.0.113.10", "y", "deploy", "y", "", "", "" ].freeze
+  STUBS = {
+    "ssh" => "echo aarch64",
+    "gh" => "echo PRIVATE",
+    "fnox" => '[ "$1" = set ] && { cat >/dev/null; exit 0; }; exit 1'
+  }.freeze
+  ENV_FOR_THE_FORK = CleanGitEnv::HASH.merge(
+    "BUNDLE_GEMFILE" => nil, "BUNDLE_BIN_PATH" => nil, "RUBYOPT" => nil, "RAILS_ENV" => "test", "SKIP_COVERAGE" => "1"
+  ).freeze
+
+  def self.spec_files(root)
+    out, = Open3.capture2(CleanGitEnv::HASH, "git", "-C", root, "grep", "-l", "-F", "deploy.yml", "--", "spec")
+    out.split("\n").grep(/_spec\.rb\z/)
+  end
+
+  def initialize(root:, output: $stdout)
+    @root = root
+    @output = output
+  end
+
+  def run
+    if File.exist?(File.join(@root, ".fork.yml"))
+      say "This is a fork, and its own suite already runs in a fork's shape; nothing to do."
+      return 0
+    end
+
+    Dir.mktmpdir("fork-shaped-specs") do |dir|
+      fork = make_fork(dir)
+      files = self.class.spec_files(fork)
+      say "== #{files.size} spec files that read config/deploy.yml, run in the fork =="
+      sh!(fork, "bin/rails", "db:prepare")
+      system(ENV_FOR_THE_FORK, "bundle", "exec", "rspec", *files, chdir: fork) ? 0 : 1
+    end
+  rescue Failed => e
+    say "bin/fork-shaped-specs: #{e.message}"
+    1
+  end
+
+  def make_fork(dir)
+    fork = File.join(dir, "acme_shop")
+    sh!(dir, "git", "clone", "-q", @root, fork)
+    sh!(fork, "git", "switch", "-q", "-C", "next")
+    sh!(fork, "git", "config", "user.name", "Fork-shaped specs")
+    sh!(fork, "git", "config", "user.email", "fork-shaped-specs@example.invalid")
+    share_bundle(fork)
+    say "== bin/fork #{FORK_ARGS.join(' ')} =="
+    sh!(fork, "bin/fork", *FORK_ARGS)
+    deploy_setup(fork, dir)
+    fork
+  end
+
+  private
+
+  def share_bundle(fork)
+    FileUtils.cp_r(File.join(@root, ".bundle"), fork) if File.directory?(File.join(@root, ".bundle"))
+    vendored = File.join(@root, "vendor/bundle")
+    File.symlink(vendored, File.join(fork, "vendor/bundle")) if File.directory?(vendored)
+  end
+
+  # The deploy check it ends with fails without production credentials, so only the write is required.
+  def deploy_setup(fork, dir)
+    say "== bin/deploy-setup, answered as a fork behind another web server =="
+    stubs = File.join(dir, "stubs")
+    FileUtils.mkdir_p(stubs)
+    STUBS.each { |name, body| File.write(File.join(stubs, name), "#!/bin/sh\n#{body}\n", perm: 0o755) }
+    env = ENV_FOR_THE_FORK.merge("PATH" => "#{stubs}:#{ENV.fetch('PATH')}")
+    out, = Open3.capture2e(env, "bin/deploy-setup", stdin_data: DEPLOY_ANSWERS.map { "#{it}\n" }.join, chdir: fork)
+    say out
+    raise Failed, "bin/deploy-setup didn't write config/deploy.yml" unless out.include?("Wrote config/deploy.yml.")
+  end
+
+  def sh!(dir, *command)
+    out, status = Open3.capture2e(ENV_FOR_THE_FORK, *command, chdir: dir)
+    raise Failed, "#{command.join(' ')} failed:\n#{out}" unless status.success?
+  end
+
+  def say(message) = @output.puts(message)
+end
+
+if $PROGRAM_NAME == __FILE__
+  OptionParser.new do |o|
+    o.banner = "Usage: bin/fork-shaped-specs   (forks the committed tree with bin/fork and bin/deploy-setup, " \
+               "then runs every spec that names deploy.yml there)"
+  end.parse!
+
+  exit ForkShapedSpecs.new(root: File.expand_path("..", __dir__)).run
+end

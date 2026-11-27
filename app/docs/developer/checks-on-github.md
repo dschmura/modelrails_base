@@ -1,7 +1,7 @@
 ---
 title: Checks on GitHub
 description: The checks GitHub Actions runs on every push and pull request, and the ones it runs on a schedule. Also called CI.
-keywords: ci continuous integration github actions checks pull request static test shard lane_specs docker_build image_scan scheduled workflow cve audit
+keywords: ci continuous integration github actions checks pull request static test shard lane_specs fork_shaped_specs docker_build image_scan scheduled workflow cve audit
 ---
 
 # Checks on GitHub
@@ -18,7 +18,8 @@ The test checks split the suite into shards, slices that run side by side; [Test
 | `changes` | Sorts a pull request's changed files into [change lanes](/docs/developer/testing#change-lanes) with `bin/test-plan`, for a pull request into `next`. A push, and a pull request into `main` or a `release/` branch, is always `full`, unless it differs only in the changelog from a parent commit CI passed on (waiting up to 8 minutes for that parent's push run to finish): then nothing runs the specs ([why](/docs/developer/testing#change-lanes)) |
 | `lane_specs` | On a pull request that touches only lanes (locale, docs, workflows), runs just those lanes' specs on one runner, with the same browser and compiled assets as a shard |
 | `test_shard` | The full RSpec suite with Cuprite and the axe accessibility audit, split across parallel shards (eight by default, set by the `CI_SHARDS` repository variable), on a `full` change and on every push to `next` and `main`; each uploads screenshots when it fails |
-| `test` | Passes only when whichever path ran passed: `lane_specs` on a lane change, every shard on a `full` one, and nothing on a changelog-only change from a green parent. After a full run it checks the merged results: every example ran, and coverage meets the 90% floor. This is the check the branch ruleset requires by name |
+| `fork_shaped_specs` | Runs the specs that read `config/deploy.yml` in a fresh fork made with `bin/fork` and `bin/deploy-setup`, so a spec that passes only on the template's untouched file fails here rather than in a fork's CI ([why](/docs/developer/testing#specs-that-read-configdeployyml-run-in-a-fork-too)). Every change except a changelog-only one; in a fork it does nothing |
+| `test` | Passes only when whichever path ran passed, along with `fork_shaped_specs`: `lane_specs` on a lane change, every shard on a `full` one, and nothing on a changelog-only change from a green parent. After a full run it checks the merged results: every example ran, and coverage meets the 90% floor. This is the check the branch ruleset requires by name |
 | `docker_build` | Verifies the production `Dockerfile` builds (catches build-time regressions that structural specs cannot). Its own workflow, run on every push to `main`, unfiltered. A pull request that changes a build input (`Dockerfile`, `.dockerignore`, `Gemfile`, `Gemfile.lock`, `.tool-versions`, `bin/docker-entrypoint`) gets the same proof from `image_scan`, which builds the identical image from scratch, so `docker_build` runs on a pull request only when its own workflow changes. The pre-push hook runs the same build locally through `bin/docker-build-check` on the same inputs. Uses GHA layer caching — cold builds ~3-5 min, warm builds ~30-60s. See [Deployment](/docs/developer/deployment). |
 
 ## Scheduled checks
