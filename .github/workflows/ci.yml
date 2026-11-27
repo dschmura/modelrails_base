@@ -343,9 +343,41 @@ jobs:
           path: tmp/capybara/
           retention-days: 7
 
+  # The deploy specs, run in a fresh fork that bin/fork and bin/deploy-setup configured; a fork skips it.
+  fork_shaped_specs:
+    needs: changes
+    if: needs.changes.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      RAILS_ENV: test
+      CI: true
+      SECRET_KEY_BASE: ci-test-only-dummy-secret-key-base-not-used-anywhere-real
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@f9c4492e86def3e644ab32a0ef185eda5b0c20d0 # v1.342.0
+        with:
+          bundler-cache: true
+
+      - name: Install libvips (loaded at Rails boot via active_storage_validations)
+        timeout-minutes: 5
+        uses: ./.github/actions/apt-packages
+        with:
+          packages: libvips42t64
+
+      - name: Run the specs that read config/deploy.yml in a fresh fork
+        run: bin/fork-shaped-specs
+
   # The ruleset requires `test` by name; `always()` keeps a failed run from skipping it, which would pass.
   test:
-    needs: [ changes, test_shard, lane_specs ]
+    needs: [ changes, test_shard, lane_specs, fork_shaped_specs ]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -353,16 +385,18 @@ jobs:
       RAILS_ENV: test
 
     steps:
-      - name: The full suite or the change's lane specs succeeded, or a green parent made both unnecessary
+      - name: The full suite or the change's lane specs, and the fork-shaped specs, succeeded, or a green parent made them unnecessary
         id: shards
         env:
           FULL: ${{ needs.changes.outputs.full }}
           SKIP: ${{ needs.changes.outputs.skip }}
           SHARDS: ${{ needs.test_shard.result }}
           LANE: ${{ needs.lane_specs.result }}
+          FORK: ${{ needs.fork_shaped_specs.result }}
         run: |
           if [ "$SKIP" = true ]; then want=success; elif [ "$FULL" = true ]; then want="$SHARDS"; else want="$LANE"; fi
           [ "$want" = success ] || { echo "full=$FULL skip=$SKIP shards=$SHARDS lane=$LANE"; exit 1; }
+          [ "$SKIP" = true ] || [ "$FORK" = success ] || { echo "fork_shaped_specs=$FORK"; exit 1; }
 
       - name: Checkout code
         if: needs.changes.outputs.full == 'true'
