@@ -4,6 +4,12 @@ All notable changes to ModelRails are documented here, organized by phase.
 
 ## [Unreleased]
 
+## v2026.11.27-2
+
+### Fixed
+
+- A fork made with `bin/fork --domain` no longer fails the template's spec for the commented `RAILS_HOST` line, which that run replaces.
+
 ## v2026.11.27
 
 ### Fixed
