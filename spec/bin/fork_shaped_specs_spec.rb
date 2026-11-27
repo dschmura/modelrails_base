@@ -34,4 +34,17 @@ RSpec.describe ForkShapedSpecs do
       expect(deploy).not_to include("# RAILS_HOST: app.yourdomain.com")
     end
   end
+
+  it "shares gems installed under vendor/bundle without leaving bin/fork an unclean tree" do
+    Dir.mktmpdir do |dir|
+      root = File.join(dir, "root")
+      system(CleanGitEnv::HASH, "git", "clone", "-q", Rails.root.to_s, root, exception: true)
+      FileUtils.mkdir_p(File.join(root, "vendor/bundle"))
+
+      fork = described_class.new(root:, output:).make_fork(File.join(dir, "forks").tap { FileUtils.mkdir_p(it) })
+
+      expect(File.symlink?(File.join(fork, "vendor/bundle"))).to be(true)
+      expect(File).to exist(File.join(fork, ".fork.yml"))
+    end
+  end
 end

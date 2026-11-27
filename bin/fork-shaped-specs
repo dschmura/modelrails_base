@@ -71,7 +71,10 @@ class ForkShapedSpecs
   def share_bundle(fork)
     FileUtils.cp_r(File.join(@root, ".bundle"), fork) if File.directory?(File.join(@root, ".bundle"))
     vendored = File.join(@root, "vendor/bundle")
-    File.symlink(vendored, File.join(fork, "vendor/bundle")) if File.directory?(vendored)
+    return unless File.directory?(vendored)
+
+    File.symlink(vendored, File.join(fork, "vendor/bundle"))
+    File.write(File.join(fork, ".git/info/exclude"), "/vendor/bundle\n", mode: "a")
   end
 
   # The deploy check it ends with fails without production credentials, so only the write is required.
